@@ -1,0 +1,9 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: fithub
+      POSTGRES_USER: fithub
+      POSTGRES_PASSWORD: fithub
+    ports:
+      - "5432:5432"
