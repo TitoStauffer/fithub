@@ -30,11 +30,11 @@ async function main(): Promise<void> {
     || !isAgentEvaluationEvidence(result.evidence)) throw new Error('Agent result artifact is invalid.');
 
   const credentials = {
-    appId: required('CASHIN_APP_ID'),
-    privateKey: (process.env.CASHIN_APP_PRIVATE_KEY ?? '').trim().replace(/\\n/g, '\n'),
+    appId: required('FITHUB_APP_ID'),
+    privateKey: (process.env.FITHUB_APP_PRIVATE_KEY ?? '').trim().replace(/\\n/g, '\n'),
     owner,
     repository: name,
-    installationId: process.env.CASHIN_APP_INSTALLATION_ID?.trim() || undefined,
+    installationId: process.env.FITHUB_APP_INSTALLATION_ID?.trim() || undefined,
     contextToken: process.env.GITHUB_TOKEN?.trim() || undefined,
   };
   if (!credentials.privateKey) throw new Error('GitHub App private key is unavailable.');

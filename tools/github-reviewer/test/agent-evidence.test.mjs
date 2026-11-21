@@ -11,7 +11,7 @@ test('parses only structured reports authored by the App and bound to the expect
   const result = { agentName: 'qa', pullRequestNumber: 26, commitSha: sha, status: 'APPROVED', reportMarkdown: '**Verificações de QA:**\n- Check CI passou.', evidence };
   const comment = { user: { login: bot }, body: formatPullRequestReport(result) };
 
-  assert.equal(agentReportMarker('qa', sha), `<!-- cashin-agent-report:v1 stage=qa sha=${sha} -->`);
+  assert.equal(agentReportMarker('qa', sha), `<!-- fithub-agent-report:v1 stage=qa sha=${sha} -->`);
   assert.equal(parseStoredAgentComment(comment, 'qa', sha, 'cashin-devagents').decision, 'APPROVED');
   assert.equal(parseStoredAgentComment(comment, 'qa', 'b'.repeat(40), 'cashin-devagents'), undefined);
   assert.equal(parseStoredAgentComment({ ...comment, user: { login: 'a-user' } }, 'qa', sha, 'cashin-devagents'), undefined);

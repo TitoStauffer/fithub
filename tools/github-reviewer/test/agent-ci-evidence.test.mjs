@@ -83,7 +83,8 @@ test('loads verified Actions steps and current-HEAD configuration through review
   assert.deepEqual(actions.steps, job.steps);
   assert.equal(actions.headSha, sha);
   assert.equal(actions.workflowPath, '.github/workflows/ci.yml');
-  assert.equal(inputs.ciConfiguration.length, 6);
+  // FitHub (DEV-0118): o workflow CI e o manifesto do reviewer (repository-policy.ts).
+  assert.equal(inputs.ciConfiguration.length, 2);
   assert.equal(requests.some(({ url }) => url.pathname.endsWith('/logs')), false);
   assert.equal(requests.filter(({ url }) => url.pathname.includes('/actions/')).every(({ options }) => options.redirect === 'error' && options.signal), true);
 });
@@ -96,14 +97,9 @@ test('omits env values and package dependencies but preserves configured variabl
   assert.match(snapshots[0].content, /test "\$skipped" = "0"/);
   assert.doesNotMatch(JSON.stringify(snapshots), /ci-placeholder|omitted-package/);
   assert.equal(snapshots[0].originalSha256, createHash('sha256').update(workflow).digest('hex'));
-  assert.deepEqual(JSON.parse(snapshots[1].content), { scripts });
-  // DEV-153: the mobile app scripts reach the agents too, with dependencies omitted like the others.
-  assert.equal(snapshots[3].path, 'apps/mobile/package.json');
-  assert.deepEqual(JSON.parse(snapshots[3].content), { scripts });
-  assert.equal(snapshots[4].path, 'tools/github-reviewer/package.json');
-  assert.deepEqual(JSON.parse(snapshots[4].content), { scripts: reviewerScripts });
-  assert.equal(snapshots[5].path, 'tools/jira-dispatcher/package.json');
-  assert.deepEqual(JSON.parse(snapshots[5].content), { scripts: dispatcherScripts });
+  // FitHub (DEV-0118): só o manifesto do reviewer, com as dependências omitidas.
+  assert.deepEqual(snapshots.map(({ path }) => path), ['.github/workflows/ci.yml', 'tools/github-reviewer/package.json']);
+  assert.deepEqual(JSON.parse(snapshots[1].content), { scripts: reviewerScripts });
 });
 
 test('also attaches verified job evidence to Web checks', async () => {
@@ -112,7 +108,7 @@ test('also attaches verified job evidence to Web checks', async () => {
   assert.equal(inputs.checkRuns[0].actions.availability, 'available');
 });
 
-test('verifies all four CI jobs and supplies Automation Tools test steps and six snapshots', async () => {
+test('verifies all four CI jobs and supplies Automation Tools test steps and the CI snapshots', async () => {
   const checkValues = ['API', 'Web', 'Mobile', 'Automation Tools'].map((name, index) => ({ ...check, name, id: 20 + index, details_url: `https://github.com/owner/repo/actions/runs/10/job/${20 + index}` }));
   const jobValues = checkValues.map((entry) => ({ ...job, id: entry.id, name: entry.name, html_url: entry.details_url, check_run_url: `https://api.github.com/repos/owner/repo/check-runs/${entry.id}`,
     ...(entry.name === 'Automation Tools' ? { steps: [
@@ -129,8 +125,9 @@ test('verifies all four CI jobs and supplies Automation Tools test steps and six
   assert.equal(inputs.checkRuns.find(({ name }) => name === 'Mobile').actions.availability, 'available');
   assert.equal(inputs.checkRuns.filter(({ actions }) => actions?.availability === 'available').length, 4);
   assert.deepEqual(inputs.checkRuns.find(({ name }) => name === 'Automation Tools').actions.steps, jobValues[3].steps);
-  assert.equal(inputs.ciConfiguration.length, 6);
-  assert.ok(inputs.ciConfiguration.some(({ path }) => path === 'apps/mobile/package.json'));
+  // FitHub (DEV-0118): o workflow CI e o manifesto do reviewer (repository-policy.ts).
+  assert.equal(inputs.ciConfiguration.length, 2);
+  assert.ok(inputs.ciConfiguration.some(({ path }) => path === '.github/workflows/ci.yml'));
   assert.deepEqual(
     inputs.checkRuns.find(({ name }) => name === 'Automation Tools').actions.steps.map(({ name }) => name),
     ['Build and test GitHub integration tools', 'Install Jira dispatcher dependencies', 'Verify Jira dispatcher'],
@@ -142,7 +139,7 @@ test('verifies all four CI jobs and supplies Automation Tools test steps and six
   inputs.ciConfiguration.find(({ path }) => path === 'tools/github-reviewer/package.json').originalSha256 = 'c'.repeat(64);
   assert.notEqual(JSON.stringify(fingerprintAgentReviewInputs(inputs)), originalFingerprint);
   inputs.ciConfiguration.find(({ path }) => path === 'tools/github-reviewer/package.json').originalSha256 = createHash('sha256').update(JSON.stringify({ scripts: reviewerScripts, dependencies: { 'omitted-package': '1' } })).digest('hex');
-  inputs.ciConfiguration.find(({ path }) => path === 'tools/jira-dispatcher/package.json').originalSha256 = 'd'.repeat(64);
+  inputs.ciConfiguration.find(({ path }) => path === '.github/workflows/ci.yml').originalSha256 = 'd'.repeat(64);
   assert.notEqual(JSON.stringify(fingerprintAgentReviewInputs(inputs)), originalFingerprint);
 });
 
@@ -271,17 +268,16 @@ for (const [format, workflowValue] of [
   });
 }
 
-test('projects the current CI fixture while preserving expressions, scripts and no-skip guard', { skip: 'DEV-0118: depende do ci.yml do FitHub com os jobs que este teste projeta' }, async () => {
+// FitHub (DEV-0118): projeta o ci.yml real do repositório, preservando expressões e comandos.
+test('projects the current FitHub CI workflow while preserving expressions and commands', async () => {
   const currentCi = await readFile(new URL('../../../.github/workflows/ci.yml', import.meta.url), 'utf8');
   const [snapshot] = await loadCiSnapshots(fakeFetch({ workflowValue: currentCi }), 'owner/repo', sha, 'not-a-real-token');
-  assert.match(snapshot.content, /TEST_DATABASE_URL: \[value omitted; variable configured\]/);
-  assert.match(snapshot.content, /POSTGRES_PASSWORD: \[value omitted; variable configured\]/);
-  assert.doesNotMatch(snapshot.content, /postgresql:\/\//);
   assert.match(snapshot.content, /\$\{\{ github\.event\.pull_request\.number \|\| github\.ref \}\}/);
-  assert.match(snapshot.content, /const \{ Client \} = require\('pg'\)/);
-  assert.match(snapshot.content, /\$\{RUNNER_TEMP\}\/api-test\.log/);
-  assert.match(snapshot.content, /Ensure no test was skipped/);
-  assert.match(snapshot.content, /if \[ "\$\{skipped\}" != "0" \]/);
+  assert.match(snapshot.content, /run: npm test/);
+  assert.match(snapshot.content, /\.\/tools\/github-runner\/test-runner-scripts\.ps1/);
+  // Valores de env são omitidos na projeção, mas a variável aparece como configurada.
+  assert.match(snapshot.content, /NODE_VERSION: \[value omitted; variable configured\]/);
+  assert.doesNotMatch(snapshot.content, /24\.22\.0/);
   assert.equal(snapshot.originalSha256, createHash('sha256').update(currentCi).digest('hex'));
 });
 
@@ -325,7 +321,7 @@ test('prompt distinguishes verified execution metadata, untrusted configuration 
   }), true);
 });
 
-test('every workflow context reader declares Actions read access for independent fingerprints', { skip: 'DEV-0118: depende dos workflows agent-orchestration e merge-readiness do FitHub' }, async () => {
+test('every workflow context reader declares Actions read access for independent fingerprints', async () => {
   for (const [file, expectedJobs] of [['agent-orchestration.yml', 6], ['merge-readiness.yml', 1]]) {
     const content = (await readFile(new URL(`../../../.github/workflows/${file}`, import.meta.url), 'utf8')).replace(/\r\n/g, '\n');
     const permissionBlocks = [...content.matchAll(/^    permissions:\n((?:      [\w-]+: \w+\n)+)/gm)];

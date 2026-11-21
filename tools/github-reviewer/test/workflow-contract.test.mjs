@@ -1,15 +1,15 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { DEFAULT_DELAY_MS, DEFAULT_MAX_ATTEMPTS } from '../../dist/ci-recovery.js';
-import { REVIEW_TRACK_OUTPUT } from '../../dist/review-track.js';
+import { DEFAULT_DELAY_MS, DEFAULT_MAX_ATTEMPTS } from '../dist/ci-recovery.js';
+import { REVIEW_TRACK_OUTPUT } from '../dist/review-track.js';
 
-const mergeReadinessWorkflow = await readFile(new URL('../../../../.github/workflows/merge-readiness.yml', import.meta.url), 'utf8');
-const reviewSignalWorkflow = await readFile(new URL('../../../../.github/workflows/pr-review-signal.yml', import.meta.url), 'utf8');
-const titleWorkflow = await readFile(new URL('../../../../.github/workflows/pr-title.yml', import.meta.url), 'utf8');
-const ciWorkflow = await readFile(new URL('../../../../.github/workflows/ci.yml', import.meta.url), 'utf8');
-const orchestrationWorkflow = await readFile(new URL('../../../../.github/workflows/agent-orchestration.yml', import.meta.url), 'utf8');
-const recoveryWorkflow = await readFile(new URL('../../../../.github/workflows/agent-report-recovery.yml', import.meta.url), 'utf8');
+const mergeReadinessWorkflow = await readFile(new URL('../../../.github/workflows/merge-readiness.yml', import.meta.url), 'utf8');
+const reviewSignalWorkflow = await readFile(new URL('../../../.github/workflows/pr-review-signal.yml', import.meta.url), 'utf8');
+const titleWorkflow = await readFile(new URL('../../../.github/workflows/pr-title.yml', import.meta.url), 'utf8');
+const ciWorkflow = await readFile(new URL('../../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+const orchestrationWorkflow = await readFile(new URL('../../../.github/workflows/agent-orchestration.yml', import.meta.url), 'utf8');
+const recoveryWorkflow = await readFile(new URL('../../../.github/workflows/agent-report-recovery.yml', import.meta.url), 'utf8');
 
 function assertOrchestrationCheckoutsOmitRef(workflow) {
   assert.equal([...workflow.matchAll(/uses:\s*actions\/checkout@/g)].length, 6);
@@ -26,63 +26,25 @@ test('serializes merge-readiness publications for the same pull request', () => 
   assert.match(mergeReadinessWorkflow, /^\s+cancel-in-progress:\s*false\s*$/m);
 });
 
-test('sequences PR metadata, implementation checks, SonarQube and agent orchestration', () => {
-  assert.match(ciWorkflow, /^  pr-title:\s*$/m);
-  assert.match(ciWorkflow, /^  automation-tools:\s*\r?\n(?:\s+#.*\r?\n)*\s+name: GitHub Reviewer\s*\r?\n\s+needs: pr-title/m);
-  assert.match(ciWorkflow, /^  api:\s*\n\s+name: API\s*\n\s+needs: pr-title/m);
-  assert.match(ciWorkflow, /^  web:\s*\n\s+name: Web\s*\n\s+needs: pr-title/m);
-  // DEV-141: the mobile app has its own job, gated by the PR metadata like API and Web, and SonarQube
-  // waits for its coverage too.
-  assert.match(ciWorkflow, /^  mobile:\s*\r?\n(?:\s+#.*\r?\n)*\s+name: Mobile\s*\r?\n\s+needs: pr-title/m);
-  assert.match(ciWorkflow, /^  sonarqube:[\s\S]*?^\s+needs: \[api, web, mobile, automation-tools\]\s*$/m);
-  assert.match(orchestrationWorkflow, /^\s+workflows: \[CI\]\s*$/m);
-  assert.doesNotMatch(orchestrationWorkflow, /workflows: \[[^\]]*PR title/);
-  assert.doesNotMatch(orchestrationWorkflow, /workflow_run\.actor\.login != vars\.CASHIN_APP_BOT_LOGIN/);
-  assert.match(orchestrationWorkflow, /^\s+cancel-in-progress:\s*false\s*$/m);
+// FitHub (DEV-0118): o CI tem o job das ferramentas de revisão (os serviços e apps entram na DEV-0016),
+// sem SonarQube; o título do PR é validado só pelo workflow confiável "PR title", inclusive em edições,
+// e a orquestração dos agentes começa depois do CI completo.
+test('sequences the FitHub CI, the PR title validation and agent orchestration', () => {
+  assert.match(ciWorkflow, /^name: CI\s*$/m);
+  assert.match(ciWorkflow, /^  automation-tools:\s*\r?\n(?:\s+#.*\r?\n)*\s+name: GitHub Reviewer\s*$/m);
+  assert.doesNotMatch(ciWorkflow, /sonar/i);
   assert.match(ciWorkflow, /types:\s*\[opened, reopened, synchronize, ready_for_review\]/);
   assert.doesNotMatch(ciWorkflow, /types:\s*\[[^\]]*edited/);
+  assert.match(orchestrationWorkflow, /^\s+workflows: \[CI\]\s*$/m);
+  assert.doesNotMatch(orchestrationWorkflow, /workflows: \[[^\]]*PR title/);
+  assert.doesNotMatch(orchestrationWorkflow, /workflow_run\.actor\.login != vars\.FITHUB_APP_BOT_LOGIN/);
+  assert.match(orchestrationWorkflow, /^\s+cancel-in-progress:\s*false\s*$/m);
+  assert.match(orchestrationWorkflow, /runs-on: \[self-hosted, Windows, X64, fithub-agents\]/);
   assert.match(titleWorkflow, /pull_request_target:/);
-  assert.match(titleWorkflow, /types:\s*\[edited\]/);
-  // DEV-110: the recovery job must not be gated at the job level, in any spelling, and every
-  // privileged step must carry the step-level gate. Asserting one occurrence of the step gate, or one
-  // textual form of the job gate, left the property open: the declared mutant survived either way.
-  const recoverJob = titleWorkflow.slice(titleWorkflow.indexOf('\n  recover-ci:'));
-  // Over the whole job, not just the text before `steps:`: YAML keys are unordered, so a job-level
-  // `if:` written after the steps block would have escaped a header-only check. Job keys sit at four
-  // spaces and step keys at eight, and the quoted spelling is refused too.
-  assert.doesNotMatch(recoverJob, /^ {4}"?if"?\s*:/m);
-  // The producer and the consumers of the gate have to be tied by name. Without this, renaming
-  // `id: scope` keeps the suite green while `steps.scope.outputs.recover` resolves empty in
-  // production: the five privileged steps would be skipped and the job would publish **success
-  // without recovering anything** — the green-that-lies this delivery exists to eliminate.
-  assert.match(recoverJob, /^\s+id:\s*scope\s*$/m);
-  assert.equal([...recoverJob.matchAll(/^\s+if:\s*steps\.scope\.outputs\.recover == 'true'\s*$/gm)].length, 5);
-  // The gate's **semantics**, not just its presence: both operands wired, and the comparison in the
-  // direction that skips recovery for the App's own edits. Asserting the `env` and the echo alone let
-  // an inverted operator, or a disconnected `EDIT_ACTOR`, keep the suite green.
-  assert.match(titleWorkflow, /EDIT_ACTOR:\s*\$\{\{ github\.actor \}\}/);
-  assert.match(titleWorkflow, /APP_BOT_LOGIN:\s*\$\{\{ vars\.CASHIN_APP_BOT_LOGIN \}\}/);
-  // The whole branch, both arms: fixing only the `then` left the `else` free to write `recover=false`
-  // too, which would skip the five privileged steps and publish success without recovering anything.
-  assert.match(titleWorkflow, /if \[\[ -n "\$\{APP_BOT_LOGIN\}" && "\$\{EDIT_ACTOR\}" == "\$\{APP_BOT_LOGIN\}" \]\]; then\s*\r?\n\s+echo "recover=false" >> "\$\{GITHUB_OUTPUT\}"/);
-  assert.match(titleWorkflow, /\belse\s*\r?\n\s+echo "recover=true" >> "\$\{GITHUB_OUTPUT\}"/);
-  // The job must outlast the tool's own wait window (DEV-110), or the runner decides instead of the
-  // process and the failure never names the condition it observed.
-  assert.match(recoverJob, /^\s+timeout-minutes:\s*(\d+)\s*$/m);
-  assert.ok(Number(recoverJob.match(/^\s+timeout-minutes:\s*(\d+)\s*$/m)[1]) * 60_000 > (DEFAULT_MAX_ATTEMPTS - 1) * DEFAULT_DELAY_MS);
-  assert.match(titleWorkflow, /actions:\s*write/);
-  assert.match(titleWorkflow, /statuses:\s*write/);
-  assert.match(titleWorkflow, /statuses\/\$\{HEAD_SHA\}/);
+  assert.match(titleWorkflow, /types:\s*\[[^\]]*\bedited\b[^\]]*\]/);
   assert.match(titleWorkflow, /context='PR title'/);
-  assert.match(titleWorkflow, /node dist\/ci-recovery-cli\.js/);
-  assert.match(titleWorkflow, /ref:\s*master/);
-  assert.match(titleWorkflow, /persist-credentials:\s*false/);
-  assert.match(ciWorkflow, /gh api "repos\/\$\{GITHUB_REPOSITORY\}\/pulls\/\$\{PR_NUMBER\}"/);
-  assert.match(mergeReadinessWorkflow, /workflows:\s*\[CI, PR Review Signal\]/);
-  assert.doesNotMatch(mergeReadinessWorkflow, /workflows:\s*\[[^\]]*PR title/);
-  assert.doesNotMatch(mergeReadinessWorkflow, /pull_request_target:/);
-  assert.match(mergeReadinessWorkflow, /### Codex — Quality Gate Coordinator/);
-  assert.doesNotMatch(mergeReadinessWorkflow, /### Codex — QA Agent|### Code Review —|### Code Review -/);
+  // Workflow privilegiado: nunca faz checkout nem executa código do PR.
+  assert.doesNotMatch(titleWorkflow, /actions\/checkout/);
 });
 
 test('formal review relay listens to review changes and has no permissions or privileged steps', () => {

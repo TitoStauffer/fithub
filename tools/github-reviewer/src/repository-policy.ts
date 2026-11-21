@@ -48,3 +48,14 @@ export const BRANCH_PROTECTION_UNAVAILABLE_NOTE =
  */
 export const VAULT_ROOT = 'docs/00-oficial/';
 export const VAULT_CONTEXT_MAP_PATH = `${VAULT_ROOT}context-map.json`;
+
+/**
+ * Arquivos de configuração de CI que os agentes recebem como contexto (scripts dos pacotes e o
+ * workflow `CI`), lidos no HEAD do PR (DEV-0118). Todos precisam existir: um ausente falha fechado.
+ * Ao criar serviço ou app com CI próprio (DEV-0016 em diante), acrescente o manifesto aqui.
+ */
+export const CI_WORKFLOW_PATH = '.github/workflows/ci.yml';
+export const CI_SNAPSHOT_PATHS: readonly string[] = [
+  CI_WORKFLOW_PATH,
+  'tools/github-reviewer/package.json',
+];

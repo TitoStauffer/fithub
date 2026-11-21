@@ -48,7 +48,7 @@ test('submits an approval for the pull request head as the GitHub App', async ()
   });
 
   assert.equal(calls.length, 4);
-  assert.equal(calls[3].url, 'https://api.github.com/repos/TitoStauffer/CashIn/pulls/11/reviews');
+  assert.equal(calls[3].url, 'https://api.github.com/repos/TitoStauffer/fithub/pulls/11/reviews');
   assert.deepEqual(JSON.parse(calls[3].options.body), {
     body: '### Code Review — APPROVED\nNo blockers identified.',
     commit_id: 'head-sha',

@@ -28,7 +28,7 @@ export function computeAgentContextHash(repository: string, pullRequestNumber: n
 export function agentReportMarker(stage: AgentStage, commitSha: string, contextHash?: string): string {
   if (!/^[a-f0-9]{40}$/i.test(commitSha)) throw new Error('Commit SHA must be a full SHA-1.');
   if (contextHash !== undefined && !/^[a-f0-9]{64}$/i.test(contextHash)) throw new Error('Context hash must be a full SHA-256.');
-  return `<!-- cashin-agent-report:v1 stage=${stage} sha=${commitSha.toLowerCase()}${contextHash ? ` ctx=${contextHash.toLowerCase()}` : ''} -->`;
+  return `<!-- fithub-agent-report:v1 stage=${stage} sha=${commitSha.toLowerCase()}${contextHash ? ` ctx=${contextHash.toLowerCase()}` : ''} -->`;
 }
 
 export function formatFormalReviewEvidence(result: AgentStageResult): string {
@@ -85,11 +85,11 @@ export function parseStoredAgentComment(
 }
 
 export function agentEvidenceMarker(evidence: NonNullable<AgentStageResult['evidence']>): string {
-  return `<!-- cashin-agent-evidence:v1 data=${encodeAgentEvidence(evidence)} -->`;
+  return `<!-- fithub-agent-evidence:v1 data=${encodeAgentEvidence(evidence)} -->`;
 }
 
 function parseAgentEvidenceMarker(body: string): AgentStageResult['evidence'] {
-  const encoded = body.match(/^<!-- cashin-agent-evidence:v1 data=([A-Za-z0-9+/=]+) -->$/m)?.[1];
+  const encoded = body.match(/^<!-- fithub-agent-evidence:v1 data=([A-Za-z0-9+/=]+) -->$/m)?.[1];
   return encoded ? decodeAgentEvidence(encoded) : undefined;
 }
 

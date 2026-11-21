@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
 import { requestGitHubApi } from './github-api-client.js';
+import { CI_SNAPSHOT_PATHS, CI_WORKFLOW_PATH } from './repository-policy.js';
 
 export const ACTIONS_APP_ID = 15368;
-const WORKFLOW_PATH = '.github/workflows/ci.yml';
+const WORKFLOW_PATH = CI_WORKFLOW_PATH;
 const MAX_RESPONSE_BYTES = 100_000;
 const MAX_JOB_STEPS = 40;
 const EMPTY_STEPS_ATTEMPTS = 4;
@@ -114,14 +115,8 @@ async function readJobUntilStepsPublished(
 
 export async function loadCiSnapshots(fetchImpl: typeof fetch, repository: string, headSha: string, token: string): Promise<AgentCiSnapshot[]> {
   const snapshots: AgentCiSnapshot[] = [];
-  for (const path of [
-    WORKFLOW_PATH,
-    'apps/api/package.json',
-    'apps/web/package.json',
-    'apps/mobile/package.json',
-    'tools/github-reviewer/package.json',
-    'tools/jira-dispatcher/package.json',
-  ]) {
+  // FitHub (DEV-0118): só os arquivos que existem neste repositório (repository-policy.ts).
+  for (const path of CI_SNAPSHOT_PATHS) {
     const payload = await requestGitHubApi<Record<string, unknown>>(
       fetchImpl, `/repos/${repository}/contents/${path}?ref=${headSha}`, token, { maxResponseBytes: MAX_RESPONSE_BYTES },
     );

@@ -116,7 +116,7 @@ export async function executeCodexAgent(
 ): Promise<AgentStageResult> {
   const prompt = buildPrompt(stage, context, evidence);
   assertCodexPromptWithinBudget(prompt);
-  const tempDirectory = await mkdtemp(join(tmpdir(), 'cashin-codex-agent-'));
+  const tempDirectory = await mkdtemp(join(tmpdir(), 'fithub-codex-agent-'));
   const schemaPath = join(tempDirectory, 'output-schema.json');
   const outputPath = join(tempDirectory, 'result.json');
   await writeFile(schemaPath, JSON.stringify(CODEX_OUTPUT_SCHEMA), 'utf8');

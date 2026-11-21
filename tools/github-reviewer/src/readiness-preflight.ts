@@ -51,7 +51,7 @@ function isCurrentCoordinatorReport(comment: Record<string, unknown> | undefined
   // Extract the context only to reuse the canonical report parser. Context
   // freshness and completeness remain exclusively the full gate's decision.
   const contextHash = typeof comment.body === 'string'
-    ? /^<!-- cashin-agent-report:v1 stage=qualityGate sha=[a-f0-9]{40} ctx=([a-f0-9]{64}) -->\n/.exec(comment.body)?.[1]
+    ? /^<!-- fithub-agent-report:v1 stage=qualityGate sha=[a-f0-9]{40} ctx=([a-f0-9]{64}) -->\n/.exec(comment.body)?.[1]
     : undefined;
   return Boolean(contextHash && parseStoredAgentComment(comment, 'qualityGate', options.headSha, options.botLogin, contextHash));
 }

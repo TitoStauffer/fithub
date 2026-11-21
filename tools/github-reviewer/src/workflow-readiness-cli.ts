@@ -39,7 +39,7 @@ async function run(): Promise<void> {
     eventName: process.env.GITHUB_EVENT_NAME ?? '',
     payload,
     repository,
-    botLogin: process.env.CASHIN_APP_BOT_LOGIN ?? '',
+    botLogin: process.env.FITHUB_APP_BOT_LOGIN ?? '',
     token: process.env.GITHUB_TOKEN ?? '',
   });
 
@@ -61,7 +61,7 @@ async function run(): Promise<void> {
         repository: repositoryName,
         pullRequestNumber: resolution.pullRequestNumber,
         headSha: resolution.headSha ?? '',
-        botLogin: process.env.CASHIN_APP_BOT_LOGIN ?? '',
+        botLogin: process.env.FITHUB_APP_BOT_LOGIN ?? '',
         token: process.env.GITHUB_TOKEN ?? '',
       });
       await writeOutput('evaluation_mode', plan.mode);
@@ -70,11 +70,11 @@ async function run(): Promise<void> {
       } else {
         const privateKey = await loadPrivateKey();
         result = await evaluateMergeReadiness({
-          appId: process.env.CASHIN_APP_ID ?? '',
+          appId: process.env.FITHUB_APP_ID ?? '',
           privateKey,
           owner,
           repository: repositoryName,
-          installationId: process.env.CASHIN_APP_INSTALLATION_ID?.trim() || undefined,
+          installationId: process.env.FITHUB_APP_INSTALLATION_ID?.trim() || undefined,
           pullRequestNumber: resolution.pullRequestNumber,
           requiredBaseBranch: 'master',
           contextToken: process.env.GITHUB_TOKEN ?? '',
@@ -123,9 +123,9 @@ async function run(): Promise<void> {
 }
 
 async function loadPrivateKey(): Promise<string> {
-  const configuredKey = process.env.CASHIN_APP_PRIVATE_KEY?.trim();
+  const configuredKey = process.env.FITHUB_APP_PRIVATE_KEY?.trim();
   if (configuredKey) return configuredKey.replace(/\\n/g, '\n');
-  const path = process.env.CASHIN_APP_PRIVATE_KEY_PATH?.trim();
+  const path = process.env.FITHUB_APP_PRIVATE_KEY_PATH?.trim();
   if (!path) return '';
   return readFile(path, 'utf8');
 }

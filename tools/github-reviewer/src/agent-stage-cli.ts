@@ -32,7 +32,7 @@ async function main(): Promise<void> {
     eventName: process.env.GITHUB_EVENT_NAME ?? '',
     payload,
     repository,
-    botLogin: process.env.CASHIN_APP_BOT_LOGIN ?? '',
+    botLogin: process.env.FITHUB_APP_BOT_LOGIN ?? '',
     token,
   });
   if (resolution.action !== 'evaluate' || !resolution.pullRequestNumber || !resolution.headSha) {
@@ -89,7 +89,7 @@ async function main(): Promise<void> {
     throw new Error('Quality Gate Coordinator requires an approved QA result for the current SHA.');
   }
 
-  const evidenceContext = { commitSha: resolution.headSha, contextHash, botLogin: required('CASHIN_APP_BOT_LOGIN'), changedFiles, acceptanceCriteria };
+  const evidenceContext = { commitSha: resolution.headSha, contextHash, botLogin: required('FITHUB_APP_BOT_LOGIN'), changedFiles, acceptanceCriteria };
   if (stage === 'qualityGate') {
     await verifyContextUnchanged(prNumber, repository, token, pullRequest, resolution.headSha, contextHash);
     const [reviews, comments] = await Promise.all([
@@ -235,7 +235,7 @@ async function verifyContextUnchanged(
 
 async function readFormalReviewEvidence(number: number, sha: string, repository: string, token: string, contextHash: string, changedFiles: string[], acceptanceCriteria: string[]): Promise<FormalCodeReviewEvidence> {
   const reviews = await githubJsonPages<Array<Record<string, unknown>>>(`/repos/${repository}/pulls/${number}/reviews`, token);
-  const botLogin = process.env.CASHIN_APP_BOT_LOGIN?.trim();
+  const botLogin = process.env.FITHUB_APP_BOT_LOGIN?.trim();
   const latest = botLogin ? latestCurrentFormalReview(reviews, sha, botLogin) : undefined;
   if (!latest || latest.state !== 'APPROVED' || latest.commit_id !== sha || typeof latest.submitted_at !== 'string') {
     throw new Error('Code Review formal approval is missing, stale, or not approved for the current SHA.');
