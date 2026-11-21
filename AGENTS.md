@@ -139,7 +139,11 @@ Resumo; o detalhe está no ENGENHARIA.md.
     autenticação;
   - introduzir decisão de produto que não está no PRD.
 - **Deploy** só com pedido explícito do Tito.
-- Até os bots existirem (DEV-0009 concluída), todo merge é decidido pelo Tito.
+- **Até os bots existirem (DEV-0009 concluída)**, o Tito autorizou (21/11/2026)
+  o Agent de Product Manager a fazer o merge dos PRs prontos sem perguntar:
+  CI verde, critérios de aceitação conferidos e checklist do PR completo. O
+  Tito só é acionado quando uma tarefa depende de uma ação dele (acesso,
+  credencial, decisão de produto ou de custo).
 
 ## Workflow
 
