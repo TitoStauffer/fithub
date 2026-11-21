@@ -1,0 +1,104 @@
+name: PR title
+
+# Valida o padrão do PR (AGENTS.md, "Git e entrega"):
+#   título  [DEV-NNNN] - título objetivo
+#   branch  feature|fix|chore/DEV-NNNN-descricao
+#   issue   o PR fecha (Closes #N) uma issue cujo título tem a mesma chave
+# Publica o status "PR title" no HEAD do PR.
+
+on:
+  pull_request_target: # zizmor: ignore[dangerous-triggers] — roda o workflow confiável da master; nunca faz checkout nem executa código do PR.
+    branches: [master]
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+permissions: {}
+
+concurrency:
+  group: pr-title-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pr-title:
+    name: Validate PR metadata
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      statuses: write
+      pull-requests: read
+      issues: read
+    steps:
+      - name: Validar título, branch e issue
+        id: validate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          fail() {
+            echo "description=$1" >> "${GITHUB_OUTPUT}"
+            echo "::error title=PR fora do padrão::$2"
+            exit 1
+          }
+
+          title_pattern='^\[(DEV-[0-9]{4})\] - [^[:space:]](.*[^[:space:]])?$'
+          if [[ ! "${PR_TITLE}" =~ ${title_pattern} ]]; then
+            echo "Título recebido: ${PR_TITLE}"
+            fail "Título fora do padrão do AGENTS.md." "O título deve seguir o padrão [DEV-0001] - título objetivo."
+          fi
+          title_key="${BASH_REMATCH[1]}"
+
+          branch_pattern='^(feature|fix|chore)/(DEV-[0-9]{4})(-|$)'
+          if [[ ! "${HEAD_REF}" =~ ${branch_pattern} ]]; then
+            fail "Branch sem prefixo ou chave DEV." "A branch '${HEAD_REF}' deve seguir feature|fix|chore/DEV-0001-descricao."
+          fi
+          branch_key="${BASH_REMATCH[2]}"
+
+          if [[ "${title_key}" != "${branch_key}" ]]; then
+            fail "Chaves divergentes no título e na branch." "A chave do título (${title_key}) é diferente da chave da branch (${branch_key})."
+          fi
+
+          # Issues que o PR fecha (Closes/Fixes/Resolves #N no corpo), resolvidas pelo GitHub.
+          owner="${REPO%%/*}"; name="${REPO##*/}"
+          linked="$(gh api graphql \
+            -f query='query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){closingIssuesReferences(first:10){nodes{number title}}}}}' \
+            -f o="${owner}" -f n="${name}" -F p="${PR_NUMBER}" \
+            --jq '.data.repository.pullRequest.closingIssuesReferences.nodes[] | "\(.number)\t\(.title)"')" \
+            || fail "Não foi possível ler as issues vinculadas." "Falha ao consultar as issues que o PR fecha."
+
+          if [[ -z "${linked}" ]]; then
+            fail "PR não fecha nenhuma issue." "O corpo do PR deve fechar a issue da tarefa (Closes #N)."
+          fi
+
+          match=""
+          while IFS=$'\t' read -r number issue_title; do
+            if [[ "${issue_title}" == "[${title_key}] - "* ]]; then match="${number}"; fi
+          done <<< "${linked}"
+
+          if [[ -z "${match}" ]]; then
+            echo "Issues vinculadas:"; echo "${linked}"
+            fail "Nenhuma issue vinculada tem a chave ${title_key}." "O PR deve fechar a issue cujo título começa com [${title_key}] - ."
+          fi
+
+          echo "description=Título, branch e issue #${match} válidos para ${title_key}." >> "${GITHUB_OUTPUT}"
+          echo "Válido: ${title_key} (issue #${match})."
+
+      - name: Publicar status no HEAD
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          STATUS_STATE: ${{ steps.validate.outcome == 'success' && 'success' || 'failure' }}
+          STATUS_DESCRIPTION: ${{ steps.validate.outputs.description || 'Não foi possível validar o PR.' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        shell: bash
+        run: |
+          gh api --method POST "repos/${REPO}/statuses/${HEAD_SHA}" \
+            -f state="${STATUS_STATE}" \
+            -f context='PR title' \
+            -f description="${STATUS_DESCRIPTION:0:140}" \
+            -f target_url="${RUN_URL}" > /dev/null
