@@ -83,7 +83,7 @@ function fixture(overrides = {}) {
       return response({ check_runs: data.checks });
     }
     if (parsed.pathname === '/repos/owner/repo/contents/AGENTS.md') return response({ encoding: 'base64', content: Buffer.from(data.instructions).toString('base64') });
-    if (parsed.pathname === '/repos/owner/repo/contents/docs/knowledge/README.md') return response({}, 404);
+    if (parsed.pathname === '/repos/owner/repo/contents/docs/00-oficial/README.md') return response({}, 404);
     if (parsed.pathname.startsWith('/repos/owner/repo/contents/')) {
       return response({ encoding: 'base64', content: Buffer.from(`conteúdo de ${parsed.pathname}`).toString('base64') });
     }

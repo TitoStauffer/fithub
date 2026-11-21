@@ -3,7 +3,7 @@ import { posix } from 'node:path';
 import { requestGitHubApi, requestGitHubApiPages, requestGitHubText } from './github-api-client.js';
 import { ACTIONS_APP_ID, loadActionsEvidence, loadCiSnapshots, unavailableActionsEvidence, type AgentActionsEvidence, type AgentCiSnapshot } from './agent-ci-evidence.js';
 import { loadVaultContext, type VaultContextSnapshot } from './vault-context.js';
-import { KNOWN_TEST_JOBS, REQUIRED_AGENT_CHECKS } from './repository-policy.js';
+import { KNOWN_TEST_JOBS, REQUIRED_AGENT_CHECKS, VAULT_CONTEXT_MAP_PATH, VAULT_ROOT } from './repository-policy.js';
 
 export interface AgentReviewInputs {
   diff: string;
@@ -250,8 +250,8 @@ function encodedFixtureMarker(path: string, content: string): string {
 }
 
 function isVaultManagedDocument(path: string): boolean {
-  return path === 'docs/knowledge/context-map.json'
-    || (path.startsWith('docs/knowledge/') && path.endsWith('.md'));
+  return path === VAULT_CONTEXT_MAP_PATH
+    || (path.startsWith(VAULT_ROOT) && path.endsWith('.md'));
 }
 
 export function summarizeAgentChecks(runs: Array<Record<string, unknown>>, expectedHeadSha?: string): AgentReviewInputs['checks'] {

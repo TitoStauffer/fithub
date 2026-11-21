@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { posix } from 'node:path';
 import { GitHubApiError, requestGitHubApi } from './github-api-client.js';
+import { VAULT_ROOT } from './repository-policy.js';
 
 export interface VaultContextSnapshot {
   path: string;
@@ -95,9 +96,10 @@ interface GitHubEvidenceReference {
   evidenceId: string;
 }
 
-const VAULT_INDEX = 'docs/knowledge/README.md';
-const VAULT_CURRENT_STATE = 'docs/knowledge/current-state.md';
-const VAULT_CONTEXT_MAP = 'docs/knowledge/context-map.json';
+// FitHub (DEV-0119): o vault é a documentação oficial em docs/00-oficial (repository-policy.ts).
+const VAULT_INDEX = `${VAULT_ROOT}README.md`;
+const VAULT_CURRENT_STATE = `${VAULT_ROOT}estado-atual.md`;
+const VAULT_CONTEXT_MAP = `${VAULT_ROOT}context-map.json`;
 const MAX_VAULT_ITEMS = 160;
 const MAX_VAULT_BYTES = 650_000;
 // Ceiling for every response this loader reads: a cited local source and the GitHub review evidence
@@ -269,7 +271,7 @@ export async function loadVaultContext(
 
   const selectedDocuments = new Set<string>();
   for (const path of changed.keys()) {
-    if (path.startsWith('docs/knowledge/') && path.endsWith('.md')) selectedDocuments.add(path);
+    if (isKnowledgeDocument(path)) selectedDocuments.add(path);
   }
   for (const route of contextMap?.routes ?? []) {
     if ([...changed.keys()].some((path) => route.paths.some((pattern) => matchesPattern(path, pattern)))) {
@@ -689,7 +691,7 @@ function matchesPattern(path: string, pattern: string): boolean {
 function assertKnowledgeDocument(path: string): void {
   assertSafeRepositoryPath(path);
   if (!isKnowledgeDocument(path)) {
-    throw new Error(`Vault context document is outside docs/knowledge or is not Markdown: ${path}.`);
+    throw new Error(`Vault context document is outside ${VAULT_ROOT} or is not Markdown: ${path}.`);
   }
 }
 
@@ -701,7 +703,7 @@ function isOptionalBody(path: string): boolean {
 }
 
 function isKnowledgeDocument(path: string): boolean {
-  return path.startsWith('docs/knowledge/') && path.endsWith('.md');
+  return path.startsWith(VAULT_ROOT) && path.endsWith('.md');
 }
 
 function assertSafeRepositoryPath(path: string): void {
