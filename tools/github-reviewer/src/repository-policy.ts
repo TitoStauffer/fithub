@@ -41,3 +41,10 @@ export const BRANCH_PROTECTION_AVAILABLE = false;
 export const BRANCH_PROTECTION_UNAVAILABLE_NOTE =
   'Proteção de branch indisponível no plano atual (repositório privado gratuito): não consultada nem exigida. '
   + 'A regra de merge só com READY_TO_MERGE está no AGENTS.md.';
+
+/**
+ * Raiz do "vault" de contexto lido pelos agentes (DEV-0119): a documentação oficial do FitHub.
+ * Precisa ter `README.md` (índice), `estado-atual.md` e `context-map.json` (caminhos → notas).
+ */
+export const VAULT_ROOT = 'docs/00-oficial/';
+export const VAULT_CONTEXT_MAP_PATH = `${VAULT_ROOT}context-map.json`;

@@ -30,8 +30,8 @@ function fakeFetch(files = {}, evidence = {}, requests = []) {
 
 function baseVault(overrides = {}) {
   return {
-    'docs/knowledge/README.md': { value: '# Index\n' },
-    'docs/knowledge/current-state.md': { value: '# Current state\n' },
+    'docs/00-oficial/README.md': { value: '# Index\n' },
+    'docs/00-oficial/estado-atual.md': { value: '# Current state\n' },
     ...overrides,
   };
 }
@@ -39,18 +39,18 @@ function baseVault(overrides = {}) {
 test('loads the vault index, current state, routed note and exact local source at the PR HEAD', async () => {
   const requests = [];
   const files = baseVault({
-    'docs/knowledge/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/knowledge/domains/backend.md'] }] }) },
-    'docs/knowledge/domains/backend.md': { value: '# Backend\n[Service](../../../apps/api/src/service.ts)\n' },
+    'docs/00-oficial/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/00-oficial/domains/backend.md'] }] }) },
+    'docs/00-oficial/domains/backend.md': { value: '# Backend\n[Service](../../../apps/api/src/service.ts)\n' },
     'apps/api/src/service.ts': { value: 'export const value = 1;\n' },
   });
 
   const result = await loadVaultContext(fakeFetch(files, {}, requests), repository, [{ filename: 'apps/api/src/route.ts', status: 'modified' }], headSha, baseSha, 'token');
 
   assert.deepEqual(result.map(({ path }) => path), [
-    'docs/knowledge/README.md',
-    'docs/knowledge/current-state.md',
-    'docs/knowledge/context-map.json',
-    'docs/knowledge/domains/backend.md',
+    'docs/00-oficial/README.md',
+    'docs/00-oficial/estado-atual.md',
+    'docs/00-oficial/context-map.json',
+    'docs/00-oficial/domains/backend.md',
     'apps/api/src/service.ts',
   ]);
   assert.equal(result.every(({ revision }) => revision === 'head'), true);
@@ -59,17 +59,17 @@ test('loads the vault index, current state, routed note and exact local source a
 
 test('loads direct sources but does not expand vault navigation from the required roots', async () => {
   const files = baseVault({
-    'docs/knowledge/README.md': { value: '# Index\n[Architecture](architecture.md)\n' },
-    'docs/knowledge/current-state.md': { value: '# Current state\n[Contract](../../docs/contract.md)\n' },
-    'docs/knowledge/architecture.md': { value: '# Architecture\n' },
+    'docs/00-oficial/README.md': { value: '# Index\n[Architecture](architecture.md)\n' },
+    'docs/00-oficial/estado-atual.md': { value: '# Current state\n[Contract](../../docs/contract.md)\n' },
+    'docs/00-oficial/architecture.md': { value: '# Architecture\n' },
     'docs/contract.md': { value: '# Contract\n' },
   });
 
   const result = await loadVaultContext(fakeFetch(files), repository, [{ filename: 'apps/api/src/route.ts', status: 'modified' }], headSha, baseSha, 'token');
 
   assert.deepEqual(result.map(({ path }) => path), [
-    'docs/knowledge/README.md',
-    'docs/knowledge/current-state.md',
+    'docs/00-oficial/README.md',
+    'docs/00-oficial/estado-atual.md',
     'docs/contract.md',
   ]);
 });
@@ -77,20 +77,20 @@ test('loads direct sources but does not expand vault navigation from the require
 test('walks referenced vault notes and loads their local and review evidence', async () => {
   const reviewPath = '/repos/owner/repo/pulls/44/reviews/123';
   const files = baseVault({
-    'docs/knowledge/README.md': { value: '# Index\n[Learning](learnings/example.md)\n' },
-    'docs/knowledge/learnings/example.md': { value: '# Learning\n[Index](../README.md)\n[Source][source]\n[Review][review]\n\n[source]: ../../../apps/api/src/service.ts\n[review]: https://github.com/owner/repo/pull/44#pullrequestreview-123\n' },
+    'docs/00-oficial/README.md': { value: '# Index\n[Learning](learnings/example.md)\n' },
+    'docs/00-oficial/learnings/example.md': { value: '# Learning\n[Index](../README.md)\n[Source][source]\n[Review][review]\n\n[source]: ../../../apps/api/src/service.ts\n[review]: https://github.com/owner/repo/pull/44#pullrequestreview-123\n' },
     'apps/api/src/service.ts': { value: 'export const value = 1;\n' },
   });
   const review = { id: 123, state: 'CHANGES_REQUESTED', body: 'First evidence', html_url: 'https://github.com/owner/repo/pull/44#pullrequestreview-123' };
 
-  const changedFiles = [{ filename: 'docs/knowledge/learnings/example.md', status: 'modified' }];
+  const changedFiles = [{ filename: 'docs/00-oficial/learnings/example.md', status: 'modified' }];
   const first = await loadVaultContext(fakeFetch(files, { [reviewPath]: review }), repository, changedFiles, headSha, baseSha, 'token');
   const second = await loadVaultContext(fakeFetch(files, { [reviewPath]: { ...review, body: 'Updated evidence' } }), repository, changedFiles, headSha, baseSha, 'token');
 
   assert.deepEqual(first.map(({ path }) => path), [
-    'docs/knowledge/README.md',
-    'docs/knowledge/current-state.md',
-    'docs/knowledge/learnings/example.md',
+    'docs/00-oficial/README.md',
+    'docs/00-oficial/estado-atual.md',
+    'docs/00-oficial/learnings/example.md',
     'apps/api/src/service.ts',
     `github-evidence://${reviewPath.slice(1)}`,
   ]);
@@ -101,34 +101,34 @@ test('walks referenced vault notes and loads their local and review evidence', a
 
 test('resolves collapsed and shortcut Markdown reference links without treating images as sources', async () => {
   const files = baseVault({
-    'docs/knowledge/learnings/references.md': {
+    'docs/00-oficial/learnings/references.md': {
       value: '# Index\n[Collapsed][]\n[Shortcut]\n![Diagram][image]\n\n[collapsed]: collapsed.md\n[shortcut]: shortcut.md\n[image]: missing.png\n',
     },
-    'docs/knowledge/learnings/collapsed.md': { value: '# Collapsed\n' },
-    'docs/knowledge/learnings/shortcut.md': { value: '# Shortcut\n' },
+    'docs/00-oficial/learnings/collapsed.md': { value: '# Collapsed\n' },
+    'docs/00-oficial/learnings/shortcut.md': { value: '# Shortcut\n' },
   });
 
   const result = await loadVaultContext(
     fakeFetch(files),
     repository,
-    [{ filename: 'docs/knowledge/learnings/references.md', status: 'modified' }],
+    [{ filename: 'docs/00-oficial/learnings/references.md', status: 'modified' }],
     headSha,
     baseSha,
     'token',
   );
 
   assert.deepEqual(result.map(({ path }) => path), [
-    'docs/knowledge/README.md',
-    'docs/knowledge/current-state.md',
-    'docs/knowledge/learnings/references.md',
-    'docs/knowledge/learnings/collapsed.md',
-    'docs/knowledge/learnings/shortcut.md',
+    'docs/00-oficial/README.md',
+    'docs/00-oficial/estado-atual.md',
+    'docs/00-oficial/learnings/references.md',
+    'docs/00-oficial/learnings/collapsed.md',
+    'docs/00-oficial/learnings/shortcut.md',
   ]);
 });
 
 test('ignores link-shaped examples inside inline and fenced Markdown code', async () => {
   const files = baseVault({
-    'docs/knowledge/README.md': {
+    'docs/00-oficial/README.md': {
       value: '# Index\n`[Inline][missing]`\n![Inline image](missing.png "Not a source")\n\n```markdown\n[Fenced][missing]\n```\n\n~~~\n[Other fence](missing.md)\n~~~\n',
     },
   });
@@ -136,15 +136,15 @@ test('ignores link-shaped examples inside inline and fenced Markdown code', asyn
   const result = await loadVaultContext(fakeFetch(files), repository, [], headSha, baseSha, 'token');
 
   assert.deepEqual(result.map(({ path }) => path), [
-    'docs/knowledge/README.md',
-    'docs/knowledge/current-state.md',
+    'docs/00-oficial/README.md',
+    'docs/00-oficial/estado-atual.md',
   ]);
 });
 
 test('preserves link destinations when their labels contain inline code', async () => {
   const reviewPath = '/repos/owner/repo/pulls/44/reviews/123';
   const files = baseVault({
-    'docs/knowledge/README.md': {
+    'docs/00-oficial/README.md': {
       value: '# Index\n[`service.ts`](../../apps/api/src/service.ts)\n[`Review`](https://github.com/owner/repo/pull/44#pullrequestreview-123)\n',
     },
     'apps/api/src/service.ts': { value: 'export const value = 1;\n' },
@@ -160,7 +160,7 @@ test('preserves link destinations when their labels contain inline code', async 
 test('resolves inline destinations with titles, angle brackets, escapes and balanced parentheses', async () => {
   const reviewPath = '/repos/owner/repo/pulls/44/reviews/123';
   const files = baseVault({
-    'docs/knowledge/README.md': {
+    'docs/00-oficial/README.md': {
       value: [
         '# Index',
         '[Service](../../apps/api/src/service.ts "Serviço")',
@@ -180,8 +180,8 @@ test('resolves inline destinations with titles, angle brackets, escapes and bala
   const result = await loadVaultContext(fakeFetch(files, { [reviewPath]: review }), repository, [], headSha, baseSha, 'token');
 
   assert.deepEqual(result.map(({ path }) => path), [
-    'docs/knowledge/README.md',
-    'docs/knowledge/current-state.md',
+    'docs/00-oficial/README.md',
+    'docs/00-oficial/estado-atual.md',
     'apps/api/src/service.ts',
     'apps/api/src/spaced file.ts',
     'apps/api/src/value(test).ts',
@@ -192,7 +192,7 @@ test('resolves inline destinations with titles, angle brackets, escapes and bala
 
 test('fails closed for a missing source whose link label contains inline code', async () => {
   const files = baseVault({
-    'docs/knowledge/README.md': { value: '# Index\n[`missing.ts`](../../apps/api/src/missing.ts)\n' },
+    'docs/00-oficial/README.md': { value: '# Index\n[`missing.ts`](../../apps/api/src/missing.ts)\n' },
   });
 
   await assert.rejects(
@@ -203,7 +203,7 @@ test('fails closed for a missing source whose link label contains inline code', 
 
 test('fails closed for a missing source in a titled inline link', async () => {
   const files = baseVault({
-    'docs/knowledge/README.md': { value: '# Index\n[Missing](../../apps/api/src/missing.ts "Source")\n' },
+    'docs/00-oficial/README.md': { value: '# Index\n[Missing](../../apps/api/src/missing.ts "Source")\n' },
   });
 
   await assert.rejects(
@@ -214,7 +214,7 @@ test('fails closed for a missing source in a titled inline link', async () => {
 
 test('fails closed for unsupported or malformed inline link syntax', async () => {
   const files = baseVault({
-    'docs/knowledge/README.md': { value: '# Index\n[Malformed](../../apps/api/src/service.ts "Missing close)\n' },
+    'docs/00-oficial/README.md': { value: '# Index\n[Malformed](../../apps/api/src/service.ts "Missing close)\n' },
   });
 
   await assert.rejects(
@@ -225,19 +225,19 @@ test('fails closed for unsupported or malformed inline link syntax', async () =>
 
 test('fails closed when a referenced vault note cites a missing source', async () => {
   const files = baseVault({
-    'docs/knowledge/README.md': { value: '# Index\n[Learning](learnings/example.md)\n' },
-    'docs/knowledge/learnings/example.md': { value: '# Learning\n[Missing][source]\n\n[source]: ../../../apps/api/src/missing.ts\n' },
+    'docs/00-oficial/README.md': { value: '# Index\n[Learning](learnings/example.md)\n' },
+    'docs/00-oficial/learnings/example.md': { value: '# Learning\n[Missing][source]\n\n[source]: ../../../apps/api/src/missing.ts\n' },
   });
 
   await assert.rejects(
-    loadVaultContext(fakeFetch(files), repository, [{ filename: 'docs/knowledge/learnings/example.md', status: 'modified' }], headSha, baseSha, 'token'),
+    loadVaultContext(fakeFetch(files), repository, [{ filename: 'docs/00-oficial/learnings/example.md', status: 'modified' }], headSha, baseSha, 'token'),
     /GitHub API request failed \(404\)/,
   );
 });
 
 test('loads only verifiable same-repository GitHub review evidence', async () => {
   const files = baseVault({
-    'docs/knowledge/learnings/code-review.md': {
+    'docs/00-oficial/learnings/code-review.md': {
       value: [
         '# Learning',
         '[Formal review](https://github.com/owner/repo/pull/44#pullrequestreview-123)',
@@ -251,7 +251,7 @@ test('loads only verifiable same-repository GitHub review evidence', async () =>
     '/repos/owner/repo/pulls/comments/456': { id: 456, body: 'Inline issue', user: { login: 'reviewer' }, path: 'src/a.ts', line: 10, html_url: 'https://github.com/owner/repo/pull/44#discussion_r456', pull_request_url: 'https://api.github.com/repos/owner/repo/pulls/44' },
   };
 
-  const result = await loadVaultContext(fakeFetch(files, evidence), repository, [{ filename: 'docs/knowledge/learnings/code-review.md', status: 'added' }], headSha, baseSha, 'token');
+  const result = await loadVaultContext(fakeFetch(files, evidence), repository, [{ filename: 'docs/00-oficial/learnings/code-review.md', status: 'added' }], headSha, baseSha, 'token');
 
   const remote = result.filter(({ path }) => path.startsWith('github-evidence://'));
   assert.equal(remote.length, 2);
@@ -262,56 +262,56 @@ test('loads only verifiable same-repository GitHub review evidence', async () =>
 
 test('rejects GitHub comments that do not belong to the Pull Request cited by the vault', async (t) => {
   await t.test('inline review comment', async () => {
-    const files = baseVault({ 'docs/knowledge/note.md': { value: '[Comment](https://github.com/owner/repo/pull/44#discussion_r456)\n' } });
+    const files = baseVault({ 'docs/00-oficial/note.md': { value: '[Comment](https://github.com/owner/repo/pull/44#discussion_r456)\n' } });
     const evidence = { '/repos/owner/repo/pulls/comments/456': { id: 456, html_url: 'https://github.com/owner/repo/pull/45#discussion_r456', pull_request_url: 'https://api.github.com/repos/owner/repo/pulls/45' } };
-    await assert.rejects(loadVaultContext(fakeFetch(files, evidence), repository, [{ filename: 'docs/knowledge/note.md', status: 'added' }], headSha, baseSha, 'token'), /does not match|does not belong/);
+    await assert.rejects(loadVaultContext(fakeFetch(files, evidence), repository, [{ filename: 'docs/00-oficial/note.md', status: 'added' }], headSha, baseSha, 'token'), /does not match|does not belong/);
   });
   await t.test('Pull Request conversation comment', async () => {
-    const files = baseVault({ 'docs/knowledge/note.md': { value: '[Comment](https://github.com/owner/repo/pull/44#issuecomment-789)\n' } });
+    const files = baseVault({ 'docs/00-oficial/note.md': { value: '[Comment](https://github.com/owner/repo/pull/44#issuecomment-789)\n' } });
     const evidence = { '/repos/owner/repo/issues/comments/789': { id: 789, html_url: 'https://github.com/owner/repo/pull/45#issuecomment-789', issue_url: 'https://api.github.com/repos/owner/repo/issues/45' } };
-    await assert.rejects(loadVaultContext(fakeFetch(files, evidence), repository, [{ filename: 'docs/knowledge/note.md', status: 'added' }], headSha, baseSha, 'token'), /does not match|does not belong/);
+    await assert.rejects(loadVaultContext(fakeFetch(files, evidence), repository, [{ filename: 'docs/00-oficial/note.md', status: 'added' }], headSha, baseSha, 'token'), /does not match|does not belong/);
   });
   await t.test('contradictory links for the same comment', async () => {
-    const files = baseVault({ 'docs/knowledge/note.md': { value: '[Wrong](https://github.com/owner/repo/pull/43#discussion_r456)\n[Right](https://github.com/owner/repo/pull/44#discussion_r456)\n' } });
+    const files = baseVault({ 'docs/00-oficial/note.md': { value: '[Wrong](https://github.com/owner/repo/pull/43#discussion_r456)\n[Right](https://github.com/owner/repo/pull/44#discussion_r456)\n' } });
     const evidence = { '/repos/owner/repo/pulls/comments/456': { id: 456, html_url: 'https://github.com/owner/repo/pull/44#discussion_r456', pull_request_url: 'https://api.github.com/repos/owner/repo/pulls/44' } };
-    await assert.rejects(loadVaultContext(fakeFetch(files, evidence), repository, [{ filename: 'docs/knowledge/note.md', status: 'added' }], headSha, baseSha, 'token'), /does not match|does not belong/);
+    await assert.rejects(loadVaultContext(fakeFetch(files, evidence), repository, [{ filename: 'docs/00-oficial/note.md', status: 'added' }], headSha, baseSha, 'token'), /does not match|does not belong/);
   });
 });
 
 test('uses the base revision only for a removed vault document', async () => {
   const files = baseVault({
-    'docs/knowledge/removed.md': { ref: baseSha, value: '# Removed\n' },
+    'docs/00-oficial/removed.md': { ref: baseSha, value: '# Removed\n' },
   });
-  const result = await loadVaultContext(fakeFetch(files), repository, [{ filename: 'docs/knowledge/removed.md', status: 'removed' }], headSha, baseSha, 'token');
-  assert.equal(result.find(({ path }) => path === 'docs/knowledge/removed.md').revision, 'base');
+  const result = await loadVaultContext(fakeFetch(files), repository, [{ filename: 'docs/00-oficial/removed.md', status: 'removed' }], headSha, baseSha, 'token');
+  assert.equal(result.find(({ path }) => path === 'docs/00-oficial/removed.md').revision, 'base');
 });
 
 test('fails closed for unsafe local paths, directories and invalid context maps', async (t) => {
   await t.test('unsafe local link', async () => {
-    const files = baseVault({ 'docs/knowledge/note.md': { value: '[Unsafe](../../../..//outside.md)\n' } });
-    await assert.rejects(loadVaultContext(fakeFetch(files), repository, [{ filename: 'docs/knowledge/note.md', status: 'added' }], headSha, baseSha, 'token'), /unsafe repository path/);
+    const files = baseVault({ 'docs/00-oficial/note.md': { value: '[Unsafe](../../../..//outside.md)\n' } });
+    await assert.rejects(loadVaultContext(fakeFetch(files), repository, [{ filename: 'docs/00-oficial/note.md', status: 'added' }], headSha, baseSha, 'token'), /unsafe repository path/);
   });
   await t.test('directory source', async () => {
     const files = baseVault({
-      'docs/knowledge/note.md': { value: '[Directory](source)\n' },
-      'docs/knowledge/source': { value: [{ name: 'file.md' }] },
+      'docs/00-oficial/note.md': { value: '[Directory](source)\n' },
+      'docs/00-oficial/source': { value: [{ name: 'file.md' }] },
     });
-    await assert.rejects(loadVaultContext(fakeFetch(files), repository, [{ filename: 'docs/knowledge/note.md', status: 'added' }], headSha, baseSha, 'token'), /exact file, not a directory/);
+    await assert.rejects(loadVaultContext(fakeFetch(files), repository, [{ filename: 'docs/00-oficial/note.md', status: 'added' }], headSha, baseSha, 'token'), /exact file, not a directory/);
   });
   await t.test('invalid context map', async () => {
-    const files = baseVault({ 'docs/knowledge/context-map.json': { value: '{invalid' } });
+    const files = baseVault({ 'docs/00-oficial/context-map.json': { value: '{invalid' } });
     await assert.rejects(loadVaultContext(fakeFetch(files), repository, [], headSha, baseSha, 'token'), /not valid JSON/);
   });
   await t.test('invalid catalog path', async () => {
-    const files = baseVault({ 'docs/knowledge/context-map.json': { value: JSON.stringify({ version: 1, routes: [], catalogs: ['docs/outside.md'] }) } });
-    await assert.rejects(loadVaultContext(fakeFetch(files), repository, [], headSha, baseSha, 'token'), /outside docs\/knowledge or is not Markdown/);
+    const files = baseVault({ 'docs/00-oficial/context-map.json': { value: JSON.stringify({ version: 1, routes: [], catalogs: ['docs/outside.md'] }) } });
+    await assert.rejects(loadVaultContext(fakeFetch(files), repository, [], headSha, baseSha, 'token'), /outside docs\/00-oficial\/ or is not Markdown/);
   });
   await t.test('undefined Markdown link reference', async () => {
-    const files = baseVault({ 'docs/knowledge/README.md': { value: '# Index\n[Missing][source]\n' } });
+    const files = baseVault({ 'docs/00-oficial/README.md': { value: '# Index\n[Missing][source]\n' } });
     await assert.rejects(loadVaultContext(fakeFetch(files), repository, [], headSha, baseSha, 'token'), /undefined Markdown link reference/);
   });
   await t.test('conflicting Markdown link definitions', async () => {
-    const files = baseVault({ 'docs/knowledge/README.md': { value: '# Index\n[Source][source]\n\n[source]: current-state.md\n[source]: other.md\n' } });
+    const files = baseVault({ 'docs/00-oficial/README.md': { value: '# Index\n[Source][source]\n\n[source]: estado-atual.md\n[source]: other.md\n' } });
     await assert.rejects(loadVaultContext(fakeFetch(files), repository, [], headSha, baseSha, 'token'), /conflicting Markdown link definitions/);
   });
 });
@@ -322,11 +322,11 @@ test('loads catalog metadata without hydrating its outbound evidence links', asy
     (_, index) => `[Review ${index + 1}](https://github.com/owner/repo/pull/44#pullrequestreview-${index + 1})`,
   ).join('\n');
   const files = baseVault({
-    'docs/knowledge/context-map.json': {
-      value: JSON.stringify({ version: 1, routes: [], catalogs: ['docs/knowledge/evidence/catalog.md'] }),
+    'docs/00-oficial/context-map.json': {
+      value: JSON.stringify({ version: 1, routes: [], catalogs: ['docs/00-oficial/evidence/catalog.md'] }),
     },
-    'docs/knowledge/README.md': { value: '# Index\n[Catalog](evidence/catalog.md)\n' },
-    'docs/knowledge/evidence/catalog.md': {
+    'docs/00-oficial/README.md': { value: '# Index\n[Catalog](evidence/catalog.md)\n' },
+    'docs/00-oficial/evidence/catalog.md': {
       value: `# Catalog\n[Missing](../../../apps/api/src/missing.ts)\n${historicalEvidence}\n`,
     },
   });
@@ -335,17 +335,17 @@ test('loads catalog metadata without hydrating its outbound evidence links', asy
   const result = await loadVaultContext(
     fakeFetch(files, {}, requests),
     repository,
-    [{ filename: 'docs/knowledge/evidence/catalog.md', status: 'modified' }],
+    [{ filename: 'docs/00-oficial/evidence/catalog.md', status: 'modified' }],
     headSha,
     baseSha,
     'token',
   );
 
   assert.deepEqual(result.map(({ path }) => path), [
-    'docs/knowledge/README.md',
-    'docs/knowledge/current-state.md',
-    'docs/knowledge/context-map.json',
-    'docs/knowledge/evidence/catalog.md',
+    'docs/00-oficial/README.md',
+    'docs/00-oficial/estado-atual.md',
+    'docs/00-oficial/context-map.json',
+    'docs/00-oficial/evidence/catalog.md',
   ]);
   assert.equal(requests.some(({ pathname }) => pathname.includes('missing.ts') || pathname.includes('/pulls/44/reviews/123')), false);
 });
@@ -353,7 +353,7 @@ test('loads catalog metadata without hydrating its outbound evidence links', asy
 test('loads a complete documentation evidence graph above the previous byte ceiling', async () => {
   const sources = Array.from({ length: 8 }, (_, index) => `apps/api/src/source-${index}.ts`);
   const files = baseVault({
-    'docs/knowledge/note.md': {
+    'docs/00-oficial/note.md': {
       value: sources.map((source, index) => `[Source ${index}](../../${source})`).join('\n'),
     },
     ...Object.fromEntries(sources.map((source) => [source, { value: 'x'.repeat(60_000) }])),
@@ -362,7 +362,7 @@ test('loads a complete documentation evidence graph above the previous byte ceil
   const result = await loadVaultContext(
     fakeFetch(files),
     repository,
-    [{ filename: 'docs/knowledge/note.md', status: 'added' }],
+    [{ filename: 'docs/00-oficial/note.md', status: 'added' }],
     headSha,
     baseSha,
     'token',
@@ -374,7 +374,7 @@ test('loads a complete documentation evidence graph above the previous byte ceil
 test('marks the cited sources beyond the byte limit instead of aborting the review', async () => {
   const sources = Array.from({ length: 11 }, (_, index) => `apps/api/src/source-${index}.ts`);
   const files = baseVault({
-    'docs/knowledge/note.md': {
+    'docs/00-oficial/note.md': {
       value: sources.map((source, index) => `[Source ${index}](../../${source})`).join('\n'),
     },
     ...Object.fromEntries(sources.map((source) => [source, { value: 'x'.repeat(60_000) }])),
@@ -383,7 +383,7 @@ test('marks the cited sources beyond the byte limit instead of aborting the revi
   const result = await loadVaultContext(
     fakeFetch(files),
     repository,
-    [{ filename: 'docs/knowledge/note.md', status: 'added' }],
+    [{ filename: 'docs/00-oficial/note.md', status: 'added' }],
     headSha,
     baseSha,
     'token',
@@ -400,18 +400,18 @@ test('marks the cited sources beyond the byte limit instead of aborting the revi
 
 test('fails closed before fetching evidence when the item limit would be exceeded', async () => {
   const links = Array.from({ length: 160 }, (_, index) => `[Review ${index}](https://github.com/owner/repo/pull/44#pullrequestreview-${index + 1})`).join('\n');
-  const files = baseVault({ 'docs/knowledge/large.md': { value: links } });
+  const files = baseVault({ 'docs/00-oficial/large.md': { value: links } });
   const requests = [];
 
-  await assert.rejects(loadVaultContext(fakeFetch(files, {}, requests), repository, [{ filename: 'docs/knowledge/large.md', status: 'added' }], headSha, baseSha, 'token'), /item limit/);
+  await assert.rejects(loadVaultContext(fakeFetch(files, {}, requests), repository, [{ filename: 'docs/00-oficial/large.md', status: 'added' }], headSha, baseSha, 'token'), /item limit/);
   assert.equal(requests.some(({ pathname }) => pathname.includes('/pulls/44/reviews/')), false);
 });
 
 test('counts routed and linked vault documents only once when enforcing the item limit', async () => {
-  const documents = Array.from({ length: 157 }, (_, index) => `docs/knowledge/generated/note-${index}.md`);
+  const documents = Array.from({ length: 157 }, (_, index) => `docs/00-oficial/generated/note-${index}.md`);
   const files = baseVault({
-    'docs/knowledge/README.md': { value: `# Index\n${documents.map((path, index) => `[Note ${index}](${path.replace('docs/knowledge/', '')})`).join('\n')}\n` },
-    'docs/knowledge/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents }] }) },
+    'docs/00-oficial/README.md': { value: `# Index\n${documents.map((path, index) => `[Note ${index}](${path.replace('docs/00-oficial/', '')})`).join('\n')}\n` },
+    'docs/00-oficial/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents }] }) },
     ...Object.fromEntries(documents.map((path, index) => [path, { value: `# Note ${index}\n` }])),
   });
   const requests = [];
@@ -430,7 +430,7 @@ test('treats a missing vault index as an optional empty context', async () => {
 });
 
 test('fails closed when the vault index exists without the required current state', async () => {
-  const files = { 'docs/knowledge/README.md': { value: '# Index\n' } };
+  const files = { 'docs/00-oficial/README.md': { value: '# Index\n' } };
   await assert.rejects(loadVaultContext(fakeFetch(files), repository, [], headSha, baseSha, 'token'), /current state is unavailable/);
 });
 
@@ -442,8 +442,8 @@ test('reads a cited source whose response fills most of the single-response ceil
   // 300_000 source bytes become about 400_000 of base64 inside the JSON response.
   const source = 'a'.repeat(290_000);
   const files = baseVault({
-    'docs/knowledge/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/knowledge/domains/backend.md'] }] }) },
-    'docs/knowledge/domains/backend.md': { value: '# Backend\n[Service](../../../apps/api/src/service.ts)\n' },
+    'docs/00-oficial/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/00-oficial/domains/backend.md'] }] }) },
+    'docs/00-oficial/domains/backend.md': { value: '# Backend\n[Service](../../../apps/api/src/service.ts)\n' },
     'apps/api/src/service.ts': { value: source },
   });
 
@@ -454,8 +454,8 @@ test('reads a cited source whose response fills most of the single-response ceil
 
 test('fails closed when a cited source response exceeds the single-response ceiling', async () => {
   const files = baseVault({
-    'docs/knowledge/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/knowledge/domains/backend.md'] }] }) },
-    'docs/knowledge/domains/backend.md': { value: '# Backend\n[Service](../../../apps/api/src/service.ts)\n' },
+    'docs/00-oficial/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/00-oficial/domains/backend.md'] }] }) },
+    'docs/00-oficial/domains/backend.md': { value: '# Backend\n[Service](../../../apps/api/src/service.ts)\n' },
     'apps/api/src/service.ts': { value: 'a'.repeat(310_000) },
   });
 
@@ -472,8 +472,8 @@ test('keeps a cited source as a marker when its body does not fit the vault budg
   const second = 'b'.repeat(250_000);
   const third = 'c'.repeat(250_000);
   const files = baseVault({
-    'docs/knowledge/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/knowledge/domains/backend.md'] }] }) },
-    'docs/knowledge/domains/backend.md': { value: '# Backend\n[First](../../../apps/api/src/first.ts)\n[Second](../../../apps/api/src/second.ts)\n[Third](../../../apps/api/src/third.ts)\n' },
+    'docs/00-oficial/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/00-oficial/domains/backend.md'] }] }) },
+    'docs/00-oficial/domains/backend.md': { value: '# Backend\n[First](../../../apps/api/src/first.ts)\n[Second](../../../apps/api/src/second.ts)\n[Third](../../../apps/api/src/third.ts)\n' },
     'apps/api/src/first.ts': { value: first },
     'apps/api/src/second.ts': { value: second },
     'apps/api/src/third.ts': { value: third },
@@ -493,22 +493,22 @@ test('keeps a cited source as a marker when its body does not fit the vault budg
 test('fails closed when the vault documents alone exceed the budget', async () => {
   const note = (name) => `# ${name}\n${name.repeat(50_000)}\n`;
   const files = baseVault({
-    'docs/knowledge/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/knowledge/domains/first.md', 'docs/knowledge/domains/second.md', 'docs/knowledge/domains/third.md'] }] }) },
-    'docs/knowledge/domains/first.md': { value: note('aaaaa') },
-    'docs/knowledge/domains/second.md': { value: note('bbbbb') },
-    'docs/knowledge/domains/third.md': { value: note('ccccc') },
+    'docs/00-oficial/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/00-oficial/domains/first.md', 'docs/00-oficial/domains/second.md', 'docs/00-oficial/domains/third.md'] }] }) },
+    'docs/00-oficial/domains/first.md': { value: note('aaaaa') },
+    'docs/00-oficial/domains/second.md': { value: note('bbbbb') },
+    'docs/00-oficial/domains/third.md': { value: note('ccccc') },
   });
 
   await assert.rejects(
     loadVaultContext(fakeFetch(files), repository, [{ filename: 'apps/api/src/route.ts', status: 'modified' }], headSha, baseSha, 'token'),
-    /Vault context documents and evidence exceed the supported byte limit: docs\/knowledge\/domains\/third\.md\./,
+    /Vault context documents and evidence exceed the supported byte limit: docs\/00-oficial\/domains\/third\.md\./,
   );
 });
 
 test('still fails when a cited source does not exist at the PR HEAD', async () => {
   const files = baseVault({
-    'docs/knowledge/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/knowledge/domains/backend.md'] }] }) },
-    'docs/knowledge/domains/backend.md': { value: '# Backend\n[Gone](../../../apps/api/src/gone.ts)\n' },
+    'docs/00-oficial/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/00-oficial/domains/backend.md'] }] }) },
+    'docs/00-oficial/domains/backend.md': { value: '# Backend\n[Gone](../../../apps/api/src/gone.ts)\n' },
   });
 
   await assert.rejects(
@@ -523,8 +523,8 @@ test('gives up an already admitted cited body so the required GitHub evidence st
   const reviewPath = '/repos/owner/repo/pulls/44/reviews/123';
   const sources = [['first', 230_000], ['second', 220_000], ['third', 210_000]];
   const files = baseVault({
-    'docs/knowledge/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/knowledge/domains/backend.md'] }] }) },
-    'docs/knowledge/domains/backend.md': {
+    'docs/00-oficial/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/00-oficial/domains/backend.md'] }] }) },
+    'docs/00-oficial/domains/backend.md': {
       value: '# Backend\n'
         + sources.map(([name]) => `[${name}](../../../apps/api/src/${name}.ts)`).join('\n')
         + '\n[Review](https://github.com/owner/repo/pull/44#pullrequestreview-123)\n',
@@ -538,7 +538,7 @@ test('gives up an already admitted cited body so the required GitHub evidence st
     fakeFetch(files, { [reviewPath]: review }),
     repository,
     // The note that cites the review is changed by the PR, so its evidence is required (DEV-160).
-    [{ filename: 'apps/api/src/route.ts', status: 'modified' }, { filename: 'docs/knowledge/domains/backend.md', status: 'modified' }],
+    [{ filename: 'apps/api/src/route.ts', status: 'modified' }, { filename: 'docs/00-oficial/domains/backend.md', status: 'modified' }],
     headSha,
     baseSha,
     'token',
@@ -557,13 +557,13 @@ test('gives up an already admitted cited body so the required GitHub evidence st
 test('gives up an already admitted cited body so a note reached by link still fits', async () => {
   const sources = [['first', 230_000], ['second', 220_000], ['third', 210_000]];
   const files = baseVault({
-    'docs/knowledge/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/knowledge/domains/backend.md'] }] }) },
-    'docs/knowledge/domains/backend.md': {
+    'docs/00-oficial/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/00-oficial/domains/backend.md'] }] }) },
+    'docs/00-oficial/domains/backend.md': {
       value: '# Backend\n'
         + sources.map(([name]) => `[${name}](../../../apps/api/src/${name}.ts)`).join('\n')
         + '\n[Deep](deep.md)\n',
     },
-    'docs/knowledge/domains/deep.md': { value: `# Deep\n${'d'.repeat(200_000)}\n` },
+    'docs/00-oficial/domains/deep.md': { value: `# Deep\n${'d'.repeat(200_000)}\n` },
     ...Object.fromEntries(sources.map(([name, bytes], index) => [`apps/api/src/${name}.ts`, { value: String(index).repeat(bytes) }])),
   });
 
@@ -576,7 +576,7 @@ test('gives up an already admitted cited body so a note reached by link still fi
     'token',
   );
 
-  const deep = result.find(({ path }) => path === 'docs/knowledge/domains/deep.md');
+  const deep = result.find(({ path }) => path === 'docs/00-oficial/domains/deep.md');
   assert.equal(deep?.contentOmitted, undefined);
   assert.equal(Buffer.byteLength(deep.content, 'utf8'), 200_008);
   const cited = result.filter(({ path }) => path.startsWith('apps/api/src/'));
@@ -589,7 +589,7 @@ test('gives up an already admitted cited body so a note reached by link still fi
 // bodies admitted earlier. Sizes are computed so the budget is left with less headroom than a marker
 // costs, which is the only state that reaches the refusal.
 test('demotes the smallest admitted cited body so a late citation still fits as a marker', async () => {
-  const map = JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/knowledge/domains/backend.md'] }] });
+  const map = JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/00-oficial/domains/backend.md'] }] });
   const note = '# Backend\n'
     + '[Big](../../../apps/api/src/big.ts)\n'
     + '[Medium](../../../apps/api/src/medium.ts)\n'
@@ -609,8 +609,8 @@ test('demotes the smallest admitted cited body so a late citation still fits as 
   const smallBytes = 650_000 - fixedBytes - bigBytes - mediumBytes - 40;
 
   const files = baseVault({
-    'docs/knowledge/context-map.json': { value: map },
-    'docs/knowledge/domains/backend.md': { value: note },
+    'docs/00-oficial/context-map.json': { value: map },
+    'docs/00-oficial/domains/backend.md': { value: note },
     'apps/api/src/big.ts': { value: 'b'.repeat(bigBytes) },
     'apps/api/src/medium.ts': { value: 'm'.repeat(mediumBytes) },
     'apps/api/src/small.ts': { value: 's'.repeat(smallBytes) },
@@ -643,7 +643,7 @@ test('demotes the smallest admitted cited body so a late citation still fits as 
 // nothing left to give. The budget is filled by required notes, which are never demotable, so the
 // reclaim returns false and the refusal has to name the byte ceiling and the path.
 test('fails closed naming the byte ceiling when the optional candidate has nothing left to reclaim', async () => {
-  const map = JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/knowledge/domains/first.md', 'docs/knowledge/domains/second.md', 'docs/knowledge/domains/third.md'] }] });
+  const map = JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/00-oficial/domains/first.md', 'docs/00-oficial/domains/second.md', 'docs/00-oficial/domains/third.md'] }] });
   const third = (bytes) => `# Third\n${'t'.repeat(bytes)}\n[Cited](../../../apps/api/src/cited.ts)\n`;
   // Each note stays under the per-response ceiling, because the contents API answers in base64.
   const firstBytes = 215_000;
@@ -658,10 +658,10 @@ test('fails closed naming the byte ceiling when the optional candidate has nothi
   const thirdBytes = 650_000 - fixedBytes - 40;
 
   const files = baseVault({
-    'docs/knowledge/context-map.json': { value: map },
-    'docs/knowledge/domains/first.md': { value: `# First\n${'f'.repeat(firstBytes)}\n` },
-    'docs/knowledge/domains/second.md': { value: `# Second\n${'s'.repeat(secondBytes)}\n` },
-    'docs/knowledge/domains/third.md': { value: third(thirdBytes) },
+    'docs/00-oficial/context-map.json': { value: map },
+    'docs/00-oficial/domains/first.md': { value: `# First\n${'f'.repeat(firstBytes)}\n` },
+    'docs/00-oficial/domains/second.md': { value: `# Second\n${'s'.repeat(secondBytes)}\n` },
+    'docs/00-oficial/domains/third.md': { value: third(thirdBytes) },
     'apps/api/src/cited.ts': { value: 'c'.repeat(10_000) },
   });
 
@@ -674,16 +674,16 @@ test('fails closed naming the byte ceiling when the optional candidate has nothi
 // The remaining cross combination: a required document refused by the item ceiling, which demotion
 // cannot relieve because releasing a body frees bytes and never items.
 test('fails closed naming the item ceiling when a required document is the one that does not fit', async () => {
-  const notes = Array.from({ length: 170 }, (_, index) => `docs/knowledge/domains/note-${index}.md`);
+  const notes = Array.from({ length: 170 }, (_, index) => `docs/00-oficial/domains/note-${index}.md`);
   const map = JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: notes }] });
   const files = baseVault({
-    'docs/knowledge/context-map.json': { value: map },
+    'docs/00-oficial/context-map.json': { value: map },
     ...Object.fromEntries(notes.map((note, index) => [note, { value: `# Note ${index}\n` }])),
   });
 
   await assert.rejects(
     loadVaultContext(fakeFetch(files), repository, [{ filename: 'apps/api/src/route.ts', status: 'modified' }], headSha, baseSha, 'token'),
-    /^Error: Vault context documents and evidence exceed the supported item limit: docs\/knowledge\/domains\/note-\d+\.md\.$/,
+    /^Error: Vault context documents and evidence exceed the supported item limit: docs\/00-oficial\/domains\/note-\d+\.md\.$/,
   );
 });
 
@@ -691,7 +691,7 @@ test('fails closed naming the item ceiling when a required document is the one t
 // instead of freeing them, because the marker spells out path, size and digest. The tiny source must be
 // skipped and a real body taken instead.
 test('skips a cited body smaller than its own marker when reclaiming for a marker', async () => {
-  const map = JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/knowledge/domains/backend.md'] }] });
+  const map = JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/00-oficial/domains/backend.md'] }] });
   const note = '# Backend\n'
     + '[Tiny](../../../apps/api/src/tiny.ts)\n'
     + '[First](../../../apps/api/src/first.ts)\n'
@@ -708,8 +708,8 @@ test('skips a cited body smaller than its own marker when reclaiming for a marke
   const smallestBytes = 650_000 - fixedBytes - tinyBytes - firstBytes - secondBytes - 40;
 
   const files = baseVault({
-    'docs/knowledge/context-map.json': { value: map },
-    'docs/knowledge/domains/backend.md': { value: note },
+    'docs/00-oficial/context-map.json': { value: map },
+    'docs/00-oficial/domains/backend.md': { value: note },
     'apps/api/src/tiny.ts': { value: 't'.repeat(tinyBytes) },
     'apps/api/src/first.ts': { value: 'f'.repeat(firstBytes) },
     'apps/api/src/second.ts': { value: 's'.repeat(secondBytes) },
@@ -742,8 +742,8 @@ test('skips a cited body smaller than its own marker when reclaiming for a marke
 test('fails closed when not even the marker fits the item limit', async () => {
   const sources = Array.from({ length: 170 }, (_, index) => `apps/api/src/source-${index}.ts`);
   const files = baseVault({
-    'docs/knowledge/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/knowledge/domains/backend.md'] }] }) },
-    'docs/knowledge/domains/backend.md': {
+    'docs/00-oficial/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/00-oficial/domains/backend.md'] }] }) },
+    'docs/00-oficial/domains/backend.md': {
       value: '# Backend\n' + sources.map((source, index) => `[Source ${index}](../../../${source})`).join('\n') + '\n',
     },
     ...Object.fromEntries(sources.map((source) => [source, { value: 'x' }])),
@@ -762,14 +762,14 @@ test('fails closed when not even the marker fits the item limit', async () => {
 function evidenceVault({ changedNoteCites = [], unchangedNoteCites = [] }) {
   const link = (id) => `[Review ${id}](https://github.com/owner/repo/pull/44#pullrequestreview-${id})`;
   return baseVault({
-    'docs/knowledge/README.md': { value: `# Index\n${unchangedNoteCites.map(link).join('\n')}\n` },
-    'docs/knowledge/domains/changed.md': { value: `# Changed\n${changedNoteCites.map(link).join('\n')}\n` },
+    'docs/00-oficial/README.md': { value: `# Index\n${unchangedNoteCites.map(link).join('\n')}\n` },
+    'docs/00-oficial/domains/changed.md': { value: `# Changed\n${changedNoteCites.map(link).join('\n')}\n` },
   });
 }
 const reviewEvidence = (id, bytes) => ({
   [`/repos/owner/repo/pulls/44/reviews/${id}`]: { id, state: 'COMMENTED', body: 'E'.repeat(bytes), html_url: `https://github.com/owner/repo/pull/44#pullrequestreview-${id}` },
 });
-const changedFiles = [{ filename: 'apps/api/src/route.ts', status: 'modified' }, { filename: 'docs/knowledge/domains/changed.md', status: 'modified' }];
+const changedFiles = [{ filename: 'apps/api/src/route.ts', status: 'modified' }, { filename: 'docs/00-oficial/domains/changed.md', status: 'modified' }];
 const evidenceOf = (result, id) => result.find(({ path }) => path === `github-evidence://repos/owner/repo/pulls/44/reviews/${id}`);
 
 test('drops evidence that only unchanged notes cite for a marker instead of aborting the review', async () => {

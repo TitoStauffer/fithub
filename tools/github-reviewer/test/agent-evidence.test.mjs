@@ -54,7 +54,7 @@ test('review fingerprint changes when diff, CI/Sonar evidence, instructions, or 
   assert.notEqual(computeAgentContextHash('owner/repo', 1, pr, { ...inputs, checks: { ...inputs.checks, sonarQube: 'FAILED' } }), current);
   assert.notEqual(computeAgentContextHash('owner/repo', 1, pr, { ...inputs, repositoryInstructions: 'rules B' }), current);
   assert.notEqual(computeAgentContextHash('owner/repo', 1, pr, { ...inputs, sourceFiles: [{ path: 'src/a.ts', revision: 'head', content: 'source A' }] }), current);
-  assert.notEqual(computeAgentContextHash('owner/repo', 1, pr, { ...inputs, vaultContext: [{ path: 'docs/knowledge/current-state.md', revision: 'head', content: 'state A' }] }), current);
+  assert.notEqual(computeAgentContextHash('owner/repo', 1, pr, { ...inputs, vaultContext: [{ path: 'docs/00-oficial/estado-atual.md', revision: 'head', content: 'state A' }] }), current);
   assert.notEqual(computeAgentContextHash('owner/repo', 1, { ...pr, base: { ref: 'master', sha: 'c'.repeat(40) } }, inputs), current);
 });
 

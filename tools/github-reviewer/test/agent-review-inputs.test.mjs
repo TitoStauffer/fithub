@@ -322,16 +322,16 @@ test('loads all 32 changed files at the supported boundary without omitting sour
 });
 
 test('counts changed files already supplied by the vault only once', async () => {
-  const vaultFiles = Array.from({ length: 35 }, (_, index) => ({ filename: `docs/knowledge/generated/note-${index}.md`, status: 'added' }));
+  const vaultFiles = Array.from({ length: 35 }, (_, index) => ({ filename: `docs/00-oficial/generated/note-${index}.md`, status: 'added' }));
   const files = [
-    { filename: 'docs/knowledge/README.md', status: 'added' },
-    { filename: 'docs/knowledge/current-state.md', status: 'added' },
+    { filename: 'docs/00-oficial/README.md', status: 'added' },
+    { filename: 'docs/00-oficial/estado-atual.md', status: 'added' },
     ...vaultFiles,
     { filename: 'src/example.ts', status: 'modified' },
   ];
   const sources = {
-    'docs/knowledge/README.md': '# Index\n',
-    'docs/knowledge/current-state.md': '# Current state\n',
+    'docs/00-oficial/README.md': '# Index\n',
+    'docs/00-oficial/estado-atual.md': '# Current state\n',
     ...Object.fromEntries(vaultFiles.map(({ filename }, index) => [filename, `# Note ${index}\n`])),
   };
 
@@ -344,22 +344,22 @@ test('counts changed files already supplied by the vault only once', async () =>
   );
 
   assert.deepEqual(inputs.sourceFiles.map(({ path }) => path), ['src/example.ts']);
-  assert.equal(inputs.vaultContext.filter(({ path }) => path.startsWith('docs/knowledge/')).length, 37);
+  assert.equal(inputs.vaultContext.filter(({ path }) => path.startsWith('docs/00-oficial/')).length, 37);
 });
 
 test('still blocks more than 32 changed source files referenced by the vault', async () => {
   const sourceFiles = Array.from({ length: 33 }, (_, index) => ({ filename: `src/file-${index}.ts`, status: 'modified' }));
   const noteLinks = sourceFiles.map(({ filename }) => `[Source](../../../${filename})`).join('\n');
   const files = [
-    { filename: 'docs/knowledge/README.md', status: 'modified' },
-    { filename: 'docs/knowledge/current-state.md', status: 'modified' },
-    { filename: 'docs/knowledge/learnings/source-index.md', status: 'modified' },
+    { filename: 'docs/00-oficial/README.md', status: 'modified' },
+    { filename: 'docs/00-oficial/estado-atual.md', status: 'modified' },
+    { filename: 'docs/00-oficial/learnings/source-index.md', status: 'modified' },
     ...sourceFiles,
   ];
   const sources = {
-    'docs/knowledge/README.md': '# Index\n',
-    'docs/knowledge/current-state.md': '# Current state\n',
-    'docs/knowledge/learnings/source-index.md': `# Sources\n${noteLinks}\n`,
+    'docs/00-oficial/README.md': '# Index\n',
+    'docs/00-oficial/estado-atual.md': '# Current state\n',
+    'docs/00-oficial/learnings/source-index.md': `# Sources\n${noteLinks}\n`,
     ...Object.fromEntries(sourceFiles.map(({ filename }) => [filename, 'export const value = 1;\n'])),
   };
 
@@ -371,17 +371,17 @@ test('still blocks more than 32 changed source files referenced by the vault', a
 
 test('discovers dependencies for changed source files also supplied by the vault', async () => {
   const sources = {
-    'docs/knowledge/README.md': '# Index\n',
-    'docs/knowledge/current-state.md': '# Current state\n',
-    'docs/knowledge/learnings/source.md': '# Source\n[Changed](../../../src/example.ts)\n',
+    'docs/00-oficial/README.md': '# Index\n',
+    'docs/00-oficial/estado-atual.md': '# Current state\n',
+    'docs/00-oficial/learnings/source.md': '# Source\n[Changed](../../../src/example.ts)\n',
     'src/example.ts': "import { value } from './helper.js'; export { value };",
     'src/helper.ts': 'export const value = 1;\n',
   };
   const inputs = await loadAgentReviewInputs(createFetch({
     files: [
-      { filename: 'docs/knowledge/README.md', status: 'modified' },
-      { filename: 'docs/knowledge/current-state.md', status: 'modified' },
-      { filename: 'docs/knowledge/learnings/source.md', status: 'modified' },
+      { filename: 'docs/00-oficial/README.md', status: 'modified' },
+      { filename: 'docs/00-oficial/estado-atual.md', status: 'modified' },
+      { filename: 'docs/00-oficial/learnings/source.md', status: 'modified' },
       { filename: 'src/example.ts', status: 'modified' },
     ],
     sources,

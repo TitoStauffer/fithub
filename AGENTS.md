@@ -77,6 +77,10 @@ Resumo; o detalhe está no ENGENHARIA.md.
 - Atualize a documentação oficial quando API, evento, arquitetura, regra de
   negócio ou comportamento público mudar. Decisão técnica relevante vira ADR em
   `docs/00-oficial/adr/`.
+- `docs/00-oficial` é também o contexto que os bots de Code Review e QA leem
+  (índice, `estado-atual.md` e as notas que o `context-map.json` liga aos
+  caminhos alterados). Ao criar serviço, app ou área nova, acrescente a rota
+  no `context-map.json`; ao mudar o que existe, atualize o `estado-atual.md`.
 
 ## Git e entrega
 

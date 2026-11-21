@@ -81,7 +81,7 @@ function trackInput(changedFiles, extraComments = []) {
 }
 
 test('coordinator approves the light track without QA and says so in the report', () => {
-  const outcome = evaluateDeterministicQualityGate(trackInput(['AGENTS.md', 'docs/knowledge/current-state.md']));
+  const outcome = evaluateDeterministicQualityGate(trackInput(['AGENTS.md', 'docs/00-oficial/estado-atual.md']));
 
   assert.equal(outcome.decision, 'APPROVED');
   assert.equal(outcome.reviewTrack, 'light');

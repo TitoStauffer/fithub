@@ -96,11 +96,11 @@ test('keeps exact sources cited by selected notes and navigation roots without e
     checks: { api: 'PASSED', web: 'PASSED', githubReviewer: 'PASSED', sonarQube: 'PASSED', sonarCloud: 'PASSED' },
     repositoryInstructions: 'Trusted project policy',
     vaultContext: [
-      { path: 'docs/knowledge/README.md', revision: 'head', content: '[Navigation note](domain/unrelated.md)' },
-      { path: 'docs/knowledge/current-state.md', revision: 'head', content: '[Current source](../../src/current.ts)' },
-      { path: 'docs/knowledge/context-map.json', revision: 'head', content: JSON.stringify({ version: 1, catalogs: [], routes: [{ paths: ['src/**'], documents: ['docs/knowledge/domain/rules.md'] }] }) },
-      { path: 'docs/knowledge/domain/rules.md', revision: 'head', content: 'knowledge-marker\n[Exclusive source](../../../src/exclusive.ts)\n[Review](https://github.com/TitoStauffer/CashIn/pull/1#pullrequestreview-2)' },
-      { path: 'docs/knowledge/domain/unrelated.md', revision: 'head', content: 'unrelated-knowledge-marker' },
+      { path: 'docs/00-oficial/README.md', revision: 'head', content: '[Navigation note](domain/unrelated.md)' },
+      { path: 'docs/00-oficial/estado-atual.md', revision: 'head', content: '[Current source](../../src/current.ts)' },
+      { path: 'docs/00-oficial/context-map.json', revision: 'head', content: JSON.stringify({ version: 1, catalogs: [], routes: [{ paths: ['src/**'], documents: ['docs/00-oficial/domain/rules.md'] }] }) },
+      { path: 'docs/00-oficial/domain/rules.md', revision: 'head', content: 'knowledge-marker\n[Exclusive source](../../../src/exclusive.ts)\n[Review](https://github.com/TitoStauffer/CashIn/pull/1#pullrequestreview-2)' },
+      { path: 'docs/00-oficial/domain/unrelated.md', revision: 'head', content: 'unrelated-knowledge-marker' },
       { path: 'github-evidence://repos/TitoStauffer/CashIn/pulls/1/reviews/2', revision: 'head', content: 'evidence-marker' },
       { path: 'src/changed.ts', revision: 'head', content: 'changed-marker' },
       { path: 'src/current.ts', revision: 'head', content: 'current-source-marker' },
@@ -136,7 +136,7 @@ test('replays the authenticated PR 50 context below the final Codex prompt budge
 
   assert.equal(fixture.pullRequest.headSha, '4fe8bc7d866e19f798e26936cf37d844fbb54ec8');
   assert.equal(fixture.inputs.changedFiles.length, 11);
-  assert.equal(Buffer.byteLength(prompt, 'utf8'), 387_904);
+  assert.equal(Buffer.byteLength(prompt, 'utf8'), 388_361);
   assert.doesNotThrow(() => assertCodexPromptWithinBudget(prompt));
 });
 

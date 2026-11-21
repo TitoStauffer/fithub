@@ -4,7 +4,7 @@
 > API/Web/Mobile). A adaptação ao FitHub está nas issues:
 >
 > - ~~**DEV-0117**~~ — feito: sem Sonar, sem proteção de branch, checks e trilho leve do FitHub (`src/repository-policy.ts`)
-> - **DEV-0119** — contexto e critérios do Code Review e QA (AGENTS.md e `docs/00-oficial`)
+> - ~~**DEV-0119**~~ — feito: vault em `docs/00-oficial` (`VAULT_ROOT`) e instruções com os riscos do FitHub
 > - **DEV-0118** — workflows de orquestração (e os testes em `test/pending/`)
 >
 > Regras do FitHub: [AGENTS.md](../../AGENTS.md).

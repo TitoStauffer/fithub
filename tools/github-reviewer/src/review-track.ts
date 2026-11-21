@@ -15,6 +15,8 @@
  * what is harmless inverts the failure: a path nobody classified yet, including a directory that does
  * not exist today, demands the full track by omission instead of escaping QA by omission.
  */
+import { VAULT_CONTEXT_MAP_PATH } from './repository-policy.js';
+
 export type ReviewTrack = 'light' | 'full';
 
 /**
@@ -31,8 +33,9 @@ export type ReviewTrack = 'light' | 'full';
  * setup, lockfiles, `tsconfig`, the Jira dispatcher and `.claude/settings.json`. Being strict costs a
  * round; being permissive costs a missing QA on a change that reaches users.
  */
-// FitHub (DEV-0117): sem o vault do CashIn; testes Java (`*Test.java`, `*IT.java`) também são inertes.
-const LIGHT_TRACK_EXACT: readonly string[] = [];
+// FitHub: o mapa do vault em docs/00-oficial (DEV-0119) orienta o contexto, não o produto; testes Java
+// (`*Test.java`, `*IT.java`) também são inertes (DEV-0117).
+const LIGHT_TRACK_EXACT: readonly string[] = [VAULT_CONTEXT_MAP_PATH];
 const MARKDOWN_FILE = /\.md$/i;
 const TEST_FILE = /(?:\.test\.(?:ts|tsx|js|jsx|mjs|cjs)|(?:Test|IT)\.java)$/i;
 
@@ -77,4 +80,4 @@ export function runtimeAffectingPaths(changedFiles: readonly string[] | undefine
 export const REVIEW_TRACK_OUTPUT = 'review_track';
 
 /** How the light track is defined, for the reports that have to state the rule they applied. */
-export const LIGHT_TRACK_RULE = 'arquivos `*.md` e arquivos de teste `*.test.{ts,tsx,js,jsx,mjs,cjs}`, `*Test.java` e `*IT.java`';
+export const LIGHT_TRACK_RULE = 'arquivos `*.md`; arquivos de teste `*.test.{ts,tsx,js,jsx,mjs,cjs}`, `*Test.java` e `*IT.java`; e `docs/00-oficial/context-map.json`';

@@ -178,3 +178,10 @@ test('java unit and integration tests take the light track, java sources do not'
   assert.equal(isRuntimeAffectingPath('services/training-service/src/test/resources/application-test.yml'), true);
   assert.equal(isRuntimeAffectingPath('services/training-service/src/main/resources/db/migration/V1__init.sql'), true);
 });
+
+// FitHub (DEV-0119): o mapa do vault em docs/00-oficial orienta o contexto dos agentes, não o produto.
+test('the FitHub vault context map takes the light track and is named in the published rule', () => {
+  assert.equal(classifyReviewTrack(['docs/00-oficial/context-map.json', 'docs/00-oficial/estado-atual.md']), 'light');
+  assert.match(LIGHT_TRACK_RULE, /docs\/00-oficial\/context-map\.json/);
+  assert.equal(isRuntimeAffectingPath('docs/00-oficial/outro.json'), true);
+});
