@@ -106,8 +106,9 @@ jobs:
             exit 0
           fi
 
-          export GH_TOKEN="${PROJECT_TOKEN}"
-          project="$(gh api graphql \
+          # O PROJECT_TOKEN só tem o escopo "project": use-o apenas nas chamadas ao
+          # quadro. Leituras do repositório (privado) seguem com o GITHUB_TOKEN (DEV-0124).
+          project="$(GH_TOKEN="${PROJECT_TOKEN}" gh api graphql \
             -f query='query($l:String!,$n:Int!){user(login:$l){projectV2(number:$n){id field(name:"Status"){... on ProjectV2SingleSelectField{id options{id name}}}}}}' \
             -f l="${owner}" -F n="${PROJECT_NUMBER}" --jq '.data.user.projectV2')"
           project_id="$(jq -r '.id' <<< "${project}")"
@@ -118,10 +119,10 @@ jobs:
           for number in ${issues}; do
             content_id="$(gh api "repos/${REPO}/issues/${number}" --jq '.node_id')"
             # addProjectV2ItemById é idempotente: devolve o item existente se já estiver no quadro.
-            item_id="$(gh api graphql \
+            item_id="$(GH_TOKEN="${PROJECT_TOKEN}" gh api graphql \
               -f query='mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}' \
               -f p="${project_id}" -f c="${content_id}" --jq '.data.addProjectV2ItemById.item.id')"
-            gh api graphql \
+            GH_TOKEN="${PROJECT_TOKEN}" gh api graphql \
               -f query='mutation($p:ID!,$i:ID!,$f:ID!,$o:String!){updateProjectV2ItemFieldValue(input:{projectId:$p,itemId:$i,fieldId:$f,value:{singleSelectOptionId:$o}}){projectV2Item{id}}}' \
               -f p="${project_id}" -f i="${item_id}" -f f="${field_id}" -f o="${option_id}" > /dev/null
             echo "#${number} → ${column}"
