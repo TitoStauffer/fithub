@@ -1,0 +1,75 @@
+name: Issue key
+
+# Dá a toda issue nova a próxima chave sequencial: "[DEV-NNNN] - <título>".
+# Regras em AGENTS.md, seção "Chave da tarefa".
+
+on:
+  issues:
+    types: [opened]
+  # Numera, em ordem de criação, issues abertas que ficaram sem chave
+  # (ex.: criadas enquanto o workflow estava indisponível).
+  workflow_dispatch:
+
+permissions: {}
+
+# Uma execução por vez no repositório inteiro: duas issues abertas ao mesmo
+# tempo nunca recebem a mesma chave.
+concurrency:
+  group: issue-key
+  cancel-in-progress: false
+
+jobs:
+  assign-key:
+    name: Atribuir chave DEV
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      # Não há checkout: o job não lê nem executa conteúdo do repositório ou da
+      # issue. O título chega por variável de ambiente e só é tratado como texto.
+      - name: Atribuir chave
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          key_pattern='^\[DEV-[0-9]{4}\] - '
+
+          # Maior chave já usada em qualquer issue (aberta ou fechada; PRs ficam de fora).
+          max_key() {
+            gh api --paginate "repos/${REPO}/issues?state=all&per_page=100" \
+              --jq '.[] | select(.pull_request == null) | .title' \
+              | grep -oE '^\[DEV-[0-9]{4}\]' | grep -oE '[0-9]{4}' | sort -n | tail -1 || true
+          }
+
+          assign() {
+            local number="$1"
+            local title
+            title="$(gh api "repos/${REPO}/issues/${number}" --jq '.title')"
+            if [[ "${title}" =~ ${key_pattern} ]]; then
+              echo "#${number} já tem chave: ${title}"
+              return 0
+            fi
+            # Remove uma chave malformada no início (ex.: "[DEV-12]" ou "DEV-12 -").
+            local clean
+            clean="$(printf '%s' "${title}" | sed -E 's/^\[?DEV-[0-9]+\]?[[:space:]]*-?[[:space:]]*//')"
+            local last next key
+            last="$(max_key)"
+            next=$(( 10#${last:-0} + 1 ))
+            key="$(printf 'DEV-%04d' "${next}")"
+            jq -n --arg t "[${key}] - ${clean}" '{title: $t}' \
+              | gh api --method PATCH "repos/${REPO}/issues/${number}" --input - --jq '.title'
+            echo "#${number} recebeu ${key}"
+          }
+
+          if [[ "${EVENT}" == "issues" ]]; then
+            assign "${ISSUE_NUMBER}"
+          else
+            gh api --paginate "repos/${REPO}/issues?state=open&sort=created&direction=asc&per_page=100" \
+              --jq '.[] | select(.pull_request == null) | .number' \
+              | while read -r number; do assign "${number}"; done
+          fi
