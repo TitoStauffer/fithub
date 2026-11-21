@@ -1,0 +1,727 @@
+import { createHash } from 'node:crypto';
+import { posix } from 'node:path';
+import { GitHubApiError, requestGitHubApi } from './github-api-client.js';
+
+export interface VaultContextSnapshot {
+  path: string;
+  revision: 'head' | 'base';
+  content: string;
+  // Set when the citation was kept but its body was left out for the context budget: `content` is
+  // then the marker, not the file. Only a source a note merely cites, or evidence that only notes this
+  // PR does not change cite, can carry it.
+  contentOmitted?: true;
+}
+
+export function selectPromptVaultContext(
+  snapshots: VaultContextSnapshot[],
+  changedFiles: ReadonlySet<string>,
+  repository: string,
+): VaultContextSnapshot[] {
+  if (!repository) return snapshots;
+  const [owner, repositoryName, unexpected] = repository.split('/');
+  if (!owner || !repositoryName || unexpected) throw new Error('Invalid repository identity for vault prompt context.');
+  const localSnapshots = new Map(snapshots
+    .filter(({ path }) => !path.startsWith('github-evidence://'))
+    .map((snapshot) => [snapshot.path, snapshot]));
+  if (!localSnapshots.has(VAULT_INDEX)) return snapshots;
+  const selectedPaths = new Set<string>();
+  const documentsToInspect: VaultContextSnapshot[] = [];
+  const queuedDocuments = new Set<string>();
+  const selectDocument = (path: string) => {
+    const snapshot = localSnapshots.get(path);
+    if (!snapshot) return;
+    selectedPaths.add(path);
+    if (isKnowledgeDocument(path) && !queuedDocuments.has(path)) {
+      queuedDocuments.add(path);
+      documentsToInspect.push(snapshot);
+    }
+  };
+
+  selectDocument(VAULT_INDEX);
+  selectDocument(VAULT_CURRENT_STATE);
+  const contextMapSnapshot = localSnapshots.get(VAULT_CONTEXT_MAP);
+  const contextMap = contextMapSnapshot ? parseContextMap(contextMapSnapshot.content) : undefined;
+  if (contextMapSnapshot) selectedPaths.add(VAULT_CONTEXT_MAP);
+  for (const path of changedFiles) {
+    if (localSnapshots.has(path)) selectedPaths.add(path);
+    if (isKnowledgeDocument(path)) selectDocument(path);
+  }
+  for (const route of contextMap?.routes ?? []) {
+    if ([...changedFiles].some((path) => route.paths.some((pattern) => matchesPattern(path, pattern)))) {
+      route.documents.forEach(selectDocument);
+    }
+  }
+
+  const catalogDocuments = new Set(contextMap?.catalogs ?? []);
+  for (let index = 0; index < documentsToInspect.length; index += 1) {
+    const document = documentsToInspect[index];
+    if (!document || catalogDocuments.has(document.path)) continue;
+    const isNavigationRoot = document.path === VAULT_INDEX || document.path === VAULT_CURRENT_STATE;
+    for (const target of markdownLinks(document.content)) {
+      const local = resolveLocalReference(document.path, target);
+      if (local && localSnapshots.has(local)) {
+        if (isNavigationRoot && isKnowledgeDocument(local)) continue;
+        selectedPaths.add(local);
+        if (isKnowledgeDocument(local)) selectDocument(local);
+      }
+      const remote = resolveGitHubEvidenceReference(target, owner, repositoryName);
+      if (remote) selectedPaths.add(`github-evidence://${remote.apiPath.replace(/^\//, '')}`);
+    }
+  }
+  return snapshots.filter(({ path }) => selectedPaths.has(path));
+}
+
+interface ChangedFile {
+  filename?: unknown;
+  status?: unknown;
+}
+
+interface ContextRoute {
+  paths: string[];
+  documents: string[];
+}
+
+interface ContextMap {
+  version: 1;
+  routes: ContextRoute[];
+  catalogs: string[];
+}
+
+interface GitHubEvidenceReference {
+  apiPath: string;
+  sourceUrl: string;
+  kind: 'review' | 'pullComment' | 'issueComment';
+  pullRequestNumber: number;
+  evidenceId: string;
+}
+
+const VAULT_INDEX = 'docs/knowledge/README.md';
+const VAULT_CURRENT_STATE = 'docs/knowledge/current-state.md';
+const VAULT_CONTEXT_MAP = 'docs/knowledge/context-map.json';
+const MAX_VAULT_ITEMS = 160;
+const MAX_VAULT_BYTES = 650_000;
+// Ceiling for every response this loader reads: a cited local source and the GitHub review evidence
+// alike. The /contents response carries the file as base64, a third larger than it, plus GitHub's
+// metadata, so 100 KB left an effective source ceiling of about 73 KB — below files that already
+// exist in this repository, and the read failed, taking the whole review down with it. At 400 KB the
+// effective source ceiling is about 300 KB, and the guard still aborts a response large enough to
+// amplify memory. The aggregate budget (MAX_VAULT_ITEMS and MAX_VAULT_BYTES) did not change, so a
+// large source eats into the other notes' room instead of growing the context.
+const MAX_SINGLE_RESPONSE_BYTES = 400_000;
+
+export async function loadVaultContext(
+  fetchImpl: typeof fetch,
+  repository: string,
+  changedFiles: ChangedFile[],
+  headSha: string,
+  baseSha: string,
+  token: string,
+  knownSources: VaultContextSnapshot[] = [],
+): Promise<VaultContextSnapshot[]> {
+  const [owner, repositoryName, unexpected] = repository.split('/');
+  if (!owner || !repositoryName || unexpected) throw new Error('Invalid repository identity for vault context.');
+
+  const changed = new Map<string, string>();
+  for (const file of changedFiles) {
+    const filename = stringValue(file.filename);
+    const status = stringValue(file.status);
+    if (filename && status) changed.set(filename, status);
+  }
+
+  const known = new Map(knownSources.map((source) => [`${source.revision}:${source.path}`, source]));
+  const snapshots: VaultContextSnapshot[] = [];
+  const snapshotsByKey = new Map<string, VaultContextSnapshot>();
+  const seen = new Set<string>();
+  let totalBytes = 0;
+
+  const fits = (candidate: VaultContextSnapshot): boolean => snapshots.length < MAX_VAULT_ITEMS
+    && totalBytes + Buffer.byteLength(candidate.content, 'utf8') <= MAX_VAULT_BYTES;
+
+  // Which ceiling refused the candidate. One message for both conditions cost a whole measurement
+  // round to find out it was bytes and not items, the same way a single message for three step
+  // conditions did in the Actions evidence loader.
+  const refusedBy = (): 'item' | 'byte' => (snapshots.length < MAX_VAULT_ITEMS ? 'byte' : 'item');
+
+  // A required item is read after optional bodies have already been admitted — the link traversal
+  // interleaves cited sources with notes reached by link, and the GitHub evidence comes last of all.
+  // Admitting optional bodies greedily and never reconsidering them let the budget fill up before a
+  // required item arrived, so the review still aborted whole and only the message changed. Priority,
+  // not arrival order, decides who keeps a body: the optional bodies already admitted give theirs up,
+  // largest first so the fewest citations lose one, until the required item fits.
+  //
+  // That ordering serves a large need. When the need is a marker's couple of hundred bytes it does the
+  // opposite: it sacrifices the biggest body in the context so a marker can be recorded, and two
+  // citations lose a body where one would have done — against the very principle the ordering exists
+  // for. So the caller states the shape of the need.
+  //
+  // A body smaller than its own marker is never demotable either way: releasing it would add bytes
+  // instead of freeing them, because the marker spells out path, size and digest. That only surfaces
+  // once the smallest bodies are the ones picked first.
+  // Evidence admitted as optional (cited only by unchanged notes) can give up its body like a cited source.
+  const optionalEvidence = new Set<string>();
+  const demoteOptionalBodies = (required: VaultContextSnapshot, prefer: 'largest' | 'smallest' = 'largest'): boolean => {
+    const bytesOf = (candidate: VaultContextSnapshot) => Buffer.byteLength(candidate.content, 'utf8');
+    const demotable = snapshots
+      .map((snapshot, index) => ({ snapshot, index }))
+      .filter(({ snapshot }) => !snapshot.contentOmitted && (isOptionalBody(snapshot.path) || optionalEvidence.has(snapshot.path)))
+      .filter(({ snapshot }) => bytesOf(snapshot) > bytesOf(omittedSourceSnapshot(snapshot)))
+      .sort((first, second) => (prefer === 'largest'
+        ? bytesOf(second.snapshot) - bytesOf(first.snapshot)
+        : bytesOf(first.snapshot) - bytesOf(second.snapshot)));
+    for (const { snapshot, index } of demotable) {
+      if (fits(required)) break;
+      const marker = omittedSourceSnapshot(snapshot);
+      totalBytes -= Buffer.byteLength(snapshot.content, 'utf8') - Buffer.byteLength(marker.content, 'utf8');
+      snapshots[index] = marker;
+      snapshotsByKey.set(`${marker.revision}:${marker.path}`, marker);
+    }
+    return fits(required);
+  };
+
+  // The vault's own documents and the GitHub evidence of the notes this PR changes are what makes the
+  // claims under review checkable, so a budget they do not fit still aborts the review. Evidence that only
+  // unchanged notes cite is orientation for claims this PR does not make (DEV-160: 26 such items, 451 KB,
+  // reached by links from routed notes, aborted a review whose changed notes cited nothing), and is
+  // dropped for a marker the same way. A source file a note merely cites is orientation too:
+  // every changed file reaches the prompt through the changed-source snapshots anyway, and the
+  // closure of cited sources grows with the codebase instead of with the vault, which is what made
+  // the abort inevitable here. Such a body is dropped for a marker, the shape the changed-source
+  // loader already uses, so the citation stays verified at the PR SHA and the review survives.
+  const addSnapshot = (snapshot: VaultContextSnapshot, bodyRequired: boolean): VaultContextSnapshot => {
+    const key = `${snapshot.revision}:${snapshot.path}`;
+    const loaded = snapshotsByKey.get(key);
+    if (loaded) return loaded;
+    let stored = snapshot;
+    if (!fits(stored)) {
+      if (bodyRequired) {
+        // Demotion only frees bytes, never items, so the item ceiling still aborts.
+        if (!demoteOptionalBodies(stored)) {
+          throw new Error(`Vault context documents and evidence exceed the supported ${refusedBy()} limit: ${snapshot.path}.`);
+        }
+      } else {
+        stored = omittedSourceSnapshot(snapshot);
+        // A marker costs about a hundred bytes, so what refuses it is a budget already filled by other
+        // optional bodies admitted before it. Reclaim from those — the same demotion the required path
+        // uses — instead of aborting the whole review over a citation we were already dropping. Without
+        // this, optional bodies admitted in arrival order filled the budget and a citation arriving late
+        // killed the review, with the fix sitting thirty lines above in this same file.
+        // The need is the marker, so the smallest body that resolves it is the one to give up. Keeping
+        // the candidate's own body instead was considered and rejected: it would cost demoting at least
+        // as many bytes as it saves, and the candidate is the snapshot we were already prepared to drop.
+        //
+        // A marker runs past two hundred bytes, not a hundred: 176 are fixed — the prefix up to `path=`,
+        // the two field separators, the 64-character digest and the closing bracket — plus the path and
+        // the size's digits. That figure is what makes giving up a body worth it, so it is stated
+        // precisely rather than rounded down.
+        if (!fits(stored) && !demoteOptionalBodies(stored, 'smallest')) {
+          throw new Error(`Vault context exceeds the supported ${refusedBy()} limit: ${snapshot.path}.`);
+        }
+      }
+    }
+    seen.add(key);
+    snapshotsByKey.set(key, stored);
+    snapshots.push(stored);
+    totalBytes += Buffer.byteLength(stored.content, 'utf8');
+    return stored;
+  };
+
+  const loadLocal = async (path: string, optional = false): Promise<VaultContextSnapshot | undefined> => {
+    assertSafeRepositoryPath(path);
+    const bodyRequired = isKnowledgeDocument(path) || path === VAULT_CONTEXT_MAP;
+    const status = changed.get(path);
+    const revision: 'head' | 'base' = status === 'removed' ? 'base' : 'head';
+    const key = `${revision}:${path}`;
+    const loadedSource = snapshotsByKey.get(key);
+    if (loadedSource) return loadedSource;
+    const knownSource = known.get(key);
+    if (knownSource) return addSnapshot(knownSource, bodyRequired);
+
+    const ref = revision === 'head' ? headSha : baseSha;
+    try {
+      const payload = await requestGitHubApi<unknown>(
+        fetchImpl,
+        `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repositoryName)}/contents/${encodeRepositoryPath(path)}?ref=${encodeURIComponent(ref)}`,
+        token,
+        { maxResponseBytes: MAX_SINGLE_RESPONSE_BYTES },
+      );
+      if (Array.isArray(payload)) {
+        throw new Error(`Vault context source must reference an exact file, not a directory: ${path}.`);
+      }
+      if (!isRecord(payload) || payload.encoding !== 'base64' || typeof payload.content !== 'string') {
+        throw new Error(`Could not read vault context source: ${path}.`);
+      }
+      const content = Buffer.from(payload.content.replace(/\s/g, ''), 'base64').toString('utf8');
+      if (content.includes('\0')) throw new Error(`Vault context source is binary: ${path}.`);
+      return addSnapshot({ path, revision, content } satisfies VaultContextSnapshot, bodyRequired);
+    } catch (error) {
+      if (optional && error instanceof GitHubApiError && error.status === 404) return undefined;
+      throw error;
+    }
+  };
+
+  const index = await loadLocal(VAULT_INDEX, true);
+  if (!index) return [];
+  const currentState = await loadLocal(VAULT_CURRENT_STATE, true);
+  if (!currentState) throw new Error('Vault current state is unavailable.');
+  const contextMapSnapshot = await loadLocal(VAULT_CONTEXT_MAP, true);
+  const contextMap = contextMapSnapshot ? parseContextMap(contextMapSnapshot.content) : undefined;
+  const catalogDocuments = new Set(contextMap?.catalogs ?? []);
+
+  const selectedDocuments = new Set<string>();
+  for (const path of changed.keys()) {
+    if (path.startsWith('docs/knowledge/') && path.endsWith('.md')) selectedDocuments.add(path);
+  }
+  for (const route of contextMap?.routes ?? []) {
+    if ([...changed.keys()].some((path) => route.paths.some((pattern) => matchesPattern(path, pattern)))) {
+      route.documents.forEach((document) => selectedDocuments.add(document));
+    }
+  }
+
+  const documentsToInspect: VaultContextSnapshot[] = [index, currentState];
+  const queuedDocuments = new Set(documentsToInspect.map(({ path }) => path));
+  for (const document of selectedDocuments) {
+    assertKnowledgeDocument(document);
+    const loaded = await loadLocal(document);
+    if (loaded && !queuedDocuments.has(loaded.path)) {
+      documentsToInspect.push(loaded);
+      queuedDocuments.add(loaded.path);
+    }
+  }
+
+  const remoteReferences = new Map<string, GitHubEvidenceReference>();
+  // Evidence a note changed by this PR cites backs a claim the PR makes, so its body is required. Evidence
+  // only unchanged notes cite was reached by following links and is orientation, like a cited source.
+  const requiredEvidence = new Set<string>();
+  for (let documentIndex = 0; documentIndex < documentsToInspect.length; documentIndex += 1) {
+    const document = documentsToInspect[documentIndex];
+    if (!document) continue;
+    if (catalogDocuments.has(document.path)) continue;
+    const isNavigationRoot = document.path === VAULT_INDEX || document.path === VAULT_CURRENT_STATE;
+    for (const target of markdownLinks(document.content)) {
+      const local = resolveLocalReference(document.path, target);
+      if (local) {
+        if (isNavigationRoot && isKnowledgeDocument(local)) continue;
+        const loaded = await loadLocal(local);
+        if (loaded && isKnowledgeDocument(loaded.path) && !queuedDocuments.has(loaded.path)) {
+          documentsToInspect.push(loaded);
+          queuedDocuments.add(loaded.path);
+        }
+      }
+      const remote = resolveGitHubEvidenceReference(target, owner, repositoryName);
+      if (remote) {
+        remoteReferences.set(`${remote.kind}:${remote.pullRequestNumber}:${remote.evidenceId}`, remote);
+        if (changed.has(document.path)) requiredEvidence.add(remote.apiPath);
+      }
+    }
+  }
+
+  const pendingEvidencePaths = new Set(
+    [...remoteReferences.values()]
+      .map(({ apiPath }) => `head:github-evidence://${apiPath.replace(/^\//, '')}`)
+      .filter((key) => !seen.has(key)),
+  );
+  if (snapshots.length + pendingEvidencePaths.size > MAX_VAULT_ITEMS) {
+    // Its own sentence: this is the projected evidence count refused before a single download, not an
+    // individual candidate refused inside the loop, and the two used to differ only by a path suffix.
+    // The note this delivery extends asks for exactly that — one message per condition.
+    throw new Error(`Vault context exceeds the supported item limit with ${pendingEvidencePaths.size} evidence items still to load.`);
+  }
+
+  const evidenceResponses = new Map<string, Record<string, unknown>>();
+  // Arrival order is enough: an optional evidence body admitted ahead of a required one is demotable
+  // (`optionalEvidence`), so the required body takes its bytes instead of aborting the review.
+  for (const reference of remoteReferences.values()) {
+    const { apiPath, sourceUrl } = reference;
+    const required = requiredEvidence.has(apiPath);
+    let payload = evidenceResponses.get(apiPath);
+    if (!payload) {
+      const response = await requestGitHubApi<unknown>(fetchImpl, apiPath, token, { maxResponseBytes: MAX_SINGLE_RESPONSE_BYTES });
+      if (!isRecord(response)) throw new Error(`GitHub vault evidence is invalid: ${sourceUrl}.`);
+      payload = response;
+      evidenceResponses.set(apiPath, payload);
+    }
+    assertGitHubEvidenceAssociation(payload, reference, owner, repositoryName);
+    const evidence = normalizeGitHubEvidence(payload, sourceUrl);
+    const path = `github-evidence://${apiPath.replace(/^\//, '')}`;
+    if (!required) optionalEvidence.add(path);
+    addSnapshot({ path, revision: 'head', content: `${JSON.stringify(evidence, null, 2)}\n` }, required);
+  }
+
+  return snapshots;
+}
+
+// Mirrors the changed-source loader's fixture marker: the citation keeps its path and revision, and
+// the body is replaced by a statement naming its size and hash, so the reviewer can tell an omitted
+// source from an empty one.
+// Evidence gets its own wording: it was fetched and its association checked, and only unchanged notes
+// cite it, which is what the reviewer needs to know to weigh the claims that rest on it.
+function omittedSourceSnapshot(snapshot: VaultContextSnapshot): VaultContextSnapshot {
+  const bytes = Buffer.byteLength(snapshot.content, 'utf8');
+  const sha256 = createHash('sha256').update(snapshot.content).digest('hex');
+  const content = snapshot.path.startsWith('github-evidence://')
+    ? `[vault evidence omitted from model context for the vault context budget; cited only by notes this pull request does not change; path=${snapshot.path}; evidenceBytes=${bytes}; evidenceSha256=${sha256}]`
+    : `[vault-cited source omitted from model context for the vault context budget; path=${snapshot.path}; sourceBytes=${bytes}; sourceSha256=${sha256}]`;
+  return { path: snapshot.path, revision: snapshot.revision, content, contentOmitted: true };
+}
+
+function parseContextMap(content: string): ContextMap {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content);
+  } catch {
+    throw new Error('Vault context map is not valid JSON.');
+  }
+  if (!isRecord(parsed) || parsed.version !== 1 || !Array.isArray(parsed.routes)) {
+    throw new Error('Vault context map must declare version 1 and a routes array.');
+  }
+  const routes = parsed.routes.map((route) => {
+    if (!isRecord(route) || !isStringArray(route.paths) || !isStringArray(route.documents)
+      || route.paths.length === 0 || route.documents.length === 0) {
+      throw new Error('Vault context map contains an invalid route.');
+    }
+    route.documents.forEach(assertKnowledgeDocument);
+    route.paths.forEach((pattern) => {
+      if (pattern.startsWith('/') || pattern.includes('..') || pattern.includes('\\')) {
+        throw new Error(`Vault context map contains an unsafe path pattern: ${pattern}.`);
+      }
+    });
+    return { paths: route.paths, documents: route.documents };
+  });
+  const catalogs = parsed.catalogs === undefined ? [] : parsed.catalogs;
+  if (!isStringArray(catalogs)) throw new Error('Vault context map catalogs must be an array of documents.');
+  catalogs.forEach(assertKnowledgeDocument);
+  return { version: 1, routes, catalogs };
+}
+
+function markdownLinks(content: string): string[] {
+  const markdown = withoutMarkdownCode(content);
+  const targets = new Set(inlineMarkdownLinks(markdown));
+
+  const definitions = new Map<string, string>();
+  const definitionPattern = /^[ \t]{0,3}\[([^\]\r\n]+)\]:[ \t]*(?:<([^>\r\n]+)>|(\S+))(?:[ \t]+(?:"[^"\r\n]*"|'[^'\r\n]*'|\([^)]*\)))?[ \t]*$/gm;
+  for (const match of markdown.matchAll(definitionPattern)) {
+    const label = normalizeReferenceLabel(match[1]);
+    const target = (match[2] ?? match[3])?.trim();
+    if (!label || !target) continue;
+    const existing = definitions.get(label);
+    if (existing && existing !== target) {
+      throw new Error(`Vault document contains conflicting Markdown link definitions: ${match[1]}.`);
+    }
+    definitions.set(label, target);
+  }
+
+  for (const match of markdown.matchAll(/(?<!!)\[([^\]\r\n]+)\]\[([^\]\r\n]*)\]/g)) {
+    const label = normalizeReferenceLabel(match[2] || match[1]);
+    const target = definitions.get(label);
+    if (!target) throw new Error(`Vault document contains an undefined Markdown link reference: ${label}.`);
+    targets.add(target);
+  }
+
+  for (const match of markdown.matchAll(/(?<![!\]])\[([^\]\r\n]+)\](?![\[(:])/g)) {
+    const target = definitions.get(normalizeReferenceLabel(match[1]));
+    if (target) targets.add(target);
+  }
+
+  return [...targets];
+}
+
+function inlineMarkdownLinks(markdown: string): string[] {
+  const targets = new Set<string>();
+  for (const line of markdown.split(/\r?\n/)) {
+    let cursor = 0;
+    while (cursor < line.length) {
+      const labelStart = line.indexOf('[', cursor);
+      if (labelStart < 0) break;
+      if (isEscaped(line, labelStart)) {
+        cursor = labelStart + 1;
+        continue;
+      }
+      const labelEnd = closingDelimiter(line, labelStart, '[', ']');
+      if (line[labelStart - 1] === '!' && !isEscaped(line, labelStart - 1)) {
+        cursor = labelEnd < 0 ? labelStart + 1 : labelEnd + 1;
+        continue;
+      }
+      if (labelEnd < 0 || line[labelEnd + 1] !== '(') {
+        cursor = labelStart + 1;
+        continue;
+      }
+      const parsed = inlineLinkDestination(line, labelEnd + 2);
+      if (!parsed) {
+        throw new Error('Vault document contains an unsupported or malformed inline Markdown link.');
+      }
+      if (parsed.target) targets.add(unescapeMarkdownDestination(parsed.target));
+      cursor = parsed.end + 1;
+    }
+  }
+  return [...targets];
+}
+
+function inlineLinkDestination(line: string, start: number): { target: string; end: number } | undefined {
+  let cursor = skipHorizontalWhitespace(line, start);
+  let target: string;
+
+  if (line[cursor] === '<') {
+    const destinationStart = ++cursor;
+    while (cursor < line.length && line[cursor] !== '>') {
+      if (line[cursor] === '\\') cursor++;
+      cursor++;
+    }
+    if (line[cursor] !== '>') return undefined;
+    target = line.slice(destinationStart, cursor);
+    cursor++;
+  } else {
+    const destinationStart = cursor;
+    let nestedParentheses = 0;
+    while (cursor < line.length) {
+      const character = line[cursor];
+      if (character === '\\') {
+        cursor += 2;
+        continue;
+      }
+      if (character === '(') nestedParentheses++;
+      if (character === ')') {
+        if (nestedParentheses === 0) break;
+        nestedParentheses--;
+      }
+      if ((character === ' ' || character === '\t') && nestedParentheses === 0) break;
+      cursor++;
+    }
+    if (nestedParentheses !== 0) return undefined;
+    target = line.slice(destinationStart, cursor);
+  }
+
+  const afterDestination = cursor;
+  cursor = skipHorizontalWhitespace(line, cursor);
+  if (line[cursor] === ')') return { target, end: cursor };
+  if (cursor === afterDestination) return undefined;
+
+  const titleStart = line[cursor];
+  const titleEnd = titleStart === '(' ? ')' : titleStart === '"' || titleStart === "'" ? titleStart : undefined;
+  if (!titleEnd) return undefined;
+  cursor++;
+  while (cursor < line.length && line[cursor] !== titleEnd) {
+    if (line[cursor] === '\\') cursor++;
+    cursor++;
+  }
+  if (line[cursor] !== titleEnd) return undefined;
+  cursor = skipHorizontalWhitespace(line, cursor + 1);
+  return line[cursor] === ')' ? { target, end: cursor } : undefined;
+}
+
+function closingDelimiter(line: string, start: number, opening: string, closing: string): number {
+  let depth = 0;
+  for (let cursor = start; cursor < line.length; cursor++) {
+    if (line[cursor] === '\\') {
+      cursor++;
+      continue;
+    }
+    if (line[cursor] === opening) depth++;
+    if (line[cursor] === closing && --depth === 0) return cursor;
+  }
+  return -1;
+}
+
+function skipHorizontalWhitespace(value: string, start: number): number {
+  let cursor = start;
+  while (value[cursor] === ' ' || value[cursor] === '\t') cursor++;
+  return cursor;
+}
+
+function isEscaped(value: string, index: number): boolean {
+  let backslashes = 0;
+  for (let cursor = index - 1; cursor >= 0 && value[cursor] === '\\'; cursor--) backslashes++;
+  return backslashes % 2 === 1;
+}
+
+function unescapeMarkdownDestination(value: string): string {
+  return value.replace(/\\([!"#$%&'()*+,\-.\/:;<=\>?@[\]\\^_`{|}~])/g, '$1');
+}
+
+function withoutMarkdownCode(content: string): string {
+  let fence: { marker: '`' | '~'; length: number } | undefined;
+  return content.split(/\r?\n/).map((line) => {
+    const fenceMatch = line.match(/^[ \t]{0,3}(`{3,}|~{3,})/);
+    if (fence) {
+      if (fenceMatch && fenceMatch[1]?.startsWith(fence.marker) && fenceMatch[1].length >= fence.length
+        && /^[ \t]*$/.test(line.slice(fenceMatch[0].length))) {
+        fence = undefined;
+      }
+      return '';
+    }
+    if (fenceMatch) {
+      const delimiter = fenceMatch[1];
+      if (delimiter) fence = { marker: delimiter[0] as '`' | '~', length: delimiter.length };
+      return '';
+    }
+    return line.replace(/(`+)([^`\r\n]*?)\1/g, 'CODE');
+  }).join('\n');
+}
+
+function normalizeReferenceLabel(value: string | undefined): string {
+  return value?.trim().replace(/\s+/g, ' ').toLowerCase() ?? '';
+}
+
+function resolveLocalReference(documentPath: string, target: string): string | undefined {
+  if (/^(?:https?:\/\/|mailto:|#)/i.test(target)) return undefined;
+  const withoutFragment = target.split('#', 1)[0];
+  if (!withoutFragment) return undefined;
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(withoutFragment);
+  } catch {
+    throw new Error(`Vault document contains an invalid encoded link: ${target}.`);
+  }
+  const resolved = posix.normalize(posix.join(posix.dirname(documentPath), decoded));
+  assertSafeRepositoryPath(resolved);
+  return resolved;
+}
+
+function resolveGitHubEvidenceReference(
+  target: string,
+  owner: string,
+  repository: string,
+): GitHubEvidenceReference | undefined {
+  let url: URL;
+  try {
+    url = new URL(target);
+  } catch {
+    return undefined;
+  }
+  if (url.protocol !== 'https:' || url.hostname.toLowerCase() !== 'github.com') return undefined;
+  const match = url.pathname.match(/^\/([^/]+)\/([^/]+)\/pull\/(\d+)\/?$/i);
+  if (!match || match[1]?.toLowerCase() !== owner.toLowerCase() || match[2]?.toLowerCase() !== repository.toLowerCase()) return undefined;
+  const pullRequestNumber = Number(match[3]);
+  const review = url.hash.match(/^#pullrequestreview-(\d+)$/);
+  if (review) return { apiPath: `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}/pulls/${pullRequestNumber}/reviews/${review[1]}`, sourceUrl: url.href, kind: 'review', pullRequestNumber, evidenceId: review[1] };
+  const comment = url.hash.match(/^#discussion_r(\d+)$/);
+  if (comment) return { apiPath: `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}/pulls/comments/${comment[1]}`, sourceUrl: url.href, kind: 'pullComment', pullRequestNumber, evidenceId: comment[1] };
+  const issueComment = url.hash.match(/^#issuecomment-(\d+)$/);
+  if (issueComment) return { apiPath: `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}/issues/comments/${issueComment[1]}`, sourceUrl: url.href, kind: 'issueComment', pullRequestNumber, evidenceId: issueComment[1] };
+  return undefined;
+}
+
+function assertGitHubEvidenceAssociation(
+  payload: Record<string, unknown>,
+  reference: GitHubEvidenceReference,
+  owner: string,
+  repository: string,
+): void {
+  if (String(payload.id ?? '') !== reference.evidenceId) {
+    throw new Error(`GitHub vault evidence identifier does not match its reference: ${reference.sourceUrl}.`);
+  }
+  const expectedHash = reference.kind === 'review'
+    ? `#pullrequestreview-${reference.evidenceId}`
+    : reference.kind === 'pullComment' ? `#discussion_r${reference.evidenceId}` : `#issuecomment-${reference.evidenceId}`;
+  if (!matchesGitHubPullRequestUrl(payload.html_url, owner, repository, reference.pullRequestNumber, expectedHash)) {
+    throw new Error(`GitHub vault evidence URL does not match its reference: ${reference.sourceUrl}.`);
+  }
+  if (reference.kind === 'pullComment'
+    && !matchesGitHubApiUrl(payload.pull_request_url, owner, repository, 'pulls', reference.pullRequestNumber)) {
+    throw new Error(`GitHub review comment does not belong to the referenced Pull Request: ${reference.sourceUrl}.`);
+  }
+  if (reference.kind === 'issueComment'
+    && !matchesGitHubApiUrl(payload.issue_url, owner, repository, 'issues', reference.pullRequestNumber)) {
+    throw new Error(`GitHub conversation comment does not belong to the referenced Pull Request: ${reference.sourceUrl}.`);
+  }
+}
+
+function matchesGitHubPullRequestUrl(
+  value: unknown,
+  owner: string,
+  repository: string,
+  pullRequestNumber: number,
+  expectedHash: string,
+): boolean {
+  if (typeof value !== 'string') return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:'
+      && url.hostname.toLowerCase() === 'github.com'
+      && url.pathname.toLowerCase() === `/${owner}/${repository}/pull/${pullRequestNumber}`.toLowerCase()
+      && url.hash === expectedHash
+      && url.search === '';
+  } catch {
+    return false;
+  }
+}
+
+function matchesGitHubApiUrl(
+  value: unknown,
+  owner: string,
+  repository: string,
+  collection: 'pulls' | 'issues',
+  pullRequestNumber: number,
+): boolean {
+  if (typeof value !== 'string') return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:'
+      && url.hostname.toLowerCase() === 'api.github.com'
+      && url.pathname.toLowerCase() === `/repos/${owner}/${repository}/${collection}/${pullRequestNumber}`.toLowerCase()
+      && url.search === ''
+      && url.hash === '';
+  } catch {
+    return false;
+  }
+}
+
+function normalizeGitHubEvidence(payload: Record<string, unknown>, sourceUrl: string): Record<string, unknown> {
+  const user = isRecord(payload.user) ? payload.user : undefined;
+  return {
+    sourceUrl,
+    id: payload.id ?? null,
+    state: payload.state ?? null,
+    commitId: payload.commit_id ?? null,
+    submittedAt: payload.submitted_at ?? payload.created_at ?? null,
+    author: user?.login ?? null,
+    body: typeof payload.body === 'string' ? payload.body : '',
+    htmlUrl: payload.html_url ?? null,
+    path: payload.path ?? null,
+    line: payload.line ?? payload.original_line ?? null,
+  };
+}
+
+function matchesPattern(path: string, pattern: string): boolean {
+  const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*\*/g, '\0').replace(/\*/g, '[^/]*').replace(/\0/g, '.*');
+  return new RegExp(`^${escaped}$`).test(path);
+}
+
+function assertKnowledgeDocument(path: string): void {
+  assertSafeRepositoryPath(path);
+  if (!isKnowledgeDocument(path)) {
+    throw new Error(`Vault context document is outside docs/knowledge or is not Markdown: ${path}.`);
+  }
+}
+
+// A source a note merely cites may lose its body. The vault's own documents and the context map never
+// can. GitHub evidence is not decided by its path: the loader marks as optional only the evidence that no
+// note changed by this PR cites (`optionalEvidence`), which keeps the claims under review checkable.
+function isOptionalBody(path: string): boolean {
+  return !isKnowledgeDocument(path) && path !== VAULT_CONTEXT_MAP && !path.startsWith('github-evidence://');
+}
+
+function isKnowledgeDocument(path: string): boolean {
+  return path.startsWith('docs/knowledge/') && path.endsWith('.md');
+}
+
+function assertSafeRepositoryPath(path: string): void {
+  if (!path || path.startsWith('/') || path.startsWith('../') || path.includes('/../') || path.includes('\\') || path.includes('\0')) {
+    throw new Error(`Vault context contains an unsafe repository path: ${path}.`);
+  }
+}
+
+function encodeRepositoryPath(path: string): string {
+  return path.split('/').map(encodeURIComponent).join('/');
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string' && item.length > 0);
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
