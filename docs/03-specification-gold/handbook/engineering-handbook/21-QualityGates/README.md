@@ -1,0 +1,1 @@
+Checklists antes do merge.

@@ -1,0 +1,3 @@
+- Paciente pertence a um profissional.
+- Dados obrigatórios devem ser informados.
+- Histórico deve ser preservado.

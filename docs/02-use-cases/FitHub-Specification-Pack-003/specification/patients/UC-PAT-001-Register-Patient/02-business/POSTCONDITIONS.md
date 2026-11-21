@@ -1,0 +1,2 @@
+Dados persistidos.
+Auditoria registrada.

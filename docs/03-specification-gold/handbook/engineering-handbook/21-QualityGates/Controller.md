@@ -1,0 +1,3 @@
+- Sem Repository
+- Sem regra de negócio
+- DTO validado

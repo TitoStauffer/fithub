@@ -1,0 +1,4 @@
+Sucesso
+Falha
+Permissão
+Validação

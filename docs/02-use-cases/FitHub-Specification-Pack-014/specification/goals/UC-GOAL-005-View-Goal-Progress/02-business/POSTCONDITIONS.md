@@ -1,0 +1,2 @@
+Operação concluída.
+Auditoria registrada.

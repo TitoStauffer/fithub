@@ -1,0 +1,4 @@
+[ ] Código
+[ ] Testes
+[ ] OpenAPI
+[ ] Documentação

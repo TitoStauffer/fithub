@@ -1,8 +1,0 @@
-<project>
-  <parent>
-    <groupId>com.fithub</groupId>
-    <artifactId>backend-parent</artifactId>
-    <version>0.3.0</version>
-  </parent>
-  <artifactId>identity</artifactId>
-</project>

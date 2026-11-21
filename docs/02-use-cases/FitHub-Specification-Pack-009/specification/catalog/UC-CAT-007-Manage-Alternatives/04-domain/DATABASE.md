@@ -1,0 +1,4 @@
+exercise
+exercise_media
+exercise_category
+exercise_alternative

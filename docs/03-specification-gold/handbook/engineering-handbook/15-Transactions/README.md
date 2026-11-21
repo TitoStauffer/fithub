@@ -1,0 +1,1 @@
+Transações e consistência.

@@ -1,0 +1,2 @@
+Histórico atualizado.
+Auditoria registrada.

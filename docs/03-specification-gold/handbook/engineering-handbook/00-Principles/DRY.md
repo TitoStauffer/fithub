@@ -1,0 +1,1 @@
+Evite duplicação de conhecimento.

@@ -1,0 +1,16 @@
+openapi: 3.0.3
+info:
+  title: Training API
+  version: v1
+paths:
+  /v1/trainings:
+    post:
+      summary: Create training
+  /v1/trainings/{trainingId}:
+    get:
+      summary: Get training
+    put:
+      summary: Update training
+  /v1/trainings/{trainingId}/executions:
+    post:
+      summary: Register execution
