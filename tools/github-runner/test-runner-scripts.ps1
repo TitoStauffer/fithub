@@ -132,7 +132,7 @@ eval "$HOOK_CMD"
   $env:Path = $previousPath
   $GitForWindowsDir = Join-Path $sandbox 'sem-git'
   [void](Set-RunnerEnvironment)
-  Assert-True ($env:Path.Split(';')[1] -ne $GitForWindowsDir) 'sem Git for Windows instalado, o PATH segue sem ele'
+  Assert-True (-not (@($env:Path.Split(';')) -contains $GitForWindowsDir)) 'sem Git for Windows instalado, o PATH segue sem ele'
   $env:Path = $previousPath
   $GitForWindowsDir = $previousGitDir
   $env:CODEX_EXECUTABLE = $previousCodex
