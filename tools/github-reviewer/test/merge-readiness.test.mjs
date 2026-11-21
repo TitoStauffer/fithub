@@ -13,6 +13,12 @@ const contextHash = computeAgentContextHash('owner/repo', 7, {
   head: { sha }, base: { ref: 'master', sha: 'c'.repeat(40) },
 }, reviewInputs);
 
+// A maior parte destes testes veio do CashIn e exercita a lógica de branch protection, rulesets e
+// checks configuráveis. No FitHub essa lógica fica desligada pela política do repositório
+// (repository-policy.ts, DEV-0117), mas continua aqui para quando houver proteção disponível; por isso
+// o fixture usa a política com proteção ligada, salvo quando o teste pede outra.
+const LEGACY_POLICY = { branchProtectionAvailable: true, requiredQualityChecks: ['API', 'Web', 'Mobile', 'SonarQube', 'SonarCloud Code Analysis'] };
+
 function report(signature, section, commitSha = sha, reportContextHash = contextHash) {
   const stage = signature.includes('QA Agent') ? 'qa' : 'qualityGate';
   return {
@@ -112,6 +118,7 @@ function fixture(overrides = {}) {
     evaluate: () => evaluateMergeReadiness({
       appId: '123', privateKey: 'test-key', owner: 'owner', repository: 'repo', installationId: '456',
       pullRequestNumber: 7, fetchImpl, authFactory, now: () => new Date('2026-10-21T12:30:00Z'),
+      policy: overrides.policy ?? LEGACY_POLICY,
     }),
   };
 }
@@ -502,4 +509,23 @@ test('blocks when the PR closes or becomes unmergeable during the evaluation', a
   const conflicted = await fixture({ mergeabilityChanges: true }).evaluate();
   assert.equal(conflicted.status, 'BLOCKED');
   assert.match(conflicted.reasons.join(' '), /deixou de estar integrável/);
+});
+
+// FitHub (DEV-0117): com a política padrão, a proteção de branch não é consultada (a API responde 403
+// no plano gratuito) nem exigida, e o relatório diz por quê; o `PR title` é obrigatório.
+test('default FitHub policy neither reads nor requires branch protection', async () => {
+  const fitHubChecks = ['Automation Tools', 'PR title'].map((name) => ({ name, head_sha: sha, status: 'completed', conclusion: 'success', ...(name === 'Automation Tools' ? { app: { id: 15368 } } : {}) }));
+  const current = fixture({ checks: fitHubChecks, protectionStatus: 403, policy: {} });
+  const result = await current.evaluate();
+  assert.equal(current.requests.some(({ path }) => /\/protection$|\/rulesets/.test(path)), false);
+  assert.match(String(result.evidence.branchProtectionPolicy), /indisponível no plano atual/);
+  assert.doesNotMatch(result.reasons.join(' '), /branch protection|ruleset|regra de proteção/i);
+  assert.doesNotMatch(result.reasons.join(' '), /SonarQube|Mobile|API|Web/);
+});
+
+test('default FitHub policy blocks when the PR title check is missing', async () => {
+  const withoutTitle = [{ name: 'Automation Tools', head_sha: sha, status: 'completed', conclusion: 'success', app: { id: 15368 } }];
+  const result = await fixture({ checks: withoutTitle, policy: {} }).evaluate();
+  assert.notEqual(result.status, 'READY_TO_MERGE');
+  assert.match(result.reasons.join(' '), /PR title/);
 });

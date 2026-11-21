@@ -123,8 +123,9 @@ test('verifies all four CI jobs and supplies Automation Tools test steps and six
   }));
   const inputs = await loadAgentReviewInputs(fakeFetch({ checkValues, jobValues }), 'owner/repo', 7, { head: { sha }, base: { sha: baseSha } }, 'not-a-real-token');
   assert.equal(inputs.checks.githubReviewer, 'PASSED');
-  // DEV-153: the Mobile job is a CI job like API and Web: required, and its steps reach the agents.
-  assert.equal(inputs.checks.mobile, 'PASSED');
+  // FitHub (DEV-0117): só o job das ferramentas de revisão é exigido; os demais jobs de teste
+  // reconhecidos continuam levando suas etapas aos agentes.
+  assert.deepEqual(Object.keys(inputs.checks), ['githubReviewer']);
   assert.equal(inputs.checkRuns.find(({ name }) => name === 'Mobile').actions.availability, 'available');
   assert.equal(inputs.checkRuns.filter(({ actions }) => actions?.availability === 'available').length, 4);
   assert.deepEqual(inputs.checkRuns.find(({ name }) => name === 'Automation Tools').actions.steps, jobValues[3].steps);

@@ -31,9 +31,10 @@ export type ReviewTrack = 'light' | 'full';
  * setup, lockfiles, `tsconfig`, the Jira dispatcher and `.claude/settings.json`. Being strict costs a
  * round; being permissive costs a missing QA on a change that reaches users.
  */
-const LIGHT_TRACK_EXACT = ['docs/knowledge/context-map.json'] as const;
+// FitHub (DEV-0117): sem o vault do CashIn; testes Java (`*Test.java`, `*IT.java`) também são inertes.
+const LIGHT_TRACK_EXACT: readonly string[] = [];
 const MARKDOWN_FILE = /\.md$/i;
-const TEST_FILE = /\.test\.(?:ts|tsx|js|jsx|mjs|cjs)$/i;
+const TEST_FILE = /(?:\.test\.(?:ts|tsx|js|jsx|mjs|cjs)|(?:Test|IT)\.java)$/i;
 
 function normalize(path: string): string | undefined {
   if (typeof path !== 'string') return undefined;
@@ -46,7 +47,7 @@ function normalize(path: string): string | undefined {
 export function isRuntimeAffectingPath(path: string): boolean {
   const normalized = normalize(path);
   if (normalized === undefined) return true;
-  if (LIGHT_TRACK_EXACT.includes(normalized as (typeof LIGHT_TRACK_EXACT)[number])) return false;
+  if (LIGHT_TRACK_EXACT.includes(normalized)) return false;
   return !MARKDOWN_FILE.test(normalized) && !TEST_FILE.test(normalized);
 }
 
@@ -76,4 +77,4 @@ export function runtimeAffectingPaths(changedFiles: readonly string[] | undefine
 export const REVIEW_TRACK_OUTPUT = 'review_track';
 
 /** How the light track is defined, for the reports that have to state the rule they applied. */
-export const LIGHT_TRACK_RULE = 'arquivos `*.md`, arquivos de teste `*.test.{ts,tsx,js,jsx,mjs,cjs}` e `docs/knowledge/context-map.json`';
+export const LIGHT_TRACK_RULE = 'arquivos `*.md` e arquivos de teste `*.test.{ts,tsx,js,jsx,mjs,cjs}`, `*Test.java` e `*IT.java`';

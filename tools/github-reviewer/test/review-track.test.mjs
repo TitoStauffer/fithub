@@ -11,8 +11,9 @@ test('a documentation-only change takes the light track', () => {
     '.github/pull_request_template.md',
     'tools/github-reviewer/README.md',
     'apps/web/README.md',
-    'docs/knowledge/context-map.json',
   ]), 'light');
+  // FitHub (DEV-0117): o vault do CashIn não existe aqui; seu mapa deixa de ser inerte.
+  assert.equal(classifyReviewTrack(['docs/knowledge/context-map.json']), 'full');
 });
 
 test('a change limited to test files takes the light track', () => {
@@ -144,7 +145,8 @@ test('the published rule names every path the light track allows', () => {
   // a mandatory stage, so it cannot claim more than the classifier accepts. The rule used to say
   // `*.test.*`, which reads as any extension, while only code extensions are accepted.
   assert.match(LIGHT_TRACK_RULE, /\*\.md/);
-  assert.match(LIGHT_TRACK_RULE, /docs\/knowledge\/context-map\.json/);
+  assert.match(LIGHT_TRACK_RULE, /\*Test\.java/);
+  assert.match(LIGHT_TRACK_RULE, /\*IT\.java/);
 
   // The published extension list is compared on its own, so the `context-map.json` mention cannot make
   // a `.json` test fixture look advertised.
@@ -162,4 +164,17 @@ test('the published rule names every path the light track allows', () => {
     assert.equal(isRuntimeAffectingPath(`apps/api/src/fixture.test.${extension}`), true, extension);
     assert.ok(!published.includes(extension), `${extension} anunciado como inerte e recusado pelo classificador`);
   }
+});
+
+// FitHub (DEV-0117): testes Java são inertes como os de TypeScript; código Java, testes de recurso e
+// configuração de teste continuam exigindo o trilho completo.
+test('java unit and integration tests take the light track, java sources do not', () => {
+  assert.equal(classifyReviewTrack([
+    'services/training-service/src/test/java/com/fithub/training/domain/WorkoutPlanTest.java',
+    'services/client-service/src/test/java/com/fithub/client/LinkApiIT.java',
+  ]), 'light');
+  assert.equal(isRuntimeAffectingPath('services/training-service/src/main/java/com/fithub/training/domain/WorkoutPlan.java'), true);
+  assert.equal(isRuntimeAffectingPath('services/training-service/src/test/java/com/fithub/training/TestFixtures.java'), true);
+  assert.equal(isRuntimeAffectingPath('services/training-service/src/test/resources/application-test.yml'), true);
+  assert.equal(isRuntimeAffectingPath('services/training-service/src/main/resources/db/migration/V1__init.sql'), true);
 });

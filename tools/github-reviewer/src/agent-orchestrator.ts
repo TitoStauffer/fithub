@@ -16,7 +16,6 @@ export interface AgentStageResult {
 export interface QualityPrerequisites {
   commitSha: string;
   ci: 'PASSED' | 'FAILED' | 'PENDING' | 'UNKNOWN';
-  sonar: 'PASSED' | 'FAILED' | 'PENDING' | 'UNKNOWN';
 }
 
 export interface OrchestrationContext {
@@ -104,13 +103,14 @@ async function runClaimedExecution(
   const completedStages: AgentStage[] = [];
   const prerequisites = await safely(() => dependencies.readPrerequisites(pullRequestNumber));
   if (!isQualityPrerequisites(prerequisites) || prerequisites.commitSha.toLowerCase() !== commitSha.toLowerCase()) {
-    return result('INCONCLUSIVE', runContext, completedStages, 'As evidências de CI e Sonar não puderam ser associadas ao HEAD atual.');
+    return result('INCONCLUSIVE', runContext, completedStages, 'As evidências de CI não puderam ser associadas ao HEAD atual.');
   }
-  if (prerequisites.ci === 'FAILED' || prerequisites.sonar === 'FAILED') {
-    return result('BLOCKED', runContext, completedStages, 'CI ou SonarQube falhou para o HEAD atual.');
+  // FitHub (DEV-0117): sem SonarQube; só o CI é pré-requisito do Code Review.
+  if (prerequisites.ci === 'FAILED') {
+    return result('BLOCKED', runContext, completedStages, 'O CI falhou para o HEAD atual.');
   }
-  if (prerequisites.ci !== 'PASSED' || prerequisites.sonar !== 'PASSED') {
-    return result('INCONCLUSIVE', runContext, completedStages, 'CI e SonarQube precisam estar aprovados antes do Code Review.');
+  if (prerequisites.ci !== 'PASSED') {
+    return result('INCONCLUSIVE', runContext, completedStages, 'O CI precisa estar aprovado antes do Code Review.');
   }
 
   const review = await runStage('codeReview', runContext, dependencies, completedStages);
@@ -225,8 +225,7 @@ function validateInput(input: AgentOrchestratorInput): void {
 function isQualityPrerequisites(value: QualityPrerequisites | undefined): value is QualityPrerequisites {
   return typeof value?.commitSha === 'string'
     && FULL_SHA.test(value.commitSha)
-    && ['PASSED', 'FAILED', 'PENDING', 'UNKNOWN'].includes(value.ci)
-    && ['PASSED', 'FAILED', 'PENDING', 'UNKNOWN'].includes(value.sonar);
+    && ['PASSED', 'FAILED', 'PENDING', 'UNKNOWN'].includes(value.ci);
 }
 
 function isAgentStageResult(value: AgentStageResult | undefined): value is AgentStageResult {

@@ -3,16 +3,7 @@ import { posix } from 'node:path';
 import { requestGitHubApi, requestGitHubApiPages, requestGitHubText } from './github-api-client.js';
 import { ACTIONS_APP_ID, loadActionsEvidence, loadCiSnapshots, unavailableActionsEvidence, type AgentActionsEvidence, type AgentCiSnapshot } from './agent-ci-evidence.js';
 import { loadVaultContext, type VaultContextSnapshot } from './vault-context.js';
-
-const REQUIRED_AGENT_CHECKS = {
-  api: (name: string) => /(^|\/\s*)api(\s|$)/i.test(name),
-  web: (name: string) => /(^|\/\s*)web(\s|$)/i.test(name),
-  // DEV-153: the Expo app job (DEV-141), required and read like API and Web.
-  mobile: (name: string) => /(^|\/\s*)mobile(\s|$)/i.test(name),
-  githubReviewer: (name: string) => /(^|\/\s*)(?:automation tools|github reviewer)$/i.test(name),
-  sonarQube: (name: string) => /sonarqube/i.test(name),
-  sonarCloud: (name: string) => /sonarcloud code analysis/i.test(name),
-} as const;
+import { KNOWN_TEST_JOBS, REQUIRED_AGENT_CHECKS } from './repository-policy.js';
 
 export interface AgentReviewInputs {
   diff: string;
@@ -273,13 +264,9 @@ export function summarizeAgentChecks(runs: Array<Record<string, unknown>>, expec
     if (matches.some((run) => run.conclusion !== 'success')) return 'FAILED';
     return 'PASSED';
   };
+  // FitHub (DEV-0117): sem SonarQube e, até a DEV-0016, só o job das ferramentas de revisão.
   return {
-    api: status(REQUIRED_AGENT_CHECKS.api),
-    web: status(REQUIRED_AGENT_CHECKS.web),
-    mobile: status(REQUIRED_AGENT_CHECKS.mobile),
     githubReviewer: status(REQUIRED_AGENT_CHECKS.githubReviewer, ACTIONS_APP_ID),
-    sonarQube: status(REQUIRED_AGENT_CHECKS.sonarQube),
-    sonarCloud: status(REQUIRED_AGENT_CHECKS.sonarCloud),
   };
 }
 
@@ -303,7 +290,7 @@ export function fingerprintAgentReviewInputs(inputs: AgentReviewInputs): Record<
 
 export function summarizeCheckRunEvidence(runs: Array<Record<string, unknown>>, expectedHeadSha: string): AgentCheckEvidence[] {
   const relevantRuns = latestRunsByName(runs.filter((run) => run.head_sha === expectedHeadSha
-    && Object.values(REQUIRED_AGENT_CHECKS).some((matcher) => matcher(String(run.name ?? '')))));
+    && isTestCheck(String(run.name ?? ''))));
   return relevantRuns
     .map((run) => ({
       name: String(run.name ?? 'Unnamed check'),
@@ -319,7 +306,8 @@ export function summarizeCheckRunEvidence(runs: Array<Record<string, unknown>>, 
 }
 
 function isTestCheck(name: string): boolean {
-  return REQUIRED_AGENT_CHECKS.api(name) || REQUIRED_AGENT_CHECKS.web(name) || REQUIRED_AGENT_CHECKS.mobile(name) || REQUIRED_AGENT_CHECKS.githubReviewer(name);
+  // Jobs de teste reconhecidos (repository-policy.ts): o QA vê as etapas verificadas de cada um.
+  return KNOWN_TEST_JOBS.some((matches) => matches(name));
 }
 
 function latestRunsByName(runs: Array<Record<string, unknown>>): Array<Record<string, unknown>> {
