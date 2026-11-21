@@ -96,7 +96,7 @@ merge: a regra "merge só com READY_TO_MERGE" fica escrita no `AGENTS.md`.
 | DEV-0014 | `libs/java-commons`: outbox transacional e consumidor idempotente, com testes Testcontainers | M | DEV-0013 |
 | DEV-0015 | Template de serviço (esqueleto hexagonal + ArchUnit + Flyway + Actuator + OpenAPI) aplicado aos 4 serviços | M | DEV-0013 |
 | DEV-0016 | GitHub Actions: build e testes por caminho para serviços e apps | M | DEV-0015 |
-| DEV-0017 | Publicar imagem Docker no GHCR no merge da main | P | DEV-0016 |
+| DEV-0017 | Publicar imagem Docker no GHCR no merge na master | P | DEV-0016 |
 | DEV-0018 | `libs/event-contracts` com JSON Schema e validação em teste | P | DEV-0011 |
 | DEV-0019 | Templates de issue e PR, rótulos e GitHub Project (quadro Kanban) | P | — |
 | DEV-0020 | `apps/web`: React + Vite + TS + TanStack Query + shadcn/ui, com lint e testes | M | DEV-0011 |

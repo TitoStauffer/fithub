@@ -35,7 +35,9 @@ vale até alguém contestar.
 | CI/CD | GitHub Actions + imagens no GHCR | PROPOSTO |
 | Gestão de tarefas | GitHub Issues + GitHub Projects | DECIDIDO |
 | Método | Kanban com marcos por épico | DECIDIDO |
-| Git | Trunk-based, PRs curtos, squash merge | DECIDIDO |
+| Git | Trunk-based, PRs curtos, squash merge, chave `DEV-NNNN` em issue, branch, commit e PR | DECIDIDO |
+| Revisão | Bots de Code Review e QA no estilo do CashIn (Claude Code CLI em runner self-hosted) + Merge Readiness | DECIDIDO |
+| Regras de trabalho | [AGENTS.md](../../AGENTS.md) na raiz | DECIDIDO |
 
 ---
 
@@ -215,10 +217,12 @@ novos serviços quando cada épico chegar. Ele não é evoluído no lugar.
 
 GitHub Actions, com filtro por caminho (só builda o que mudou):
 
-1. **PR:** build e testes do serviço ou app afetado (unitários, ArchUnit,
-   integração com Testcontainers), lint e typecheck no front. Precisa estar
-   verde para merge.
-2. **Merge na main:** gera a imagem Docker do serviço alterado e publica no
+1. **PR:** `PR title` (título, branch e issue com a mesma chave DEV), build e
+   testes do serviço ou app afetado (unitários, ArchUnit, integração com
+   Testcontainers), lint e typecheck no front. Precisa estar verde para merge.
+   Depois do CI verde rodam Code Review, QA, Coordinator e Merge Readiness
+   (AGENTS.md).
+2. **Merge na master:** gera a imagem Docker do serviço alterado e publica no
    GHCR com a tag do commit.
 3. **Deploy:** workflow manual (`workflow_dispatch`) que entra na VPS por SSH
    e roda `docker compose pull && up -d` para o serviço escolhido. Vira
@@ -242,29 +246,33 @@ GitHub Actions, com filtro por caminho (só builda o que mudou):
 | Mobile | Jest + React Native Testing Library | Fluxos críticos (registro de série, refeição) |
 
 **Regra:** nada de teste falso (`assertTrue(true)`). Teste desabilitado precisa
-de `@Disabled("motivo + issue")`.
+de `@Disabled("motivo + DEV-xxxx")`.
 
 ---
 
 ## 10. Workflow de desenvolvimento
 
+As regras completas (papéis, merge, Code Review, débitos técnicos) estão no
+[AGENTS.md](../../AGENTS.md). Resumo:
+
 ```
-Issue (tarefa do backlog, com critérios de aceitação)
+Issue [DEV-0042] - ... em "Pronto" (com critérios de aceitação)
    ↓
-Branch a partir da main:  <tipo>/<nº-issue>-<descricao-curta>
-   ex.: feat/42-registro-por-serie
+Branch a partir da master:  feature|fix|chore/DEV-0042-descricao-curta
    ↓
-Commits em Conventional Commits, em português
-   ex.: feat(training): registra execução por série
+Commits:  [DEV-0042] - título
+          (linha em branco)
+          * mudança de impacto
    ↓
-PR pequeno (ideal < 400 linhas), template preenchido, "Closes #42"
+PR "[DEV-0042] - título", template preenchido, "Closes #N"
    ↓
-CI verde + revisão (/code-review) + checagem dos critérios de aceitação
+CI (PR title + build/testes) → Code Review → QA (trilho completo)
+   → Coordinator → Merge Readiness = READY_TO_MERGE
    ↓
-Squash merge na main → imagem publicada → deploy quando fizer sentido
+Squash merge na master → imagem publicada → deploy só quando o Tito pedir
 ```
 
-- `main` está sempre compilando e implantável.
+- `master` está sempre compilando e implantável.
 - Feature incompleta entra escondida (rota não exposta), nunca quebrada.
 - Uma decisão técnica relevante vira **ADR** em `docs/00-oficial/adr/`
   (contexto, decisão, consequências).
@@ -302,9 +310,13 @@ Squash merge na main → imagem publicada → deploy quando fizer sentido
 | Feito | Mergeado |
 
 - **Épico = marco** (GitHub Milestone), com uma entrega demonstrável no fim.
-- **Tarefa = issue** com rótulos: `epico:<id>`, `servico:<nome>` ou
-  `app:<web|mobile>`, `tipo:<feat|fix|chore|docs>`, tamanho `P` (≤ meio dia)
-  ou `M` (≤ 2 dias). Tarefa maior que M deve ser quebrada.
+- **Tarefa = issue** com título `[DEV-NNNN] - ...` e rótulos: `epico:<id>`,
+  `servico:<nome>` ou `app:<web|mobile>`,
+  `tipo:<feat|fix|chore|docs|spike|decisao|debito-tecnico>`,
+  `tamanho:<P|M>` (P ≤ meio dia, M ≤ 2 dias). Tarefa maior que M deve ser
+  quebrada.
+- **Débitos técnicos** vindos de revisão ficam no milestone permanente
+  `TD — Débitos técnicos` (regra de entrada no AGENTS.md).
 - **Revisão semanal** (15 min): o que foi entregue, o que travou, reordenar o
   topo do "Pronto".
 - **Fim de épico:** demonstração do fluxo funcionando e revisão rápida (o que
@@ -315,7 +327,10 @@ Squash merge na main → imagem publicada → deploy quando fizer sentido
   documento.
 - Tarefas sem dependência entre si podem rodar em sessões paralelas, cada uma
   na sua branch ou worktree.
-- O Claude abre o PR, e o Tito revisa e decide o merge.
+- O Claude (papel de PM) abre o PR e faz o merge com `READY_TO_MERGE`,
+  exceto nos casos em que o AGENTS.md manda perguntar ao Tito (migration,
+  workflow/bots/segurança, decisão de produto nova). Deploy só com pedido do
+  Tito.
 - Questões em aberto descobertas durante a tarefa são registradas no PRD
   (seção 21) ou como issue, e não resolvidas por conta própria.
 
