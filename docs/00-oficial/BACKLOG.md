@@ -103,6 +103,7 @@ merge: a regra "merge só com READY_TO_MERGE" fica escrita no `AGENTS.md`.
 | DEV-0021 | `apps/mobile`: Expo + TS, com lint e testes | M | DEV-0011 |
 | DEV-0022 | `packages/api-types`: geração de tipos TS a partir do OpenAPI dos serviços | P | DEV-0015, DEV-0020 |
 | DEV-0023 | ADR-001 a ADR-005 registrando as decisões de stack de ENGENHARIA.md | P | — |
+| DEV-0116 | Verificação por mutação no CI com mutantes declarados (manifesto por tarefa, como no CashIn) | M | DEV-0016 |
 
 ## E1 — Identidade e contas
 
