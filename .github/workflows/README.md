@@ -11,7 +11,7 @@ Secrets e variáveis:
 
 | Nome | Tipo | Para quê |
 |---|---|---|
-| `PROJECT_TOKEN` | secret | PAT clássico com escopo `project`. Quadros de conta pessoal não aceitam o `GITHUB_TOKEN`. Sem ele, `project-status` só avisa |
+| `PROJECT_TOKEN` | secret | PAT clássico com escopos `repo` e `project` (o repositório é privado: sem `repo` o token não enxerga a issue). Quadros de conta pessoal não aceitam o `GITHUB_TOKEN`. Sem ele, `project-status` só avisa |
 | `PROJECT_NUMBER` | variável (opcional) | Número do quadro; padrão `1` |
 
 Regras gerais (AGENTS.md):
