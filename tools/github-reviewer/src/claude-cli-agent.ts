@@ -53,7 +53,7 @@ export async function executeClaudeAgent(
   const prompt = buildPrompt(stage, context, evidence);
   assertClaudePromptWithinBudget(prompt);
   // An empty temporary directory keeps project instructions, settings and hooks out of the session.
-  const workDirectory = await mkdtemp(join(tmpdir(), 'cashin-claude-agent-'));
+  const workDirectory = await mkdtemp(join(tmpdir(), 'fithub-claude-agent-'));
   try {
     const observation = await runClaude(prompt, workDirectory, signal);
     const parsed = parseClaudeObservation(observation);

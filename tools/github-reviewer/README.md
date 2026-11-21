@@ -5,7 +5,7 @@
 >
 > - ~~**DEV-0117**~~ — feito: sem Sonar, sem proteção de branch, checks e trilho leve do FitHub (`src/repository-policy.ts`)
 > - ~~**DEV-0119**~~ — feito: vault em `docs/00-oficial` (`VAULT_ROOT`) e instruções com os riscos do FitHub
-> - **DEV-0118** — workflows de orquestração (e os testes em `test/pending/`)
+> - ~~**DEV-0118**~~ — feito: workflows de orquestração, variáveis `FITHUB_APP_*`, snapshots de CI do FitHub e testes de contrato reativados
 >
 > Regras do FitHub: [AGENTS.md](../../AGENTS.md).
 

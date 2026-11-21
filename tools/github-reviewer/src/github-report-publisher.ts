@@ -147,7 +147,7 @@ export function formatPullRequestReport(report: PullRequestReport): string {
 
 function reportMarker(report: PullRequestReport): string {
   const stage = report.agentName === 'qualityGate' ? 'qualityGate' : report.agentName;
-  return `<!-- cashin-agent-report:v1 stage=${stage} sha=${report.commitSha.toLowerCase()}${report.contextHash ? ` ctx=${report.contextHash.toLowerCase()}` : ''} -->`;
+  return `<!-- fithub-agent-report:v1 stage=${stage} sha=${report.commitSha.toLowerCase()}${report.contextHash ? ` ctx=${report.contextHash.toLowerCase()}` : ''} -->`;
 }
 
 function removeRepeatedMetadata(markdown: string, status: string, commitSha: string): string {

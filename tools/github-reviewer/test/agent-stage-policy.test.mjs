@@ -188,7 +188,7 @@ test('stage CLI exits inconclusive on API failure without producing an approved 
     await writeFile(eventPath, JSON.stringify({ inputs: { pr_number: '1' } }));
     await writeFile(interceptor, 'globalThis.fetch = async () => { throw new Error("Simulated API unavailable"); };');
     await assert.rejects(promisify(execFile)(process.execPath, ['--import', pathToFileURL(interceptor).href, resolve('dist/agent-stage-cli.js')], {
-      env: { ...process.env, GITHUB_REPOSITORY: 'owner/repo', GITHUB_EVENT_PATH: eventPath, GITHUB_EVENT_NAME: 'workflow_dispatch', GITHUB_TOKEN: 'offline-test-token', GITHUB_WORKSPACE: directory, AGENT_STAGE: 'qualityGate', CASHIN_APP_BOT_LOGIN: context.botLogin },
+      env: { ...process.env, GITHUB_REPOSITORY: 'owner/repo', GITHUB_EVENT_PATH: eventPath, GITHUB_EVENT_NAME: 'workflow_dispatch', GITHUB_TOKEN: 'offline-test-token', GITHUB_WORKSPACE: directory, AGENT_STAGE: 'qualityGate', FITHUB_APP_BOT_LOGIN: context.botLogin },
     }), error => error.code === 2 && /Simulated API unavailable|cannot be evaluated/.test(error.stderr));
     await assert.rejects(access(join(directory, 'agent-result.json')));
   } finally { await rm(directory, { recursive: true, force: true }); }

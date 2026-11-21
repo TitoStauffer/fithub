@@ -3,7 +3,7 @@ import { createSign } from 'node:crypto';
 const API_BASE = 'https://api.github.com';
 const API_VERSION = '2022-11-28';
 const OWNER = 'TitoStauffer';
-const REPOSITORY = 'CashIn';
+const REPOSITORY = 'fithub';
 
 export function createAppJwt(appId, privateKey, now = Math.floor(Date.now() / 1000)) {
   const header = encodeJson({ alg: 'RS256', typ: 'JWT' });
