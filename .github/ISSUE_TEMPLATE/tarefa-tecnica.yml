@@ -1,0 +1,58 @@
+name: Tarefa técnica
+description: Infraestrutura, CI, automação, documentação, spike ou débito técnico
+labels: ["tipo:chore"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Não escreva a chave no título: o bot adiciona `[DEV-NNNN] - ` automaticamente.
+        Débito técnico vindo de revisão só abre se cair numa das 4 classes do AGENTS.md
+        (usuário, contrato público, segurança, destrava entrega); use a label
+        `tipo:debito-tecnico` e o milestone `TD — Débitos técnicos`.
+  - type: dropdown
+    id: tipo
+    attributes:
+      label: Tipo
+      options:
+        - Infraestrutura / CI
+        - Automação / workflow
+        - Documentação
+        - Spike (pesquisa)
+        - Decisão
+        - Débito técnico
+    validations:
+      required: true
+  - type: textarea
+    id: descricao
+    attributes:
+      label: Descrição
+      description: O que fazer e por quê.
+    validations:
+      required: true
+  - type: textarea
+    id: origem
+    attributes:
+      label: Origem do débito
+      description: Só para débito técnico. Link da revisão, classe do AGENTS.md e impacto.
+  - type: textarea
+    id: criterios
+    attributes:
+      label: Critérios de aceitação
+      value: |
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: deps
+    attributes:
+      label: Depende de
+      value: "- Nenhuma"
+  - type: dropdown
+    id: tamanho
+    attributes:
+      label: Tamanho
+      options:
+        - P (até meio dia)
+        - M (até 2 dias)
+    validations:
+      required: true

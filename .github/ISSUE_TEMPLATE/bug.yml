@@ -1,0 +1,58 @@
+name: Bug
+description: Comportamento incorreto, erro ou regressão
+labels: ["tipo:fix"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Não escreva a chave no título: o bot adiciona `[DEV-NNNN] - ` automaticamente.
+        Nunca cole dados pessoais, de saúde, tokens ou segredos.
+  - type: textarea
+    id: atual
+    attributes:
+      label: Comportamento atual
+      description: O que acontece, onde (serviço, tela, endpoint) e desde quando, se souber.
+    validations:
+      required: true
+  - type: textarea
+    id: esperado
+    attributes:
+      label: Comportamento esperado
+    validations:
+      required: true
+  - type: textarea
+    id: reproducao
+    attributes:
+      label: Como reproduzir
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: evidencias
+    attributes:
+      label: Evidências
+      description: Logs (com traceId), prints, SHA ou versão. Sem dados sensíveis.
+  - type: textarea
+    id: criterios
+    attributes:
+      label: Critérios de aceitação
+      description: Inclua o teste de regressão que deve passar a existir.
+      value: |
+        - [ ] Causa raiz identificada e registrada na issue antes da correção
+        - [ ] Teste de regressão que falha sem a correção
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Agent técnico principal
+      options:
+        - Backend
+        - Frontend Web
+        - Mobile
+        - DBA
+    validations:
+      required: true

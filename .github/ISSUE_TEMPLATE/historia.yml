@@ -1,0 +1,53 @@
+name: História
+description: Funcionalidade do produto, com valor para profissional ou cliente
+labels: ["tipo:feat"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Não escreva a chave no título: o bot adiciona `[DEV-NNNN] - ` automaticamente.
+        Requisitos e regras de referência: [PRD](../blob/master/docs/00-oficial/PRD.md).
+  - type: textarea
+    id: descricao
+    attributes:
+      label: Descrição
+      description: O que deve ser construído e por quê. Cite FR e BR do PRD quando houver.
+      placeholder: "Como [personal / nutricionista / cliente], quero ... para ..."
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Agent técnico principal
+      options:
+        - Backend
+        - Frontend Web
+        - Mobile
+        - DBA
+    validations:
+      required: true
+  - type: textarea
+    id: criterios
+    attributes:
+      label: Critérios de aceitação
+      description: Verificáveis. Uma issue só entra em "Pronto" com critérios claros.
+      value: |
+        - [ ] Dado ... quando ... então ...
+    validations:
+      required: true
+  - type: textarea
+    id: deps
+    attributes:
+      label: Depende de
+      description: Issues que precisam estar prontas antes (ex.- #12 (DEV-0020)).
+      value: "- Nenhuma"
+  - type: dropdown
+    id: tamanho
+    attributes:
+      label: Tamanho
+      description: Maior que M deve ser quebrada.
+      options:
+        - P (até meio dia)
+        - M (até 2 dias)
+    validations:
+      required: true

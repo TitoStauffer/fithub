@@ -1,5 +1,0 @@
-## Objective
-
-## Checklist
-- [ ] Tests
-- [ ] Docs

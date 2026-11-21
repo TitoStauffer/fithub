@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Regras de trabalho (AGENTS.md)
+    url: https://github.com/TitoStauffer/fithub/blob/master/AGENTS.md
+    about: Chave DEV, fluxo de entrega e critérios para abrir débito técnico.
