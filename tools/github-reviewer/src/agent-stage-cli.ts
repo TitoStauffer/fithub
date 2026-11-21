@@ -212,7 +212,7 @@ async function readPullRequest(number: number, repository: string, token: string
 
 function assertRequiredChecksPassed(checks: CheckSummary): void {
   const missingOrFailed = Object.entries(checks).filter(([, state]) => state !== 'PASSED');
-  if (missingOrFailed.length) throw new Error(`Required CI/Sonar evidence is not approved: ${missingOrFailed.map(([name, state]) => `${name}=${state}`).join(', ')}.`);
+  if (missingOrFailed.length) throw new Error(`Required CI evidence is not approved: ${missingOrFailed.map(([name, state]) => `${name}=${state}`).join(', ')}.`);
 }
 
 async function verifyContextUnchanged(

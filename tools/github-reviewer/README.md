@@ -3,7 +3,7 @@
 > descreve o CashIn (Jira, SonarQube, vault `docs/knowledge`, jobs
 > API/Web/Mobile). A adaptação ao FitHub está nas issues:
 >
-> - **DEV-0117** — regras: sem Sonar, sem ruleset, checks e trilho leve do FitHub
+> - ~~**DEV-0117**~~ — feito: sem Sonar, sem proteção de branch, checks e trilho leve do FitHub (`src/repository-policy.ts`)
 > - **DEV-0119** — contexto e critérios do Code Review e QA (AGENTS.md e `docs/00-oficial`)
 > - **DEV-0118** — workflows de orquestração (e os testes em `test/pending/`)
 >

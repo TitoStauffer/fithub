@@ -91,8 +91,8 @@ test('loads complete changed source snapshots at the PR HEAD alongside diff and 
   }, 'token');
 
   assert.equal(inputs.diff.startsWith('diff --git'), true);
-  assert.equal(inputs.checks.api, 'PASSED');
-  assert.equal(inputs.checks.githubReviewer, 'PASSED');
+  // FitHub (DEV-0117): sem Sonar e sem API/Web/Mobile no resumo exigido.
+  assert.deepEqual(inputs.checks, { githubReviewer: 'PASSED' });
   assert.deepEqual(inputs.checkRuns.find((run) => run.name === 'API'), {
     name: 'API', appId: null, headSha, status: 'completed', conclusion: 'success', detailsUrl: 'https://example.test/api', completedAt: '2026-10-21T10:00:00Z',
     actions: { availability: 'unavailable', reason: 'Verified GitHub Actions job evidence is unavailable.' },
@@ -273,12 +273,14 @@ test('uses latest rerun results for summaries and exposes only current-SHA requi
     { name: 'Web', head_sha: 'c'.repeat(40), status: 'completed', conclusion: 'success' },
   ];
 
-  assert.equal(summarizeAgentChecks(runs, headSha).api, 'PASSED');
-  assert.equal(summarizeAgentChecks(runs, headSha).web, 'MISSING');
-  // DEV-153: the Mobile job is part of the required summary; without it the stage never starts a model.
-  assert.equal(summarizeAgentChecks(runs, headSha).mobile, 'MISSING');
-  assert.equal(summarizeAgentChecks([{ name: 'CI / Mobile', head_sha: headSha, status: 'completed', conclusion: 'success' }], headSha).mobile, 'PASSED');
-  assert.equal(summarizeAgentChecks([{ name: 'Mobile', head_sha: headSha, status: 'completed', conclusion: 'failure' }], headSha).mobile, 'FAILED');
+  // FitHub (DEV-0117): o resumo exigido só tem o job das ferramentas de revisão, pela última execução.
+  assert.deepEqual(summarizeAgentChecks(runs, headSha), { githubReviewer: 'MISSING' });
+  const reviewerRuns = [
+    { name: 'GitHub Reviewer', head_sha: headSha, status: 'completed', conclusion: 'failure', app: { id: 15368 }, started_at: '2026-10-21T09:00:00Z' },
+    { name: 'GitHub Reviewer', head_sha: headSha, status: 'completed', conclusion: 'success', app: { id: 15368 }, started_at: '2026-10-21T10:00:00Z' },
+  ];
+  assert.equal(summarizeAgentChecks(reviewerRuns, headSha).githubReviewer, 'PASSED');
+  assert.equal(summarizeAgentChecks([{ name: 'CI / GitHub Reviewer', head_sha: headSha, status: 'completed', conclusion: 'failure', app: { id: 15368 } }], headSha).githubReviewer, 'FAILED');
   assert.deepEqual(summarizeCheckRunEvidence(runs, headSha).map(({ name, conclusion }) => ({ name, conclusion })), [{ name: 'API', conclusion: 'success' }]);
 });
 

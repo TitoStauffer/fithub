@@ -3,9 +3,10 @@ import { agentReportMarker, computeAgentContextHash } from './agent-evidence.js'
 import { loadAgentReviewInputs } from './agent-review-inputs.js';
 import { ACTIONS_APP_ID } from './agent-ci-evidence.js';
 import { classifyReviewTrack } from './review-track.js';
+import { BRANCH_PROTECTION_AVAILABLE, BRANCH_PROTECTION_UNAVAILABLE_NOTE, REQUIRED_STATUS_CONTEXTS } from './repository-policy.js';
 
-// DEV-153: `Mobile`, the Expo app job (DEV-141), is required like `API` and `Web`.
-const REQUIRED_QUALITY_CHECKS = ['API', 'Web', 'Mobile', 'SonarQube', 'SonarCloud Code Analysis'];
+// FitHub (DEV-0117): sem SonarQube e sem jobs API/Web/Mobile até a DEV-0016; o `PR title` é obrigatório.
+const REQUIRED_QUALITY_CHECKS: readonly string[] = REQUIRED_STATUS_CONTEXTS;
 const AUTOMATION_CHECK_CONTEXTS = ['Automation Tools', 'GitHub Reviewer'] as const;
 const GRAPHQL_REVIEW_THREADS_QUERY = `query($owner: String!, $name: String!, $number: Int!, $after: String) {
   repository(owner: $owner, name: $name) {
@@ -34,10 +35,21 @@ export interface MergeReadinessOptions extends GitHubApiClientOptions {
   requiredBaseBranch?: string;
   contextToken?: string;
   now?: () => Date;
+  /** Sobrescreve a política do repositório (repository-policy.ts). Usado em testes. */
+  policy?: MergeReadinessPolicy;
+}
+
+export interface MergeReadinessPolicy {
+  /** true consulta e exige branch protection/rulesets; false (padrão do FitHub) não consulta. */
+  branchProtectionAvailable?: boolean;
+  /** Checks e status contexts exigidos além do job das ferramentas de revisão. */
+  requiredQualityChecks?: readonly string[];
 }
 
 export async function evaluateMergeReadiness(options: MergeReadinessOptions): Promise<MergeReadinessResult> {
   const now = options.now ?? (() => new Date());
+  const protectionAvailable = options.policy?.branchProtectionAvailable ?? BRANCH_PROTECTION_AVAILABLE;
+  const qualityChecks = options.policy?.requiredQualityChecks ?? REQUIRED_QUALITY_CHECKS;
   const reasons: string[] = [];
   const limitations: string[] = [];
   const evidence: Record<string, unknown> = {};
@@ -128,8 +140,9 @@ export async function evaluateMergeReadiness(options: MergeReadinessOptions): Pr
     listPullRequestReviews(fetchImpl, repositoryPath, options.pullRequestNumber, token),
     listIssueComments(fetchImpl, repositoryPath, options.pullRequestNumber, token),
     listReviewThreads(fetchImpl, options.owner, options.repository, options.pullRequestNumber, token),
-    readBranchProtection(fetchImpl, repositoryPath, baseBranch, token),
-    listRepositoryRulesets(fetchImpl, repositoryPath, token),
+    // Sem proteção disponível no plano, a API responderia 403; não consultar evita um INCONCLUSIVE permanente.
+    protectionAvailable ? readBranchProtection(fetchImpl, repositoryPath, baseBranch, token) : Promise.resolve(null),
+    protectionAvailable ? listRepositoryRulesets(fetchImpl, repositoryPath, token) : Promise.resolve([] as Ruleset[]),
     requestGitHubApi(fetchImpl, repositoryPath, token),
   ]);
   const [checkRuns, commitStatuses, reviews, comments, reviewThreads, protection, rulesets, repository] = settled;
@@ -201,14 +214,19 @@ export async function evaluateMergeReadiness(options: MergeReadinessOptions): Pr
   evidence.requiredChecks = requiredContexts;
   evidence.requiredApprovals = requiredReviewCount;
 
-  if (!branchRules && applicableRulesets.length === 0) reasons.push('Não foi encontrada branch protection nem ruleset aplicável à branch base.');
-  if (!hasConfiguredReviewProtection(branchRules, applicableRulesets, baseBranch, defaultBranch)) reasons.push('Não foi confirmada uma regra de proteção que exija aprovação formal de Pull Request.');
-  if (!hasConfiguredCheckProtection(branchRules, applicableRulesets, baseBranch, defaultBranch)) reasons.push('Não foi confirmada uma regra de proteção para checks obrigatórios.');
+  if (protectionAvailable) {
+    if (!branchRules && applicableRulesets.length === 0) reasons.push('Não foi encontrada branch protection nem ruleset aplicável à branch base.');
+    if (!hasConfiguredReviewProtection(branchRules, applicableRulesets, baseBranch, defaultBranch)) reasons.push('Não foi confirmada uma regra de proteção que exija aprovação formal de Pull Request.');
+    if (!hasConfiguredCheckProtection(branchRules, applicableRulesets, baseBranch, defaultBranch)) reasons.push('Não foi confirmada uma regra de proteção para checks obrigatórios.');
+  } else {
+    // A trava passa a ser a regra escrita no AGENTS.md; o relatório deixa isso explícito.
+    evidence.branchProtectionPolicy = BRANCH_PROTECTION_UNAVAILABLE_NOTE;
+  }
 
   const automationCheckContext = AUTOMATION_CHECK_CONTEXTS.find((context) => runs.some((run) => run.name === context
     && run.head_sha === headSha && run.app?.id === ACTIONS_APP_ID)) ?? 'GitHub Reviewer';
   const requiredCheckCandidates: RequiredCheck[] = [
-    ...REQUIRED_QUALITY_CHECKS.map((context) => ({ context })),
+    ...qualityChecks.map((context) => ({ context })),
     { context: automationCheckContext, appId: ACTIONS_APP_ID },
     ...requiredContexts,
   ];

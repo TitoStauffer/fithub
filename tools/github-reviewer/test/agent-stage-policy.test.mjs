@@ -16,7 +16,8 @@ import { REVIEW_RISK_AREAS, validateAgentResultCompleteness } from '../dist/agen
 // `src/change.ts` used to be ambiguous — it is outside `apps/*/src`, so it now classifies as the light
 // track and would excuse the very QA evidence these cases prove to be mandatory.
 const context = { commitSha: 'a'.repeat(40), contextHash: 'b'.repeat(64), botLogin: 'cashin-devagents', changedFiles: ['apps/api/src/change.ts'], acceptanceCriteria: ['Preservar contrato'] };
-const checks = { api: 'PASSED', web: 'PASSED', mobile: 'PASSED', githubReviewer: 'PASSED', sonarQube: 'PASSED', sonarCloud: 'PASSED' };
+// FitHub (DEV-0117): só o job das ferramentas de revisão é exigido.
+const checks = { githubReviewer: 'PASSED' };
 function result(stage, decision = 'APPROVED') {
   return {
     stage, decision, commitSha: context.commitSha, contextHash: context.contextHash,
