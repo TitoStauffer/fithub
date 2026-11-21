@@ -121,6 +121,20 @@ eval "$HOOK_CMD"
   Assert-True ($null -eq $resolvedCodex -and -not $env:CODEX_EXECUTABLE) 'Set-RunnerEnvironment não exige o Codex, que é opcional'
   Assert-True ($env:Path.Split(';')[0] -eq $PwshDir) 'Set-RunnerEnvironment coloca o PowerShell portátil à frente do PATH'
   $env:Path = $previousPath
+
+  # DEV-0125: Git for Windows vem logo depois do pwsh, à frente de um git do MSYS2 no PATH da máquina.
+  $previousGitDir = $GitForWindowsDir
+  $GitForWindowsDir = Join-Path $sandbox 'Git\cmd'
+  New-Item -ItemType Directory -Force -Path $GitForWindowsDir | Out-Null
+  Set-Content -Path (Join-Path $GitForWindowsDir 'git.exe') -Value ''
+  [void](Set-RunnerEnvironment)
+  Assert-True ($env:Path.Split(';')[1] -eq $GitForWindowsDir) 'Set-RunnerEnvironment coloca o Git for Windows logo depois do PowerShell portátil'
+  $env:Path = $previousPath
+  $GitForWindowsDir = Join-Path $sandbox 'sem-git'
+  [void](Set-RunnerEnvironment)
+  Assert-True (-not (@($env:Path.Split(';')) -contains $GitForWindowsDir)) 'sem Git for Windows instalado, o PATH segue sem ele'
+  $env:Path = $previousPath
+  $GitForWindowsDir = $previousGitDir
   $env:CODEX_EXECUTABLE = $previousCodex
 
   $startFailed = $false

@@ -16,6 +16,7 @@ $script:PwshSha256 = 'ce7484804c0f0ad4dda10c958e71acdaf7eebfb22505c1b480f89e0e9f
 $script:InstallRoot = Join-Path $env:LOCALAPPDATA 'FitHubGithubRunner'
 $script:RunnerDir = Join-Path $script:InstallRoot 'runner'
 $script:PwshDir = Join-Path $script:InstallRoot 'pwsh'
+$script:GitForWindowsDir = if ($env:ProgramFiles) { Join-Path $env:ProgramFiles 'Git\cmd' } else { $null }
 $script:ScriptsDir = Join-Path $script:InstallRoot 'scripts'
 $script:LogDir = Join-Path $script:InstallRoot 'logs'
 $script:CodexBinRoot = Join-Path $env:LOCALAPPDATA 'OpenAI\Codex\bin'
@@ -114,6 +115,11 @@ function Set-RunnerEnvironment {
   }
 
   $pathEntries = @($script:PwshDir)
+  # Git for Windows logo depois do pwsh (DEV-0125): o PATH da máquina pode trazer o git do MSYS2
+  # antes, e ele não aplica a credencial que o actions/checkout grava, falhando no checkout.
+  if ($script:GitForWindowsDir -and (Test-Path (Join-Path $script:GitForWindowsDir 'git.exe'))) {
+    $pathEntries += $script:GitForWindowsDir
+  }
   foreach ($scope in 'User', 'Machine') {
     $value = [Environment]::GetEnvironmentVariable('Path', $scope)
     if ($value) { $pathEntries += $value.Split(';') | Where-Object { $_ } }
