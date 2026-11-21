@@ -9,7 +9,7 @@ name: Project status
 #   PR mergeado                     → Feito (a issue fecha pelo "Closes #N")
 #
 # Projetos de conta pessoal não aceitam o GITHUB_TOKEN: as mudanças no quadro usam
-# o secret PROJECT_TOKEN (PAT clássico com escopo "project"). Sem ele, o job só
+# o secret PROJECT_TOKEN (PAT clássico com escopos "repo" e "project"). Sem ele, o job só
 # avisa e não falha.
 
 on:
@@ -119,9 +119,14 @@ jobs:
           for number in ${issues}; do
             content_id="$(gh api "repos/${REPO}/issues/${number}" --jq '.node_id')"
             # addProjectV2ItemById é idempotente: devolve o item existente se já estiver no quadro.
-            item_id="$(GH_TOKEN="${PROJECT_TOKEN}" gh api graphql \
+            # O token precisa enxergar a issue (repositório privado): PAT clássico com
+            # "repo" + "project". Sem isso, avisa e segue, sem deixar o PR vermelho.
+            if ! item_id="$(GH_TOKEN="${PROJECT_TOKEN}" gh api graphql \
               -f query='mutation($p:ID!,$c:ID!){addProjectV2ItemById(input:{projectId:$p,contentId:$c}){item{id}}}' \
-              -f p="${project_id}" -f c="${content_id}" --jq '.data.addProjectV2ItemById.item.id')"
+              -f p="${project_id}" -f c="${content_id}" --jq '.data.addProjectV2ItemById.item.id')"; then
+              echo "::warning title=PROJECT_TOKEN sem acesso à issue::Não foi possível colocar #${number} no quadro. O PROJECT_TOKEN precisa dos escopos repo e project."
+              continue
+            fi
             GH_TOKEN="${PROJECT_TOKEN}" gh api graphql \
               -f query='mutation($p:ID!,$i:ID!,$f:ID!,$o:String!){updateProjectV2ItemFieldValue(input:{projectId:$p,itemId:$i,fieldId:$f,value:{singleSelectOptionId:$o}}){projectV2Item{id}}}' \
               -f p="${project_id}" -f i="${item_id}" -f f="${field_id}" -f o="${option_id}" > /dev/null
