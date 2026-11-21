@@ -1,0 +1,823 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { loadVaultContext } from '../dist/vault-context.js';
+
+const headSha = 'a'.repeat(40);
+const baseSha = 'b'.repeat(40);
+const repository = 'owner/repo';
+
+function encoded(content) {
+  return { encoding: 'base64', content: Buffer.from(content).toString('base64') };
+}
+
+function fakeFetch(files = {}, evidence = {}, requests = []) {
+  return async (url) => {
+    const parsed = new URL(url);
+    requests.push(parsed);
+    const contentsMarker = '/repos/owner/repo/contents/';
+    if (parsed.pathname.startsWith(contentsMarker)) {
+      const path = parsed.pathname.slice(contentsMarker.length).split('/').map(decodeURIComponent).join('/');
+      assert.equal(parsed.searchParams.get('ref'), files[path]?.ref ?? headSha);
+      const value = files[path]?.value;
+      if (value === undefined) return new Response('', { status: 404 });
+      return Response.json(typeof value === 'string' ? encoded(value) : value);
+    }
+    const value = evidence[parsed.pathname];
+    if (value === undefined) return new Response('', { status: 404 });
+    return Response.json(value);
+  };
+}
+
+function baseVault(overrides = {}) {
+  return {
+    'docs/knowledge/README.md': { value: '# Index\n' },
+    'docs/knowledge/current-state.md': { value: '# Current state\n' },
+    ...overrides,
+  };
+}
+
+test('loads the vault index, current state, routed note and exact local source at the PR HEAD', async () => {
+  const requests = [];
+  const files = baseVault({
+    'docs/knowledge/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/knowledge/domains/backend.md'] }] }) },
+    'docs/knowledge/domains/backend.md': { value: '# Backend\n[Service](../../../apps/api/src/service.ts)\n' },
+    'apps/api/src/service.ts': { value: 'export const value = 1;\n' },
+  });
+
+  const result = await loadVaultContext(fakeFetch(files, {}, requests), repository, [{ filename: 'apps/api/src/route.ts', status: 'modified' }], headSha, baseSha, 'token');
+
+  assert.deepEqual(result.map(({ path }) => path), [
+    'docs/knowledge/README.md',
+    'docs/knowledge/current-state.md',
+    'docs/knowledge/context-map.json',
+    'docs/knowledge/domains/backend.md',
+    'apps/api/src/service.ts',
+  ]);
+  assert.equal(result.every(({ revision }) => revision === 'head'), true);
+  assert.equal(requests.every((request) => request.searchParams.get('ref') === headSha), true);
+});
+
+test('loads direct sources but does not expand vault navigation from the required roots', async () => {
+  const files = baseVault({
+    'docs/knowledge/README.md': { value: '# Index\n[Architecture](architecture.md)\n' },
+    'docs/knowledge/current-state.md': { value: '# Current state\n[Contract](../../docs/contract.md)\n' },
+    'docs/knowledge/architecture.md': { value: '# Architecture\n' },
+    'docs/contract.md': { value: '# Contract\n' },
+  });
+
+  const result = await loadVaultContext(fakeFetch(files), repository, [{ filename: 'apps/api/src/route.ts', status: 'modified' }], headSha, baseSha, 'token');
+
+  assert.deepEqual(result.map(({ path }) => path), [
+    'docs/knowledge/README.md',
+    'docs/knowledge/current-state.md',
+    'docs/contract.md',
+  ]);
+});
+
+test('walks referenced vault notes and loads their local and review evidence', async () => {
+  const reviewPath = '/repos/owner/repo/pulls/44/reviews/123';
+  const files = baseVault({
+    'docs/knowledge/README.md': { value: '# Index\n[Learning](learnings/example.md)\n' },
+    'docs/knowledge/learnings/example.md': { value: '# Learning\n[Index](../README.md)\n[Source][source]\n[Review][review]\n\n[source]: ../../../apps/api/src/service.ts\n[review]: https://github.com/owner/repo/pull/44#pullrequestreview-123\n' },
+    'apps/api/src/service.ts': { value: 'export const value = 1;\n' },
+  });
+  const review = { id: 123, state: 'CHANGES_REQUESTED', body: 'First evidence', html_url: 'https://github.com/owner/repo/pull/44#pullrequestreview-123' };
+
+  const changedFiles = [{ filename: 'docs/knowledge/learnings/example.md', status: 'modified' }];
+  const first = await loadVaultContext(fakeFetch(files, { [reviewPath]: review }), repository, changedFiles, headSha, baseSha, 'token');
+  const second = await loadVaultContext(fakeFetch(files, { [reviewPath]: { ...review, body: 'Updated evidence' } }), repository, changedFiles, headSha, baseSha, 'token');
+
+  assert.deepEqual(first.map(({ path }) => path), [
+    'docs/knowledge/README.md',
+    'docs/knowledge/current-state.md',
+    'docs/knowledge/learnings/example.md',
+    'apps/api/src/service.ts',
+    `github-evidence://${reviewPath.slice(1)}`,
+  ]);
+  assert.match(first.at(-1).content, /First evidence/);
+  assert.match(second.at(-1).content, /Updated evidence/);
+  assert.notEqual(first.at(-1).content, second.at(-1).content);
+});
+
+test('resolves collapsed and shortcut Markdown reference links without treating images as sources', async () => {
+  const files = baseVault({
+    'docs/knowledge/learnings/references.md': {
+      value: '# Index\n[Collapsed][]\n[Shortcut]\n![Diagram][image]\n\n[collapsed]: collapsed.md\n[shortcut]: shortcut.md\n[image]: missing.png\n',
+    },
+    'docs/knowledge/learnings/collapsed.md': { value: '# Collapsed\n' },
+    'docs/knowledge/learnings/shortcut.md': { value: '# Shortcut\n' },
+  });
+
+  const result = await loadVaultContext(
+    fakeFetch(files),
+    repository,
+    [{ filename: 'docs/knowledge/learnings/references.md', status: 'modified' }],
+    headSha,
+    baseSha,
+    'token',
+  );
+
+  assert.deepEqual(result.map(({ path }) => path), [
+    'docs/knowledge/README.md',
+    'docs/knowledge/current-state.md',
+    'docs/knowledge/learnings/references.md',
+    'docs/knowledge/learnings/collapsed.md',
+    'docs/knowledge/learnings/shortcut.md',
+  ]);
+});
+
+test('ignores link-shaped examples inside inline and fenced Markdown code', async () => {
+  const files = baseVault({
+    'docs/knowledge/README.md': {
+      value: '# Index\n`[Inline][missing]`\n![Inline image](missing.png "Not a source")\n\n```markdown\n[Fenced][missing]\n```\n\n~~~\n[Other fence](missing.md)\n~~~\n',
+    },
+  });
+
+  const result = await loadVaultContext(fakeFetch(files), repository, [], headSha, baseSha, 'token');
+
+  assert.deepEqual(result.map(({ path }) => path), [
+    'docs/knowledge/README.md',
+    'docs/knowledge/current-state.md',
+  ]);
+});
+
+test('preserves link destinations when their labels contain inline code', async () => {
+  const reviewPath = '/repos/owner/repo/pulls/44/reviews/123';
+  const files = baseVault({
+    'docs/knowledge/README.md': {
+      value: '# Index\n[`service.ts`](../../apps/api/src/service.ts)\n[`Review`](https://github.com/owner/repo/pull/44#pullrequestreview-123)\n',
+    },
+    'apps/api/src/service.ts': { value: 'export const value = 1;\n' },
+  });
+  const review = { id: 123, state: 'CHANGES_REQUESTED', body: 'Confirmed issue', html_url: 'https://github.com/owner/repo/pull/44#pullrequestreview-123' };
+
+  const result = await loadVaultContext(fakeFetch(files, { [reviewPath]: review }), repository, [], headSha, baseSha, 'token');
+
+  assert.equal(result.some(({ path }) => path === 'apps/api/src/service.ts'), true);
+  assert.equal(result.some(({ path, content }) => path === `github-evidence://${reviewPath.slice(1)}` && content.includes('Confirmed issue')), true);
+});
+
+test('resolves inline destinations with titles, angle brackets, escapes and balanced parentheses', async () => {
+  const reviewPath = '/repos/owner/repo/pulls/44/reviews/123';
+  const files = baseVault({
+    'docs/knowledge/README.md': {
+      value: [
+        '# Index',
+        '[Service](../../apps/api/src/service.ts "Serviço")',
+        "[Spaced](\u003c../../apps/api/src/spaced file.ts\u003e 'Arquivo')",
+        '[Nested](../../apps/api/src/value(test).ts)',
+        '[Escaped](../../apps/api/src/value\\(escaped\\).ts)',
+        '[Review](\u003chttps://github.com/owner/repo/pull/44#pullrequestreview-123\u003e "Evidência")',
+      ].join('\n'),
+    },
+    'apps/api/src/service.ts': { value: 'export const service = 1;\n' },
+    'apps/api/src/spaced file.ts': { value: 'export const spaced = 1;\n' },
+    'apps/api/src/value(test).ts': { value: 'export const nested = 1;\n' },
+    'apps/api/src/value(escaped).ts': { value: 'export const escaped = 1;\n' },
+  });
+  const review = { id: 123, state: 'CHANGES_REQUESTED', body: 'Confirmed issue', html_url: 'https://github.com/owner/repo/pull/44#pullrequestreview-123' };
+
+  const result = await loadVaultContext(fakeFetch(files, { [reviewPath]: review }), repository, [], headSha, baseSha, 'token');
+
+  assert.deepEqual(result.map(({ path }) => path), [
+    'docs/knowledge/README.md',
+    'docs/knowledge/current-state.md',
+    'apps/api/src/service.ts',
+    'apps/api/src/spaced file.ts',
+    'apps/api/src/value(test).ts',
+    'apps/api/src/value(escaped).ts',
+    `github-evidence://${reviewPath.slice(1)}`,
+  ]);
+});
+
+test('fails closed for a missing source whose link label contains inline code', async () => {
+  const files = baseVault({
+    'docs/knowledge/README.md': { value: '# Index\n[`missing.ts`](../../apps/api/src/missing.ts)\n' },
+  });
+
+  await assert.rejects(
+    loadVaultContext(fakeFetch(files), repository, [], headSha, baseSha, 'token'),
+    /GitHub API request failed \(404\)/,
+  );
+});
+
+test('fails closed for a missing source in a titled inline link', async () => {
+  const files = baseVault({
+    'docs/knowledge/README.md': { value: '# Index\n[Missing](../../apps/api/src/missing.ts "Source")\n' },
+  });
+
+  await assert.rejects(
+    loadVaultContext(fakeFetch(files), repository, [], headSha, baseSha, 'token'),
+    /GitHub API request failed \(404\)/,
+  );
+});
+
+test('fails closed for unsupported or malformed inline link syntax', async () => {
+  const files = baseVault({
+    'docs/knowledge/README.md': { value: '# Index\n[Malformed](../../apps/api/src/service.ts "Missing close)\n' },
+  });
+
+  await assert.rejects(
+    loadVaultContext(fakeFetch(files), repository, [], headSha, baseSha, 'token'),
+    /unsupported or malformed inline Markdown link/,
+  );
+});
+
+test('fails closed when a referenced vault note cites a missing source', async () => {
+  const files = baseVault({
+    'docs/knowledge/README.md': { value: '# Index\n[Learning](learnings/example.md)\n' },
+    'docs/knowledge/learnings/example.md': { value: '# Learning\n[Missing][source]\n\n[source]: ../../../apps/api/src/missing.ts\n' },
+  });
+
+  await assert.rejects(
+    loadVaultContext(fakeFetch(files), repository, [{ filename: 'docs/knowledge/learnings/example.md', status: 'modified' }], headSha, baseSha, 'token'),
+    /GitHub API request failed \(404\)/,
+  );
+});
+
+test('loads only verifiable same-repository GitHub review evidence', async () => {
+  const files = baseVault({
+    'docs/knowledge/learnings/code-review.md': {
+      value: [
+        '# Learning',
+        '[Formal review](https://github.com/owner/repo/pull/44#pullrequestreview-123)',
+        '[Inline comment](https://github.com/owner/repo/pull/44#discussion_r456)',
+        '[External](https://github.com/other/repo/pull/1#issuecomment-789)',
+      ].join('\n'),
+    },
+  });
+  const evidence = {
+    '/repos/owner/repo/pulls/44/reviews/123': { id: 123, state: 'CHANGES_REQUESTED', commit_id: headSha, body: 'Confirmed issue', user: { login: 'reviewer' }, html_url: 'https://github.com/owner/repo/pull/44#pullrequestreview-123' },
+    '/repos/owner/repo/pulls/comments/456': { id: 456, body: 'Inline issue', user: { login: 'reviewer' }, path: 'src/a.ts', line: 10, html_url: 'https://github.com/owner/repo/pull/44#discussion_r456', pull_request_url: 'https://api.github.com/repos/owner/repo/pulls/44' },
+  };
+
+  const result = await loadVaultContext(fakeFetch(files, evidence), repository, [{ filename: 'docs/knowledge/learnings/code-review.md', status: 'added' }], headSha, baseSha, 'token');
+
+  const remote = result.filter(({ path }) => path.startsWith('github-evidence://'));
+  assert.equal(remote.length, 2);
+  assert.match(remote[0].content, /Confirmed issue/);
+  assert.match(remote[1].content, /Inline issue/);
+  assert.equal(result.some(({ content }) => content.includes('other/repo/issues/comments')), false);
+});
+
+test('rejects GitHub comments that do not belong to the Pull Request cited by the vault', async (t) => {
+  await t.test('inline review comment', async () => {
+    const files = baseVault({ 'docs/knowledge/note.md': { value: '[Comment](https://github.com/owner/repo/pull/44#discussion_r456)\n' } });
+    const evidence = { '/repos/owner/repo/pulls/comments/456': { id: 456, html_url: 'https://github.com/owner/repo/pull/45#discussion_r456', pull_request_url: 'https://api.github.com/repos/owner/repo/pulls/45' } };
+    await assert.rejects(loadVaultContext(fakeFetch(files, evidence), repository, [{ filename: 'docs/knowledge/note.md', status: 'added' }], headSha, baseSha, 'token'), /does not match|does not belong/);
+  });
+  await t.test('Pull Request conversation comment', async () => {
+    const files = baseVault({ 'docs/knowledge/note.md': { value: '[Comment](https://github.com/owner/repo/pull/44#issuecomment-789)\n' } });
+    const evidence = { '/repos/owner/repo/issues/comments/789': { id: 789, html_url: 'https://github.com/owner/repo/pull/45#issuecomment-789', issue_url: 'https://api.github.com/repos/owner/repo/issues/45' } };
+    await assert.rejects(loadVaultContext(fakeFetch(files, evidence), repository, [{ filename: 'docs/knowledge/note.md', status: 'added' }], headSha, baseSha, 'token'), /does not match|does not belong/);
+  });
+  await t.test('contradictory links for the same comment', async () => {
+    const files = baseVault({ 'docs/knowledge/note.md': { value: '[Wrong](https://github.com/owner/repo/pull/43#discussion_r456)\n[Right](https://github.com/owner/repo/pull/44#discussion_r456)\n' } });
+    const evidence = { '/repos/owner/repo/pulls/comments/456': { id: 456, html_url: 'https://github.com/owner/repo/pull/44#discussion_r456', pull_request_url: 'https://api.github.com/repos/owner/repo/pulls/44' } };
+    await assert.rejects(loadVaultContext(fakeFetch(files, evidence), repository, [{ filename: 'docs/knowledge/note.md', status: 'added' }], headSha, baseSha, 'token'), /does not match|does not belong/);
+  });
+});
+
+test('uses the base revision only for a removed vault document', async () => {
+  const files = baseVault({
+    'docs/knowledge/removed.md': { ref: baseSha, value: '# Removed\n' },
+  });
+  const result = await loadVaultContext(fakeFetch(files), repository, [{ filename: 'docs/knowledge/removed.md', status: 'removed' }], headSha, baseSha, 'token');
+  assert.equal(result.find(({ path }) => path === 'docs/knowledge/removed.md').revision, 'base');
+});
+
+test('fails closed for unsafe local paths, directories and invalid context maps', async (t) => {
+  await t.test('unsafe local link', async () => {
+    const files = baseVault({ 'docs/knowledge/note.md': { value: '[Unsafe](../../../..//outside.md)\n' } });
+    await assert.rejects(loadVaultContext(fakeFetch(files), repository, [{ filename: 'docs/knowledge/note.md', status: 'added' }], headSha, baseSha, 'token'), /unsafe repository path/);
+  });
+  await t.test('directory source', async () => {
+    const files = baseVault({
+      'docs/knowledge/note.md': { value: '[Directory](source)\n' },
+      'docs/knowledge/source': { value: [{ name: 'file.md' }] },
+    });
+    await assert.rejects(loadVaultContext(fakeFetch(files), repository, [{ filename: 'docs/knowledge/note.md', status: 'added' }], headSha, baseSha, 'token'), /exact file, not a directory/);
+  });
+  await t.test('invalid context map', async () => {
+    const files = baseVault({ 'docs/knowledge/context-map.json': { value: '{invalid' } });
+    await assert.rejects(loadVaultContext(fakeFetch(files), repository, [], headSha, baseSha, 'token'), /not valid JSON/);
+  });
+  await t.test('invalid catalog path', async () => {
+    const files = baseVault({ 'docs/knowledge/context-map.json': { value: JSON.stringify({ version: 1, routes: [], catalogs: ['docs/outside.md'] }) } });
+    await assert.rejects(loadVaultContext(fakeFetch(files), repository, [], headSha, baseSha, 'token'), /outside docs\/knowledge or is not Markdown/);
+  });
+  await t.test('undefined Markdown link reference', async () => {
+    const files = baseVault({ 'docs/knowledge/README.md': { value: '# Index\n[Missing][source]\n' } });
+    await assert.rejects(loadVaultContext(fakeFetch(files), repository, [], headSha, baseSha, 'token'), /undefined Markdown link reference/);
+  });
+  await t.test('conflicting Markdown link definitions', async () => {
+    const files = baseVault({ 'docs/knowledge/README.md': { value: '# Index\n[Source][source]\n\n[source]: current-state.md\n[source]: other.md\n' } });
+    await assert.rejects(loadVaultContext(fakeFetch(files), repository, [], headSha, baseSha, 'token'), /conflicting Markdown link definitions/);
+  });
+});
+
+test('loads catalog metadata without hydrating its outbound evidence links', async () => {
+  const historicalEvidence = Array.from(
+    { length: 200 },
+    (_, index) => `[Review ${index + 1}](https://github.com/owner/repo/pull/44#pullrequestreview-${index + 1})`,
+  ).join('\n');
+  const files = baseVault({
+    'docs/knowledge/context-map.json': {
+      value: JSON.stringify({ version: 1, routes: [], catalogs: ['docs/knowledge/evidence/catalog.md'] }),
+    },
+    'docs/knowledge/README.md': { value: '# Index\n[Catalog](evidence/catalog.md)\n' },
+    'docs/knowledge/evidence/catalog.md': {
+      value: `# Catalog\n[Missing](../../../apps/api/src/missing.ts)\n${historicalEvidence}\n`,
+    },
+  });
+  const requests = [];
+
+  const result = await loadVaultContext(
+    fakeFetch(files, {}, requests),
+    repository,
+    [{ filename: 'docs/knowledge/evidence/catalog.md', status: 'modified' }],
+    headSha,
+    baseSha,
+    'token',
+  );
+
+  assert.deepEqual(result.map(({ path }) => path), [
+    'docs/knowledge/README.md',
+    'docs/knowledge/current-state.md',
+    'docs/knowledge/context-map.json',
+    'docs/knowledge/evidence/catalog.md',
+  ]);
+  assert.equal(requests.some(({ pathname }) => pathname.includes('missing.ts') || pathname.includes('/pulls/44/reviews/123')), false);
+});
+
+test('loads a complete documentation evidence graph above the previous byte ceiling', async () => {
+  const sources = Array.from({ length: 8 }, (_, index) => `apps/api/src/source-${index}.ts`);
+  const files = baseVault({
+    'docs/knowledge/note.md': {
+      value: sources.map((source, index) => `[Source ${index}](../../${source})`).join('\n'),
+    },
+    ...Object.fromEntries(sources.map((source) => [source, { value: 'x'.repeat(60_000) }])),
+  });
+
+  const result = await loadVaultContext(
+    fakeFetch(files),
+    repository,
+    [{ filename: 'docs/knowledge/note.md', status: 'added' }],
+    headSha,
+    baseSha,
+    'token',
+  );
+
+  assert.equal(result.filter(({ path }) => path.startsWith('apps/api/src/source-')).length, 8);
+});
+
+test('marks the cited sources beyond the byte limit instead of aborting the review', async () => {
+  const sources = Array.from({ length: 11 }, (_, index) => `apps/api/src/source-${index}.ts`);
+  const files = baseVault({
+    'docs/knowledge/note.md': {
+      value: sources.map((source, index) => `[Source ${index}](../../${source})`).join('\n'),
+    },
+    ...Object.fromEntries(sources.map((source) => [source, { value: 'x'.repeat(60_000) }])),
+  });
+
+  const result = await loadVaultContext(
+    fakeFetch(files),
+    repository,
+    [{ filename: 'docs/knowledge/note.md', status: 'added' }],
+    headSha,
+    baseSha,
+    'token',
+  );
+
+  const loaded = result.filter(({ path }) => path.startsWith('apps/api/src/source-'));
+  assert.equal(loaded.length, 11);
+  assert.equal(loaded.filter(({ contentOmitted }) => !contentOmitted).length, 10);
+  assert.equal(loaded.filter(({ contentOmitted }) => contentOmitted).length, 1);
+  // O orçamento continua respeitado: a diferença é que ele passou a custar o corpo da fonte citada,
+  // e não a revisão inteira.
+  assert.ok(result.reduce((total, { content }) => total + Buffer.byteLength(content, 'utf8'), 0) <= 650_000);
+});
+
+test('fails closed before fetching evidence when the item limit would be exceeded', async () => {
+  const links = Array.from({ length: 160 }, (_, index) => `[Review ${index}](https://github.com/owner/repo/pull/44#pullrequestreview-${index + 1})`).join('\n');
+  const files = baseVault({ 'docs/knowledge/large.md': { value: links } });
+  const requests = [];
+
+  await assert.rejects(loadVaultContext(fakeFetch(files, {}, requests), repository, [{ filename: 'docs/knowledge/large.md', status: 'added' }], headSha, baseSha, 'token'), /item limit/);
+  assert.equal(requests.some(({ pathname }) => pathname.includes('/pulls/44/reviews/')), false);
+});
+
+test('counts routed and linked vault documents only once when enforcing the item limit', async () => {
+  const documents = Array.from({ length: 157 }, (_, index) => `docs/knowledge/generated/note-${index}.md`);
+  const files = baseVault({
+    'docs/knowledge/README.md': { value: `# Index\n${documents.map((path, index) => `[Note ${index}](${path.replace('docs/knowledge/', '')})`).join('\n')}\n` },
+    'docs/knowledge/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents }] }) },
+    ...Object.fromEntries(documents.map((path, index) => [path, { value: `# Note ${index}\n` }])),
+  });
+  const requests = [];
+
+  const result = await loadVaultContext(fakeFetch(files, {}, requests), repository, [{ filename: 'apps/api/src/route.ts', status: 'modified' }], headSha, baseSha, 'token');
+
+  assert.equal(result.length, 160);
+  assert.equal(new Set(result.map(({ revision, path }) => `${revision}:${path}`)).size, 160);
+  for (const document of documents) {
+    assert.equal(requests.filter(({ pathname }) => pathname.endsWith(document)).length, 1);
+  }
+});
+
+test('treats a missing vault index as an optional empty context', async () => {
+  assert.deepEqual(await loadVaultContext(fakeFetch(), repository, [], headSha, baseSha, 'token'), []);
+});
+
+test('fails closed when the vault index exists without the required current state', async () => {
+  const files = { 'docs/knowledge/README.md': { value: '# Index\n' } };
+  await assert.rejects(loadVaultContext(fakeFetch(files), repository, [], headSha, baseSha, 'token'), /current state is unavailable/);
+});
+
+// The ceiling of a single response is what decides whether a cited source of real size can be read at
+// all: below it the review runs, above it the whole review fails before any analysis. These two pin
+// the value, so a regression in either direction shows up as a failing test instead of as a broken
+// review round.
+test('reads a cited source whose response fills most of the single-response ceiling', async () => {
+  // 300_000 source bytes become about 400_000 of base64 inside the JSON response.
+  const source = 'a'.repeat(290_000);
+  const files = baseVault({
+    'docs/knowledge/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/knowledge/domains/backend.md'] }] }) },
+    'docs/knowledge/domains/backend.md': { value: '# Backend\n[Service](../../../apps/api/src/service.ts)\n' },
+    'apps/api/src/service.ts': { value: source },
+  });
+
+  const result = await loadVaultContext(fakeFetch(files), repository, [{ filename: 'apps/api/src/route.ts', status: 'modified' }], headSha, baseSha, 'token');
+
+  assert.equal(result.find(({ path }) => path === 'apps/api/src/service.ts')?.content, source);
+});
+
+test('fails closed when a cited source response exceeds the single-response ceiling', async () => {
+  const files = baseVault({
+    'docs/knowledge/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/knowledge/domains/backend.md'] }] }) },
+    'docs/knowledge/domains/backend.md': { value: '# Backend\n[Service](../../../apps/api/src/service.ts)\n' },
+    'apps/api/src/service.ts': { value: 'a'.repeat(310_000) },
+  });
+
+  await assert.rejects(
+    loadVaultContext(fakeFetch(files), repository, [{ filename: 'apps/api/src/route.ts', status: 'modified' }], headSha, baseSha, 'token'),
+    /response exceeds the supported size|Could not read vault context source/,
+  );
+});
+
+// O orçamento de bytes do vault passou a ser estourado pelo tamanho do código citado pelas notas, e
+// não pelo vault: derrubar a revisão por isso bloqueava qualquer PR.
+test('keeps a cited source as a marker when its body does not fit the vault budget', async () => {
+  const first = 'a'.repeat(250_000);
+  const second = 'b'.repeat(250_000);
+  const third = 'c'.repeat(250_000);
+  const files = baseVault({
+    'docs/knowledge/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/knowledge/domains/backend.md'] }] }) },
+    'docs/knowledge/domains/backend.md': { value: '# Backend\n[First](../../../apps/api/src/first.ts)\n[Second](../../../apps/api/src/second.ts)\n[Third](../../../apps/api/src/third.ts)\n' },
+    'apps/api/src/first.ts': { value: first },
+    'apps/api/src/second.ts': { value: second },
+    'apps/api/src/third.ts': { value: third },
+  });
+
+  const result = await loadVaultContext(fakeFetch(files), repository, [{ filename: 'apps/api/src/route.ts', status: 'modified' }], headSha, baseSha, 'token');
+
+  assert.equal(result.find(({ path }) => path === 'apps/api/src/first.ts')?.content, first);
+  assert.equal(result.find(({ path }) => path === 'apps/api/src/second.ts')?.content, second);
+  const omitted = result.find(({ path }) => path === 'apps/api/src/third.ts');
+  assert.equal(omitted?.contentOmitted, true);
+  assert.match(omitted.content, /^\[vault-cited source omitted from model context for the vault context budget; path=apps\/api\/src\/third\.ts; sourceBytes=250000; sourceSha256=[0-9a-f]{64}\]$/);
+  // The marker states the body was omitted; an empty file would be a different claim.
+  assert.notEqual(omitted.content, '');
+});
+
+test('fails closed when the vault documents alone exceed the budget', async () => {
+  const note = (name) => `# ${name}\n${name.repeat(50_000)}\n`;
+  const files = baseVault({
+    'docs/knowledge/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/knowledge/domains/first.md', 'docs/knowledge/domains/second.md', 'docs/knowledge/domains/third.md'] }] }) },
+    'docs/knowledge/domains/first.md': { value: note('aaaaa') },
+    'docs/knowledge/domains/second.md': { value: note('bbbbb') },
+    'docs/knowledge/domains/third.md': { value: note('ccccc') },
+  });
+
+  await assert.rejects(
+    loadVaultContext(fakeFetch(files), repository, [{ filename: 'apps/api/src/route.ts', status: 'modified' }], headSha, baseSha, 'token'),
+    /Vault context documents and evidence exceed the supported byte limit: docs\/knowledge\/domains\/third\.md\./,
+  );
+});
+
+test('still fails when a cited source does not exist at the PR HEAD', async () => {
+  const files = baseVault({
+    'docs/knowledge/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/knowledge/domains/backend.md'] }] }) },
+    'docs/knowledge/domains/backend.md': { value: '# Backend\n[Gone](../../../apps/api/src/gone.ts)\n' },
+  });
+
+  await assert.rejects(
+    loadVaultContext(fakeFetch(files), repository, [{ filename: 'apps/api/src/route.ts', status: 'modified' }], headSha, baseSha, 'token'),
+    /GitHub API request failed \(404\)/,
+  );
+});
+
+// Achado HIGH da rodada 1 do PR #78: o obrigatorio era lido depois dos corpos opcionais ja
+// admitidos, entao a revisao continuava abortando por inteiro — so a mensagem mudava.
+test('gives up an already admitted cited body so the required GitHub evidence still fits', async () => {
+  const reviewPath = '/repos/owner/repo/pulls/44/reviews/123';
+  const sources = [['first', 230_000], ['second', 220_000], ['third', 210_000]];
+  const files = baseVault({
+    'docs/knowledge/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/knowledge/domains/backend.md'] }] }) },
+    'docs/knowledge/domains/backend.md': {
+      value: '# Backend\n'
+        + sources.map(([name]) => `[${name}](../../../apps/api/src/${name}.ts)`).join('\n')
+        + '\n[Review](https://github.com/owner/repo/pull/44#pullrequestreview-123)\n',
+    },
+    ...Object.fromEntries(sources.map(([name, bytes], index) => [`apps/api/src/${name}.ts`, { value: String(index).repeat(bytes) }])),
+  });
+  // Evidencia grande o suficiente para nao caber na folga deixada pelo guloso.
+  const review = { id: 123, state: 'CHANGES_REQUESTED', body: 'E'.repeat(200_000), html_url: 'https://github.com/owner/repo/pull/44#pullrequestreview-123' };
+
+  const result = await loadVaultContext(
+    fakeFetch(files, { [reviewPath]: review }),
+    repository,
+    // The note that cites the review is changed by the PR, so its evidence is required (DEV-160).
+    [{ filename: 'apps/api/src/route.ts', status: 'modified' }, { filename: 'docs/knowledge/domains/backend.md', status: 'modified' }],
+    headSha,
+    baseSha,
+    'token',
+  );
+
+  const evidence = result.find(({ path }) => path.startsWith('github-evidence://'));
+  assert.equal(evidence?.contentOmitted, undefined);
+  assert.match(evidence.content, /E{200000}/);
+  const cited = result.filter(({ path }) => path.startsWith('apps/api/src/'));
+  assert.equal(cited.length, 3);
+  // Os maiores cedem primeiro, ate o obrigatorio caber: sobra um corpo.
+  assert.deepEqual(cited.filter(({ contentOmitted }) => !contentOmitted).map(({ path }) => path), ['apps/api/src/second.ts']);
+  assert.ok(result.reduce((total, { content }) => total + Buffer.byteLength(content, 'utf8'), 0) <= 650_000);
+});
+
+test('gives up an already admitted cited body so a note reached by link still fits', async () => {
+  const sources = [['first', 230_000], ['second', 220_000], ['third', 210_000]];
+  const files = baseVault({
+    'docs/knowledge/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/knowledge/domains/backend.md'] }] }) },
+    'docs/knowledge/domains/backend.md': {
+      value: '# Backend\n'
+        + sources.map(([name]) => `[${name}](../../../apps/api/src/${name}.ts)`).join('\n')
+        + '\n[Deep](deep.md)\n',
+    },
+    'docs/knowledge/domains/deep.md': { value: `# Deep\n${'d'.repeat(200_000)}\n` },
+    ...Object.fromEntries(sources.map(([name, bytes], index) => [`apps/api/src/${name}.ts`, { value: String(index).repeat(bytes) }])),
+  });
+
+  const result = await loadVaultContext(
+    fakeFetch(files),
+    repository,
+    [{ filename: 'apps/api/src/route.ts', status: 'modified' }],
+    headSha,
+    baseSha,
+    'token',
+  );
+
+  const deep = result.find(({ path }) => path === 'docs/knowledge/domains/deep.md');
+  assert.equal(deep?.contentOmitted, undefined);
+  assert.equal(Buffer.byteLength(deep.content, 'utf8'), 200_008);
+  const cited = result.filter(({ path }) => path.startsWith('apps/api/src/'));
+  assert.deepEqual(cited.filter(({ contentOmitted }) => !contentOmitted).map(({ path }) => path), ['apps/api/src/second.ts']);
+  assert.ok(result.reduce((total, { content }) => total + Buffer.byteLength(content, 'utf8'), 0) <= 650_000);
+});
+
+// The optional path used to abort the whole review when a late citation's marker did not fit, even
+// though demotion — which the required path already used — could free hundreds of kilobytes from
+// bodies admitted earlier. Sizes are computed so the budget is left with less headroom than a marker
+// costs, which is the only state that reaches the refusal.
+test('demotes the smallest admitted cited body so a late citation still fits as a marker', async () => {
+  const map = JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/knowledge/domains/backend.md'] }] });
+  const note = '# Backend\n'
+    + '[Big](../../../apps/api/src/big.ts)\n'
+    + '[Medium](../../../apps/api/src/medium.ts)\n'
+    + '[Small](../../../apps/api/src/small.ts)\n'
+    + '[Late](../../../apps/api/src/late.ts)\n';
+  const fixedBytes = Buffer.byteLength('# Index\n', 'utf8')
+    + Buffer.byteLength('# Current state\n', 'utf8')
+    + Buffer.byteLength(map, 'utf8')
+    + Buffer.byteLength(note, 'utf8');
+  // Three bodies instead of two, each well under the per-response ceiling: the contents API answers in
+  // base64, so a source over ~300 KB would be refused by the response limit before the budget is even
+  // consulted. Distinct sizes make the chosen order observable.
+  const bigBytes = 260_000;
+  const mediumBytes = 240_000;
+  // A marker runs past 200 bytes, so 40 bytes of headroom guarantees the late marker is refused and
+  // only demotion can save the review.
+  const smallBytes = 650_000 - fixedBytes - bigBytes - mediumBytes - 40;
+
+  const files = baseVault({
+    'docs/knowledge/context-map.json': { value: map },
+    'docs/knowledge/domains/backend.md': { value: note },
+    'apps/api/src/big.ts': { value: 'b'.repeat(bigBytes) },
+    'apps/api/src/medium.ts': { value: 'm'.repeat(mediumBytes) },
+    'apps/api/src/small.ts': { value: 's'.repeat(smallBytes) },
+    'apps/api/src/late.ts': { value: 'l'.repeat(10_000) },
+  });
+
+  const result = await loadVaultContext(
+    fakeFetch(files),
+    repository,
+    [{ filename: 'apps/api/src/route.ts', status: 'modified' }],
+    headSha,
+    baseSha,
+    'token',
+  );
+
+  const byPath = (path) => result.find((snapshot) => snapshot.path === path);
+  // The citation that arrived last survives as a marker instead of killing the review.
+  assert.equal(byPath('apps/api/src/late.ts')?.contentOmitted, true);
+  // The need is a marker's couple of hundred bytes, so the smallest body that resolves it is the one
+  // given up: sacrificing the biggest would make two citations lose a body where one suffices.
+  assert.equal(byPath('apps/api/src/small.ts')?.contentOmitted, true);
+  assert.equal(byPath('apps/api/src/big.ts')?.contentOmitted, undefined);
+  assert.equal(Buffer.byteLength(byPath('apps/api/src/big.ts').content, 'utf8'), bigBytes);
+  assert.equal(byPath('apps/api/src/medium.ts')?.contentOmitted, undefined);
+  assert.equal(Buffer.byteLength(byPath('apps/api/src/medium.ts').content, 'utf8'), mediumBytes);
+  assert.ok(result.reduce((total, { content }) => total + Buffer.byteLength(content, 'utf8'), 0) <= 650_000);
+});
+
+// Where criterion 2 actually lives: the optional candidate is refused by bytes **after** demotion has
+// nothing left to give. The budget is filled by required notes, which are never demotable, so the
+// reclaim returns false and the refusal has to name the byte ceiling and the path.
+test('fails closed naming the byte ceiling when the optional candidate has nothing left to reclaim', async () => {
+  const map = JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/knowledge/domains/first.md', 'docs/knowledge/domains/second.md', 'docs/knowledge/domains/third.md'] }] });
+  const third = (bytes) => `# Third\n${'t'.repeat(bytes)}\n[Cited](../../../apps/api/src/cited.ts)\n`;
+  // Each note stays under the per-response ceiling, because the contents API answers in base64.
+  const firstBytes = 215_000;
+  const secondBytes = 215_000;
+  const fixedBytes = Buffer.byteLength('# Index\n', 'utf8')
+    + Buffer.byteLength('# Current state\n', 'utf8')
+    + Buffer.byteLength(map, 'utf8')
+    + Buffer.byteLength(`# First\n${'f'.repeat(firstBytes)}\n`, 'utf8')
+    + Buffer.byteLength(`# Second\n${'s'.repeat(secondBytes)}\n`, 'utf8')
+    + Buffer.byteLength(third(0), 'utf8');
+  // Leave less headroom than a marker costs, with every admitted body belonging to a required note.
+  const thirdBytes = 650_000 - fixedBytes - 40;
+
+  const files = baseVault({
+    'docs/knowledge/context-map.json': { value: map },
+    'docs/knowledge/domains/first.md': { value: `# First\n${'f'.repeat(firstBytes)}\n` },
+    'docs/knowledge/domains/second.md': { value: `# Second\n${'s'.repeat(secondBytes)}\n` },
+    'docs/knowledge/domains/third.md': { value: third(thirdBytes) },
+    'apps/api/src/cited.ts': { value: 'c'.repeat(10_000) },
+  });
+
+  await assert.rejects(
+    loadVaultContext(fakeFetch(files), repository, [{ filename: 'apps/api/src/route.ts', status: 'modified' }], headSha, baseSha, 'token'),
+    /^Error: Vault context exceeds the supported byte limit: apps\/api\/src\/cited\.ts\.$/,
+  );
+});
+
+// The remaining cross combination: a required document refused by the item ceiling, which demotion
+// cannot relieve because releasing a body frees bytes and never items.
+test('fails closed naming the item ceiling when a required document is the one that does not fit', async () => {
+  const notes = Array.from({ length: 170 }, (_, index) => `docs/knowledge/domains/note-${index}.md`);
+  const map = JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: notes }] });
+  const files = baseVault({
+    'docs/knowledge/context-map.json': { value: map },
+    ...Object.fromEntries(notes.map((note, index) => [note, { value: `# Note ${index}\n` }])),
+  });
+
+  await assert.rejects(
+    loadVaultContext(fakeFetch(files), repository, [{ filename: 'apps/api/src/route.ts', status: 'modified' }], headSha, baseSha, 'token'),
+    /^Error: Vault context documents and evidence exceed the supported item limit: docs\/knowledge\/domains\/note-\d+\.md\.$/,
+  );
+});
+
+// Smallest-first is what exposes bodies smaller than their own marker: releasing one would add bytes
+// instead of freeing them, because the marker spells out path, size and digest. The tiny source must be
+// skipped and a real body taken instead.
+test('skips a cited body smaller than its own marker when reclaiming for a marker', async () => {
+  const map = JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/knowledge/domains/backend.md'] }] });
+  const note = '# Backend\n'
+    + '[Tiny](../../../apps/api/src/tiny.ts)\n'
+    + '[First](../../../apps/api/src/first.ts)\n'
+    + '[Second](../../../apps/api/src/second.ts)\n'
+    + '[Smallest](../../../apps/api/src/smallest.ts)\n'
+    + '[Late](../../../apps/api/src/late.ts)\n';
+  const fixedBytes = Buffer.byteLength('# Index\n', 'utf8')
+    + Buffer.byteLength('# Current state\n', 'utf8')
+    + Buffer.byteLength(map, 'utf8')
+    + Buffer.byteLength(note, 'utf8');
+  const tinyBytes = 40;
+  const firstBytes = 250_000;
+  const secondBytes = 250_000;
+  const smallestBytes = 650_000 - fixedBytes - tinyBytes - firstBytes - secondBytes - 40;
+
+  const files = baseVault({
+    'docs/knowledge/context-map.json': { value: map },
+    'docs/knowledge/domains/backend.md': { value: note },
+    'apps/api/src/tiny.ts': { value: 't'.repeat(tinyBytes) },
+    'apps/api/src/first.ts': { value: 'f'.repeat(firstBytes) },
+    'apps/api/src/second.ts': { value: 's'.repeat(secondBytes) },
+    'apps/api/src/smallest.ts': { value: 'm'.repeat(smallestBytes) },
+    'apps/api/src/late.ts': { value: 'l'.repeat(10_000) },
+  });
+
+  const result = await loadVaultContext(
+    fakeFetch(files),
+    repository,
+    [{ filename: 'apps/api/src/route.ts', status: 'modified' }],
+    headSha,
+    baseSha,
+    'token',
+  );
+
+  const byPath = (path) => result.find((snapshot) => snapshot.path === path);
+  assert.equal(byPath('apps/api/src/late.ts')?.contentOmitted, true);
+  // The 40-byte source keeps its body: a marker for it would cost more than the body itself.
+  assert.equal(byPath('apps/api/src/tiny.ts')?.contentOmitted, undefined);
+  // So the smallest body that actually frees bytes is the one given up, and the big ones are untouched.
+  assert.equal(byPath('apps/api/src/smallest.ts')?.contentOmitted, true);
+  assert.equal(byPath('apps/api/src/first.ts')?.contentOmitted, undefined);
+  assert.equal(byPath('apps/api/src/second.ts')?.contentOmitted, undefined);
+  assert.ok(result.reduce((total, { content }) => total + Buffer.byteLength(content, 'utf8'), 0) <= 650_000);
+});
+
+// Demoting a body frees bytes, never items, so the item ceiling still fails closed: not even the
+// marker fits, and demoting the others cannot help.
+test('fails closed when not even the marker fits the item limit', async () => {
+  const sources = Array.from({ length: 170 }, (_, index) => `apps/api/src/source-${index}.ts`);
+  const files = baseVault({
+    'docs/knowledge/context-map.json': { value: JSON.stringify({ version: 1, routes: [{ paths: ['apps/api/src/**'], documents: ['docs/knowledge/domains/backend.md'] }] }) },
+    'docs/knowledge/domains/backend.md': {
+      value: '# Backend\n' + sources.map((source, index) => `[Source ${index}](../../../${source})`).join('\n') + '\n',
+    },
+    ...Object.fromEntries(sources.map((source) => [source, { value: 'x' }])),
+  });
+
+  await assert.rejects(
+    loadVaultContext(fakeFetch(files), repository, [{ filename: 'apps/api/src/route.ts', status: 'modified' }], headSha, baseSha, 'token'),
+    /^Error: Vault context exceeds the supported item limit: apps\/api\/src\/source-\d+\.ts\.$/,
+  );
+});
+
+// DEV-160: a evidencia citada so por notas que o PR nao altera e orientacao. Ela vira marcador quando
+// nao cabe, em vez de abortar a revisao; a das notas alteradas continua obrigatoria.
+// As citacoes da nota nao alterada ficam no indice, que e lido antes de qualquer nota alterada: assim a
+// evidencia opcional chega primeiro, o caso em que a ordem de chegada importa.
+function evidenceVault({ changedNoteCites = [], unchangedNoteCites = [] }) {
+  const link = (id) => `[Review ${id}](https://github.com/owner/repo/pull/44#pullrequestreview-${id})`;
+  return baseVault({
+    'docs/knowledge/README.md': { value: `# Index\n${unchangedNoteCites.map(link).join('\n')}\n` },
+    'docs/knowledge/domains/changed.md': { value: `# Changed\n${changedNoteCites.map(link).join('\n')}\n` },
+  });
+}
+const reviewEvidence = (id, bytes) => ({
+  [`/repos/owner/repo/pulls/44/reviews/${id}`]: { id, state: 'COMMENTED', body: 'E'.repeat(bytes), html_url: `https://github.com/owner/repo/pull/44#pullrequestreview-${id}` },
+});
+const changedFiles = [{ filename: 'apps/api/src/route.ts', status: 'modified' }, { filename: 'docs/knowledge/domains/changed.md', status: 'modified' }];
+const evidenceOf = (result, id) => result.find(({ path }) => path === `github-evidence://repos/owner/repo/pulls/44/reviews/${id}`);
+
+test('drops evidence that only unchanged notes cite for a marker instead of aborting the review', async () => {
+  const files = evidenceVault({ unchangedNoteCites: [1, 2, 3] });
+  const evidence = { ...reviewEvidence(1, 250_000), ...reviewEvidence(2, 250_000), ...reviewEvidence(3, 250_000) };
+
+  const result = await loadVaultContext(fakeFetch(files, evidence), repository, changedFiles, headSha, baseSha, 'token');
+
+  // The one that does not fit becomes the marker; treating it as required would instead take the body of
+  // an optional evidence admitted earlier and keep its own.
+  const omitted = [1, 2, 3].map((id) => evidenceOf(result, id)).filter((snapshot) => snapshot?.contentOmitted);
+  assert.equal(omitted.length, 1);
+  assert.match(omitted[0].content, /^\[vault evidence omitted from model context for the vault context budget; cited only by notes this pull request does not change; path=github-evidence:\/\/repos\/owner\/repo\/pulls\/44\/reviews\/3; evidenceBytes=\d+; evidenceSha256=[0-9a-f]{64}\]$/);
+  assert.ok(result.reduce((total, { content }) => total + Buffer.byteLength(content, 'utf8'), 0) <= 650_000);
+});
+
+test('still aborts when evidence a changed note cites does not fit', async () => {
+  const files = evidenceVault({ changedNoteCites: [1, 2, 3] });
+  const evidence = { ...reviewEvidence(1, 250_000), ...reviewEvidence(2, 250_000), ...reviewEvidence(3, 250_000) };
+
+  await assert.rejects(
+    loadVaultContext(fakeFetch(files, evidence), repository, changedFiles, headSha, baseSha, 'token'),
+    /^Error: Vault context documents and evidence exceed the supported byte limit: github-evidence:\/\/repos\/owner\/repo\/pulls\/44\/reviews\/3\.$/,
+  );
+});
+
+test('keeps the body of evidence cited by both a changed and an unchanged note', async () => {
+  // The unchanged note (the index) is read first, so its citation arrives before the changed note's.
+  // The two bodies do not fit together: if evidence 2 were optional it would arrive after evidence 1 and
+  // become the marker, so keeping its body only holds when the changed note's citation makes it required.
+  const files = evidenceVault({ changedNoteCites: [2], unchangedNoteCites: [1, 2] });
+  const evidence = { ...reviewEvidence(1, 340_000), ...reviewEvidence(2, 340_000) };
+
+  const result = await loadVaultContext(fakeFetch(files, evidence), repository, changedFiles, headSha, baseSha, 'token');
+
+  assert.equal(evidenceOf(result, 1)?.contentOmitted, true);
+  assert.equal(evidenceOf(result, 2)?.contentOmitted, undefined);
+  assert.match(evidenceOf(result, 2).content, /E{340000}/);
+});
+
+test('gives up an optional evidence body admitted earlier so required evidence still fits', async () => {
+  // Evidence 1 (unchanged note) arrives first and takes its body; evidence 2 (changed note) needs the room.
+  const files = evidenceVault({ changedNoteCites: [2], unchangedNoteCites: [1] });
+  const evidence = { ...reviewEvidence(1, 340_000), ...reviewEvidence(2, 340_000) };
+
+  const result = await loadVaultContext(fakeFetch(files, evidence), repository, changedFiles, headSha, baseSha, 'token');
+
+  assert.equal(evidenceOf(result, 1)?.contentOmitted, true);
+  assert.equal(evidenceOf(result, 2)?.contentOmitted, undefined);
+  assert.ok(result.reduce((total, { content }) => total + Buffer.byteLength(content, 'utf8'), 0) <= 650_000);
+});

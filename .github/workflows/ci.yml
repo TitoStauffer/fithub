@@ -1,0 +1,56 @@
+name: CI
+
+# CI do FitHub. Por enquanto só o job das ferramentas de revisão; os jobs dos
+# serviços e apps entram na DEV-0016. O nome "CI" e o do job "GitHub Reviewer"
+# são lidos pelos bots de orquestração (DEV-0118): mude os dois juntos.
+
+on:
+  pull_request:
+    branches: [master]
+    # Edição de título/corpo é validada pelo workflow "PR title".
+    types: [opened, reopened, synchronize, ready_for_review]
+  push:
+    branches: [master]
+
+# Os jobs só leem o repositório.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  NODE_VERSION: "24.22.0"
+
+defaults:
+  run:
+    # bash explícito liga -eo pipefail.
+    shell: bash
+
+jobs:
+  automation-tools:
+    name: GitHub Reviewer
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: tools/github-reviewer
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: tools/github-reviewer/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --fetch-timeout=15000 --fetch-retries=1
+
+      - name: Build and test GitHub integration tools
+        run: npm test

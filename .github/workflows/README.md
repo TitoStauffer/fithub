@@ -2,7 +2,7 @@
 
 | Workflow | Quando roda | O que faz |
 |---|---|---|
-| `backend.yml` | push e PR | Placeholder do CI antigo (só `echo`). Substituído pelo CI real na DEV-0016 |
+| `ci.yml` (`CI`) | push na master e PR | Job `GitHub Reviewer`: build e testes de `tools/github-reviewer`. Jobs dos serviços e apps entram na DEV-0016 (DEV-0007) |
 | `issue-key.yml` | issue aberta; manual | Dá a próxima chave `[DEV-NNNN] - ` ao título da issue (DEV-0004) |
 | `pr-title.yml` | PR aberto, editado ou atualizado | Valida título, branch e issue vinculada com a mesma chave e publica o status `PR title` (DEV-0005) |
 | `project-status.yml` | issue aberta, branch criada, PR aberto/rascunho/fechado, review pedindo ajustes | Move a issue no quadro e atribui o autor ao PR (DEV-0006) |
