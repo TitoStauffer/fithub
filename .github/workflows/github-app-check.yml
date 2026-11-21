@@ -2,7 +2,8 @@ name: GitHub App check
 
 # Verifica, sem escrever nada, se os secrets do GitHub App funcionam (DEV-0008):
 # gera um token de instalação e lê o repositório e as permissões concedidas.
-# Rodar manualmente em Actions → GitHub App check → Run workflow.
+# Rodar manualmente em Actions → GitHub App check → Run workflow. Útil depois de
+# trocar a chave privada ou reinstalar o App, antes de depender dos bots.
 
 on:
   workflow_dispatch:
