@@ -1,0 +1,77 @@
+spring:
+  application:
+    name: fithub-backend
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:fithub}
+    username: ${DB_USER:fithub}
+    password: ${DB_PASSWORD:fithub}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    drop-first: true
+    locations: classpath:db/migration
+    validate-on-migrate: false
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+# ========== JWT Configuration ==========
+jwt:
+  secret: ${JWT_SECRET:changeme-min-32-chars-required-in-prod}
+  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:900000}       # 15 min
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000}  # 7 dias
+
+# ========== Logging ==========
+logging:
+  level:
+    root: INFO
+    com.fithub: DEBUG
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+# ========== Swagger/OpenAPI Configuration ==========
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    show-common-extensions: true
+  api-docs:
+    path: /v3/api-docs
+  info:
+    title: FitHub Backend API
+    version: 0.3.0
+    description: |
+      Personal training and nutrition platform API.
+
+      **Key Features:**
+      - User authentication (JWT)
+      - Patient management with biometric tracking
+      - Workout plan creation and execution logging
+      - Diet plan creation and meal execution tracking
+
+      **Security:**
+      - Bearer token (JWT) in Authorization header
+      - Rate limiting on auth endpoints
+      - Password hashing with BCrypt
+
+      **Base URL:** http://localhost:8080

@@ -1,0 +1,2 @@
+Treino ativo.
+Paciente autorizado.

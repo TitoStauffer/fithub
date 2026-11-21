@@ -1,0 +1,117 @@
+.progress-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.progress-stat {
+  background: linear-gradient(135deg, #f3f4f6 0%, #fafafa 100%);
+  padding: 1.5rem;
+  border-radius: 0.375rem;
+  border-left: 4px solid var(--primary);
+}
+
+.progress-stat h4 {
+  margin: 0 0 0.5rem 0;
+  color: #6b7280;
+  text-transform: uppercase;
+  font-size: 0.875rem;
+  letter-spacing: 0.05em;
+}
+
+.progress-stat .value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+}
+
+.progress-stat .value.positive {
+  color: var(--secondary);
+}
+
+.progress-stat .value.negative {
+  color: var(--danger);
+}
+
+.progress-stat .period {
+  color: #9ca3af;
+  font-size: 0.875rem;
+}
+
+.chart-container {
+  background: white;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.mini-chart h4 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.mini-chart svg {
+  width: 100%;
+  height: auto;
+  min-height: 200px;
+}
+
+.progress-table {
+  background: white;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.progress-table h4 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.progress-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.progress-table th {
+  background: var(--light);
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+
+.progress-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.progress-table tr:hover {
+  background: #fafafa;
+}
+
+.progress-table .positive {
+  color: var(--secondary);
+  font-weight: 500;
+}
+
+.progress-table .negative {
+  color: var(--danger);
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .progress-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .progress-table {
+    overflow-x: auto;
+  }
+
+  .progress-table table {
+    min-width: 400px;
+  }
+}

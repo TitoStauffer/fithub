@@ -1,0 +1,1 @@
+HLT-ERR-* conforme catálogo.

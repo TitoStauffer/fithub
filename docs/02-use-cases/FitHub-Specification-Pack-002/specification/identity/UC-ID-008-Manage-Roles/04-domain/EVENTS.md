@@ -1,0 +1,1 @@
+Publicar evento quando necessário.

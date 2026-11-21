@@ -1,0 +1,2 @@
+Profissional autenticado.
+Paciente ativo.

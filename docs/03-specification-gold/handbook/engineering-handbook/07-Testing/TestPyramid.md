@@ -1,0 +1,1 @@
+Priorizar testes unitários.

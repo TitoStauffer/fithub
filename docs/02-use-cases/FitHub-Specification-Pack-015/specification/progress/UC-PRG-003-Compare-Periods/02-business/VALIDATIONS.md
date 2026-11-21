@@ -1,0 +1,2 @@
+Paciente válido.
+Período válido.

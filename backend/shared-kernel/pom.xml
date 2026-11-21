@@ -1,1 +1,19 @@
-<project><parent><artifactId>backend-parent</artifactId></parent><artifactId>shared-kernel</artifactId></project>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.fithub</groupId>
+    <artifactId>backend-parent</artifactId>
+    <version>0.3.0</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>shared-kernel</artifactId>
+  <packaging>jar</packaging>
+
+  <description>
+    Blocos de construção compartilhados entre os módulos de domínio
+    (tipos base de Aggregate, Value Object, Domain Event, exceções comuns).
+    Não depende de nenhum outro módulo do FitHub.
+  </description>
+</project>

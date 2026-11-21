@@ -1,0 +1,3 @@
+- Caminho feliz
+- Dados inválidos
+- Sem permissão

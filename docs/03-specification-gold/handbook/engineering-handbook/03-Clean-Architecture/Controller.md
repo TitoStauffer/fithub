@@ -1,0 +1,1 @@
+Controller apenas orquestra HTTP.
