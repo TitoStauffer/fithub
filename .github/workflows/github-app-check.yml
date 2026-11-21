@@ -1,0 +1,60 @@
+name: GitHub App check
+
+# Verifica, sem escrever nada, se os secrets do GitHub App funcionam (DEV-0008):
+# gera um token de instalação e lê o repositório e as permissões concedidas.
+# Rodar manualmente em Actions → GitHub App check → Run workflow.
+
+on:
+  workflow_dispatch:
+  # Também roda no PR que alterar este arquivo, para validar antes do merge.
+  pull_request:
+    branches: [master]
+    paths: [.github/workflows/github-app-check.yml]
+
+permissions: {}
+
+jobs:
+  check:
+    name: Verificar GitHub App
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      # Sem checkout: o script é inline e usa só o Node da imagem.
+      - name: Gerar token de instalação e ler o repositório
+        env:
+          APP_ID: ${{ secrets.FITHUB_APP_ID }}
+          INSTALLATION_ID: ${{ secrets.FITHUB_APP_INSTALLATION_ID }}
+          PRIVATE_KEY: ${{ secrets.FITHUB_APP_PRIVATE_KEY }}
+          BOT_LOGIN: ${{ vars.FITHUB_APP_BOT_LOGIN }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          node --input-type=module <<'EOF'
+          import { createSign } from 'node:crypto';
+          const { APP_ID, INSTALLATION_ID, PRIVATE_KEY, BOT_LOGIN, REPO } = process.env;
+          for (const [name, value] of Object.entries({ FITHUB_APP_ID: APP_ID, FITHUB_APP_INSTALLATION_ID: INSTALLATION_ID, FITHUB_APP_PRIVATE_KEY: PRIVATE_KEY, FITHUB_APP_BOT_LOGIN: BOT_LOGIN })) {
+            if (!value) { console.log(`::error::${name} não configurado.`); process.exit(1); }
+          }
+          const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
+          const now = Math.floor(Date.now() / 1000);
+          const unsigned = `${b64({ alg: 'RS256', typ: 'JWT' })}.${b64({ iat: now - 60, exp: now + 540, iss: APP_ID })}`;
+          let jwt;
+          try {
+            jwt = `${unsigned}.${createSign('RSA-SHA256').update(unsigned).sign(PRIVATE_KEY, 'base64url')}`;
+          } catch { console.log('::error::FITHUB_APP_PRIVATE_KEY não é uma chave PEM válida.'); process.exit(1); }
+          const call = async (url, token, method = 'GET') => {
+            const res = await fetch(`https://api.github.com${url}`, { method, headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } });
+            return { status: res.status, body: await res.json().catch(() => ({})) };
+          };
+          const app = await call('/app', jwt);
+          if (app.status !== 200) { console.log(`::error::App ID ou chave privada recusados (HTTP ${app.status}).`); process.exit(1); }
+          console.log(`App: ${app.body.slug} (id ${app.body.id})`);
+          if (`${app.body.slug}[bot]` !== BOT_LOGIN) console.log(`::warning::FITHUB_APP_BOT_LOGIN (${BOT_LOGIN}) difere de ${app.body.slug}[bot].`);
+          const tok = await call(`/app/installations/${INSTALLATION_ID}/access_tokens`, jwt, 'POST');
+          if (tok.status !== 201) { console.log(`::error::Installation ID recusado ou App não instalado (HTTP ${tok.status}).`); process.exit(1); }
+          console.log(`Permissões da instalação: ${JSON.stringify(tok.body.permissions)}`);
+          const repo = await call(`/repos/${REPO}`, tok.body.token);
+          if (repo.status !== 200) { console.log(`::error::O App não tem acesso a ${REPO} (HTTP ${repo.status}). Adicione o repositório na instalação.`); process.exit(1); }
+          console.log(`Acesso a ${repo.body.full_name} confirmado.`);
+          await call('/installation/token', tok.body.token, 'DELETE');
+          EOF
