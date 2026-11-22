@@ -327,10 +327,9 @@ Squash merge na master → imagem publicada → deploy só quando o Tito pedir
   documento.
 - Tarefas sem dependência entre si podem rodar em sessões paralelas, cada uma
   na sua branch ou worktree.
-- O Claude (papel de PM) abre o PR e faz o merge com `READY_TO_MERGE`,
-  exceto nos casos em que o AGENTS.md manda perguntar ao Tito (migration,
-  workflow/bots/segurança, decisão de produto nova). Deploy só com pedido do
-  Tito.
+- O Claude (papel de PM) abre o PR e faz o merge de qualquer PR com
+  `READY_TO_MERGE`; o Tito só é acionado em caso urgente ou decisão de produto
+  fora do PRD (AGENTS.md, seção Merge). Deploy só com pedido do Tito.
 - Questões em aberto descobertas durante a tarefa são registradas no PRD
   (seção 21) ou como issue, e não resolvidas por conta própria.
 

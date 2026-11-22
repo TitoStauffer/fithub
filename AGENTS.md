@@ -141,18 +141,13 @@ Resumo; o detalhe está no ENGENHARIA.md.
   HEAD atual (CI verde, Code Review aprovado, QA aprovado quando o trilho for
   completo, Coordinator aprovado). Nunca com status vermelho, inconclusivo,
   pendente ou de outro SHA.
-- Com `READY_TO_MERGE`, o Agent de Product Manager **faz o merge sozinho** e
-  avisa o Tito. **Exceções — perguntar ao Tito antes do merge** quando o PR:
-  - tiver migration de banco;
-  - alterar workflows, bots de revisão, configuração de segurança ou de
-    autenticação;
-  - introduzir decisão de produto que não está no PRD.
+- Com `READY_TO_MERGE`, o Agent de Product Manager **faz o merge sozinho** de
+  qualquer PR — inclusive migrations, workflows, bots de revisão e segurança —
+  e avisa o Tito (decisão do Tito em 22/11/2026, DEV-0134).
+- O Tito só é acionado quando o caso for **urgente** ou quando o PR introduzir
+  **decisão de produto que não está no PRD**, e quando a tarefa depender de uma
+  ação dele (acesso, credencial, custo).
 - **Deploy** só com pedido explícito do Tito.
-- **Até os bots existirem (DEV-0009 concluída)**, o Tito autorizou (21/11/2026)
-  o Agent de Product Manager a fazer o merge dos PRs prontos sem perguntar:
-  CI verde, critérios de aceitação conferidos e checklist do PR completo. O
-  Tito só é acionado quando uma tarefa depende de uma ação dele (acesso,
-  credencial, decisão de produto ou de custo).
 
 ## Workflow
 
@@ -240,7 +235,7 @@ ao Tito.
 6. **QA**, no trilho completo e só depois do Code Review aprovado, valida os
    critérios de aceitação. Se reprovar, a issue volta para "Em andamento".
 7. **Coordinator** e **Merge Readiness** consolidam. Com `READY_TO_MERGE`, o PM
-   faz o merge (ou pergunta, nas exceções).
+   faz o merge.
 8. Após o merge, o PM confere que a issue fechou e o card foi para "Feito".
    Se todas as issues do milestone estiverem fechadas, fecha o milestone
    (exceto `TD — Débitos técnicos`, que é permanente).
