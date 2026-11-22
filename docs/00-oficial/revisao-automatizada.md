@@ -40,9 +40,12 @@ etapas verificadas vão para o QA.
   a issue vai no nome do teste: `it.skip('motivo DEV-xxxx', ...)`. Desde a DEV-0020
   o `Apps` exige relatório (o `apps/web` publica em `reports/junit.xml`) e roda
   lint, typecheck, testes e build.
-- Snapshots de CI (`CI_SNAPSHOT_PATHS`): o `ci.yml` (sem os valores de `env`), os
-  `scripts` do `package.json` do reviewer e os dois scripts acima, inteiros. Arquivo
-  sem projeção conhecida falha fechado (`projectCiSnapshot`).
+- Snapshots de CI (`CI_SNAPSHOT_PATHS`):
+  - o `ci.yml`, sem os valores de `env`;
+  - os `scripts` do `package.json` do reviewer e dos apps `web` e `mobile` (DEV-0021);
+  - os dois scripts acima, inteiros.
+
+  Arquivo sem projeção conhecida falha fechado (`projectCiSnapshot`).
 - Testes: `requires each per-area CI job from GitHub Actions on the current HEAD`
   ([agent-review-inputs.test.mjs](../../tools/github-reviewer/test/agent-review-inputs.test.mjs)),
   `requires every per-area CI job from GitHub Actions on the current HEAD`
