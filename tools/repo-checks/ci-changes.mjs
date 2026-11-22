@@ -6,14 +6,17 @@
 //   node tools/repo-checks/ci-changes.mjs --services <base-sha> <head-sha>  # imagens a gerar
 //   node tools/repo-checks/ci-changes.mjs --services --all                  # todas as imagens
 //
-// Escreve no stdout, no formato do $GITHUB_OUTPUT, as linhas `java=true|false`, `apps=...` e
-// `infra=...`, ou `services=[...]` (JSON com os serviços que têm Dockerfile). Na dúvida roda tudo:
+// Escreve no stdout, no formato do $GITHUB_OUTPUT, as linhas `java=true|false`, `apps=...`,
+// `infra=...` e `mutations=[...]` (manifestos de mutação alterados, DEV-0116, que também ligam as
+// áreas que citam), ou `services=[...]` (JSON com os serviços que têm Dockerfile). Na dúvida roda tudo:
 // lista vazia, mudança no próprio CI ou nestes scripts liga todas as áreas e todas as imagens. Se o
 // git falhar, o script falha, e os jobs que dependem dele ficam sem sucesso (o merge bloqueia).
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { manifestAreas } from './mutations.mjs';
 
 export const AREAS = ['java', 'apps', 'infra'];
 
@@ -78,6 +81,24 @@ export function discoverServices(root = '.') {
   return services;
 }
 
+/**
+ * Manifestos de mutação alterados no PR que existem no HEAD (DEV-0116). Manifesto removido não roda:
+ * não há mais guarda para provar.
+ */
+export function changedManifests(files, root = '.') {
+  return normalize(files)
+    .filter((path) => /^mutations\/DEV-\d{4}\.json$/.test(path) && existsSync(join(root, path)))
+    .sort();
+}
+
+/**
+ * Liga as áreas que os manifestos alterados citam, para um PR que só traz manifesto não passar sem
+ * rodar os mutantes. A área `tools` roda no job GitHub Reviewer, que não tem chave aqui.
+ */
+export function withManifestAreas(areas, manifestAreaList) {
+  return Object.fromEntries(AREAS.map((area) => [area, areas[area] || manifestAreaList.includes(area)]));
+}
+
 export function formatOutputs(areas) {
   return AREAS.map((area) => `${area}=${areas[area] ? 'true' : 'false'}`).join('\n');
 }
@@ -106,8 +127,11 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     console.error(`imagens: ${services.length > 0 ? services.join(', ') : 'nenhuma'}`);
   } else {
     const [first, second] = args;
-    const areas = first === '--all' ? classifyChanges([]) : classifyChanges(changedFiles(first, second));
-    process.stdout.write(`${formatOutputs(areas)}\n`);
+    const files = first === '--all' ? [] : changedFiles(first, second);
+    const manifests = changedManifests(files);
+    const areas = withManifestAreas(classifyChanges(files), manifestAreas(manifests));
+    process.stdout.write(`${formatOutputs(areas)}\nmutations=${JSON.stringify(manifests)}\n`);
     for (const area of AREAS) console.error(`${area}: ${areas[area] ? 'roda' : 'sem mudança, não roda'}`);
+    console.error(`manifestos de mutação: ${manifests.length > 0 ? manifests.join(', ') : 'nenhum'}`);
   }
 }

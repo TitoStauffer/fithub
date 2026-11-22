@@ -272,6 +272,43 @@ teste pulado sem `DEV-xxxx` na justificativa derruba o job (DEV-0016; detalhes e
 **Regra:** nada de teste falso (`assertTrue(true)`). Teste desabilitado precisa
 de `@Disabled("motivo + DEV-xxxx")`.
 
+### Verificação por mutação (DEV-0116)
+
+Toda guarda nova (validação, regra de acesso, invariante) prova que o teste a
+pega com um manifesto `mutations/<CHAVE>.json`, versionado junto da tarefa:
+
+```json
+{
+  "issue": "DEV-0123",
+  "mutants": [
+    {
+      "id": "M1",
+      "description": "Profissional sem vínculo passa a ver o cliente",
+      "area": "java",
+      "file": "services/training-service/src/main/java/.../LinkGuard.java",
+      "find": "if (!link.isActive()) throw new AccessDeniedException(",
+      "replace": "if (false) throw new AccessDeniedException(",
+      "command": ["mvn", "-B", "-ntp", "-pl", "services/training-service", "test", "-Dtest=LinkGuardTest"]
+    }
+  ]
+}
+```
+
+- **`area`:** decide o job que roda o mutante: `java` no `Java Services`, `apps` no `Apps` e `tools` no `GitHub Reviewer`.
+- **`find`:** trecho exato que precisa aparecer **uma vez** no arquivo. `replace` é o mutante.
+- **`command`:** argv sem shell, com executável `mvn`, `pnpm`, `node` ou `npm` e sem metacaracteres de shell (`& | < > ^ % "`). Ele precisa **passar** sem o mutante (execução de base) e **falhar** com o mutante aplicado. A lista de executáveis não é barreira de segurança, porque o manifesto vem do PR, como os testes; o job de mutação não recebe segredos.
+
+O CI roda só os manifestos alterados no PR, e um manifesto alterado liga as
+áreas que cita. O job falha se:
+- o manifesto for inválido;
+- o comando falhar já sem o mutante, ou não executar (executável ausente, timeout, sinal);
+- um trecho não for único;
+- um mutante sobreviver;
+- o arquivo não voltar byte a byte ao original.
+
+Aplicador: `tools/repo-checks/mutations.mjs`. Rodar localmente:
+`node tools/repo-checks/mutations.mjs --area java mutations/DEV-0123.json`.
+
 ---
 
 ## 10. Workflow de desenvolvimento

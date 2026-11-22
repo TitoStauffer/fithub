@@ -119,6 +119,15 @@
     },
     {
       "paths": [
+        "mutations/**"
+      ],
+      "documents": [
+        "docs/00-oficial/ENGENHARIA.md",
+        "docs/00-oficial/revisao-automatizada.md"
+      ]
+    },
+    {
+      "paths": [
         "docs/00-oficial/**"
       ],
       "documents": [

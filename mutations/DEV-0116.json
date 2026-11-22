@@ -1,0 +1,95 @@
+{
+    "issue": "DEV-0116",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Trecho repetido ou ausente passa a ser aplicado em vez de recusado",
+            "area": "tools",
+            "file": "tools/repo-checks/mutations.mjs",
+            "find": "if (count !== 1) return { id: mutant.id, outcome: 'ANCHOR_NOT_UNIQUE'",
+            "replace": "if (false) return { id: mutant.id, outcome: 'ANCHOR_NOT_UNIQUE'",
+            "command": ["node", "--test", "tools/repo-checks/mutations.test.mjs"]
+        },
+        {
+            "id": "M2",
+            "description": "Mutante que sobrevive deixa de ser reportado",
+            "area": "tools",
+            "file": "tools/repo-checks/mutations.mjs",
+            "find": "if (status === 0) return { id: mutant.id, outcome: 'SURVIVED'",
+            "replace": "if (false) return { id: mutant.id, outcome: 'SURVIVED'",
+            "command": ["node", "--test", "tools/repo-checks/mutations.test.mjs"]
+        },
+        {
+            "id": "M3",
+            "description": "Arquivo que não volta ao original deixa de ser reportado",
+            "area": "tools",
+            "file": "tools/repo-checks/mutations.mjs",
+            "find": "if (sha256(readFileSync(path)) !== sha256(original)) {",
+            "replace": "if (false) {",
+            "command": ["node", "--test", "tools/repo-checks/mutations.test.mjs"]
+        },
+        {
+            "id": "M4",
+            "description": "Comando fora da lista permitida passa a ser aceito",
+            "area": "tools",
+            "file": "tools/repo-checks/mutations.mjs",
+            "find": "} else if (!ALLOWED_COMMANDS.has(command[0])) {",
+            "replace": "} else if (false) {",
+            "command": ["node", "--test", "tools/repo-checks/mutations.test.mjs"]
+        },
+        {
+            "id": "M5",
+            "description": "Caminho absoluto ou com barra invertida passa a ser aceito como arquivo do mutante",
+            "area": "tools",
+            "file": "tools/repo-checks/mutations.mjs",
+            "find": "if (isAbsolute(path) || path.includes('\\\\')) return false;",
+            "replace": "if (false) return false;",
+            "command": ["node", "--test", "tools/repo-checks/mutations.test.mjs"]
+        },
+        {
+            "id": "M6",
+            "description": "Manifesto alterado deixa de ligar a área que ele cita no CI",
+            "area": "tools",
+            "file": "tools/repo-checks/ci-changes.mjs",
+            "find": "[area, areas[area] || manifestAreaList.includes(area)]",
+            "replace": "[area, areas[area]]",
+            "command": ["node", "--test", "tools/repo-checks/mutations.test.mjs"]
+        },
+        {
+            "id": "M7",
+            "description": "Manifesto removido no PR continua na lista de manifestos a rodar",
+            "area": "tools",
+            "file": "tools/repo-checks/ci-changes.mjs",
+            "find": " && existsSync(join(root, path)))",
+            "replace": ")",
+            "command": ["node", "--test", "tools/repo-checks/mutations.test.mjs"]
+        },
+        {
+            "id": "M8",
+            "description": "Comando que falha sem mutante passa a ser aceito (sem execução de base)",
+            "area": "tools",
+            "file": "tools/repo-checks/mutations.mjs",
+            "find": "baseline.set(command, status === 0 ? null : `o comando falha sem mutante (saiu com ${status})`);",
+            "replace": "baseline.set(command, null);",
+            "command": ["node", "--test", "tools/repo-checks/mutations.test.mjs"]
+        },
+        {
+            "id": "M9",
+            "description": "Comando que não executa com o mutante passa a contar como mutante morto",
+            "area": "tools",
+            "file": "tools/repo-checks/mutations.mjs",
+            "find": "result = { id: mutant.id, outcome: 'COMMAND_ERROR', detail: error.message };",
+            "replace": "result = { id: mutant.id, outcome: 'KILLED', detail: error.message };",
+            "command": ["node", "--test", "tools/repo-checks/mutations.test.mjs"]
+        },
+        {
+            "id": "M10",
+            "description": "Argumento com metacaractere de shell passa a ser aceito no comando",
+            "area": "tools",
+            "file": "tools/repo-checks/mutations.mjs",
+            "find": "} else if (command.some((part) => SHELL_METACHARACTERS.test(part))) {",
+            "replace": "} else if (false) {",
+            "command": ["node", "--test", "tools/repo-checks/mutations.test.mjs"]
+        }
+    ]
+}

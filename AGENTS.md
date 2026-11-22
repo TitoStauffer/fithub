@@ -66,9 +66,13 @@ Resumo; o detalhe está no ENGENHARIA.md.
 - Use testes de integração (Testcontainers) para persistência, mensageria,
   contratos de API e de eventos, e autorização por vínculo.
 - Toda guarda nova (validação, regra de acesso, invariante) deve ter um teste
-  que falha sem ela. Enquanto a verificação por mutação não estiver no CI,
-  quem implementa demonstra isso no PR (seção de testes): qual mutação foi
-  feita, qual teste a derrubou e que o arquivo voltou ao original.
+  que falha sem ela. A prova é o manifesto `mutations/<CHAVE>.json` da tarefa
+  (formato no ENGENHARIA.md §9): o CI aplica cada mutante declarado, roda o
+  teste e falha se algum sobreviver, se o trecho não for único ou se o arquivo
+  não voltar ao original (DEV-0116). O PR cita o manifesto como evidência do
+  critério. Prova manual na seção de testes do PR (mutação feita, teste que a
+  derrubou, arquivo restaurado) só para o que não dá para declarar, como
+  workflow ou Dockerfile.
 - Se uma verificação falhar, investigue e corrija quando estiver no escopo;
   caso contrário, informe a falha e o impacto. Nada fica pronto para merge com
   build, testes ou verificações configuradas falhando.

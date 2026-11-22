@@ -9,6 +9,9 @@ name: CI
 #   Local Infrastructure  compose de desenvolvimento sobe saudável
 #   Publish Images        só no push na master: imagem de todos os serviços no GHCR, tag do commit (DEV-0017)
 #
+# Mutação (DEV-0116): os manifestos mutations/<CHAVE>.json alterados no PR rodam no job da área de cada
+# mutante (tools no GitHub Reviewer, java no Java Services, apps no Apps), por tools/repo-checks/mutations.mjs.
+#
 # GitHub Reviewer, Java Services, Apps e Local Infrastructure são checks exigidos pelos bots de orquestração (repository-policy.ts). Por isso
 # eles sempre rodam e terminam com sucesso quando a área não mudou: o passo "Skip" registra isso, e
 # os passos de verdade aparecem como pulados. Se "Detect changes" falhar ou não disser "false", os
@@ -48,6 +51,7 @@ jobs:
       apps: ${{ steps.detect.outputs.apps }}
       infra: ${{ steps.detect.outputs.infra }}
       services: ${{ steps.images.outputs.services }}
+      mutations: ${{ steps.detect.outputs.mutations }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -93,6 +97,9 @@ jobs:
 
   automation-tools:
     name: GitHub Reviewer
+    # Depende do detector só para receber os manifestos de mutação (DEV-0116); detector falho deixa
+    # este job sem sucesso, como os outros.
+    needs: changes
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     defaults:
@@ -129,7 +136,17 @@ jobs:
       # Detector de áreas e guarda de teste pulado usados pelos outros jobs (DEV-0016).
       - name: Test CI scripts
         working-directory: .
-        run: node --test tools/repo-checks/ci-scripts.test.mjs
+        run: node --test tools/repo-checks/ci-scripts.test.mjs tools/repo-checks/mutations.test.mjs
+
+      # Mutantes declarados em mutations/<CHAVE>.json alterados no PR, área tools (DEV-0116).
+      - name: Mutation (tools)
+        working-directory: .
+        env:
+          MUTATIONS: ${{ needs.changes.outputs.mutations }}
+        run: |
+          # Atribuição separada: com bash -e, falha do jq derruba o passo em vez de virar lista vazia.
+          manifests="$(jq -r '.[]' <<<"$MUTATIONS")"
+          node tools/repo-checks/mutations.mjs --area tools $manifests
 
       - name: Test pre-push hook
         working-directory: .
@@ -183,6 +200,16 @@ jobs:
       - name: Check skipped tests
         if: env.RUN_AREA == 'true'
         run: node tools/repo-checks/check-skipped-tests.mjs libs services
+
+      # Mutantes declarados da área java nos manifestos alterados no PR (DEV-0116).
+      - name: Mutation (java)
+        if: env.RUN_AREA == 'true'
+        env:
+          MUTATIONS: ${{ needs.changes.outputs.mutations }}
+        run: |
+          # Atribuição separada: com bash -e, falha do jq derruba o passo em vez de virar lista vazia.
+          manifests="$(jq -r '.[]' <<<"$MUTATIONS")"
+          node tools/repo-checks/mutations.mjs --area java $manifests
 
       # No PR, a imagem de cada serviço alterado precisa construir e rodar sem root antes do merge
       # (DEV-0017); o push na master constrói de novo e publica no job Publish Images.
@@ -257,6 +284,16 @@ jobs:
       - name: Check skipped tests
         if: env.RUN_AREA == 'true'
         run: node tools/repo-checks/check-skipped-tests.mjs apps packages
+
+      # Mutantes declarados da área apps nos manifestos alterados no PR (DEV-0116).
+      - name: Mutation (apps)
+        if: env.RUN_AREA == 'true'
+        env:
+          MUTATIONS: ${{ needs.changes.outputs.mutations }}
+        run: |
+          # Atribuição separada: com bash -e, falha do jq derruba o passo em vez de virar lista vazia.
+          manifests="$(jq -r '.[]' <<<"$MUTATIONS")"
+          node tools/repo-checks/mutations.mjs --area apps $manifests
 
   local-infrastructure:
     name: Local Infrastructure

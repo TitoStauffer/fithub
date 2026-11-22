@@ -81,9 +81,9 @@ O Agent técnico principal informa os comandos e resultados. O Agent de Product 
 
 Descreva os resultados observados. Não marque verificações que não foram executadas.
 
-**Prova de guarda nova (mutação manual):**
+**Prova de guarda nova (mutação):**
 
-Para cada guarda nova (validação, regra de acesso, invariante): qual mutação foi feita, qual teste a derrubou e a confirmação de que o arquivo voltou ao original. Remova se não houver guarda nova.
+Para cada guarda nova (validação, regra de acesso, invariante), declare o mutante em `mutations/<CHAVE>.json` (formato no ENGENHARIA.md §9). O CI aplica cada mutante e falha se algum sobreviver. Cite aqui o manifesto e os mutantes (id, guarda e teste que deve derrubá-lo). Só o que não dá para declarar, como workflow ou Dockerfile, leva prova manual: qual mutação, qual teste a derrubou e a confirmação de que o arquivo voltou ao original. Remova se não houver guarda nova.
 
 ## 8. Critérios de aceitação
 
