@@ -7,7 +7,7 @@ name: CI
 #   Java Services         libs Java e serviços: build, unitários, ArchUnit e integração (Testcontainers)
 #   Apps                  workspace pnpm: lint, typecheck e testes dos apps e pacotes
 #   Local Infrastructure  compose de desenvolvimento sobe saudável
-#   Publish Images        só no push na master: imagem dos serviços alterados no GHCR (DEV-0017)
+#   Publish Images        só no push na master: imagem de todos os serviços no GHCR, tag do commit (DEV-0017)
 #
 # GitHub Reviewer, Java Services, Apps e Local Infrastructure são checks exigidos pelos bots de orquestração (repository-policy.ts). Por isso
 # eles sempre rodam e terminam com sucesso quando a área não mudou: o passo "Skip" registra isso, e
@@ -74,20 +74,19 @@ jobs:
             node tools/repo-checks/ci-changes.mjs --all >> "$GITHUB_OUTPUT"
           fi
 
-      # Serviços cuja imagem muda (DEV-0017). No PR, pelo diff do PR; no push na master, pelo diff do
-      # push. Sem um "before" utilizável (primeiro push, histórico reescrito), gera todas.
-      - name: Detect changed service images
+      # Imagens de serviço (DEV-0017). No PR, só as dos serviços alterados, para validar o build antes do
+      # merge. No push na master, todas: o grupo de concorrência guarda um único run pendente, então um
+      # run cancelado ou falho deixaria o serviço daquele commit sem imagem se a escolha viesse do diff
+      # do push (aprendizado concorrencia-pendente-cancelada). Com a tag pelo SHA, cada run é idempotente.
+      - name: Detect service images
         id: images
         env:
           EVENT_NAME: ${{ github.event_name }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          BEFORE_SHA: ${{ github.event.before }}
         run: |
           if [ "$EVENT_NAME" = pull_request ]; then
             node tools/repo-checks/ci-changes.mjs --services "$BASE_SHA" "$HEAD_SHA" >> "$GITHUB_OUTPUT"
-          elif [[ "$BEFORE_SHA" =~ ^[0-9a-f]{40}$ ]] && [[ ! "$BEFORE_SHA" =~ ^0+$ ]] && git cat-file -e "$BEFORE_SHA^{commit}" 2>/dev/null; then
-            node tools/repo-checks/ci-changes.mjs --services "$BEFORE_SHA" "$GITHUB_SHA" >> "$GITHUB_OUTPUT"
           else
             node tools/repo-checks/ci-changes.mjs --services --all >> "$GITHUB_OUTPUT"
           fi
@@ -287,7 +286,7 @@ jobs:
         run: docker compose -f infra/compose/docker-compose.dev.yml down -v
 
   # Imagens no GHCR (DEV-0017): só no push na master, depois de o Java Services passar no mesmo
-  # commit, e só para os serviços alterados. Tag = SHA do commit; deploy continua manual (ADR-005).
+  # commit, para todos os serviços (idempotente). Tag = SHA do commit; deploy continua manual (ADR-005).
   publish-images:
     name: Publish Images
     needs: [changes, java-services]

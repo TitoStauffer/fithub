@@ -14,6 +14,10 @@ Faça cada execução idempotente e varrendo **todo** o trabalho pendente, não 
   - **Impacto:** 3 issues abertas juntas; a do meio ficou sem chave DEV.
   - **Correção:** `issue-key.yml` numera todas as issues abertas sem chave a cada execução.
   - **Prevenção:** teste real com 3 issues em sequência rápida.
+- **Revisão:** Code Review do PR #180, no SHA `72669b4` (MEDIUM: publicação de imagens pelo diff de um push) — DEV-0017 (#9) · **PR:** #180
+  - **Impacto:** a escolha das imagens pelo diff `before...sha` deixaria sem imagem o serviço de um commit cujo run da master foi cancelado (outro push na fila) ou falhou. O deploy subiria uma imagem antiga, sem aviso.
+  - **Correção:** no push na master, o job `Publish Images` publica todos os serviços com a tag do SHA; cada run é idempotente. O diff por serviço fica só no PR, para validar o build.
+  - **Prevenção:** ao criar um passo que reage a evento num grupo de `concurrency`, pergunte o que acontece se o run anterior for cancelado ou falhar. A resposta tem que ser "o próximo cobre".
 
 ## token-escopo-por-chamada
 

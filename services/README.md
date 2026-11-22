@@ -56,9 +56,14 @@ docker build -f services/account-service/Dockerfile -t fithub-account-service .
 ```
 
 No PR, o CI constrói a imagem dos serviços alterados e recusa imagem que rode como root
-([check-image-user.mjs](../tools/repo-checks/check-image-user.mjs)). No merge na master, publica no
-GHCR como `ghcr.io/<dono>/fithub-<servico>:<sha do commit>`. Mudança no POM pai, nas libs ou no
-`.dockerignore` gera a imagem de todos os serviços.
+([check-image-user.mjs](../tools/repo-checks/check-image-user.mjs)); mudança no POM pai, nas libs ou
+no `.dockerignore` constrói a de todos. No merge na master, publica no GHCR a imagem de **todos** os
+serviços como `ghcr.io/<dono>/fithub-<servico>:<sha do commit>`. Publicar todos torna cada execução
+idempotente: um run da master cancelado ou falho não deixa serviço sem imagem, porque o seguinte
+publica tudo de novo.
+
+As imagens base (Maven e Temurin JRE) ficam fixadas por digest, com o mesmo JDK 25.0.4.1 no build e no
+runtime. Para atualizar, troque a tag e o digest nos quatro Dockerfiles.
 
 ## Rodar localmente
 
