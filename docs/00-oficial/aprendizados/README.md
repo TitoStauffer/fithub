@@ -1,6 +1,12 @@
 # Aprendizados
 
-Problemas confirmados em Code Review e o que fazemos para não repeti-los.
+Problemas confirmados em Code Review e bugs reais de validação ou produção, e o
+que fazemos para não repeti-los.
+
+| Tema | Arquivo |
+|---|---|
+| Workflows, runner e bots | [automacao-github.md](automacao-github.md) |
+
 Regras de registro: [AGENTS.md](../../../AGENTS.md), seção **Aprendizados**.
 
 Organize por tema, um arquivo por tema (ex.: `autorizacao.md`,
@@ -13,7 +19,7 @@ Organize por tema, um arquivo por tema (ex.: `autorizacao.md`,
 
 ### Ocorrências
 
-- **Revisão:** <link do comentário ou revisão no PR> · **SHA:** <sha>
+- **Revisão:** <link da revisão no PR, ou a origem do bug de validação/produção (issue, execução)> · **PR:** <PR da correção> · **SHA:** <sha da correção>
   - **Impacto:** …
   - **Correção:** …
   - **Prevenção:** teste, regra de ArchUnit, checklist…
