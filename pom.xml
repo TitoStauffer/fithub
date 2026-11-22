@@ -25,12 +25,42 @@
     <java.version>25</java.version>
     <maven.compiler.release>25</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <archunit.version>1.4.1</archunit.version>
+    <!-- Linha 3.1 do springdoc: a construída sobre o Spring Boot 4.1 (a 3.2 já usa o 4.2). -->
+    <springdoc.version>3.1.1</springdoc.version>
   </properties>
 
   <!-- Módulos entram conforme forem criados: libs (DEV-0013, DEV-0014, DEV-0018) e serviços (DEV-0015). -->
   <modules>
     <module>libs/java-commons</module>
+    <module>libs/java-testing</module>
+    <module>services/account-service</module>
   </modules>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>com.fithub</groupId>
+        <artifactId>java-commons</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fithub</groupId>
+        <artifactId>java-testing</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.springdoc</groupId>
+        <artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
+        <version>${springdoc.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.tngtech.archunit</groupId>
+        <artifactId>archunit-junit5</artifactId>
+        <version>${archunit.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <build>
     <plugins>

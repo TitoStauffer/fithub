@@ -38,6 +38,28 @@
     },
     {
       "paths": [
+        "services/account-service/**"
+      ],
+      "documents": [
+        "docs/00-oficial/adr/ADR-001-microsservicos.md",
+        "docs/00-oficial/adr/ADR-003-rabbitmq-outbox.md",
+        "docs/00-oficial/adr/ADR-004-keycloak.md",
+        "docs/00-oficial/aprendizados/mensageria.md"
+      ]
+    },
+    {
+      "paths": [
+        "libs/java-commons/**",
+        "libs/java-testing/**"
+      ],
+      "documents": [
+        "docs/00-oficial/adr/ADR-003-rabbitmq-outbox.md",
+        "docs/00-oficial/adr/ADR-004-keycloak.md",
+        "docs/00-oficial/aprendizados/mensageria.md"
+      ]
+    },
+    {
+      "paths": [
         "apps/**",
         "packages/**",
         "pnpm-workspace.yaml",
