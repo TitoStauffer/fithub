@@ -1,2 +1,0 @@
-Usuário autenticado.
-Permissão validada.

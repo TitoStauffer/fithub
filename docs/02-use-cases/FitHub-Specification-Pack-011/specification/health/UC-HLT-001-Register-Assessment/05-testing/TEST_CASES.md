@@ -1,3 +1,0 @@
-Sucesso
-Validação
-Não autorizado

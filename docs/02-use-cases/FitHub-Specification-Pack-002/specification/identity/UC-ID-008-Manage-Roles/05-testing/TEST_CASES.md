@@ -1,3 +1,0 @@
-- Sucesso
-- Falha de validação
-- Não autorizado

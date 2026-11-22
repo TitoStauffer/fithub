@@ -1,2 +1,0 @@
-Paciente autenticado.
-Treino disponível.

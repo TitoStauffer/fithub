@@ -1,1 +1,0 @@
-Objetivo: pesquisar pacientes.

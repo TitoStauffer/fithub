@@ -6,8 +6,8 @@
 **Status:** Em revisão
 
 > Este é o documento oficial de produto do FitHub. Onde ele conflitar com
-> documentos anteriores (knowledge base, `MVP_SPECIFICATION.md`,
-> `DDD_MODELING.md`, playbooks), **vale este**. Decisões técnicas ficam em
+> documentos da primeira versão (hoje só no histórico do git, ver
+> [docs/HISTORICO.md](../HISTORICO.md)), **vale este**. Decisões técnicas ficam em
 > [ENGENHARIA.md](ENGENHARIA.md); a divisão do trabalho fica em
 > [BACKLOG.md](BACKLOG.md).
 

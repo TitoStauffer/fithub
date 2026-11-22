@@ -1,1 +1,0 @@
-GOALS-ERR-* conforme catálogo.

@@ -1,1 +1,0 @@
-Padrões REST e OpenAPI.

@@ -1,3 +1,0 @@
-- Caminho feliz
-- Dados inválidos
-- Não autorizado

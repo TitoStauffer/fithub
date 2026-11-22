@@ -1,3 +1,0 @@
-- Dados inválidos.
-- Paciente inexistente.
-- Permissão insuficiente.

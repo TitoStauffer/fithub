@@ -1,3 +1,0 @@
-health_assessment
-body_measurement
-assessment_history

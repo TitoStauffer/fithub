@@ -1,1 +1,0 @@
-Boas práticas para JWT.

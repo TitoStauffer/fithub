@@ -1,1 +1,0 @@
-ExerciseCreated, ExerciseUpdated, ExerciseDeleted.

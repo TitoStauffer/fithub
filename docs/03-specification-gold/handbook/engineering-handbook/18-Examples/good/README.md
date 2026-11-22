@@ -1,1 +1,0 @@
-Exemplos recomendados.

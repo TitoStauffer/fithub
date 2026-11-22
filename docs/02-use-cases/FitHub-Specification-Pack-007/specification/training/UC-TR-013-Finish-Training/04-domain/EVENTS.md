@@ -1,1 +1,0 @@
-TrainingFinished, RepetitionsRegistered, NotesRegistered.
