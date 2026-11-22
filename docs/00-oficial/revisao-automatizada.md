@@ -48,7 +48,7 @@ etapas verificadas vão para o QA.
   lint, typecheck, testes e build.
 - Snapshots de CI (`CI_SNAPSHOT_PATHS`):
   - o `ci.yml`, sem os valores de `env`;
-  - os `scripts` do `package.json` do reviewer e dos apps `web` e `mobile` (DEV-0021);
+  - os `scripts` do `package.json` do reviewer, dos apps `web` e `mobile` (DEV-0021) e do `packages/api-types` (DEV-0022);
   - os dois scripts acima, inteiros.
 
   Arquivo sem projeção conhecida falha fechado (`projectCiSnapshot`).

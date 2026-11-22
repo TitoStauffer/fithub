@@ -278,3 +278,19 @@ erro, nunca mutante morto.
   - **Impacto:** `-Dtest=NomeErrado` ou um executável ausente no runner deixariam o job verde com todos os mutantes "mortos". Com o AGENTS aceitando o manifesto como prova, os bots aceitariam essa evidência até para guarda de vínculo.
   - **Correção:** `runManifests` roda cada comando distinto sem mutante e exige status 0 (`BASELINE_FAILED` se não). `defaultRun` lança em erro de execução, e o mutante vira `COMMAND_ERROR`.
   - **Prevenção:** testes de base que falha, comando que não executa e executável ausente, além dos mutantes M8 e M9 do próprio manifesto da DEV-0116.
+
+## detector-liga-a-area-que-le-o-arquivo
+
+**Regra:** o detector de áreas do CI (`tools/repo-checks/ci-changes.mjs`) decide pelo caminho alterado,
+mas um teste pode ler arquivo de outra área. Quando um teste da área A lê um arquivo da área B, o
+matcher de A inclui o caminho desse arquivo. Senão, mudar só o arquivo deixa o check exigido de A verde
+sem conferir, e a quebra só aparece no push da `master`, que roda tudo.
+
+### Ocorrências
+
+- **Revisão:** Code Review do PR #187, no SHA `1b1dff6` (MEDIUM: falso verde entre Java e apps) — DEV-0022 (#14) · **PR:** #187
+  - **Impacto:**
+    - O teste de esqueleto (Java) compara o OpenAPI com `packages/api-types/openapi/`, mas mudar só esse JSON não ligava o `Java Services`.
+    - O teste do `api-types` lê os `services/*/Dockerfile`, mas mudar só um deles não ligava o `Apps`.
+  - **Correção:** `OPENAPI_CONTRACT` no matcher `java` e `SERVICE_DOCKERFILE` no matcher `apps`.
+  - **Prevenção:** teste de classificação para cada leitura cruzada, provado por mutação. Ao escrever um teste que lê arquivo fora do próprio módulo, ajuste o detector no mesmo PR.

@@ -21,6 +21,16 @@ test('cada área roda só quando um caminho dela muda', () => {
   assert.deepEqual(classifyChanges(['infra/compose/docker-compose.dev.yml']), { java: false, apps: false, infra: true });
 });
 
+// Code Review do PR #187: o teste Java lê o contrato OpenAPI e o teste do api-types lê os Dockerfiles.
+// Mudar um desses arquivos precisa ligar a área que o lê, senão o check exigido fica verde sem conferir.
+test('contrato OpenAPI liga o Java e Dockerfile de serviço liga os apps', () => {
+  assert.deepEqual(classifyChanges(['packages/api-types/openapi/account-service.json']), { java: true, apps: true, infra: false });
+  assert.deepEqual(classifyChanges(['services/training-service/Dockerfile']), { java: true, apps: true, infra: false });
+  // O resto de packages/ e de services/ continua só na própria área.
+  assert.deepEqual(classifyChanges(['packages/api-types/src/index.ts']), { java: false, apps: true, infra: false });
+  assert.deepEqual(classifyChanges(['services/training-service/src/main/java/A.java']), { java: true, apps: false, infra: false });
+});
+
 test('documentação e ferramentas de revisão não ligam serviços, apps nem infraestrutura', () => {
   assert.deepEqual(classifyChanges(['docs/00-oficial/PRD.md', 'tools/github-reviewer/src/cli.mjs', 'AGENTS.md']),
     { java: false, apps: false, infra: false });

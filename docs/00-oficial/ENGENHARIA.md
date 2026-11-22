@@ -153,7 +153,10 @@ Mantém o que já existe no código atual:
 - Spring MVC com **virtual threads** (sem WebFlux).
 - Erros no padrão **RFC 9457 (Problem Details)**.
 - API REST documentada com springdoc-openapi. O OpenAPI gerado alimenta o
-  pacote de tipos do front.
+  pacote de tipos do front: o contrato de cada serviço fica versionado em
+  `packages/api-types/openapi`, e os tipos TypeScript são gerados dele. O CI
+  falha se o contrato ou os tipos ficarem desatualizados (DEV-0022,
+  [packages/api-types](../../packages/api-types/README.md)).
 - Paginação, datas ISO-8601 em UTC, IDs UUID (v7).
 
 ### Bibliotecas compartilhadas

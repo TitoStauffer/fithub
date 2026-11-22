@@ -19,6 +19,7 @@
         "react-native": "0.88.1"
     },
     "devDependencies": {
+        "@fithub/api-types": "workspace:*",
         "@react-native/jest-preset": "0.88.1",
         "@testing-library/react-native": "14.1.0",
         "@types/jest": "30.0.0",

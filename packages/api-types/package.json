@@ -1,0 +1,22 @@
+{
+    "name": "@fithub/api-types",
+    "private": true,
+    "version": "0.1.0",
+    "description": "Tipos TypeScript gerados do OpenAPI dos serviços (DEV-0022).",
+    "type": "module",
+    "types": "./src/index.ts",
+    "exports": {
+        ".": {
+            "types": "./src/index.ts"
+        }
+    },
+    "scripts": {
+        "generate": "node scripts/generate.mjs",
+        "typecheck": "tsc --noEmit",
+        "test": "node -e \"require('node:fs').mkdirSync('reports',{recursive:true})\" && node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=reports/junit.xml \"scripts/*.test.mjs\""
+    },
+    "devDependencies": {
+        "openapi-typescript": "7.13.0",
+        "typescript": "5.9.3"
+    }
+}
