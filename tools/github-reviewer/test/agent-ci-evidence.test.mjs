@@ -85,8 +85,9 @@ test('loads verified Actions steps and current-HEAD configuration through review
   assert.deepEqual(actions.steps, job.steps);
   assert.equal(actions.headSha, sha);
   assert.equal(actions.workflowPath, '.github/workflows/ci.yml');
-  // FitHub (DEV-0118, DEV-0016): o workflow CI, o manifesto do reviewer e os dois scripts de CI.
-  assert.equal(inputs.ciConfiguration.length, 4);
+  // FitHub (DEV-0118, DEV-0016, DEV-0021): o workflow CI, o manifesto do reviewer, os dois scripts de
+  // CI e os manifestos dos apps web e mobile.
+  assert.equal(inputs.ciConfiguration.length, 6);
   assert.equal(requests.some(({ url }) => url.pathname.endsWith('/logs')), false);
   assert.equal(requests.filter(({ url }) => url.pathname.includes('/actions/')).every(({ options }) => options.redirect === 'error' && options.signal), true);
 });
@@ -101,12 +102,15 @@ test('omits env values and package dependencies but preserves configured variabl
   assert.equal(snapshots[0].originalSha256, createHash('sha256').update(workflow).digest('hex'));
   // FitHub (DEV-0118): o manifesto do reviewer, com as dependências omitidas.
   // DEV-0016: os scripts de CI de tools/repo-checks entram inteiros.
+  // DEV-0021: os manifestos dos apps entram só com os scripts, como o do reviewer.
   assert.deepEqual(snapshots.map(({ path }) => path), [
     '.github/workflows/ci.yml', 'tools/github-reviewer/package.json',
     'tools/repo-checks/ci-changes.mjs', 'tools/repo-checks/check-skipped-tests.mjs',
+    'apps/web/package.json', 'apps/mobile/package.json',
   ]);
   assert.deepEqual(JSON.parse(snapshots[1].content), { scripts: reviewerScripts });
   assert.equal(snapshots[2].content, '// script de CI: tools/repo-checks/ci-changes.mjs\n');
+  assert.deepEqual(Object.keys(JSON.parse(snapshots[5].content)), ['scripts']);
 });
 
 test('also attaches verified job evidence to Apps checks', async () => {
@@ -131,8 +135,9 @@ test('verifies all four CI jobs and supplies Automation Tools test steps and the
   assert.equal(inputs.checkRuns.find(({ name }) => name === 'Local Infrastructure').actions.availability, 'available');
   assert.equal(inputs.checkRuns.filter(({ actions }) => actions?.availability === 'available').length, 4);
   assert.deepEqual(inputs.checkRuns.find(({ name }) => name === 'Automation Tools').actions.steps, jobValues[3].steps);
-  // FitHub (DEV-0118, DEV-0016): o workflow CI, o manifesto do reviewer e os dois scripts de CI.
-  assert.equal(inputs.ciConfiguration.length, 4);
+  // FitHub (DEV-0118, DEV-0016, DEV-0021): o workflow CI, o manifesto do reviewer, os dois scripts de
+  // CI e os manifestos dos apps web e mobile.
+  assert.equal(inputs.ciConfiguration.length, 6);
   assert.ok(inputs.ciConfiguration.some(({ path }) => path === '.github/workflows/ci.yml'));
   assert.deepEqual(
     inputs.checkRuns.find(({ name }) => name === 'Automation Tools').actions.steps.map(({ name }) => name),

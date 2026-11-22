@@ -1,0 +1,5 @@
+# Saídas do Expo e dos testes (DEV-0021).
+.expo/
+dist/
+reports/
+coverage/

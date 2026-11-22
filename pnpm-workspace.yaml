@@ -1,3 +1,7 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+# Scripts de instalação de dependência só rodam se aprovados aqui (pnpm 12). O @parcel/watcher vem do
+# Expo (watcher nativo do Metro, com binário pré-compilado) e não precisa do script (DEV-0021).
+allowBuilds:
+  '@parcel/watcher': false

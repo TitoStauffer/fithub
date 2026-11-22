@@ -93,7 +93,8 @@
     },
     {
       "paths": [
-        "apps/web/**"
+        "apps/web/**",
+        "apps/mobile/**"
       ],
       "documents": [
         "docs/00-oficial/adr/ADR-004-keycloak.md",
