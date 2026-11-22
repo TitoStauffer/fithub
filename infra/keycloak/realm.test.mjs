@@ -140,7 +140,9 @@ test('o tema de login herda as telas do keycloak.v2 e só acrescenta o CSS do Fi
   assert.doesNotMatch(properties, /^scripts=/m);
 });
 
-test('as mensagens não revelam se o e-mail tem conta', () => {
+// Login e recuperação respondem igual com ou sem conta. No cadastro só o texto é neutro: o erro em si
+// ainda aparece só para e-mail já cadastrado (limite do fluxo do Keycloak).
+test('login e recuperação não revelam se o e-mail tem conta, e o cadastro usa texto neutro', () => {
   const messages = Object.fromEntries(readFileSync(new URL('login/messages/messages_pt_BR.properties', THEME), 'utf8')
     .split(/\r?\n/).filter((line) => line && !line.startsWith('#')).map((line) => [line.slice(0, line.indexOf('=')), line.slice(line.indexOf('=') + 1)]));
   assert.equal(messages.invalidUserMessage, 'E-mail ou senha inválidos.');
