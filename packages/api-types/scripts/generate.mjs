@@ -12,7 +12,8 @@ import { basename, join } from 'node:path';
 import openapiTS, { astToString } from 'openapi-typescript';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const HEADER = '// Gerado por scripts/generate.mjs a partir de openapi/%s.json (DEV-0022). Não edite à mão.\n\n';
+const HEADER =
+    '// Gerado por scripts/generate.mjs a partir de openapi/%s.json (DEV-0022). Não edite à mão.\n\n';
 
 /** Serviços com contrato: os arquivos openapi/*.json, em ordem alfabética. */
 export function services(root = ROOT) {
@@ -32,7 +33,8 @@ export async function generate(root = ROOT) {
     const files = new Map();
     const names = services(root);
     for (const service of names) {
-        if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(service)) throw new Error(`Nome de contrato inválido: ${service}`);
+        if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(service))
+            throw new Error(`Nome de contrato inválido: ${service}`);
         const ast = await openapiTS(pathToFileURL(join(root, 'openapi', `${service}.json`)));
         files.set(`src/${service}.ts`, HEADER.replace('%s', service) + astToString(ast));
     }

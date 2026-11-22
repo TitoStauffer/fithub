@@ -30,6 +30,11 @@
     <springdoc.version>3.1.1</springdoc.version>
     <!-- Linha 3 do validador: usa o Jackson 3 (tools.jackson), o mesmo do Spring Boot 4. -->
     <json-schema-validator.version>3.0.9</json-schema-validator.version>
+    <!-- Padrão de código (DEV-0129): formatação pelo Spotless com palantir-java-format e lint pelo Checkstyle. -->
+    <spotless.version>3.11.0</spotless.version>
+    <palantir-java-format.version>2.103.0</palantir-java-format.version>
+    <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
+    <checkstyle.version>14.4.0</checkstyle.version>
   </properties>
 
   <!-- Módulos entram conforme forem criados: libs (DEV-0013, DEV-0014, DEV-0018) e serviços (DEV-0015). -->
@@ -103,6 +108,52 @@
             </configuration>
           </execution>
         </executions>
+      </plugin>
+
+      <!--
+        Padrão de código (DEV-0129, ENGENHARIA.md §5). Os dois goals rodam no CI (job Java Services) e
+        localmente; não estão ligados ao ciclo de build, então o mvn verify e o build das imagens não
+        dependem do histórico do Git.
+          mvn spotless:apply                    formata os arquivos alterados
+          mvn spotless:check checkstyle:check   o que o CI confere
+        O Spotless confere só os arquivos que mudaram em relação à origin/master (ratchet): o código
+        anterior ao padrão é formatado quando for tocado, sem um PR de formatação em massa.
+      -->
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <version>${spotless.version}</version>
+        <configuration>
+          <ratchetFrom>origin/master</ratchetFrom>
+          <java>
+            <palantirJavaFormat>
+              <version>${palantir-java-format.version}</version>
+              <style>PALANTIR</style>
+            </palantirJavaFormat>
+            <removeUnusedImports/>
+            <trimTrailingWhitespace/>
+            <endWithNewline/>
+          </java>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>${maven-checkstyle-plugin.version}</version>
+        <dependencies>
+          <dependency>
+            <groupId>com.puppycrawl.tools</groupId>
+            <artifactId>checkstyle</artifactId>
+            <version>${checkstyle.version}</version>
+          </dependency>
+        </dependencies>
+        <configuration>
+          <configLocation>${maven.multiModuleProjectDirectory}/config/checkstyle/checkstyle.xml</configLocation>
+          <includeTestSourceDirectory>true</includeTestSourceDirectory>
+          <consoleOutput>true</consoleOutput>
+          <failOnViolation>true</failOnViolation>
+          <violationSeverity>warning</violationSeverity>
+        </configuration>
       </plugin>
     </plugins>
   </build>

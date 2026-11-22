@@ -2,13 +2,11 @@ package com.fithub.commons.messaging;
 
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
-import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
@@ -47,7 +45,10 @@ public class OutboxPublisher implements SmartLifecycle {
     private final FithubMessagingProperties.Publisher settings;
     private ScheduledExecutorService scheduler;
 
-    public OutboxPublisher(JdbcClient jdbc, TransactionTemplate transaction, RabbitTemplate rabbit,
+    public OutboxPublisher(
+            JdbcClient jdbc,
+            TransactionTemplate transaction,
+            RabbitTemplate rabbit,
             FithubMessagingProperties.Publisher settings) {
         this.jdbc = jdbc;
         this.transaction = transaction;
@@ -55,13 +56,15 @@ public class OutboxPublisher implements SmartLifecycle {
         this.settings = settings;
     }
 
-    private record PendingEvent(UUID id, String exchange, String routingKey, String payload, Timestamp createdAt) {
-    }
+    private record PendingEvent(UUID id, String exchange, String routingKey, String payload, Timestamp createdAt) {}
 
     /** Publica um lote de pendentes; devolve quantos foram confirmados pelo broker. */
     public int publishPending() {
         Integer published = transaction.execute(status -> {
-            Boolean locked = jdbc.sql("select pg_try_advisory_xact_lock(?)").param(ADVISORY_LOCK_KEY).query(Boolean.class).single();
+            Boolean locked = jdbc.sql("select pg_try_advisory_xact_lock(?)")
+                    .param(ADVISORY_LOCK_KEY)
+                    .query(Boolean.class)
+                    .single();
             if (!Boolean.TRUE.equals(locked)) return 0;
             List<PendingEvent> pending = jdbc.sql("""
                     select id, exchange, routing_key, payload::text as payload, created_at
@@ -70,21 +73,29 @@ public class OutboxPublisher implements SmartLifecycle {
                     order by sequence
                     limit ?""")
                     .param(settings.batchSize())
-                    .query((rs, row) -> new PendingEvent(rs.getObject("id", UUID.class), rs.getString("exchange"),
-                            rs.getString("routing_key"), rs.getString("payload"), rs.getTimestamp("created_at")))
+                    .query((rs, row) -> new PendingEvent(
+                            rs.getObject("id", UUID.class),
+                            rs.getString("exchange"),
+                            rs.getString("routing_key"),
+                            rs.getString("payload"),
+                            rs.getTimestamp("created_at")))
                     .list();
             int count = 0;
             for (PendingEvent event : pending) {
                 try {
                     send(event);
                 } catch (RuntimeException exception) {
-                    log.warn("Falha ao publicar o evento {} do outbox; nova tentativa no próximo ciclo", event.id(), exception);
+                    log.warn(
+                            "Falha ao publicar o evento {} do outbox; nova tentativa no próximo ciclo",
+                            event.id(),
+                            exception);
                     jdbc.sql("update fithub_outbox_event set attempts = attempts + 1, last_error = ? where id = ?")
                             .params(truncate(exception.toString()), event.id())
                             .update();
                     break;
                 }
-                jdbc.sql("update fithub_outbox_event set published_at = now(), attempts = attempts + 1, last_error = null where id = ?")
+                jdbc.sql(
+                                "update fithub_outbox_event set published_at = now(), attempts = attempts + 1, last_error = null where id = ?")
                         .param(event.id())
                         .update();
                 count++;
@@ -99,7 +110,8 @@ public class OutboxPublisher implements SmartLifecycle {
         int outbox = jdbc.sql("delete from fithub_outbox_event where published_at < now() - make_interval(secs => ?)")
                 .param(settings.outboxRetention().toSeconds())
                 .update();
-        int processed = jdbc.sql("delete from fithub_processed_event where processed_at < now() - make_interval(secs => ?)")
+        int processed = jdbc.sql(
+                        "delete from fithub_processed_event where processed_at < now() - make_interval(secs => ?)")
                 .param(settings.processedRetention().toSeconds())
                 .update();
         return outbox + processed;
@@ -128,11 +140,14 @@ public class OutboxPublisher implements SmartLifecycle {
     @Override
     public synchronized void start() {
         if (scheduler != null) return;
-        scheduler = Executors.newSingleThreadScheduledExecutor(Thread.ofVirtual().name("fithub-outbox-publisher").factory());
+        scheduler = Executors.newSingleThreadScheduledExecutor(
+                Thread.ofVirtual().name("fithub-outbox-publisher").factory());
         long poll = settings.pollInterval().toMillis();
-        scheduler.scheduleWithFixedDelay(() -> safely("publicação", () -> publishPending()), poll, poll, TimeUnit.MILLISECONDS);
+        scheduler.scheduleWithFixedDelay(
+                () -> safely("publicação", () -> publishPending()), poll, poll, TimeUnit.MILLISECONDS);
         long purge = settings.purgeInterval().toMillis();
-        scheduler.scheduleWithFixedDelay(() -> safely("expurgo", () -> purgeExpired()), purge, purge, TimeUnit.MILLISECONDS);
+        scheduler.scheduleWithFixedDelay(
+                () -> safely("expurgo", () -> purgeExpired()), purge, purge, TimeUnit.MILLISECONDS);
     }
 
     private static void safely(String task, Runnable action) {
@@ -148,7 +163,9 @@ public class OutboxPublisher implements SmartLifecycle {
         if (scheduler == null) return;
         scheduler.shutdown();
         try {
-            if (!scheduler.awaitTermination(settings.confirmTimeout().toMillis() * 2, TimeUnit.MILLISECONDS)) scheduler.shutdownNow();
+            if (!scheduler.awaitTermination(settings.confirmTimeout().toMillis() * 2, TimeUnit.MILLISECONDS)) {
+                scheduler.shutdownNow();
+            }
         } catch (InterruptedException exception) {
             scheduler.shutdownNow();
             Thread.currentThread().interrupt();

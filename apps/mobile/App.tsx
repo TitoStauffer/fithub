@@ -18,7 +18,14 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24, backgroundColor: '#fff' },
+    container: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+        padding: 24,
+        backgroundColor: '#fff',
+    },
     title: { fontSize: 24, fontWeight: '600' },
     subtitle: { color: '#555', textAlign: 'center' },
 });

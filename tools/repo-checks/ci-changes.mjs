@@ -37,9 +37,16 @@ const SHARED_JAVA_BUILD = (path) => path === 'pom.xml' || path === '.java-versio
 const OPENAPI_CONTRACT = (path) => path.startsWith('packages/api-types/openapi/');
 const SERVICE_DOCKERFILE = (path) => /^services\/[^/]+\/Dockerfile$/.test(path);
 
+// Padrão de código (DEV-0129): as regras do Checkstyle valem para o build Java; o .editorconfig e o
+// .prettierrc.json da raiz definem o que o Prettier confere nos workspaces.
+const JAVA_CODE_STYLE = (path) => path.startsWith('config/checkstyle/');
+const APPS_CODE_STYLE = (path) => ['.editorconfig', '.prettierrc.json'].includes(path);
+
 const MATCHERS = {
-  java: (path) => SHARED_JAVA_BUILD(path) || path.startsWith('services/') || OPENAPI_CONTRACT(path),
+  java: (path) => SHARED_JAVA_BUILD(path) || path.startsWith('services/') || OPENAPI_CONTRACT(path)
+    || JAVA_CODE_STYLE(path),
   apps: (path) => path.startsWith('apps/') || path.startsWith('packages/') || SERVICE_DOCKERFILE(path)
+    || APPS_CODE_STYLE(path)
     || ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.nvmrc', '.npmrc'].includes(path),
   infra: (path) => path.startsWith('infra/'),
 };
