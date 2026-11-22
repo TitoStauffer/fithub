@@ -9,6 +9,8 @@
         "ios": {
             "supportsTablet": false
         },
-        "android": {}
+        "android": {},
+        "plugins": ["expo-secure-store", "expo-web-browser"],
+        "scheme": "fithub"
     }
 }
