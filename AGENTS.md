@@ -248,8 +248,12 @@ ao Tito.
 
 - Cada rodada é **completa** ou **leve**, decidida por código confiável a
   partir da lista de arquivos alterados (o corpo do PR nunca participa).
-- **Leve** só quando todo arquivo alterado é inerte: `*.md` ou arquivo de
-  teste (`*Test.java`, `*IT.java`, `*.test.ts`, `*.test.tsx`). Qualquer outro
+- **Leve** só quando todo arquivo alterado é inerte: `*.md`, arquivo de
+  teste (`*Test.java`, `*IT.java`, `*.test.ts`, `*.test.tsx`) ou o mapa do
+  vault `docs/00-oficial/context-map.json`. O mapa só escolhe as notas de
+  contexto dos agentes, não muda o produto; o Code Review continua obrigatório e
+  revisa a mudança do mapa (decisão do Tito na DEV-0133, implementada em
+  `tools/github-reviewer/src/review-track.ts`). Qualquer outro
   caminho — inclusive diretório novo, migration, `pom.xml`, `package.json`,
   lockfile, Dockerfile, compose, workflow — exige o **completo**.
 - O leve dispensa **somente o QA**. CI, Code Review e Coordinator rodam sempre.
