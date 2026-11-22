@@ -1,0 +1,161 @@
+{
+    "issue": "DEV-0024",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Redirect URI do web aceita qualquer destino",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"redirectUris\": [\"http://localhost:5173/*\"]",
+            "replace": "\"redirectUris\": [\"*\"]",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Conta nova já nasce com papel de profissional",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"realm\": [\"client\", \"offline_access\", \"uma_authorization\"]",
+            "replace": "\"realm\": [\"client\", \"personal\", \"offline_access\", \"uma_authorization\"]",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Senha de 4 caracteres passa a ser aceita",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"passwordPolicy\": \"length(8) and notUsername and notEmail\"",
+            "replace": "\"passwordPolicy\": \"length(4) and notUsername and notEmail\"",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Proteção contra força bruta desligada",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"bruteForceProtected\": true",
+            "replace": "\"bruteForceProtected\": false",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Conta passa a valer sem verificar o e-mail",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"verifyEmail\": true",
+            "replace": "\"verifyEmail\": false",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Web passa a aceitar login por senha direta",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"directAccessGrantsEnabled\": false,\n      \"serviceAccountsEnabled\": false,\n      \"rootUrl\"",
+            "replace": "\"directAccessGrantsEnabled\": true,\n      \"serviceAccountsEnabled\": false,\n      \"rootUrl\"",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Mobile deixa de exigir PKCE S256",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"pkce.code.challenge.method\": \"S256\",\n        \"post.logout.redirect.uris\": \"fithub://auth\"",
+            "replace": "\"pkce.code.challenge.method\": \"\",\n        \"post.logout.redirect.uris\": \"fithub://auth\"",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "Mobile passa a aceitar o fluxo implícito",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"implicitFlowEnabled\": false,\n      \"directAccessGrantsEnabled\": false,\n      \"serviceAccountsEnabled\": false,\n      \"redirectUris\": [\"fithub://auth\"]",
+            "replace": "\"implicitFlowEnabled\": true,\n      \"directAccessGrantsEnabled\": false,\n      \"serviceAccountsEnabled\": false,\n      \"redirectUris\": [\"fithub://auth\"]",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "Senha de SMTP versionada no realm",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"auth\": \"false\"",
+            "replace": "\"auth\": \"false\",\n    \"password\": \"segredo\"",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "Access token passa a valer uma hora",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"accessTokenLifespan\": 300",
+            "replace": "\"accessTokenLifespan\": 3600",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "Origem do web aceita qualquer site",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"webOrigins\": [\"http://localhost:5173\"]",
+            "replace": "\"webOrigins\": [\"*\"]",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "Usuário com credencial versionado no realm",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"displayName\": \"FitHub\",",
+            "replace": "\"displayName\": \"FitHub\",\n  \"users\": [{ \"username\": \"admin@fithub.local\" }],",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        }
+    ]
+}

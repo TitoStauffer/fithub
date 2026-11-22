@@ -1,0 +1,117 @@
+{
+  "realm": "fithub",
+  "enabled": true,
+  "displayName": "FitHub",
+  "sslRequired": "external",
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "editUsernameAllowed": false,
+  "verifyEmail": true,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
+  "passwordPolicy": "length(8) and notUsername and notEmail",
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "failureFactor": 10,
+  "waitIncrementSeconds": 60,
+  "maxFailureWaitSeconds": 900,
+  "maxDeltaTimeSeconds": 43200,
+  "accessTokenLifespan": 300,
+  "internationalizationEnabled": true,
+  "supportedLocales": ["pt-BR"],
+  "defaultLocale": "pt-BR",
+  "smtpServer": {
+    "host": "mailpit",
+    "port": "1025",
+    "from": "no-reply@fithub.local",
+    "fromDisplayName": "FitHub",
+    "ssl": "false",
+    "starttls": "false",
+    "auth": "false"
+  },
+  "defaultRole": {
+    "name": "default-roles-fithub",
+    "description": "Papéis de todo usuário novo: só client, além dos padrões do Keycloak",
+    "composite": true,
+    "clientRole": false
+  },
+  "roles": {
+    "realm": [
+      {
+        "name": "default-roles-fithub",
+        "description": "Papéis de todo usuário novo: só client, além dos padrões do Keycloak",
+        "composite": true,
+        "composites": {
+          "realm": ["client", "offline_access", "uma_authorization"],
+          "client": {
+            "account": ["view-profile", "manage-account"]
+          }
+        }
+      },
+      {
+        "name": "client",
+        "description": "Cliente (aluno ou paciente). Toda conta nova recebe este papel."
+      },
+      {
+        "name": "personal",
+        "description": "Personal trainer. Atribuído pelo account-service no cadastro do profissional."
+      },
+      {
+        "name": "nutritionist",
+        "description": "Nutricionista. Atribuído pelo account-service no cadastro do profissional."
+      },
+      {
+        "name": "admin",
+        "description": "Administração da plataforma. Atribuído manualmente."
+      },
+      {
+        "name": "offline_access",
+        "description": "${role_offline-access}"
+      },
+      {
+        "name": "uma_authorization",
+        "description": "${role_uma_authorization}"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "fithub-web",
+      "name": "FitHub Web (profissional)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "rootUrl": "http://localhost:5173",
+      "baseUrl": "/",
+      "redirectUris": ["http://localhost:5173/*"],
+      "webOrigins": ["http://localhost:5173"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5173/*"
+      }
+    },
+    {
+      "clientId": "fithub-mobile",
+      "name": "FitHub App (cliente)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["fithub://auth"],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "fithub://auth"
+      }
+    }
+  ]
+}
