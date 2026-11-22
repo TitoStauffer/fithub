@@ -1,0 +1,8 @@
+# Contexto das imagens dos serviços (DEV-0017): só o que o build Maven usa.
+*
+!pom.xml
+!libs/
+!services/
+**/target/
+**/node_modules/
+**/*.iml
