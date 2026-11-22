@@ -20,7 +20,7 @@ const contextHash = computeAgentContextHash('owner/repo', 7, {
 const LEGACY_POLICY = { branchProtectionAvailable: true, requiredQualityChecks: ['API', 'Web', 'Mobile', 'SonarQube', 'SonarCloud Code Analysis'] };
 
 function report(signature, section, commitSha = sha, reportContextHash = contextHash) {
-  const stage = signature.includes('QA Agent') ? 'qa' : 'qualityGate';
+  const stage = signature.endsWith('— QA') ? 'qa' : 'qualityGate';
   return {
     user: { login: 'cashin-devagents' },
     created_at: '2026-10-21T12:00:00Z',
@@ -33,8 +33,8 @@ function fixture(overrides = {}) {
   let pullRequestReadCount = 0;
   const data = {
     checks,
-    reviews: [{ user: { login: 'cashin-devagents' }, state: 'APPROVED', commit_id: sha, submitted_at: '2026-10-21T12:00:00Z', body: `${agentReportMarker('codeReview', sha, contextHash)}\n### Codex — Code Review Agent\n\n**Status:** APPROVED\n**Commit:** \`${sha}\`\n\n### Code Review — APPROVED` }, { user: { login: 'human-reviewer', type: 'User' }, state: 'APPROVED', commit_id: sha, submitted_at: '2026-10-21T12:01:00Z' }],
-    comments: [report('Codex — QA Agent', 'Verificações de QA'), report('Codex — Quality Gate Coordinator', 'Checks verificados')],
+    reviews: [{ user: { login: 'cashin-devagents' }, state: 'APPROVED', commit_id: sha, submitted_at: '2026-10-21T12:00:00Z', body: `${agentReportMarker('codeReview', sha, contextHash)}\n### Agent — Code Review\n\n**Status:** APPROVED\n**Commit:** \`${sha}\`\n\n### Code Review — APPROVED` }, { user: { login: 'human-reviewer', type: 'User' }, state: 'APPROVED', commit_id: sha, submitted_at: '2026-10-21T12:01:00Z' }],
+    comments: [report('Agent — QA', 'Verificações de QA'), report('Agent — Quality Gate Coordinator', 'Checks verificados')],
     title: 'Example PR',
     body: '',
     baseSha: 'c'.repeat(40),
@@ -261,7 +261,7 @@ test('blocks when the caller requires a different base branch', async () => {
 });
 
 test('blocks when a QA report belongs to a stale SHA', async () => {
-  const subject = fixture({ comments: [report('Codex — QA Agent', 'Verificações de QA', oldSha), report('Codex — Quality Gate Coordinator', 'Checks verificados')] });
+  const subject = fixture({ comments: [report('Agent — QA', 'Verificações de QA', oldSha), report('Agent — Quality Gate Coordinator', 'Checks verificados')] });
   const result = await subject.evaluate();
 
   assert.equal(result.status, 'BLOCKED');
@@ -353,7 +353,7 @@ test('blocks evidence when the merge base or diff changes without a new PR HEAD'
 // and the evidence is rebuilt with it.
 function appReview(reportContextHash) {
   return [
-    { user: { login: 'cashin-devagents' }, state: 'APPROVED', commit_id: sha, submitted_at: '2026-10-21T12:00:00Z', body: `${agentReportMarker('codeReview', sha, reportContextHash)}\n### Codex — Code Review Agent\n\n**Status:** APPROVED\n**Commit:** \`${sha}\`\n\n### Code Review — APPROVED` },
+    { user: { login: 'cashin-devagents' }, state: 'APPROVED', commit_id: sha, submitted_at: '2026-10-21T12:00:00Z', body: `${agentReportMarker('codeReview', sha, reportContextHash)}\n### Agent — Code Review\n\n**Status:** APPROVED\n**Commit:** \`${sha}\`\n\n### Code Review — APPROVED` },
     { user: { login: 'human-reviewer', type: 'User' }, state: 'APPROVED', commit_id: sha, submitted_at: '2026-10-21T12:01:00Z' },
   ];
 }
@@ -370,7 +370,7 @@ async function evaluateTrack({ files, filesAfterFirstRead, buildComments }) {
   }).evaluate();
 }
 
-const coordinator = (hash) => report('Codex — Quality Gate Coordinator', 'Checks verificados', sha, hash);
+const coordinator = (hash) => report('Agent — Quality Gate Coordinator', 'Checks verificados', sha, hash);
 
 test('returns READY_TO_MERGE on the light track without a QA report', async () => {
   const outcome = await evaluateTrack({
@@ -411,7 +411,7 @@ test('light track still requires the Coordinator report', async () => {
 test('light track treats a QA report from another SHA as absent', async () => {
   const outcome = await evaluateTrack({
     files: ['AGENTS.md'],
-    buildComments: (hash) => [report('Codex — QA Agent', 'Verificações de QA', oldSha, hash), coordinator(hash)],
+    buildComments: (hash) => [report('Agent — QA', 'Verificações de QA', oldSha, hash), coordinator(hash)],
   });
 
   assert.equal(outcome.status, 'READY_TO_MERGE');
@@ -426,8 +426,8 @@ test('light track still blocks a QA report for the current SHA that is not appro
     files: ['AGENTS.md'],
     buildComments: (hash) => [
       {
-        ...report('Codex — QA Agent', 'Verificações de QA', sha, hash),
-        body: report('Codex — QA Agent', 'Verificações de QA', sha, hash).body.replace('**Status:** APPROVED', '**Status:** CHANGES_REQUESTED'),
+        ...report('Agent — QA', 'Verificações de QA', sha, hash),
+        body: report('Agent — QA', 'Verificações de QA', sha, hash).body.replace('**Status:** APPROVED', '**Status:** CHANGES_REQUESTED'),
       },
       coordinator(hash),
     ],
@@ -454,7 +454,7 @@ test('blocks when the review track changes while evidence is being collected', a
 });
 
 test('blocks when QA report is missing', async () => {
-  const subject = fixture({ comments: [report('Codex — Quality Gate Coordinator', 'Checks verificados')] });
+  const subject = fixture({ comments: [report('Agent — Quality Gate Coordinator', 'Checks verificados')] });
   const result = await subject.evaluate();
 
   assert.equal(result.status, 'BLOCKED');

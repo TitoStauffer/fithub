@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       source_run_id:
-        description: Run ID of Codex Agent Orchestration that produced the artifact
+        description: Run ID of Agent Orchestration that produced the artifact
         required: true
         type: string
       pr_number:

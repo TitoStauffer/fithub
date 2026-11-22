@@ -4,9 +4,9 @@ import { fingerprintAgentReviewInputs, type AgentReviewInputs } from './agent-re
 import { decodeAgentEvidence, encodeAgentEvidence } from './agent-result-validation.js';
 
 const SIGNATURES: Record<AgentStage, string> = {
-  codeReview: 'Codex — Code Review Agent',
-  qa: 'Codex — QA Agent',
-  qualityGate: 'Codex — Quality Gate Coordinator',
+  codeReview: 'Agent — Code Review',
+  qa: 'Agent — QA',
+  qualityGate: 'Agent — Quality Gate Coordinator',
 };
 
 export function computeAgentContextHash(repository: string, pullRequestNumber: number, pullRequest: Record<string, unknown>, reviewInputs: AgentReviewInputs): string {
@@ -35,7 +35,7 @@ export function formatFormalReviewEvidence(result: AgentStageResult): string {
   return [
     agentReportMarker('codeReview', result.commitSha, result.contextHash),
     ...(result.evidence ? [agentEvidenceMarker(result.evidence)] : []),
-    '### Codex — Code Review Agent',
+    '### Agent — Code Review',
     '',
     `**Status:** ${result.decision}`,
     `**Commit:** \`${result.commitSha}\``,

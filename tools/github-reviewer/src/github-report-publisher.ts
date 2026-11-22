@@ -5,10 +5,10 @@ import { loadAgentReviewInputs } from './agent-review-inputs.js';
 import { extractAcceptanceCriteria, validateAgentResultCompleteness, type AgentEvaluationEvidence } from './agent-result-validation.js';
 
 export const REPORT_AGENT_SIGNATURES = {
-  codeReview: 'Codex — Code Review Agent',
-  qualityGate: 'Codex — Quality Gate Coordinator',
-  qa: 'Codex — QA Agent',
-  pm: 'Codex — PM Agent',
+  codeReview: 'Agent — Code Review',
+  qualityGate: 'Agent — Quality Gate Coordinator',
+  qa: 'Agent — QA',
+  pm: 'Agent — PM',
 } as const;
 
 export type ReportAgentName = keyof typeof REPORT_AGENT_SIGNATURES;

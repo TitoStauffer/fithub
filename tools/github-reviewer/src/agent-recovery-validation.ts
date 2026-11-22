@@ -4,9 +4,9 @@ import { requestGitHubApi } from './github-api-client.js';
 const TRUSTED_WORKFLOW_PATH = '.github/workflows/agent-orchestration.yml';
 
 const STAGE_SOURCE = {
-  codeReview: { job: 'Codex Code Review', uploadStep: 'Upload Code Review result', artifact: 'codex-code-review' },
-  qa: { job: 'Codex QA', uploadStep: 'Upload QA result', artifact: 'codex-qa' },
-  qualityGate: { job: 'Codex Quality Gate Coordinator', uploadStep: 'Upload Quality Gate result', artifact: 'codex-quality-gate' },
+  codeReview: { job: 'Agent Code Review', uploadStep: 'Upload Code Review result', artifact: 'agent-code-review' },
+  qa: { job: 'Agent QA', uploadStep: 'Upload QA result', artifact: 'agent-qa' },
+  qualityGate: { job: 'Agent Quality Gate Coordinator', uploadStep: 'Upload Quality Gate result', artifact: 'agent-quality-gate' },
 } as const satisfies Record<AgentStage, { job: string; uploadStep: string; artifact: string }>;
 
 export interface RecoverySourceEvidence {

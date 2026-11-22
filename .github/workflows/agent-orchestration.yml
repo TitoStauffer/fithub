@@ -1,4 +1,4 @@
-name: Codex Agent Orchestration
+name: Agent Orchestration
 
 on:
   # CI already sequences the FitHub checks (GitHub Reviewer; services and apps from DEV-0016). No SonarQube.
@@ -20,13 +20,13 @@ on:
 permissions: {}
 
 concurrency:
-  group: codex-agent-orchestration-${{ github.event.workflow_run.pull_requests[0].number || inputs.pr_number || github.event.workflow_run.head_branch || github.run_id }}
+  group: agent-orchestration-${{ github.event.workflow_run.pull_requests[0].number || inputs.pr_number || github.event.workflow_run.head_branch || github.run_id }}
   # Finish and publish a running analysis before reusing its durable evidence.
   cancel-in-progress: false
 
 jobs:
   code-review:
-    name: Codex Code Review
+    name: Agent Code Review
     if: >-
       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master') ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.name == 'CI' &&
@@ -70,7 +70,7 @@ jobs:
         working-directory: tools/github-reviewer
         run: npm run build
 
-      - name: Run Codex Code Review
+      - name: Run Agent Code Review
         id: stage
         continue-on-error: true
         working-directory: tools/github-reviewer
@@ -85,7 +85,7 @@ jobs:
         if: always() && steps.stage.outputs.commit_sha != ''
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: codex-code-review-${{ github.run_id }}
+          name: agent-code-review-${{ github.run_id }}
           path: agent-result.json
           if-no-files-found: error
           retention-days: 1
@@ -134,7 +134,7 @@ jobs:
       - name: Download Code Review result
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: codex-code-review-${{ github.run_id }}
+          name: agent-code-review-${{ github.run_id }}
           path: tools/github-reviewer/agent-result
 
       - name: Publish formal Code Review
@@ -152,7 +152,7 @@ jobs:
         run: node dist/agent-publish-cli.js
 
   qa:
-    name: Codex QA
+    name: Agent QA
     needs: [code-review, publish-code-review]
     # Skipped on the light track, which is the whole point of DEV-116: this is the stage that holds the
     # serialized self-hosted runner. An unset or unexpected track value never reaches this condition as
@@ -200,10 +200,10 @@ jobs:
       - name: Download Code Review result
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: codex-code-review-${{ github.run_id }}
+          name: agent-code-review-${{ github.run_id }}
           path: tools/github-reviewer/prior-code-review
 
-      - name: Run Codex QA
+      - name: Run Agent QA
         id: stage
         continue-on-error: true
         working-directory: tools/github-reviewer
@@ -219,7 +219,7 @@ jobs:
         if: always() && steps.stage.outputs.commit_sha != ''
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: codex-qa-${{ github.run_id }}
+          name: agent-qa-${{ github.run_id }}
           path: agent-result.json
           if-no-files-found: error
           retention-days: 1
@@ -264,7 +264,7 @@ jobs:
       - name: Download QA result
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: codex-qa-${{ github.run_id }}
+          name: agent-qa-${{ github.run_id }}
           path: tools/github-reviewer/agent-result
 
       - name: Publish QA report
@@ -281,7 +281,7 @@ jobs:
         run: node dist/agent-publish-cli.js
 
   quality-gate:
-    name: Codex Quality Gate Coordinator
+    name: Agent Quality Gate Coordinator
     needs: [code-review, publish-code-review, qa, publish-qa]
     # Runs on both tracks: it is deterministic, makes no model call, and its published report is the
     # App-signed record of which track was taken. `!cancelled()` is required because a skipped need
@@ -331,14 +331,14 @@ jobs:
       - name: Download Code Review result
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: codex-code-review-${{ github.run_id }}
+          name: agent-code-review-${{ github.run_id }}
           path: tools/github-reviewer/prior-code-review
 
       - name: Download QA result
         if: needs.code-review.outputs.review_track == 'full'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: codex-qa-${{ github.run_id }}
+          name: agent-qa-${{ github.run_id }}
           path: tools/github-reviewer/prior-qa
 
       - name: Consolidate deterministic Quality Gate
@@ -357,7 +357,7 @@ jobs:
         if: always() && steps.stage.outputs.commit_sha != ''
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: codex-quality-gate-${{ github.run_id }}
+          name: agent-quality-gate-${{ github.run_id }}
           path: agent-result.json
           if-no-files-found: error
           retention-days: 1
@@ -405,7 +405,7 @@ jobs:
       - name: Download Quality Gate result
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: codex-quality-gate-${{ github.run_id }}
+          name: agent-quality-gate-${{ github.run_id }}
           path: tools/github-reviewer/agent-result
 
       - name: Publish Quality Gate report

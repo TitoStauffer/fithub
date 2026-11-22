@@ -18,12 +18,12 @@ function evidence(overrides = {}) {
       ...overrides.run,
     },
     jobs: overrides.jobs ?? [{
-      name: 'Codex QA', run_id: sourceRunId, run_attempt: 1, status: 'completed',
+      name: 'Agent QA', run_id: sourceRunId, run_attempt: 1, status: 'completed',
       started_at: '2026-10-28T10:00:00Z', completed_at: '2026-10-28T10:10:00Z',
       steps: [{ name: 'Upload QA result', status: 'completed', conclusion: 'success' }],
     }],
     artifacts: overrides.artifacts ?? [{
-      id: 101, name: `codex-qa-${sourceRunId}`, expired: false, size_in_bytes: 512,
+      id: 101, name: `agent-qa-${sourceRunId}`, expired: false, size_in_bytes: 512,
       created_at: '2026-10-28T10:09:00Z', workflow_run: { id: sourceRunId },
     }],
   };
@@ -31,7 +31,7 @@ function evidence(overrides = {}) {
 
 test('accepts only the expected artifact produced by the trusted stage job', () => {
   assert.deepEqual(validateRecoverySource({ repository, sourceRunId, stage: 'qa', evidence: evidence() }), {
-    artifactName: `codex-qa-${sourceRunId}`, artifactId: 101, runAttempt: 1,
+    artifactName: `agent-qa-${sourceRunId}`, artifactId: 101, runAttempt: 1,
   });
 });
 
@@ -43,29 +43,29 @@ test('selects the artifact produced by the latest successful run attempt', () =>
     evidence: evidence({
       jobs: [
         {
-          name: 'Codex QA', run_id: sourceRunId, run_attempt: 1, status: 'completed',
+          name: 'Agent QA', run_id: sourceRunId, run_attempt: 1, status: 'completed',
           started_at: '2026-10-28T10:00:00Z', completed_at: '2026-10-28T10:10:00Z',
           steps: [{ name: 'Upload QA result', status: 'completed', conclusion: 'success' }],
         },
         {
-          name: 'Codex QA', run_id: sourceRunId, run_attempt: 2, status: 'completed',
+          name: 'Agent QA', run_id: sourceRunId, run_attempt: 2, status: 'completed',
           started_at: '2026-10-28T11:00:00Z', completed_at: '2026-10-28T11:10:00Z',
           steps: [{ name: 'Upload QA result', status: 'completed', conclusion: 'success' }],
         },
       ],
       artifacts: [
         {
-          id: 101, name: `codex-qa-${sourceRunId}`, expired: false, size_in_bytes: 512,
+          id: 101, name: `agent-qa-${sourceRunId}`, expired: false, size_in_bytes: 512,
           created_at: '2026-10-28T10:09:00Z', workflow_run: { id: sourceRunId },
         },
         {
-          id: 202, name: `codex-qa-${sourceRunId}`, expired: false, size_in_bytes: 768,
+          id: 202, name: `agent-qa-${sourceRunId}`, expired: false, size_in_bytes: 768,
           created_at: '2026-10-28T11:09:00Z', workflow_run: { id: sourceRunId },
         },
       ],
     }),
   });
-  assert.deepEqual(selection, { artifactName: `codex-qa-${sourceRunId}`, artifactId: 202, runAttempt: 2 });
+  assert.deepEqual(selection, { artifactName: `agent-qa-${sourceRunId}`, artifactId: 202, runAttempt: 2 });
 });
 
 test('does not fall back to an older artifact when the latest successful attempt has no authenticated artifact', () => {
@@ -76,12 +76,12 @@ test('does not fall back to an older artifact when the latest successful attempt
     evidence: evidence({
       jobs: [
         {
-          name: 'Codex QA', run_id: sourceRunId, run_attempt: 1, status: 'completed',
+          name: 'Agent QA', run_id: sourceRunId, run_attempt: 1, status: 'completed',
           started_at: '2026-10-28T10:00:00Z', completed_at: '2026-10-28T10:10:00Z',
           steps: [{ name: 'Upload QA result', status: 'completed', conclusion: 'success' }],
         },
         {
-          name: 'Codex QA', run_id: sourceRunId, run_attempt: 2, status: 'completed',
+          name: 'Agent QA', run_id: sourceRunId, run_attempt: 2, status: 'completed',
           started_at: '2026-10-28T11:00:00Z', completed_at: '2026-10-28T11:10:00Z',
           steps: [{ name: 'Upload QA result', status: 'completed', conclusion: 'success' }],
         },
@@ -100,7 +100,7 @@ test('rejects a forged artifact not bound to the selected source run', () => {
   assert.throws(() => validateRecoverySource({
     repository, sourceRunId, stage: 'qa', evidence: evidence({
       artifacts: [{
-        id: 101, name: `codex-qa-${sourceRunId}`, expired: false, size_in_bytes: 512,
+        id: 101, name: `agent-qa-${sourceRunId}`, expired: false, size_in_bytes: 512,
         created_at: '2026-10-28T10:09:00Z', workflow_run: { id: sourceRunId + 1 },
       }],
     }),
@@ -111,7 +111,7 @@ test('rejects a stage whose artifact upload did not complete successfully', () =
   assert.throws(() => validateRecoverySource({
     repository, sourceRunId, stage: 'qa', evidence: evidence({
       jobs: [{
-        name: 'Codex QA', run_id: sourceRunId, run_attempt: 1, status: 'completed',
+        name: 'Agent QA', run_id: sourceRunId, run_attempt: 1, status: 'completed',
         started_at: '2026-10-28T10:00:00Z', completed_at: '2026-10-28T10:10:00Z',
         steps: [{ name: 'Upload QA result', status: 'completed', conclusion: 'failure' }],
       }],
@@ -123,7 +123,7 @@ test('rejects an artifact whose producing attempt cannot be authenticated', () =
   assert.throws(() => validateRecoverySource({
     repository, sourceRunId, stage: 'qa', evidence: evidence({
       artifacts: [{
-        id: 101, name: `codex-qa-${sourceRunId}`, expired: false, size_in_bytes: 512,
+        id: 101, name: `agent-qa-${sourceRunId}`, expired: false, size_in_bytes: 512,
         created_at: '2026-10-28T12:00:00Z', workflow_run: { id: sourceRunId },
       }],
     }),
@@ -146,13 +146,13 @@ for (const scenario of [
       stage: 'qa',
       evidence: evidence({
         jobs: [{
-          name: 'Codex QA', run_id: sourceRunId, run_attempt: 1, status: 'completed',
+          name: 'Agent QA', run_id: sourceRunId, run_attempt: 1, status: 'completed',
           started_at: scenario.startedAt ?? (Object.hasOwn(scenario, 'startedAt') ? undefined : '2026-10-28T10:00:00Z'),
           completed_at: scenario.completedAt ?? (Object.hasOwn(scenario, 'completedAt') ? undefined : '2026-10-28T10:10:00Z'),
           steps: [{ name: 'Upload QA result', status: 'completed', conclusion: 'success' }],
         }],
         artifacts: [{
-          id: 101, name: `codex-qa-${sourceRunId}`, expired: false, size_in_bytes: 512,
+          id: 101, name: `agent-qa-${sourceRunId}`, expired: false, size_in_bytes: 512,
           created_at: scenario.artifactCreatedAt ?? (Object.hasOwn(scenario, 'artifactCreatedAt') ? undefined : '2026-10-28T10:09:00Z'),
           workflow_run: { id: sourceRunId },
         }],

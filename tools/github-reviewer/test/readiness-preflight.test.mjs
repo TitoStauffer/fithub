@@ -10,7 +10,7 @@ const bot = 'cashin-devagents[bot]';
 function report({ commitSha = sha, contextHash = ctx, login = bot, decision = 'APPROVED' } = {}) {
   return {
     user: { login },
-    body: `${agentReportMarker('qualityGate', commitSha, contextHash)}\n### Codex — Quality Gate Coordinator\n\n**Status:** ${decision}\n**Commit:** \`${commitSha}\`\n\n### Checks verificados\nRelatório para avaliação completa.`,
+    body: `${agentReportMarker('qualityGate', commitSha, contextHash)}\n### Agent — Quality Gate Coordinator\n\n**Status:** ${decision}\n**Commit:** \`${commitSha}\`\n\n### Checks verificados\nRelatório para avaliação completa.`,
   };
 }
 function options(overrides = {}) {
@@ -57,7 +57,7 @@ test('delayed CI, review and metadata events re-evaluate existing final evidence
     ['workflow_run', { workflow_run: { name: 'CI', conclusion: 'failure' } }],
     ['workflow_run', { workflow_run: { name: 'PR Review Signal' } }],
     ['pull_request_target', { action: 'edited' }],
-    ['issue_comment', { comment: { body: '### Codex — QA Agent' } }],
+    ['issue_comment', { comment: { body: '### Agent — QA' } }],
   ]) {
     const result = await planReadinessEvaluation(options({ eventName, payload, fetchImpl: async () => Response.json([report()]) }));
     assert.equal(result.mode, 'evaluate');
@@ -77,7 +77,7 @@ test('a rejected or stale-context candidate is never trusted as approval and is 
 test('an old HEAD, unrelated author or malformed report cannot stand in for coordinator evidence', async () => {
   for (const candidate of [
     report({ commitSha: 'c'.repeat(40) }), report({ login: 'some-user' }),
-    { user: { login: bot }, body: '### Codex — Quality Gate Coordinator\nAPPROVED' },
+    { user: { login: bot }, body: '### Agent — Quality Gate Coordinator\nAPPROVED' },
     null,
   ]) {
     const result = await planReadinessEvaluation(options({

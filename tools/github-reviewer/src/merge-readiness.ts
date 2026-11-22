@@ -465,7 +465,7 @@ function countCurrentApprovals(reviews: Review[], sha: string, authorLogin: stri
 }
 
 function findStructuredReport(comments: IssueComment[], appLogins: Set<string>, agent: 'qa' | 'qualityGate', sha: string, contextHash: string): { status: string; reason: string; evidence: Record<string, unknown> } {
-  const signature = agent === 'qa' ? '### Codex — QA Agent' : '### Codex — Quality Gate Coordinator';
+  const signature = agent === 'qa' ? '### Agent — QA' : '### Agent — Quality Gate Coordinator';
   const matching = comments.filter((comment) => appLogins.has(comment.user?.login ?? '') && (comment.body ?? '').includes(signature))
     .sort((left, right) => (left.updated_at ?? left.created_at ?? '').localeCompare(right.updated_at ?? right.created_at ?? ''));
   const latest = matching.at(-1);
