@@ -330,12 +330,15 @@ test('names pnpm packages resolved outside the registry or without integrity', (
 
 test('never lets a pnpm lockfile value write raw into the summary', () => {
   const summary = summarizePnpmLockfile('pnpm-lock.yaml', pnpmLock([
-    ["'x] packagesWithoutIntegrity (0): none] \"@1.0.0'", 'tarball: https://example.test/x.tgz'],
+    ["'x@1.0.0]_packagesWithoutIntegrity_(0):_none]'", 'tarball: https://example.test/x.tgz'],
   ]));
   // Três linhas exatas: o cabeçalho e as duas listas. A chave hostil aparece só como literal JSON.
   assert.equal(summary.split('\n').length, 3);
-  assert.match(summary, /\(1\): "x\] packagesWithoutIntegrity \(0\): none\] \\"@1\.0\.0" -> /);
-  assert.match(summary, /packagesWithoutIntegrity \(1\): "x\] packagesWithoutIntegrity \(0\): none\] \\"@1\.0\.0"\]$/);
+  assert.match(summary, /\(1\): "x@1\.0\.0\]_packagesWithoutIntegrity_\(0\):_none\]" -> /);
+  assert.match(summary, /packagesWithoutIntegrity \(1\): "x@1\.0\.0\]_packagesWithoutIntegrity_\(0\):_none\]"\]$/);
+  // Chave com espaço e aspas nem chega ao resumo: não é nome@versão.
+  assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', pnpmLock([["'x] none \"@1.0.0'", 'integrity: sha512-a']])),
+    /package key is not name@version/);
   // Um valor de resolution com aspas, colchete ou espaço não é lido: falha fechado em vez de resumir.
   assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', pnpmLock([['a@1.0.0', 'tarball: https://example.test/"]x.tgz']])),
     /unknown resolution field/);
@@ -367,6 +370,18 @@ test('fails closed on any pnpm packages line it cannot read, so no package hides
   for (const [line, error] of cases) {
     assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', lock(line)), error, line);
   }
+  // Rodada 2 do Code Review: chave que não é nome@versão, inclusive o merge key do YAML.
+  for (const line of ['  <<:\n    evil@1.0.0:\n      resolution: {tarball: https://evil.example/x.tgz}', '  sem-versao:', "  '@scope/sem-versao':"]) {
+    assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', lock(line)), /package key is not name@version/, line);
+  }
+  // Rodada 2: quebra de linha que só o YAML do pnpm enxerga (CR solto, NEL, LS, PS) e outros controles.
+  const hidden = '    engines: {node: x}\r  evil@1.0.0:\r    resolution: {tarball: https://evil.example/x.tgz}';
+  assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', lock(`  carrier@1.0.0:\n${hidden}`)), /control character U\+000D/);
+  for (const [character, code] of [['\u0085', '0085'], [' ', '2028'], [' ', '2029'], ['\u000B', '000B'], ['\u0000', '0000']]) {
+    assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', lock(`  carrier@1.0.0:\n    engines: {node: x}${character}  evil@1.0.0:`)), new RegExp(`U\\+${code}`));
+  }
+  // O lockfile com fim de linha CRLF (checkout no Windows) continua aceito.
+  assert.match(summarizePnpmLockfile('pnpm-lock.yaml', lock('  win@1.0.0:', '    resolution: {integrity: sha512-w}').replace(/\n/g, '\r\n')), /packages=2\n/);
   // Seção packages em estilo flow no nível zero também não é lida.
   assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', "lockfileVersion: '9.0'\npackages: {evil@1.0.0: {}}\n"),
     /packages section not in block style/);

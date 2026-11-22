@@ -224,6 +224,8 @@ const PNPM_SUPPORTED_LOCKFILE_VERSION = /^(?:'9\.\d+'|9\.\d+)$/;
 // Chave de pacote nua na seção packages: com aspas simples (o pnpm usa para @scope) ou sem aspas, sem
 // espaço, sem valor na mesma linha. Aspas duplas, `?`, `{`, `#` e `&`/`*` (âncoras) ficam de fora.
 const PNPM_PACKAGE_KEY = /^ {2}('(?:[^']|'')+'|[^\s'"?{}#&*!|>%@,[\]][^\s{}#,[\]]*|@[^\s{}#,[\]]+):$/;
+// Nome de pacote npm (com escopo opcional) seguido de @ e da versão ou especificador, sem espaço nem aspas.
+const PNPM_PACKAGE_NAME = /^(@[a-z0-9][a-z0-9._~-]*\/)?[a-z0-9][a-z0-9._~-]*@[^\s'"@][^\s'"]*$/i;
 // Campos que a resolution de um pacote pode ter no formato 9. Chave fora da lista, entre aspas, valor
 // com espaço ou estrutura aninhada falham fechado: o resumo só lista anomalias que ele sabe ler.
 const PNPM_RESOLUTION_FIELDS = new Set(['integrity', 'tarball', 'type', 'repo', 'commit', 'directory', 'path']);
@@ -248,6 +250,13 @@ function parsePnpmResolution(body: string, fail: () => never): Map<string, strin
  */
 export function summarizePnpmLockfile(path: string, content: string): string {
   const header = `[pnpm lockfile summarized for the model context; path=${quoted(path)}; sourceBytes=${Buffer.byteLength(content, 'utf8')}; sourceSha256=${hash(content)}`;
+  // Code Review do PR #185, rodada 2: o YAML do pnpm quebra linha também em CR solto (e o YAML 1.1 em
+  // NEL, LS e PS), e o leitor só separa por \n e \r\n. Uma quebra que só o pnpm enxerga esconderia um
+  // pacote dentro de uma linha que o leitor ignora; por isso ela, e todo controle além de \t e \n, falham.
+  const hiddenBreak = new RegExp('\\r(?!\\n)|[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F\\u0085\\u2028\\u2029]').exec(content);
+  if (hiddenBreak) {
+    throw new Error(`Unsupported pnpm lockfile format in ${path}: control character U+${hiddenBreak[0].codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')}.`);
+  }
   const lines = content.split(/\r?\n/);
   const versions = lines.filter((line) => line.startsWith('lockfileVersion:')).map((line) => line.slice('lockfileVersion:'.length).trim());
   if (versions.length === 0 || versions.some((version) => !PNPM_SUPPORTED_LOCKFILE_VERSION.test(version))) {
@@ -279,6 +288,8 @@ export function summarizePnpmLockfile(path: string, content: string): string {
       const key = PNPM_PACKAGE_KEY.exec(line);
       if (!key) unsupported('package entry not written as a bare key', line);
       current = key![1].startsWith("'") ? key![1].slice(1, -1).replace(/''/g, "'") : key![1];
+      // Só nome@versão: nada de `<<` (merge do YAML, que funde outro mapa na seção) nem chave solta.
+      if (!PNPM_PACKAGE_NAME.test(current)) unsupported('package key is not name@version', line);
       if (resolutions.has(current)) unsupported('repeated package key', line);
       resolutions.set(current, null);
       continue;

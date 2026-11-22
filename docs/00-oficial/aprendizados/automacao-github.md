@@ -252,3 +252,11 @@ esconde a entrada que importa.
   - **Impacto:** linha fora do formato na seção `packages:` era ignorada. Isso incluía entrada flow na linha da chave, chave complexa e comentário, e também campo da `resolution` com chave entre aspas. Um tarball de outro host sumia do resumo, que diria "nenhuma anomalia".
   - **Correção:** toda linha da seção é chave nua, propriedade com 4 ou mais espaços ou vazia; o resto lança erro. A `resolution` só aceita campos nus de uma lista fixa (`integrity`, `tarball`, `type`, `repo`, `commit`, `directory`, `path`), sem repetição.
   - **Prevenção:** um teste com cada forma recusada (flow, `?`, comentário, aspas, campo desconhecido, bloco, repetição, recuo, tabulação), provado por mutação de cada guarda.
+- **Revisão:** Code Review do PR #185, rodada 2, no SHA `4dbf40d` (HIGH: quebra de linha que só o YAML enxerga; LOW: merge key `<<`) — DEV-0142 (#184) · **PR:** #185
+  - **Impacto:**
+    - **Quebra escondida:** um CR solto é quebra de linha para o js-yaml do pnpm, mas não para o leitor, que só separava por `\n`/`\r\n`. Dava para pôr um pacote inteiro dentro de uma linha de propriedade ignorada.
+    - **Merge key:** a chave `<<` fundia outro mapa na seção e escondia nome e tarball dos pacotes fundidos.
+  - **Correção:**
+    - CR fora de `\r\n`, NEL, LS, PS e todo controle além de `\t` e `\n` lançam erro antes da leitura.
+    - Toda chave de pacote precisa ser `nome@versão`.
+  - **Prevenção:** compare o que o leitor considera "linha" com o que o parser de verdade considera. Os testes cobrem CR solto, U+0085, U+2028, U+2029, U+000B, U+0000 e `<<`, e o CRLF continua aceito.
