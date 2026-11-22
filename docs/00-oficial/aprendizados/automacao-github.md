@@ -89,22 +89,22 @@ quebram. Fixe `eol=lf` no `.gitattributes` para `.githooks/*` e `*.sh`.
 
 ### Ocorrências
 
-- **Revisão:** aviso do git antes do commit — DEV-0130 (#147) · **PR:** #148 · **SHA:** `d77d381` (branch; o PR ainda não foi integrado)
-  - **Impacto:** risco de o hook `pre-push` falhar silenciosamente no Windows. Pego no aviso do git
-    antes do commit.
+- **Revisão:** aviso do git no commit — DEV-0130 (#147) · **PR:** #148 · **SHA:** `d9e4ca3`
+  - **Impacto:** o git avisou que converteria `.githooks/pre-push` para CRLF no próximo checkout
+    (`autocrlf=true`); com CRLF o `sh` do hook quebra. Corrigido antes do merge.
   - **Correção:** regras `eol=lf` no `.gitattributes`.
   - **Prevenção:** `git ls-files --eol .githooks` mostra `i/lf w/lf`.
 
-## agentes-locais-instalam-em-pasta-virtualizada
 
-**Regra:** comandos executados de dentro do app desktop do Claude podem ter `%LOCALAPPDATA%`
-redirecionado para `AppData\Local\Packages\Claude_*\LocalCache\Local`. Instalação de serviço de
-máquina (runner, atalho de inicialização) deve ser feita num PowerShell comum, fora do app.
+## hook-precisa-modo-executavel
+
+**Regra:** hook ou script que o git executa precisa estar em `100755` no índice. Recolocar o arquivo
+no índice (`git rm --cached` + `git add`) no Windows volta o modo para `100644`, e fora do Windows o
+git ignora o hook em silêncio. Marque com `git update-index --chmod=+x` e teste o modo.
 
 ### Ocorrências
 
-- **Revisão:** observado nos logs da orquestração 44964790517 — DEV-0008 (#114) · **SHA:** `ff02a9d` (HEAD da master na execução)
-  - **Impacto:** o runner do fithub ficou na pasta virtualizada; o atalho de login aponta para o
-    caminho real e pode não iniciar o runner após reiniciar o Windows.
-  - **Correção:** pendente — reinstalar o runner num PowerShell fora do app (ação do Tito).
-  - **Prevenção:** README do runner orienta instalar fora do app.
+- **Revisão:** https://github.com/TitoStauffer/fithub/pull/148#pullrequestreview-6009201174 · **PR:** #148 · **SHA:** `d9e4ca3`
+  - **Impacto:** HIGH no Code Review — em Linux/macOS o hook não rodaria e o push direto na master passaria.
+  - **Correção:** `git update-index --chmod=+x .githooks/pre-push .githooks/test-pre-push.sh`.
+  - **Prevenção:** `test-pre-push.sh` falha se `git ls-files -s` não mostrar `100755`.
