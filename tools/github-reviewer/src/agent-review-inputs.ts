@@ -59,6 +59,10 @@ export async function loadAgentReviewInputs(
   if (typeof expectedFiles === 'number' && filesPayload.length !== expectedFiles) {
     throw new Error(`GitHub returned ${filesPayload.length} changed files but the Pull Request reports ${expectedFiles}; the review context would be incomplete.`);
   }
+  // Sem o total no payload, uma lista no teto do GitHub (3000) pode estar cortada: falha fechado.
+  if (typeof expectedFiles !== 'number' && filesPayload.length >= 3000) {
+    throw new Error('GitHub returned the maximum changed-file list and the Pull Request total is unknown; the review context may be incomplete.');
+  }
   const diff = sanitizeAgentDiff(rawDiff ?? synthesizeDiffFromFiles(filesPayload));
   const encoding = stringValue(instructionsPayload.encoding);
   const encodedInstructions = stringValue(instructionsPayload.content);

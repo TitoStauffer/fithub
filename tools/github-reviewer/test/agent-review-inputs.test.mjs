@@ -67,7 +67,10 @@ function createFetch({
     } else if (path.endsWith('/contents/AGENTS.md')) {
       payload = { encoding: 'base64', content: encoded('Project rules') };
     } else if (path.endsWith('/pulls/7/files')) {
-      payload = files;
+      // Pagina como o GitHub (per_page/page), para listas grandes terminarem na página certa.
+      const perPage = Number(parsed.searchParams.get('per_page') ?? 30);
+      const page = Number(parsed.searchParams.get('page') ?? 1);
+      payload = files.slice((page - 1) * perPage, page * perPage);
     } else if (path.includes('/contents/')) {
       const sourcePath = decodeURIComponent(path.split('/contents/')[1]);
       const ref = parsed.searchParams.get('ref');
@@ -661,4 +664,13 @@ test('406 with removed files beyond the snapshot limit still reviews the changed
   const inputs = await loadAgentReviewInputs(createFetch({ files, diffStatus: 406 }), 'owner/repo', 7, { head: { sha: headSha }, base: { sha: baseSha } }, 'token');
   assert.deepEqual(inputs.sourceFiles.map(({ path }) => path), ['src/example.ts']);
   assert.equal((inputs.diff.match(/\[arquivo removido;/g) ?? []).length, 40);
+});
+
+// Code Review do PR #164 (rodada 2): sem changed_files no payload, lista no teto (3000) falha fechado.
+test('fails closed when the file list hits the GitHub ceiling and the total is unknown', async () => {
+  const files = removedFiles(3000);
+  await assert.rejects(
+    loadAgentReviewInputs(createFetch({ files, diffStatus: 406 }), 'owner/repo', 7, { head: { sha: headSha }, base: { sha: baseSha } }, 'token'),
+    /maximum changed-file list and the Pull Request total is unknown/,
+  );
 });
