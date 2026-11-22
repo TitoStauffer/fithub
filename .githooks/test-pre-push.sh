@@ -15,6 +15,11 @@ check() { # descrição, código esperado, linhas de entrada
   else echo "FAIL - $description (esperado $expected, obtido $actual)"; failures=$((failures + 1)); fi
 }
 
+# O hook só roda se for executável no índice (100755); senão o git o ignora fora do Windows.
+mode=$(git ls-files -s "$hook" 2>/dev/null | cut -d' ' -f1)
+if [ "$mode" = "100755" ]; then echo "ok   - o hook está com permissão de execução no índice (100755)"
+else echo "FAIL - o hook está sem permissão de execução no índice (modo: ${mode:-ausente})"; failures=$((failures + 1)); fi
+
 check 'bloqueia push para master' 1 "refs/heads/master $sha refs/heads/master $zero"
 check 'bloqueia push para main' 1 "refs/heads/main $sha refs/heads/main $zero"
 check 'bloqueia push de outra branch local para a master remota' 1 "refs/heads/feature/DEV-0001-x $sha refs/heads/master $zero"

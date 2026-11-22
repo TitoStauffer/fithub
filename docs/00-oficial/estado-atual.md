@@ -12,7 +12,9 @@
   - `issue-key`: numera toda issue nova com `[DEV-NNNN] - `.
   - `pr-title`: valida título, branch e issue do PR.
   - `project-status`: move as issues no quadro e atribui o autor ao PR.
-  - `ci` (`CI`): job `GitHub Reviewer` (testes do reviewer e dos scripts do runner).
+  - `ci` (`CI`): job `GitHub Reviewer` (testes do reviewer, do hook `pre-push` e dos scripts do runner).
+- **Hook local `.githooks/pre-push`** (DEV-0130): recusa push direto para `master`/`main`; ativação por
+  clone com `git config core.hooksPath .githooks`.
   - `github-app-check`: verifica os secrets do GitHub App.
   - `agent-orchestration`, `merge-readiness`, `pr-review-signal`, `agent-report-recovery`: bots de
     Code Review, QA, Coordinator e Merge Readiness (DEV-0118). Validação ponta a ponta na DEV-0009.
