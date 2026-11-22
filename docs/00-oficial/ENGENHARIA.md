@@ -157,6 +157,11 @@ Somente **técnicas**, nunca de domínio:
 - `libs/java-commons`: configuração de segurança (resource server),
   Problem Details, base do outbox e de consumidores idempotentes, logging.
 - `libs/event-contracts`: schemas dos eventos.
+- `libs/java-testing` (só escopo de teste): regras ArchUnit desta seção e a
+  base de teste de integração com Postgres e RabbitMQ reais.
+
+Cada serviço escuta numa porta própria no desenvolvimento local: `account`
+8081, `client` 8082, `training` 8083, `nutrition` 8084 (o Keycloak usa a 8080).
 
 Domínio compartilhado entre serviços é proibido. Se dois serviços precisam do
 mesmo conceito, cada um tem o seu modelo.
@@ -174,6 +179,7 @@ fithub/
 │   └── nutrition-service/
 ├── libs/
 │   ├── java-commons/
+│   ├── java-testing/
 │   └── event-contracts/
 ├── apps/
 │   ├── web/                 React + Vite + TS (profissional)

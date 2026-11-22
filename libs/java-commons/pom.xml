@@ -18,10 +18,6 @@
   <artifactId>java-commons</artifactId>
   <name>FitHub Java Commons</name>
 
-  <properties>
-    <archunit.version>1.4.1</archunit.version>
-  </properties>
-
   <dependencies>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -106,7 +102,6 @@
     <dependency>
       <groupId>com.tngtech.archunit</groupId>
       <artifactId>archunit-junit5</artifactId>
-      <version>${archunit.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
