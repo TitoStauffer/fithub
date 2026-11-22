@@ -252,7 +252,9 @@ eval "$HOOK_CMD"
   }
   Clear-RunnerRegistration -RunnerDirectory $regDir
   $left = @(Get-ChildItem -LiteralPath $regDir -Force | ForEach-Object Name | Sort-Object)
-  Assert-True (($left -join ',') -eq '.env,_work,config.cmd') "Clear-RunnerRegistration remove só o registro local (restou: $($left -join ', '))"
+  # Comparação sem depender da ordenação (Sort-Object ordena '_' e '.' diferente no Windows e no Linux).
+  $expectedLeft = @('.env', '_work', 'config.cmd')
+  Assert-True ($left.Count -eq $expectedLeft.Count -and @($expectedLeft | Where-Object { $left -notcontains $_ }).Count -eq 0) "Clear-RunnerRegistration remove só o registro local (restou: $($left -join ', '))"
   Clear-RunnerRegistration -RunnerDirectory $regDir
   Assert-True $true 'Clear-RunnerRegistration sem registro não falha'
   $registerCall = $installer.IndexOf('  Register-Runner')
