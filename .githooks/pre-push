@@ -1,0 +1,23 @@
+#!/bin/sh
+# Bloqueia push direto para master/main (DEV-0130). Código entra na master só por PR,
+# com Merge Readiness = READY_TO_MERGE (AGENTS.md, seção "Merge").
+#
+# Barreira local contra engano: o repositório privado no plano gratuito não tem proteção de
+# branch no servidor. Ativação, uma vez por clone:  git config core.hooksPath .githooks
+# Não use --no-verify para contornar.
+#
+# O git envia pela entrada padrão uma linha por ref:
+#   <ref local> <sha local> <ref remota> <sha remoto>
+
+blocked=0
+while read -r local_ref local_sha remote_ref remote_sha; do
+  case "$remote_ref" in
+    refs/heads/master|refs/heads/main)
+      echo "pre-push: push direto para '${remote_ref#refs/heads/}' bloqueado." >&2
+      echo "pre-push: crie uma branch feature|fix|chore/DEV-NNNN-descricao e abra um PR." >&2
+      blocked=1
+      ;;
+  esac
+done
+
+exit $blocked

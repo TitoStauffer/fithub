@@ -1,1 +1,5 @@
 * text=auto
+
+# Hooks e scripts shell precisam de LF mesmo no Windows (DEV-0130).
+.githooks/* text eol=lf
+*.sh text eol=lf
