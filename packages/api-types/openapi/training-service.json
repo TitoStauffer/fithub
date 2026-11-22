@@ -1,0 +1,25 @@
+{
+  "components" : {
+    "securitySchemes" : {
+      "bearer" : {
+        "bearerFormat" : "JWT",
+        "scheme" : "bearer",
+        "type" : "http"
+      }
+    }
+  },
+  "info" : {
+    "description" : "Exercícios, fichas, execuções e recordes.",
+    "title" : "training-service",
+    "version" : "v1"
+  },
+  "openapi" : "3.1.0",
+  "paths" : { },
+  "security" : [ {
+    "bearer" : [ ]
+  } ],
+  "servers" : [ {
+    "description" : "Generated server url",
+    "url" : "http://localhost"
+  } ]
+}
