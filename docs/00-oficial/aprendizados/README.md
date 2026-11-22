@@ -7,6 +7,7 @@ que fazemos para não repeti-los.
 |---|---|
 | Workflows, runner e bots | [automacao-github.md](automacao-github.md) |
 | Outbox, consumidores e eventos | [mensageria.md](mensageria.md) |
+| Keycloak, realm, clients e login | [identidade.md](identidade.md) |
 
 Regras de registro: [AGENTS.md](../../../AGENTS.md), seção **Aprendizados**.
 

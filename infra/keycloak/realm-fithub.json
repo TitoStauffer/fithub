@@ -22,6 +22,8 @@
   "internationalizationEnabled": true,
   "supportedLocales": ["pt-BR"],
   "defaultLocale": "pt-BR",
+  "loginTheme": "fithub",
+  "emailTheme": "fithub",
   "smtpServer": {
     "host": "mailpit",
     "port": "1025",

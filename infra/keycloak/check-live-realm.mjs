@@ -39,6 +39,15 @@ for (const { clientId, redirectUri } of CLIENTS) {
   const withPkce = await authorize(clientId, redirectUri, { response_type: 'code', code_challenge: CHALLENGE, code_challenge_method: 'S256' });
   check(withPkce.status === 200, `${clientId}: Authorization Code com PKCE S256 abre o login`);
 
+  // Tema do FitHub (DEV-0026): a tela de login carrega o CSS do tema, e o Keycloak consegue servi-lo.
+  const page = withPkce.status === 200 ? await withPkce.text() : '';
+  const stylesheet = /href="([^"]*\/login\/fithub\/css\/fithub\.css)"/.exec(page)?.[1];
+  check(Boolean(stylesheet), `${clientId}: a tela de login usa o tema fithub`);
+  if (stylesheet) {
+    const css = await fetch(new URL(stylesheet, base));
+    check(css.status === 200, `${clientId}: o CSS do tema é servido pelo Keycloak`);
+  }
+
   const withoutPkce = await authorize(clientId, redirectUri, { response_type: 'code' });
   check(withoutPkce.status === 302 && redirectError(withoutPkce) === 'invalid_request', `${clientId}: sem PKCE é recusado`);
 

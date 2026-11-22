@@ -1,0 +1,136 @@
+/*
+ * Identidade visual do FitHub nas telas do Keycloak (DEV-0026).
+ * As cores espelham os tokens de apps/web/src/index.css (base neutra do shadcn/ui); ao mudar a
+ * identidade na web, atualize as variáveis --fithub-* aqui. Tipografia: fontes do sistema, como a web.
+ * Nada é carregado de fora: nenhuma folha importada, nenhuma imagem e nenhuma fonte remota.
+ */
+:root {
+    --fithub-background: #ffffff;
+    --fithub-surface: #f7f7f7;
+    --fithub-foreground: #0a0a0a;
+    --fithub-primary: #171717;
+    --fithub-primary-hover: #333333;
+    --fithub-primary-foreground: #fafafa;
+    --fithub-muted-foreground: #737373;
+    --fithub-border: #e5e5e5;
+    --fithub-ring: #a1a1a1;
+    --fithub-danger: #b42318;
+    --fithub-radius: 10px;
+    --fithub-font:
+        ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+    /* Variáveis do PatternFly 5 usadas pelo tema pai. */
+    --pf-v5-global--FontFamily--text: var(--fithub-font);
+    --pf-v5-global--FontFamily--heading: var(--fithub-font);
+    --pf-v5-global--primary-color--100: var(--fithub-primary);
+    --pf-v5-global--primary-color--200: var(--fithub-primary-hover);
+    --pf-v5-global--active-color--100: var(--fithub-primary);
+    --pf-v5-global--link--Color: var(--fithub-foreground);
+    --pf-v5-global--link--Color--hover: var(--fithub-primary-hover);
+    --pf-v5-global--BorderColor--100: var(--fithub-border);
+    --pf-v5-global--danger-color--100: var(--fithub-danger);
+    --pf-v5-global--BorderRadius--sm: var(--fithub-radius);
+
+    /* Faixa colorida do cartão no tema pai: sem destaque, na cor da borda. */
+    --keycloak-card-top-color: transparent;
+}
+
+html,
+body {
+    font-family: var(--fithub-font);
+    color: var(--fithub-foreground);
+}
+
+/* Fundo liso no lugar da imagem do Keycloak. */
+body#keycloak-bg,
+.login-pf body,
+.pf-v5-c-login {
+    background: var(--fithub-surface) none;
+}
+
+/* Marca: o texto vem da mensagem loginTitleHtml ("FitHub"). */
+.pf-v5-c-login__header,
+.pf-v5-c-login__header .pf-v5-c-brand,
+#kc-header-wrapper {
+    /* O tema pai fixa branco com !important, pensado para o fundo escuro dele. */
+    color: var(--fithub-foreground) !important;
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    text-transform: none;
+}
+
+.pf-v5-c-login__main-header {
+    border-top: 0;
+}
+
+.pf-v5-c-login__main {
+    background: var(--fithub-background);
+    border: 1px solid var(--fithub-border);
+    border-radius: var(--fithub-radius);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+}
+
+#kc-page-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.pf-v5-c-button {
+    border-radius: var(--fithub-radius);
+    font-weight: 500;
+}
+
+.pf-v5-c-button.pf-m-primary {
+    background-color: var(--fithub-primary);
+    color: var(--fithub-primary-foreground);
+}
+
+.pf-v5-c-button.pf-m-primary:hover,
+.pf-v5-c-button.pf-m-primary:focus {
+    background-color: var(--fithub-primary-hover);
+}
+
+.pf-v5-c-form-control {
+    border-radius: var(--fithub-radius);
+}
+
+/* Foco visível em teclado, com contraste suficiente sobre o fundo claro. */
+.pf-v5-c-button:focus-visible,
+.pf-v5-c-form-control > :focus-visible,
+a:focus-visible {
+    outline: 2px solid var(--fithub-ring);
+    outline-offset: 2px;
+}
+
+.pf-v5-c-login__main-footer-band {
+    background: var(--fithub-background);
+    border-top: 1px solid var(--fithub-border);
+    border-radius: 0 0 var(--fithub-radius) var(--fithub-radius);
+}
+
+/* Celular: o app abre estas telas no navegador do sistema. */
+@media (max-width: 576px) {
+    .pf-v5-c-login__container {
+        padding: 0 12px;
+    }
+
+    #kc-header-wrapper {
+        font-size: 1.5rem;
+        padding-top: 16px;
+    }
+
+    .pf-v5-c-login__main {
+        margin-bottom: 16px;
+    }
+
+    /* Área de toque confortável e sem zoom automático do iOS (fonte de 16px nos campos). */
+    .pf-v5-c-button {
+        min-height: 44px;
+    }
+
+    .pf-v5-c-form-control > input {
+        font-size: 16px;
+    }
+}
