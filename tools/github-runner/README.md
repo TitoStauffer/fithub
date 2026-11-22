@@ -51,8 +51,17 @@ Rode a partir de um checkout atualizado da `master`: os scripts copiados para
 O instalador baixa o runner e o PowerShell das releases oficiais e confere o
 SHA-256 fixado em `runner-common.ps1`, registra o runner com `--replace`, copia
 os scripts para `scripts/`, cria o atalho `FitHub GitHub Runner.lnk` na pasta
-Inicializar do Windows e inicia o runner. `-Reregister` força novo registro;
-`-NoStart` não inicia ao final.
+Inicializar do Windows e inicia o runner. `-NoStart` não inicia ao final.
+
+- **Reiniciar ou mover o runner** (ex.: sair da pasta virtualizada do app):
+  encerre o runner (`Get-Process Runner.Listener, Runner.Worker | Stop-Process -Force`)
+  e rode o instalador **sem** `-Reregister`. Ele mantém o registro existente,
+  atualiza scripts e atalho e inicia o runner no contexto do PowerShell atual.
+- **`-Reregister`** força um registro novo: com o runner parado, remove o
+  registro local (`.runner`, `.credentials`, `.credentials_rsaparams`),
+  preservando binários, `_work` e `_diag`, e registra de novo com `--replace`
+  (DEV-0135). Use quando o registro no GitHub foi removido ou as credenciais
+  locais estão inválidas.
 
 - **Token de registro:** obtido pelo `gh` na hora e entregue ao `config.cmd`
   pela variável `ACTIONS_RUNNER_INPUT_TOKEN`, removida logo depois. Nunca

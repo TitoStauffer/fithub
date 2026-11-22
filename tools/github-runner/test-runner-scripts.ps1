@@ -242,6 +242,24 @@ eval "$HOOK_CMD"
   Assert-True (Test-Path (Join-Path $extractDir '_work\job')) 'conteúdo de _work é preservado'
   Clear-ExtractionTarget -Destination (Join-Path $sandbox 'does-not-exist')
   Assert-True $true 'limpeza de pasta inexistente não falha'
+
+  # 13. -Reregister remove só o registro local antes de configurar de novo (DEV-0135): o config.cmd
+  # recusa reconfigurar enquanto .runner/.credentials existem, mesmo com --replace.
+  $regDir = Join-Path $sandbox 'reregister'
+  New-Item -ItemType Directory -Force -Path (Join-Path $regDir '_work\job') | Out-Null
+  foreach ($entry in '.runner', '.credentials', '.credentials_rsaparams', '.env', 'config.cmd') {
+    Set-Content -Path (Join-Path $regDir $entry) -Value 'x'
+  }
+  Clear-RunnerRegistration -RunnerDirectory $regDir
+  $left = @(Get-ChildItem -LiteralPath $regDir -Force | ForEach-Object Name | Sort-Object)
+  # Comparação sem depender da ordenação (Sort-Object ordena '_' e '.' diferente no Windows e no Linux).
+  $expectedLeft = @('.env', '_work', 'config.cmd')
+  Assert-True ($left.Count -eq $expectedLeft.Count -and @($expectedLeft | Where-Object { $left -notcontains $_ }).Count -eq 0) "Clear-RunnerRegistration remove só o registro local (restou: $($left -join ', '))"
+  Clear-RunnerRegistration -RunnerDirectory $regDir
+  Assert-True $true 'Clear-RunnerRegistration sem registro não falha'
+  $registerCall = $installer.IndexOf('  Register-Runner')
+  $clearCall = $installer.IndexOf('Clear-RunnerRegistration')
+  Assert-True ($clearCall -ge 0 -and $clearCall -lt $registerCall -and $installer -match '\$Reregister -and \(Test-RunnerInstalled\)\) \{ Clear-RunnerRegistration \}') 'install-runner.ps1 limpa o registro local antes de registrar de novo com -Reregister'
 } finally {
   $env:LOCALAPPDATA = $previousLocalAppData
   $env:Path = $previousPath
