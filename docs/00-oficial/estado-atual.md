@@ -12,7 +12,7 @@
   - `issue-key`: numera toda issue nova com `[DEV-NNNN] - `.
   - `pr-title`: valida título, branch e issue do PR.
   - `project-status`: move as issues no quadro e atribui o autor ao PR.
-  - `ci` (`CI`, DEV-0016): `Detect changes` decide as áreas pelo diff; `GitHub Reviewer` (reviewer, docs, scripts de CI, hook `pre-push`, scripts do runner), `Java Services` (`mvn verify` e guarda de teste pulado), `Apps` (lint, typecheck e testes do workspace pnpm) e `Local Infrastructure` (compose saudável). Os quatro são checks exigidos pelos bots e sempre rodam; área sem mudança termina com sucesso sem trabalhar. `Publish Images` (DEV-0017), só no push na master: imagem de todos os serviços no GHCR com a tag do commit (idempotente); no PR, o `Java Services` constrói a imagem dos serviços alterados e barra imagem que rode como root.
+  - `ci` (`CI`, DEV-0016): `Detect changes` decide as áreas pelo diff; `GitHub Reviewer` (reviewer, docs, scripts de CI, hook `pre-push`, scripts do runner), `Java Services` (`mvn verify` e guarda de teste pulado), `Apps` (lint, typecheck e testes do workspace pnpm) e `Local Infrastructure` (compose saudável). Os quatro são checks exigidos pelos bots e sempre rodam; área sem mudança termina com sucesso sem trabalhar. `Publish Images` (DEV-0017), só no push na master: imagem de todos os serviços no GHCR com a tag do commit (idempotente); no PR, o `Java Services` constrói a imagem dos serviços alterados e barra imagem que rode como root. Verificação por mutação (DEV-0116): os mutantes declarados em `mutations/<CHAVE>.json` alterados no PR rodam no job da área (`GitHub Reviewer`, `Java Services` ou `Apps`), e o job falha se algum sobreviver.
 - **Hook local `.githooks/pre-push`** (DEV-0130): recusa push direto para `master`/`main`; ativação por
   clone com `git config core.hooksPath .githooks`.
   - `github-app-check`: verifica os secrets do GitHub App.
@@ -40,7 +40,7 @@
 ## Ainda não existe
 
 - Regras de negócio, endpoints e tabelas dos serviços — épicos E1 em diante. Apps e demais bibliotecas — resto do E0.
-- Verificação por mutação no CI — DEV-0116. Deploy na VPS — épico de operação.
+- Deploy na VPS — épico de operação.
 
 ## Limitações conhecidas
 

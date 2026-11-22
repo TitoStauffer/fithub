@@ -33,6 +33,11 @@ etapas verificadas vão para o QA.
   com sucesso e os passos de verdade aparecem como pulados. Se o detector falhar ou
   não disser `false`, o job fica sem sucesso, e o merge bloqueia. Job pulado
   inteiro (`skipped`) nunca conta como sucesso.
+- **Mutação (DEV-0116):** o `Detect changes` publica os manifestos `mutations/<CHAVE>.json`
+  alterados no PR e liga as áreas que eles citam. O `GitHub Reviewer`, o `Java Services` e o `Apps`
+  rodam [mutations.mjs](../../tools/repo-checks/mutations.mjs) com os mutantes da sua área (`tools`,
+  `java`, `apps`). Mutante que sobrevive, trecho não único ou arquivo não restaurado derruba o job.
+  Formato no ENGENHARIA.md §9.
 - Os jobs `Java Services` e `Apps` rodam a guarda contra teste pulado
   ([check-skipped-tests.mjs](../../tools/repo-checks/check-skipped-tests.mjs)) nos
   relatórios JUnit. Teste pulado precisa de `DEV-xxxx` na justificativa, e sem
