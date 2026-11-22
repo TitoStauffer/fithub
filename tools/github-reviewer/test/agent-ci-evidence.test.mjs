@@ -135,7 +135,8 @@ test('verifies all four CI jobs and supplies Automation Tools test steps and the
   assert.equal(inputs.checkRuns.find(({ name }) => name === 'Local Infrastructure').actions.availability, 'available');
   assert.equal(inputs.checkRuns.filter(({ actions }) => actions?.availability === 'available').length, 4);
   assert.deepEqual(inputs.checkRuns.find(({ name }) => name === 'Automation Tools').actions.steps, jobValues[3].steps);
-  // FitHub (DEV-0118, DEV-0016): o workflow CI, o manifesto do reviewer e os dois scripts de CI.
+  // FitHub (DEV-0118, DEV-0016, DEV-0021): o workflow CI, o manifesto do reviewer, os dois scripts de
+  // CI e os manifestos dos apps web e mobile.
   assert.equal(inputs.ciConfiguration.length, 6);
   assert.ok(inputs.ciConfiguration.some(({ path }) => path === '.github/workflows/ci.yml'));
   assert.deepEqual(
