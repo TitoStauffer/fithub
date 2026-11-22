@@ -26,6 +26,7 @@
 
 - **Estrutura do monorepo** (DEV-0011): `services/` (4 serviços), `libs/`, `apps/`, `packages/`, `infra/`
   só com READMEs; `pom.xml` parent (Java 25, Spring Boot 4.1.3, enforcer) e workspace pnpm.
+- **Infraestrutura local** (DEV-0012): `infra/compose/docker-compose.dev.yml` com Postgres 17 (um banco e um usuário por serviço, mais o do Keycloak), RabbitMQ, Keycloak, SeaweedFS (S3, ADR-006) e Mailpit, todos com healthcheck; o CI sobe o compose e espera todos saudáveis. O `infrastructure/` legado foi removido
 
 ## Ainda não existe
 
