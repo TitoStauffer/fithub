@@ -10,7 +10,7 @@ Faça cada execução idempotente e varrendo **todo** o trabalho pendente, não 
 
 ### Ocorrências
 
-- **Issue:** DEV-0120 (#126) · **PR:** #127
+- **Revisão:** bug de validação — DEV-0120 (#126) · **PR:** #127 · **SHA:** `7589ca9`
   - **Impacto:** 3 issues abertas juntas; a do meio ficou sem chave DEV.
   - **Correção:** `issue-key.yml` numera todas as issues abertas sem chave a cada execução.
   - **Prevenção:** teste real com 3 issues em sequência rápida.
@@ -24,7 +24,7 @@ que o token consiga ler o recurso referenciado (issue) para usá-lo em outra API
 
 ### Ocorrências
 
-- **Issue:** DEV-0124 (#132) · **PR:** #133
+- **Revisão:** bug de validação — DEV-0124 (#132) · **PR:** #133 · **SHA:** `8bbfab6`
   - **Impacto:** `project-status` falhou com 404 e depois `Could not resolve to a node`.
   - **Correção:** `GH_TOKEN="${PROJECT_TOKEN}"` só nas chamadas GraphQL do quadro; PAT recriado com
     `repo` e `project`; falha de acesso vira aviso, não PR vermelho.
@@ -38,7 +38,7 @@ que o token consiga ler o recurso referenciado (issue) para usá-lo em outra API
 
 ### Ocorrências
 
-- **Issue:** DEV-0125 (#139) · **PR:** #140 · orquestração 44962392217
+- **Revisão:** bug de validação — DEV-0125 (#139), orquestração 44962392217 · **PR:** #140 · **SHA:** `ff02a9d`
   - **Impacto:** `could not read Username for 'https://github.com'` no checkout; nenhum agente rodou.
   - **Correção:** `Set-RunnerEnvironment` coloca `%ProgramFiles%\Git\cmd` logo depois do pwsh.
   - **Prevenção:** teste da ordem do PATH em `test-runner-scripts.ps1`.
@@ -50,7 +50,7 @@ ambiente do runner (`GIT_CONFIG_*`), sem alterar a configuração global do usu�
 
 ### Ocorrências
 
-- **Issue:** DEV-0126 (#141) · **PR:** #142 · orquestração 44964790517
+- **Revisão:** bug de validação — DEV-0126 (#141), orquestração 44964790517 · **PR:** #142 · **SHA:** `14813d4`
   - **Impacto:** `Filename too long` em `docs/02-use-cases/...` no checkout.
   - **Correção:** `GIT_CONFIG_COUNT/KEY_0/VALUE_0` com `core.longpaths=true` no processo do runner.
   - **Prevenção:** teste das variáveis em `test-runner-scripts.ps1`.
@@ -64,7 +64,7 @@ contexto entre as etapas.
 
 ### Ocorrências
 
-- **Issue:** DEV-0128 (#144) · **PR:** #145 · QA do PR #138
+- **Revisão:** relatório de QA do PR #138 — DEV-0128 (#144) · **PR:** #145 · **SHA:** `16b6b8d`
   - **Impacto:** QA `INCONCLUSIVE` porque o check `Verificar GitHub App` não chegou às evidências.
   - **Correção:** `summarizeCheckRunEvidence` inclui tudo menos `CONTEXT_EXCLUDED_CHECKS`.
   - **Prevenção:** teste de inclusão/exclusão em `agent-review-inputs.test.mjs`.
@@ -76,7 +76,7 @@ Envolva o resultado em `@(...)` ao atribuir (`$x = @(Funcao ...)`).
 
 ### Ocorrências
 
-- **Issue:** DEV-0008 (#114) · **PR:** #134
+- **Revisão:** teste novo antes do merge — DEV-0008 (#114) · **PR:** #134 · **SHA:** `cfa18ba`
   - **Impacto:** com só o runner irmão (CashIn) rodando, o runner do fithub recusaria iniciar
     (`foreign-listener`). Pego pelo teste novo antes do merge.
   - **Correção:** `$state.Foreign = @(Remove-SiblingListener ...)`.
@@ -89,7 +89,7 @@ quebram. Fixe `eol=lf` no `.gitattributes` para `.githooks/*` e `*.sh`.
 
 ### Ocorrências
 
-- **Issue:** DEV-0130 (#147) · **PR:** #148
+- **Revisão:** aviso do git antes do commit — DEV-0130 (#147) · **PR:** #148 · **SHA:** `d77d381` (branch; o PR ainda não foi integrado)
   - **Impacto:** risco de o hook `pre-push` falhar silenciosamente no Windows. Pego no aviso do git
     antes do commit.
   - **Correção:** regras `eol=lf` no `.gitattributes`.
@@ -103,7 +103,7 @@ máquina (runner, atalho de inicialização) deve ser feita num PowerShell comum
 
 ### Ocorrências
 
-- **Issue:** DEV-0008 (#114) · observado na orquestração 44964790517
+- **Revisão:** observado nos logs da orquestração 44964790517 — DEV-0008 (#114) · **SHA:** `ff02a9d` (HEAD da master na execução)
   - **Impacto:** o runner do fithub ficou na pasta virtualizada; o atalho de login aponta para o
     caminho real e pode não iniciar o runner após reiniciar o Windows.
   - **Correção:** pendente — reinstalar o runner num PowerShell fora do app (ação do Tito).

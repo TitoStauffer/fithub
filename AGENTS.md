@@ -253,8 +253,9 @@ ao Tito.
 
 - Cada rodada é **completa** ou **leve**, decidida por código confiável a
   partir da lista de arquivos alterados (o corpo do PR nunca participa).
-- **Leve** só quando todo arquivo alterado é inerte: `*.md` ou arquivo de
-  teste (`*Test.java`, `*IT.java`, `*.test.ts`, `*.test.tsx`). Qualquer outro
+- **Leve** só quando todo arquivo alterado é inerte: `*.md`, arquivo de
+  teste (`*Test.java`, `*IT.java`, `*.test.ts`, `*.test.tsx`) ou o mapa do vault
+  `docs/00-oficial/context-map.json` (orienta o contexto dos agentes, não o produto). Qualquer outro
   caminho — inclusive diretório novo, migration, `pom.xml`, `package.json`,
   lockfile, Dockerfile, compose, workflow — exige o **completo**.
 - O leve dispensa **somente o QA**. CI, Code Review e Coordinator rodam sempre.
@@ -365,8 +366,9 @@ ao Tito.
   branch da correção e antes de pedir nova revisão.
 - Pesquise antes se o padrão já existe: ocorrência repetida amplia a regra
   existente; regra nova só para padrão novo.
-- Cada ocorrência registra a referência da revisão, o SHA, o impacto, a
-  correção e a prevenção. Hipótese, falso positivo, preferência de estilo e
+- Cada ocorrência registra a referência da revisão (ou, para bug de validação
+  ou produção, a issue ou execução onde apareceu), o PR e o SHA da correção, o
+  impacto, a correção e a prevenção. Hipótese, falso positivo, preferência de estilo e
   apontamento inconclusivo não viram aprendizado.
 - Aprendizado entra por PR, nunca direto na `master`.
 
