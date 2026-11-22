@@ -19,4 +19,4 @@ O que não vale:
 
 - O módulo `identity` (substituído pelo Keycloak).
 - Os testes de integração em `backend/boot/src/test`, que são placeholders
-  (`assertTrue(true)`) e não testam nada, apesar do que diz o `IMPROVEMENTS.md`.
+  (`assertTrue(true)`) e não testam nada, apesar do que dizia o `IMPROVEMENTS.md` da primeira versão (ver [docs/HISTORICO.md](../docs/HISTORICO.md)).

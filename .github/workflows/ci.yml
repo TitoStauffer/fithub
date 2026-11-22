@@ -41,6 +41,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # Histórico completo: o verificador de documentação confere o commit citado no docs/HISTORICO.md.
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -54,6 +56,13 @@ jobs:
 
       - name: Build and test GitHub integration tools
         run: npm test
+
+      # Caminhos até 200 caracteres, links relativos dos .md e docs/HISTORICO.md (DEV-0010).
+      - name: Check repository docs
+        working-directory: .
+        run: |
+          node --test tools/repo-checks/check-docs.test.mjs
+          node tools/repo-checks/check-docs.mjs
 
       - name: Test pre-push hook
         working-directory: .

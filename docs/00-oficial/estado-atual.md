@@ -24,7 +24,7 @@
 - **Runner self-hosted** `fithub-agents-windows` na máquina do Tito (`tools/github-runner`).
 - **Código da primeira versão** em `legacy/` (monólito modular), só como referência.
 - **Documentação da primeira versão** removida da árvore (DEV-0010); recuperável pelo histórico do git
-  conforme [docs/HISTORICO.md](../HISTORICO.md).
+  conforme [docs/HISTORICO.md](../HISTORICO.md). O CI roda [tools/repo-checks/check-docs.mjs](../../tools/repo-checks/check-docs.mjs): caminhos versionados até 200 caracteres, links relativos dos `.md` (fora de `legacy/`) e os caminhos do `HISTORICO.md` presentes no commit citado e ausentes do HEAD.
 
 - **Estrutura do monorepo** (DEV-0011): `services/` (4 serviços), `libs/`, `apps/`, `packages/`, `infra/`
   só com READMEs; `pom.xml` parent (Java 25, Spring Boot 4.1.3, enforcer) e workspace pnpm.

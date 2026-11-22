@@ -17,7 +17,7 @@ ainda contém esses arquivos é **`9b8f73a`**.
 | `docs/01-product/`, `docs/03-platform/`, `docs/04-standards/` | Esqueletos vazios |
 | `docs/02-domains/` | Workshop do domínio Identity |
 | `docs/02-use-cases/` | ~1.180 arquivos de casos de uso por domínio |
-| `docs/03-specification-gold/` | Especificação "gold" por domínio |
+| `docs/03-specification-gold/` | Handbook de engenharia da especificação "gold" |
 | `docs/DDD_MODELING.md`, `docs/specification-manifest.yaml` | Modelagem DDD do MVP antigo e manifesto |
 | `playbook/` | Cópia antiga do playbook |
 | `MVP_SPECIFICATION.md`, `API_DOCUMENTATION.md`, `IMPROVEMENTS.md`, `REPOSITORY_LAYER.md`, `SETUP.md`, `TESTS.md`, `FRONTEND_README.md` | Documentos da raiz da primeira versão |
