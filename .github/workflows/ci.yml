@@ -144,7 +144,9 @@ jobs:
         env:
           MUTATIONS: ${{ needs.changes.outputs.mutations }}
         run: |
-          node tools/repo-checks/mutations.mjs --area tools $(jq -r '.[]' <<<"$MUTATIONS")
+          # Atribuição separada: com bash -e, falha do jq derruba o passo em vez de virar lista vazia.
+          manifests="$(jq -r '.[]' <<<"$MUTATIONS")"
+          node tools/repo-checks/mutations.mjs --area tools $manifests
 
       - name: Test pre-push hook
         working-directory: .
@@ -205,7 +207,9 @@ jobs:
         env:
           MUTATIONS: ${{ needs.changes.outputs.mutations }}
         run: |
-          node tools/repo-checks/mutations.mjs --area java $(jq -r '.[]' <<<"$MUTATIONS")
+          # Atribuição separada: com bash -e, falha do jq derruba o passo em vez de virar lista vazia.
+          manifests="$(jq -r '.[]' <<<"$MUTATIONS")"
+          node tools/repo-checks/mutations.mjs --area java $manifests
 
       # No PR, a imagem de cada serviço alterado precisa construir e rodar sem root antes do merge
       # (DEV-0017); o push na master constrói de novo e publica no job Publish Images.
@@ -287,7 +291,9 @@ jobs:
         env:
           MUTATIONS: ${{ needs.changes.outputs.mutations }}
         run: |
-          node tools/repo-checks/mutations.mjs --area apps $(jq -r '.[]' <<<"$MUTATIONS")
+          # Atribuição separada: com bash -e, falha do jq derruba o passo em vez de virar lista vazia.
+          manifests="$(jq -r '.[]' <<<"$MUTATIONS")"
+          node tools/repo-checks/mutations.mjs --area apps $manifests
 
   local-infrastructure:
     name: Local Infrastructure

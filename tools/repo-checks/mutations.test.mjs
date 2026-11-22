@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import { changedManifests, withManifestAreas } from './ci-changes.mjs';
-import { applyMutant, manifestAreas, runManifests, validateManifest } from './mutations.mjs';
+import { applyMutant, defaultRun, manifestAreas, runManifests, validateManifest } from './mutations.mjs';
 
 /** Repositório temporário com um arquivo alvo e os manifestos dados. */
 function withRepo(files, callback) {
@@ -27,6 +27,8 @@ const mutant = (overrides = {}) => ({
 });
 const manifest = (mutants, issue = 'DEV-0116') => ({ issue, mutants });
 const GUARD = 'export function guard(ok) {\n  if (!ok) throw new Error();\n}\n';
+/** O arquivo alvo está sem mutante (comando falso: passa sem mutante e falha com ele). */
+const guardIntact = (root) => readFileSync(join(root, 'src/guard.mjs'), 'utf8').includes('throw');
 
 // --- validação do manifesto ---
 
@@ -115,10 +117,11 @@ test('roda só os mutantes da área e junta os erros de todos os manifestos', ()
   }, (root) => {
     const ran = [];
     const { results, errors } = runManifests(['mutations/DEV-0116.json', 'mutations/DEV-0117.json'], 'tools', {
-      root, run: (command) => { ran.push(command); return 1; },
+      root, run: (command) => { ran.push(command); return guardIntact(root) ? 0 : 1; },
     });
     assert.deepEqual(results.map(({ id, outcome }) => [id, outcome]), [['M1', 'KILLED']]);
-    assert.equal(ran.length, 1);
+    // Uma execução de base (sem mutante) e uma com o mutante, só da área tools.
+    assert.equal(ran.length, 2);
     assert.equal(errors.length, 1);
     assert.match(errors[0], /DEV-0117\.json: JSON inválido/);
   });
@@ -128,6 +131,49 @@ test('mutante sobrevivente vira erro do manifesto', () => {
   withRepo({ 'src/guard.mjs': GUARD, 'mutations/DEV-0116.json': JSON.stringify(manifest([mutant()])) }, (root) => {
     const { errors } = runManifests(['mutations/DEV-0116.json'], 'tools', { root, run: () => 0 });
     assert.match(errors[0], /M1: SURVIVED/);
+  });
+});
+
+// Code Review do PR #188 (HIGH): comando que já falha sem mutante (teste inexistente, executável ausente)
+// "matava" qualquer mutante. A execução de base precisa passar, e erro de execução nunca é KILLED.
+test('comando que falha sem mutante não prova nada: o mutante nem é aplicado', () => {
+  withRepo({ 'src/guard.mjs': GUARD, 'mutations/DEV-0116.json': JSON.stringify(manifest([mutant(), mutant({ id: 'M2' })])) }, (root) => {
+    let mutatedRuns = 0;
+    const { results, errors } = runManifests(['mutations/DEV-0116.json'], 'tools', {
+      root, run: () => { if (!guardIntact(root)) mutatedRuns += 1; return 1; },
+    });
+    assert.deepEqual(results.map(({ outcome }) => outcome), ['BASELINE_FAILED', 'BASELINE_FAILED']);
+    assert.match(errors[0], /M1: BASELINE_FAILED — o comando falha sem mutante \(saiu com 1\)/);
+    assert.equal(mutatedRuns, 0);
+  });
+});
+
+test('comando que não executa vira erro, na base ou com o mutante, nunca KILLED', () => {
+  withRepo({ 'src/guard.mjs': GUARD, 'mutations/DEV-0116.json': JSON.stringify(manifest([mutant()])) }, (root) => {
+    const notFound = runManifests(['mutations/DEV-0116.json'], 'tools', { root, run: () => { throw new Error('comando não executou (ENOENT)'); } });
+    assert.deepEqual(notFound.results.map(({ outcome }) => outcome), ['BASELINE_FAILED']);
+    assert.match(notFound.errors[0], /ENOENT/);
+
+    // Passa sem mutante e quebra ao executar com ele (timeout, sinal): erro de execução, não morte.
+    const crash = runManifests(['mutations/DEV-0116.json'], 'tools', {
+      root, run: () => { if (guardIntact(root)) return 0; throw new Error('comando interrompido por SIGKILL'); },
+    });
+    assert.deepEqual(crash.results.map(({ outcome }) => outcome), ['COMMAND_ERROR']);
+    assert.equal(readFileSync(join(root, 'src/guard.mjs'), 'utf8'), GUARD);
+  });
+});
+
+test('o executor padrão lança quando o executável não existe', { skip: process.platform === 'win32' && 'No Windows o executável passa pelo cmd, que devolve código 1 em vez de ENOENT; o CI roda em Linux (DEV-0116)' }, () => {
+  assert.throws(() => defaultRun(['comando-que-nao-existe-dev0116'], tmpdir()), /comando não executou \(ENOENT\)/);
+  assert.equal(defaultRun(['node', '-e', 'process.exit(3)'], tmpdir()), 3);
+});
+
+test('argumento com metacaractere de shell é recusado', () => {
+  withRepo({ 'src/guard.mjs': GUARD }, (root) => {
+    for (const part of ['a&b', 'x|y', '>out', '%PATH%', 'a^b', '"q"']) {
+      assert.match(validateManifest(manifest([mutant({ command: ['node', part] })]), 'mutations/DEV-0116.json', root).join(' '), /metacaractere/, part);
+    }
+    assert.deepEqual(validateManifest(manifest([mutant({ command: ['mvn', '-Dtest=Foo#bar', '-pl', 'services/a'] })]), 'mutations/DEV-0116.json', root), []);
   });
 });
 

@@ -36,7 +36,8 @@ etapas verificadas vão para o QA.
 - **Mutação (DEV-0116):** o `Detect changes` publica os manifestos `mutations/<CHAVE>.json`
   alterados no PR e liga as áreas que eles citam. O `GitHub Reviewer`, o `Java Services` e o `Apps`
   rodam [mutations.mjs](../../tools/repo-checks/mutations.mjs) com os mutantes da sua área (`tools`,
-  `java`, `apps`). Mutante que sobrevive, trecho não único ou arquivo não restaurado derruba o job.
+  `java`, `apps`). Cada comando roda antes sem mutante e precisa passar. Mutante que sobrevive, comando
+  que já falha ou não executa, trecho não único ou arquivo não restaurado derruba o job.
   Formato no ENGENHARIA.md §9.
 - Os jobs `Java Services` e `Apps` rodam a guarda contra teste pulado
   ([check-skipped-tests.mjs](../../tools/repo-checks/check-skipped-tests.mjs)) nos

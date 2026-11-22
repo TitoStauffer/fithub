@@ -293,11 +293,12 @@ pega com um manifesto `mutations/<CHAVE>.json`, versionado junto da tarefa:
 
 - **`area`:** decide o job que roda o mutante: `java` no `Java Services`, `apps` no `Apps` e `tools` no `GitHub Reviewer`.
 - **`find`:** trecho exato que precisa aparecer **uma vez** no arquivo. `replace` é o mutante.
-- **`command`:** argv sem shell. O executável é `mvn`, `pnpm`, `node` ou `npm`, e o comando precisa **falhar** com o mutante aplicado.
+- **`command`:** argv sem shell, com executável `mvn`, `pnpm`, `node` ou `npm` e sem metacaracteres de shell (`& | < > ^ % "`). Ele precisa **passar** sem o mutante (execução de base) e **falhar** com o mutante aplicado. A lista de executáveis não é barreira de segurança, porque o manifesto vem do PR, como os testes; o job de mutação não recebe segredos.
 
 O CI roda só os manifestos alterados no PR, e um manifesto alterado liga as
 áreas que cita. O job falha se:
 - o manifesto for inválido;
+- o comando falhar já sem o mutante, ou não executar (executável ausente, timeout, sinal);
 - um trecho não for único;
 - um mutante sobreviver;
 - o arquivo não voltar byte a byte ao original.

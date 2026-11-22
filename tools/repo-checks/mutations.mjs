@@ -5,8 +5,9 @@
 //
 //   node tools/repo-checks/mutations.mjs --area <java|apps|tools> <manifesto>...
 //
-// Falha quando: o manifesto é inválido; um trecho não aparece exatamente uma vez no arquivo; um mutante
-// sobrevive (o comando termina com sucesso); ou o arquivo não volta byte a byte ao original.
+// Falha quando: o manifesto é inválido; o comando falha já sem mutante (execução de base) ou não executa;
+// um trecho não aparece exatamente uma vez no arquivo; um mutante sobrevive (o comando termina com
+// sucesso); ou o arquivo não volta byte a byte ao original.
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -14,8 +15,13 @@ import { basename, isAbsolute, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const AREAS = ['java', 'apps', 'tools'];
-// Executáveis que um mutante pode chamar. O comando roda sem shell, com argv explícito.
+// Executáveis que um mutante pode chamar, com argv explícito e sem shell. Não é barreira de segurança: o
+// manifesto vem do PR, como os testes, e `node -e` ou `npm exec` rodam qualquer código; a lista só
+// mantém os manifestos no padrão das ferramentas do repositório. O job de mutação não recebe segredos.
 export const ALLOWED_COMMANDS = new Set(['mvn', 'pnpm', 'node', 'npm']);
+// Metacaracteres que o cmd do Windows interpretaria ao repassar o argv (execução local); recusados em
+// qualquer sistema para o manifesto valer igual no CI e na máquina de quem roda.
+const SHELL_METACHARACTERS = /[&|<>^%"]/;
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const COMMAND_TIMEOUT_MS = 20 * 60 * 1000;
 
@@ -47,6 +53,8 @@ export function validateManifest(manifest, fileName, root = ROOT) {
       problems.push(`${where}: "command" precisa ser uma lista de argumentos`);
     } else if (!ALLOWED_COMMANDS.has(command[0])) {
       problems.push(`${where}: comando "${command[0]}" fora da lista (${[...ALLOWED_COMMANDS].join(', ')})`);
+    } else if (command.some((part) => SHELL_METACHARACTERS.test(part))) {
+      problems.push(`${where}: argumento do "command" com metacaractere de shell (& | < > ^ % ")`);
     }
   }
   return problems;
@@ -68,12 +76,18 @@ function occurrences(text, part) {
   return count;
 }
 
-/** Roda o comando com argv, sem shell; no Windows, mvn/pnpm/npm são .cmd e precisam do cmd. */
-function defaultRun(command, root) {
+/**
+ * Roda o comando com argv, sem shell; no Windows, mvn/pnpm/npm são .cmd e precisam do cmd. Devolve o
+ * código de saída. Comando que não inicia (executável ausente), estoura o tempo ou morre por sinal lança
+ * erro: isso nunca pode contar como mutante morto (Code Review do PR #188).
+ */
+export function defaultRun(command, root) {
   const windowsShim = process.platform === 'win32' && command[0] !== 'node';
   const result = windowsShim
     ? spawnSync('cmd.exe', ['/d', '/s', '/c', ...command], { cwd: root, stdio: 'inherit', timeout: COMMAND_TIMEOUT_MS })
     : spawnSync(command[0], command.slice(1), { cwd: root, stdio: 'inherit', timeout: COMMAND_TIMEOUT_MS });
+  if (result.error) throw new Error(`comando não executou (${result.error.code ?? result.error.message}): ${command.join(' ')}`);
+  if (result.status === null) throw new Error(`comando interrompido por ${result.signal ?? 'sinal'}: ${command.join(' ')}`);
   return result.status;
 }
 
@@ -102,7 +116,8 @@ export function applyMutant(mutant, { root = ROOT, run = defaultRun, write = wri
     return { id: mutant.id, outcome: 'NOT_RESTORED', detail: `${mutant.file} não voltou ao original` };
   }
   if (status === 0) return { id: mutant.id, outcome: 'SURVIVED', detail: `o comando passou com o mutante: ${mutant.command.join(' ')}` };
-  return { id: mutant.id, outcome: 'KILLED', detail: status === null ? 'comando interrompido (timeout ou sinal)' : `comando saiu com ${status}` };
+  if (!Number.isInteger(status)) return { id: mutant.id, outcome: 'COMMAND_ERROR', detail: `o comando não devolveu código de saída (${status})` };
+  return { id: mutant.id, outcome: 'KILLED', detail: `comando saiu com ${status}` };
 }
 
 /** Valida e aplica os mutantes da área em cada manifesto. Devolve os resultados e os erros. */
@@ -123,8 +138,32 @@ export function runManifests(files, area, options = {}) {
       errors.push(...problems.map((problem) => `${file}: ${problem}`));
       continue;
     }
-    for (const mutant of manifest.mutants.filter((candidate) => candidate.area === area)) {
-      const result = applyMutant(mutant, { root, run: options.run, write: options.write });
+    const run = options.run ?? defaultRun;
+    const mutants = manifest.mutants.filter((candidate) => candidate.area === area);
+    // Execução de base (Code Review do PR #188): cada comando distinto roda antes, sem mutante, e
+    // precisa passar. Um comando que já falha (teste inexistente, teste quebrado) "mataria" qualquer
+    // mutante e viraria prova falsa.
+    const baseline = new Map();
+    for (const command of new Set(mutants.map((mutant) => JSON.stringify(mutant.command)))) {
+      try {
+        const status = run(JSON.parse(command), root);
+        baseline.set(command, status === 0 ? null : `o comando falha sem mutante (saiu com ${status})`);
+      } catch (error) {
+        baseline.set(command, error.message);
+      }
+    }
+    for (const mutant of mutants) {
+      const baselineProblem = baseline.get(JSON.stringify(mutant.command));
+      let result;
+      if (baselineProblem) {
+        result = { id: mutant.id, outcome: 'BASELINE_FAILED', detail: baselineProblem };
+      } else {
+        try {
+          result = applyMutant(mutant, { root, run, write: options.write });
+        } catch (error) {
+          result = { id: mutant.id, outcome: 'COMMAND_ERROR', detail: error.message };
+        }
+      }
       results.push({ manifest: file, ...result });
       if (result.outcome !== 'KILLED') errors.push(`${file} ${result.id}: ${result.outcome} — ${result.detail}`);
     }

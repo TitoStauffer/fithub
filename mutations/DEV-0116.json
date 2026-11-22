@@ -63,6 +63,33 @@
             "find": " && existsSync(join(root, path)))",
             "replace": ")",
             "command": ["node", "--test", "tools/repo-checks/mutations.test.mjs"]
+        },
+        {
+            "id": "M8",
+            "description": "Comando que falha sem mutante passa a ser aceito (sem execução de base)",
+            "area": "tools",
+            "file": "tools/repo-checks/mutations.mjs",
+            "find": "baseline.set(command, status === 0 ? null : `o comando falha sem mutante (saiu com ${status})`);",
+            "replace": "baseline.set(command, null);",
+            "command": ["node", "--test", "tools/repo-checks/mutations.test.mjs"]
+        },
+        {
+            "id": "M9",
+            "description": "Comando que não executa com o mutante passa a contar como mutante morto",
+            "area": "tools",
+            "file": "tools/repo-checks/mutations.mjs",
+            "find": "result = { id: mutant.id, outcome: 'COMMAND_ERROR', detail: error.message };",
+            "replace": "result = { id: mutant.id, outcome: 'KILLED', detail: error.message };",
+            "command": ["node", "--test", "tools/repo-checks/mutations.test.mjs"]
+        },
+        {
+            "id": "M10",
+            "description": "Argumento com metacaractere de shell passa a ser aceito no comando",
+            "area": "tools",
+            "file": "tools/repo-checks/mutations.mjs",
+            "find": "} else if (command.some((part) => SHELL_METACHARACTERS.test(part))) {",
+            "replace": "} else if (false) {",
+            "command": ["node", "--test", "tools/repo-checks/mutations.test.mjs"]
         }
     ]
 }
