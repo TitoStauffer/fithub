@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:fithub:event:account.professional-registered.v1",
+  "title": "ProfissionalCadastrado v1",
+  "description": "Um profissional concluiu o cadastro. O número de registro (CREF/CRN) não sai do account-service. Origem: account-service (exchange fithub.account). Consumidores: training-service, nutrition-service e client-service.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["professionalId", "professionalType", "name", "occurredAt"],
+  "properties": {
+    "professionalId": { "type": "string", "format": "uuid" },
+    "professionalType": { "enum": ["personal_trainer", "nutritionist"] },
+    "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "occurredAt": { "type": "string", "format": "date-time", "description": "Quando o cadastro foi concluído, em UTC (ISO-8601)." }
+  },
+  "examples": [
+    {
+      "professionalId": "01937c4e-2222-7ccc-8ddd-000000000002",
+      "professionalType": "nutritionist",
+      "name": "Profissional de Exemplo",
+      "occurredAt": "2026-11-20T09:00:00Z"
+    }
+  ]
+}

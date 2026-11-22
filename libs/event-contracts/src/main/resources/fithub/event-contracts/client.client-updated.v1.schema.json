@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:fithub:event:client.client-updated.v1",
+  "title": "ClienteAtualizado v1",
+  "description": "Os dados básicos do cliente mudaram. Leva o estado completo desses campos (não só o que mudou), para o consumidor substituir a cópia local. Sem dado de saúde: o perfil de saúde nunca sai do client-service. Origem: client-service (exchange fithub.client). Consumidores: training-service e nutrition-service.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["clientId", "name", "birthDate", "gender", "occurredAt"],
+  "properties": {
+    "clientId": { "type": "string", "format": "uuid" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "birthDate": { "type": ["string", "null"], "format": "date", "description": "Data de nascimento (FR-09: a idade é calculada dela); null enquanto o cliente não informar." },
+    "gender": { "type": ["string", "null"], "maxLength": 50, "description": "Como o cliente informou (FR-07); null enquanto não informar. Texto livre até o produto definir as opções." },
+    "occurredAt": { "type": "string", "format": "date-time", "description": "Quando os dados mudaram, em UTC (ISO-8601)." }
+  },
+  "examples": [
+    {
+      "clientId": "01937c4e-1111-7aaa-8bbb-000000000001",
+      "name": "Cliente de Exemplo",
+      "birthDate": "1990-05-17",
+      "gender": null,
+      "occurredAt": "2026-11-22T12:05:00Z"
+    }
+  ]
+}

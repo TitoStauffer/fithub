@@ -82,6 +82,7 @@
     {
       "paths": [
         "libs/java-commons/**",
+        "libs/event-contracts/**",
         "libs/java-testing/**"
       ],
       "documents": [

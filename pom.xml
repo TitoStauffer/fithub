@@ -28,12 +28,15 @@
     <archunit.version>1.4.1</archunit.version>
     <!-- Linha 3.1 do springdoc: a construída sobre o Spring Boot 4.1 (a 3.2 já usa o 4.2). -->
     <springdoc.version>3.1.1</springdoc.version>
+    <!-- Linha 3 do validador: usa o Jackson 3 (tools.jackson), o mesmo do Spring Boot 4. -->
+    <json-schema-validator.version>3.0.9</json-schema-validator.version>
   </properties>
 
   <!-- Módulos entram conforme forem criados: libs (DEV-0013, DEV-0014, DEV-0018) e serviços (DEV-0015). -->
   <modules>
     <module>libs/java-commons</module>
     <module>libs/java-testing</module>
+    <module>libs/event-contracts</module>
     <module>services/account-service</module>
     <module>services/client-service</module>
     <module>services/training-service</module>
@@ -51,6 +54,16 @@
         <groupId>com.fithub</groupId>
         <artifactId>java-testing</artifactId>
         <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fithub</groupId>
+        <artifactId>event-contracts</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.networknt</groupId>
+        <artifactId>json-schema-validator</artifactId>
+        <version>${json-schema-validator.version}</version>
       </dependency>
       <dependency>
         <groupId>org.springdoc</groupId>

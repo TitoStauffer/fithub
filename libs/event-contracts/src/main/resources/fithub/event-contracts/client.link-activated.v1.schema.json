@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:fithub:event:client.link-activated.v1",
+  "title": "VinculoAtivado v1",
+  "description": "O cliente aceitou o convite e deu consentimento: o profissional passa a acessar os dados do escopo. Origem: client-service (exchange fithub.client). Consumidores: training-service e nutrition-service, que atualizam a projeção local de vínculos ativos.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["linkId", "clientId", "professionalId", "professionalType", "consentScope", "occurredAt"],
+  "properties": {
+    "linkId": { "type": "string", "format": "uuid", "description": "Id do vínculo (UUID v7); o mesmo no VinculoEncerrado." },
+    "clientId": { "type": "string", "format": "uuid" },
+    "professionalId": { "type": "string", "format": "uuid" },
+    "professionalType": {
+      "enum": ["personal_trainer", "nutritionist"],
+      "description": "Decide qual serviço libera o acesso: personal_trainer no training, nutritionist no nutrition (BR-03)."
+    },
+    "consentScope": {
+      "type": "array",
+      "description": "Dados compartilhados que o cliente autorizou (FR-11, BR-04).",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "enum": ["profile", "health_profile", "body_assessments", "photos"] }
+    },
+    "occurredAt": { "type": "string", "format": "date-time", "description": "Quando o vínculo foi ativado, em UTC (ISO-8601)." }
+  },
+  "examples": [
+    {
+      "linkId": "01937c4e-8a2b-7f3c-9d1e-2b4c6d8e0f12",
+      "clientId": "01937c4e-1111-7aaa-8bbb-000000000001",
+      "professionalId": "01937c4e-2222-7ccc-8ddd-000000000002",
+      "professionalType": "personal_trainer",
+      "consentScope": ["profile", "health_profile", "body_assessments", "photos"],
+      "occurredAt": "2026-11-22T12:00:00Z"
+    }
+  ]
+}
