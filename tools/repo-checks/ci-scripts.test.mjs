@@ -31,6 +31,13 @@ test('contrato OpenAPI liga o Java e Dockerfile de serviço liga os apps', () =>
   assert.deepEqual(classifyChanges(['services/training-service/src/main/java/A.java']), { java: true, apps: false, infra: false });
 });
 
+// DEV-0129: a configuração do padrão de código liga a área que ela confere.
+test('regras do Checkstyle ligam o Java e a configuração do Prettier liga os apps', () => {
+  assert.deepEqual(classifyChanges(['config/checkstyle/checkstyle.xml']), { java: true, apps: false, infra: false });
+  assert.deepEqual(classifyChanges(['.editorconfig']), { java: false, apps: true, infra: false });
+  assert.deepEqual(classifyChanges(['.prettierrc.json']), { java: false, apps: true, infra: false });
+});
+
 test('documentação e ferramentas de revisão não ligam serviços, apps nem infraestrutura', () => {
   assert.deepEqual(classifyChanges(['docs/00-oficial/PRD.md', 'tools/github-reviewer/src/cli.mjs', 'AGENTS.md']),
     { java: false, apps: false, infra: false });

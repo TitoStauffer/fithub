@@ -177,6 +177,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # Histórico completo: o Spotless compara com a origin/master para conferir só os arquivos alterados.
+          fetch-depth: 0
 
       - name: Setup Java
         if: env.RUN_AREA == 'true'
@@ -191,6 +193,11 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
+
+      # Padrão de código (DEV-0129): formatação dos arquivos alterados (Spotless) e regras do Checkstyle em tudo.
+      - name: Code style (Java)
+        if: env.RUN_AREA == 'true'
+        run: mvn -B -ntp spotless:check checkstyle:check
 
       # Unitários, ArchUnit e integração com Testcontainers (Postgres e RabbitMQ); o enforcer do POM pai roda junto.
       - name: Build and test Java modules

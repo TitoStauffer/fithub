@@ -1,0 +1,50 @@
+{
+    "issue": "DEV-0129",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Arquivo Java alterado fora da formatação do palantir-java-format passa no Spotless",
+            "area": "java",
+            "file": "libs/event-contracts/src/main/java/com/fithub/eventcontracts/ContractViolationException.java",
+            "find": "    private final List<String> violations;",
+            "replace": "    private   final List<String>   violations;",
+            "command": ["mvn", "-B", "-ntp", "-q", "spotless:check", "-pl", "libs/event-contracts"]
+        },
+        {
+            "id": "M2",
+            "description": "Import com curinga passa no Checkstyle",
+            "area": "java",
+            "file": "libs/event-contracts/src/main/java/com/fithub/eventcontracts/ContractViolationException.java",
+            "find": "import java.util.List;",
+            "replace": "import java.util.*;",
+            "command": ["mvn", "-B", "-ntp", "-q", "checkstyle:check", "-pl", "libs/event-contracts"]
+        },
+        {
+            "id": "M3",
+            "description": "Código do mobile fora do padrão do Prettier passa no lint",
+            "area": "apps",
+            "file": "apps/mobile/src/lib/api.ts",
+            "find": "import type { ClientServicePaths } from '@fithub/api-types';",
+            "replace": "import type {ClientServicePaths} from \"@fithub/api-types\"",
+            "command": ["pnpm", "--filter", "mobile", "run", "lint"]
+        },
+        {
+            "id": "M4",
+            "description": "Mudança nas regras do Checkstyle deixa de ligar o job Java",
+            "area": "tools",
+            "file": "tools/repo-checks/ci-changes.mjs",
+            "find": "\n    || JAVA_CODE_STYLE(path),",
+            "replace": ",",
+            "command": ["node", "--test", "tools/repo-checks/ci-scripts.test.mjs"]
+        },
+        {
+            "id": "M5",
+            "description": "Mudança no .editorconfig ou no .prettierrc.json deixa de ligar o job Apps",
+            "area": "tools",
+            "file": "tools/repo-checks/ci-changes.mjs",
+            "find": "\n    || APPS_CODE_STYLE(path)",
+            "replace": "",
+            "command": ["node", "--test", "tools/repo-checks/ci-scripts.test.mjs"]
+        }
+    ]
+}

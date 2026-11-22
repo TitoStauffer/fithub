@@ -54,6 +54,11 @@ Resumo; o detalhe está no ENGENHARIA.md.
 - **Idioma no código:** identificadores (classes, métodos, variáveis, tabelas,
   endpoints) em inglês. Comentários em português. Mensagens exibidas ao
   usuário em português.
+- **Formatação e lint** são de ferramenta, não de opinião: Spotless
+  (palantir-java-format) e Checkstyle no Java, ESLint e Prettier nos
+  workspaces TypeScript. O CI reprova código fora do padrão. Antes do commit,
+  rode `mvn spotless:apply` ou `pnpm --filter <app> run format`
+  (ENGENHARIA.md §5, "Padrão de código").
 
 ## Qualidade, segurança e documentação
 

@@ -16,16 +16,25 @@ test('os tipos commitados batem com a geração a partir dos contratos OpenAPI',
         assert.ok(existsSync(file), `${path} não existe: rode pnpm --filter @fithub/api-types generate`);
         // Checkout no Windows pode trazer CRLF (core.autocrlf); o conteúdo é o mesmo.
         const committed = readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
-        assert.equal(committed, expected, `${path} desatualizado: rode pnpm --filter @fithub/api-types generate`);
+        assert.equal(
+            committed,
+            expected,
+            `${path} desatualizado: rode pnpm --filter @fithub/api-types generate`,
+        );
     }
     // Nenhum arquivo gerado sobrando de um contrato que saiu.
-    const generated = readdirSync(join(ROOT, 'src')).map((file) => `src/${file}`).sort();
+    const generated = readdirSync(join(ROOT, 'src'))
+        .map((file) => `src/${file}`)
+        .sort();
     assert.deepEqual(generated, [...files.keys()].sort());
 });
 
 test('todo serviço com Dockerfile tem contrato OpenAPI', () => {
     const withImage = readdirSync(join(REPOSITORY, 'services'), { withFileTypes: true })
-        .filter((entry) => entry.isDirectory() && existsSync(join(REPOSITORY, 'services', entry.name, 'Dockerfile')))
+        .filter(
+            (entry) =>
+                entry.isDirectory() && existsSync(join(REPOSITORY, 'services', entry.name, 'Dockerfile')),
+        )
         .map((entry) => entry.name)
         .sort();
     assert.deepEqual(services(), withImage);

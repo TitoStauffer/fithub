@@ -1,5 +1,19 @@
-root=true
+# Padrão de código (DEV-0129, ENGENHARIA.md §5). O Prettier lê este arquivo: a indentação daqui vale
+# para TypeScript, JSON e Markdown dos workspaces. O fim de linha no repositório é LF (.gitattributes);
+# no checkout do Windows o Git pode convertê-lo, por isso não é fixado aqui.
+root = true
 
 [*]
-indent_style=space
-indent_size=4
+charset = utf-8
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Workflows, compose e demais YAML seguem a convenção de 2 espaços.
+[*.{yml,yaml}]
+indent_size = 2
+
+# Quebra de linha com dois espaços no fim é sintaxe do Markdown.
+[*.md]
+trim_trailing_whitespace = false

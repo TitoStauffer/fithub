@@ -3,12 +3,12 @@
 App mobile do cliente (DEV-0021): Expo + React Native + TypeScript. Esqueleto: as telas (registro de
 série, refeições, avaliações) chegam com as histórias do E1 em diante.
 
-| Peça | Versão | Observação |
-|---|---|---|
-| Expo SDK | 58.0 | React Native 0.88 e React 19.3, nas versões que o SDK fixa |
-| TypeScript | 6.0 | Mesma linha do app web |
-| ESLint + eslint-config-expo | 9.39 / 58.0 | A configuração do Expo ainda usa plugins sem suporte ao ESLint 10; volta para a 10 quando ela suportar |
-| Jest + jest-expo + React Native Testing Library | 30.5 / 58.0 / 14.1 | Testes de comportamento; JUnit em `reports/junit.xml` (jest-junit) para a guarda do CI |
+| Peça                                            | Versão             | Observação                                                                                             |
+| ----------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------ |
+| Expo SDK                                        | 58.0               | React Native 0.88 e React 19.3, nas versões que o SDK fixa                                             |
+| TypeScript                                      | 6.0                | Mesma linha do app web                                                                                 |
+| ESLint + eslint-config-expo                     | 9.39 / 58.0        | A configuração do Expo ainda usa plugins sem suporte ao ESLint 10; volta para a 10 quando ela suportar |
+| Jest + jest-expo + React Native Testing Library | 30.5 / 58.0 / 14.1 | Testes de comportamento; JUnit em `reports/junit.xml` (jest-junit) para a guarda do CI                 |
 
 ## Comandos
 

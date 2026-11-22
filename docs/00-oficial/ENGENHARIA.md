@@ -173,6 +173,37 @@ Cada serviço escuta numa porta própria no desenvolvimento local: `account`
 Domínio compartilhado entre serviços é proibido. Se dois serviços precisam do
 mesmo conceito, cada um tem o seu modelo.
 
+### Padrão de código (DEV-0129)
+
+As convenções de nome e de idioma estão no [AGENTS.md](../../AGENTS.md).
+Formatação e lint são aplicados por ferramenta e conferidos no CI: código
+fora do padrão reprova o job da área (Java Services ou Apps).
+
+| Área | Ferramenta | O que confere | Como corrigir localmente |
+|---|---|---|---|
+| Java | Spotless + palantir-java-format | Formatação, imports não usados, espaço no fim da linha | `mvn spotless:apply` |
+| Java | Checkstyle (`config/checkstyle/checkstyle.xml`) | Imports (sem curinga, sem não usado), nomes, complexidade ciclomática até 12, chaves em bloco de mais de uma linha | Ajuste manual; `mvn checkstyle:check` mostra arquivo e linha |
+| TypeScript | ESLint (typescript-eslint, react-hooks no web; eslint-config-expo no mobile) | Lint, com `--max-warnings 0` | `pnpm --filter <app> run lint` |
+| TypeScript, JSON, Markdown | Prettier (`.prettierrc.json` na raiz) | Formatação nos workspaces web, mobile e api-types | `pnpm --filter <app> run format` |
+| Geral | `.editorconfig` | 4 espaços (2 em YAML), UTF-8, linha final | O editor aplica |
+
+- **O Spotless confere só os arquivos alterados** em relação à `origin/master`
+  (ratchet). O código anterior ao padrão é formatado quando for tocado, sem um
+  PR de formatação em massa. No Windows, com o checkout em CRLF, o ratchet
+  vê todo arquivo como alterado: rode `spotless:apply` só nos arquivos do PR
+  ou dentro de um contêiner Linux, como o CI.
+- **O Checkstyle confere tudo.** Regra nova entra com o código existente já
+  em conformidade. Nos testes e na `libs/java-testing`, regras do ArchUnit e
+  contêineres do Testcontainers podem ser `static final` em camelCase;
+  logger se chama `log`.
+- **Guarda curta numa linha** (`if (x) return y;`) é aceita. Se o formatador
+  quebrar a linha, o bloco ganha chaves.
+- Os dois goals Java não estão ligados ao ciclo de build: `mvn verify` e o
+  build das imagens não dependem do histórico do Git. O CI roda
+  `mvn spotless:check checkstyle:check` num passo próprio.
+- Camadas continuam com o ArchUnit (acima). As ferramentas de automação em
+  `tools/` têm projeto npm próprio e não entram no Prettier por enquanto.
+
 ---
 
 ## 6. Estrutura do monorepo (PROPOSTO)

@@ -119,6 +119,16 @@
     },
     {
       "paths": [
+        "config/checkstyle/**",
+        ".editorconfig",
+        ".prettierrc.json"
+      ],
+      "documents": [
+        "docs/00-oficial/ENGENHARIA.md"
+      ]
+    },
+    {
+      "paths": [
         "mutations/**"
       ],
       "documents": [

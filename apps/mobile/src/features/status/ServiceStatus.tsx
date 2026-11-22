@@ -57,5 +57,11 @@ export function ServiceStatus({ checkHealth = fetchClientHealth }: ServiceStatus
 
 const styles = StyleSheet.create({
     row: { alignItems: 'center', gap: 8 },
-    button: { borderWidth: 1, borderColor: '#ccc', borderRadius: 6, paddingHorizontal: 12, paddingVertical: 6 },
+    button: {
+        borderWidth: 1,
+        borderColor: '#ccc',
+        borderRadius: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+    },
 });
