@@ -137,3 +137,48 @@ ao SHA novo (o reset pode chegar depois dela).
   - **Correção:** workflow `approval-reset` no `synchronize`, preservando a aprovação do bot que já vale
     para o HEAD atual, relendo o PR antes de gravar e paginando as leituras.
   - **Prevenção:** testes das guardas em `test/approval-reset.test.mjs`, cada uma provada por mutação.
+
+## runner-reregister-precisa-limpar-registro-local
+
+**Regra:** `config.cmd --replace` substitui o registro do runner **no GitHub**, mas o `config.cmd` recusa
+reconfigurar enquanto o registro local (`.runner`, `.credentials`, `.credentials_rsaparams`) existe.
+Reregistrar exige remover esses arquivos antes, com o runner parado. Para só reiniciar ou mover o
+runner, rode o instalador sem `-Reregister`.
+
+### Ocorrências
+
+- **Revisão:** bug de uso — reinstalação do runner pelo Tito em 22/11/2026, DEV-0135 (#158) · **PR:** #159 · **SHA:** `01130ab`
+  - **Impacto:** `install-runner.ps1 -Reregister` falhava com "Cannot configure the runner because it is already configured".
+  - **Correção:** `Clear-RunnerRegistration` antes de `Register-Runner` quando `-Reregister`.
+  - **Prevenção:** testes funcional e estático em `test-runner-scripts.ps1`, provados por mutação.
+
+## agentes-locais-instalam-em-pasta-virtualizada
+
+**Regra:** comandos executados de dentro do app desktop do Claude podem ter `%LOCALAPPDATA%`
+redirecionado para `AppData\Local\Packages\Claude_*\LocalCache\Local`. Instalação de serviço de
+máquina (runner, atalho de inicialização) é feita num PowerShell comum, fora do app.
+
+### Ocorrências
+
+- **Revisão:** observado nos logs da orquestração 44964790517 (pasta de trabalho em `Packages\Claude_*`) — DEV-0008 (#114) e DEV-0135 (#158) · **PR:** #159 (README do runner) · **SHA:** `01130ab`
+  - **Impacto:** o runner instalado de dentro do app ficou offline quando a sessão do app reiniciou.
+  - **Correção:** runner reiniciado pelo instalador num PowerShell comum (sem `-Reregister`); voltou
+    online a partir de `%LOCALAPPDATA%\FitHubGithubRunner` e rodou os bots do PR #159.
+  - **Prevenção:** README do runner orienta instalar e reiniciar fora do app.
+
+## testes-de-script-independentes-do-sistema
+
+**Regra:** testes de script que rodam no Windows (local) e no Linux (CI) não podem depender de
+ordenação de texto (`Sort-Object`), separador de caminho ou índice fixo do `PATH`: compare conjuntos e
+verifique presença.
+
+### Ocorrências
+
+- **Revisão:** CI do PR #159 (job `GitHub Reviewer`, Linux) — DEV-0135 (#158) · **PR:** #159 · **SHA:** `01130ab`
+  - **Impacto:** teste falhou no Linux com a função correta; os bots nem rodaram (CI vermelho).
+  - **Correção:** comparação do conjunto de arquivos restantes.
+  - **Prevenção:** esta regra.
+- **Revisão:** CI do PR #140 (índice `[1]` do `PATH` estourou no Linux) — DEV-0125 (#139) · **PR:** #140 · **SHA:** `ff02a9d`
+  - **Impacto:** teste do Git for Windows no PATH falhou no Linux.
+  - **Correção:** verificação por presença (`-contains`).
+  - **Prevenção:** esta regra.
