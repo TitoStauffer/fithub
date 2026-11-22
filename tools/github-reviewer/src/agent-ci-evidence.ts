@@ -123,10 +123,20 @@ export async function loadCiSnapshots(fetchImpl: typeof fetch, repository: strin
     if (payload.encoding !== 'base64' || typeof payload.content !== 'string') throw new Error('Could not read the CI configuration snapshot.');
     const original = Buffer.from(payload.content.replace(/\s/g, ''), 'base64').toString('utf8');
     if (Buffer.byteLength(original, 'utf8') > MAX_SNAPSHOT_BYTES || original.includes('\0')) throw new Error('CI configuration snapshot exceeds the supported source size or format.');
-    const content = path === WORKFLOW_PATH ? redactWorkflowEnvironment(original) : projectPackageScripts(original);
+    const content = projectCiSnapshot(path, original);
     snapshots.push({ path, headSha, originalSha256: createHash('sha256').update(original).digest('hex'), content });
   }
   return snapshots;
+}
+
+// O workflow perde os valores de env; manifesto de pacote fica só com os scripts; os scripts de CI de
+// tools/repo-checks (DEV-0016) não têm configuração nem segredo e entram inteiros. Outro tipo de
+// arquivo na lista é erro de política, e falha fechado.
+export function projectCiSnapshot(path: string, original: string): string {
+  if (path === WORKFLOW_PATH) return redactWorkflowEnvironment(original);
+  if (path.endsWith('/package.json') || path === 'package.json') return projectPackageScripts(original);
+  if (/^tools\/repo-checks\/[a-z0-9-]+\.mjs$/.test(path)) return original;
+  throw new Error(`CI configuration snapshot has no projection for ${path}.`);
 }
 
 function redactWorkflowEnvironment(content: string): string {

@@ -1,6 +1,6 @@
 # Revisão automatizada (bots de Code Review e QA)
 
-**Última revisão:** 22/11/2026
+**Última revisão:** 22/11/2026 (DEV-0016)
 
 Como os bots decidem o que revisar e quando o PR pode ser integrado. As regras de
 trabalho estão no `AGENTS.md` (seções **Trilho de revisão**, **Processo de Code
@@ -10,11 +10,44 @@ que as implementa, para que agentes e pessoas confirmem a regra na fonte.
 ## Política do repositório
 
 O que difere do CashIn, de onde o reviewer veio, fica num único módulo: checks
-exigidos (`GitHub Reviewer` e o status `PR title`), ausência de SonarQube e de
-proteção de branch, raiz do vault, snapshots de CI e checks voláteis excluídos da
-evidência.
+exigidos, ausência de SonarQube e de proteção de branch, raiz do vault, snapshots
+de CI e checks voláteis excluídos da evidência.
 
 - Fonte: [repository-policy.ts](../../tools/github-reviewer/src/repository-policy.ts)
+
+### Checks exigidos (DEV-0016)
+
+O workflow `CI` tem um job por área, e os quatro são exigidos no HEAD, vindos do
+app das GitHub Actions: `GitHub Reviewer`, `Java Services`, `Apps` e
+`Local Infrastructure` (`REQUIRED_AGENT_CHECKS`, `REQUIRED_CI_JOBS`). O status
+`PR title` também é exigido. Os mesmos quatro jobs são os `KNOWN_TEST_JOBS`, cujas
+etapas verificadas vão para o QA.
+
+- O job `Detect changes` roda
+  [ci-changes.mjs](../../tools/repo-checks/ci-changes.mjs) e decide as áreas pelo
+  diff do PR. O diff é lido com `--no-renames -z`, para que arquivo movido e nome
+  com acento não escapem da área (aprendizado `diff-por-caminho-sem-renomeacao`).
+  Push na master roda tudo, e mudança no próprio CI ou em `tools/repo-checks/`
+  também.
+- Cada job de área **sempre roda**. Quando a área não mudou, o passo `Skip` termina
+  com sucesso e os passos de verdade aparecem como pulados. Se o detector falhar ou
+  não disser `false`, o job fica sem sucesso, e o merge bloqueia. Job pulado
+  inteiro (`skipped`) nunca conta como sucesso.
+- Os jobs `Java Services` e `Apps` rodam a guarda contra teste pulado
+  ([check-skipped-tests.mjs](../../tools/repo-checks/check-skipped-tests.mjs)) nos
+  relatórios JUnit. Teste pulado precisa de `DEV-xxxx` na justificativa, e sem
+  nenhum teste a guarda falha. O `Apps` usa `--allow-none` até existirem apps
+  (DEV-0020 e DEV-0021).
+- Snapshots de CI (`CI_SNAPSHOT_PATHS`): o `ci.yml` (sem os valores de `env`), os
+  `scripts` do `package.json` do reviewer e os dois scripts acima, inteiros. Arquivo
+  sem projeção conhecida falha fechado (`projectCiSnapshot`).
+- Testes: `requires each per-area CI job from GitHub Actions on the current HEAD`
+  ([agent-review-inputs.test.mjs](../../tools/github-reviewer/test/agent-review-inputs.test.mjs)),
+  `requires every per-area CI job from GitHub Actions on the current HEAD`
+  ([merge-readiness.test.mjs](../../tools/github-reviewer/test/merge-readiness.test.mjs)),
+  `coordinator never approves a summary that lacks a per-area CI job`
+  ([agent-stage-policy.test.mjs](../../tools/github-reviewer/test/agent-stage-policy.test.mjs))
+  e [ci-scripts.test.mjs](../../tools/repo-checks/ci-scripts.test.mjs).
 
 ## Trilho de revisão
 

@@ -16,8 +16,8 @@ import { REVIEW_RISK_AREAS, validateAgentResultCompleteness } from '../dist/agen
 // `src/change.ts` used to be ambiguous — it is outside `apps/*/src`, so it now classifies as the light
 // track and would excuse the very QA evidence these cases prove to be mandatory.
 const context = { commitSha: 'a'.repeat(40), contextHash: 'b'.repeat(64), botLogin: 'cashin-devagents', changedFiles: ['apps/api/src/change.ts'], acceptanceCriteria: ['Preservar contrato'] };
-// FitHub (DEV-0117): só o job das ferramentas de revisão é exigido.
-const checks = { githubReviewer: 'PASSED' };
+// FitHub (DEV-0117, DEV-0016): os quatro jobs por área do CI são exigidos.
+const checks = { githubReviewer: 'PASSED', javaServices: 'PASSED', apps: 'PASSED', localInfrastructure: 'PASSED' };
 function result(stage, decision = 'APPROVED') {
   return {
     stage, decision, commitSha: context.commitSha, contextHash: context.contextHash,
@@ -144,6 +144,13 @@ test('coordinator blocks failed checks and never approves pending or missing che
     assert.equal(evaluateDeterministicQualityGate({ ...input(), checks: { ...checks, [name]: 'FAILED' } }).decision, 'CHANGES_REQUESTED');
     for (const state of ['PENDING', 'UNKNOWN', undefined]) assert.equal(evaluateDeterministicQualityGate({ ...input(), checks: { ...checks, [name]: state } }).decision, 'INCONCLUSIVE');
   }
+});
+
+// DEV-0016: um resumo antigo, só com o GitHub Reviewer, não basta: job por área ausente é UNKNOWN.
+test('coordinator never approves a summary that lacks a per-area CI job', () => {
+  const decision = evaluateDeterministicQualityGate({ ...input(), checks: { githubReviewer: 'PASSED' } });
+  assert.equal(decision.decision, 'INCONCLUSIVE');
+  assert.match(JSON.stringify(decision), /javaServices: UNKNOWN/);
 });
 
 test('later rejection or inconclusive review invalidates old approval', () => {

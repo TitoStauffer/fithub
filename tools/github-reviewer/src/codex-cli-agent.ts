@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process';
 import type { AgentStage, AgentStageResult, OrchestrationContext } from './agent-orchestrator.js';
 import type { AgentCheckEvidence } from './agent-review-inputs.js';
 import type { AgentCiSnapshot } from './agent-ci-evidence.js';
+import type { RequiredAgentCheck } from './repository-policy.js';
 import { selectPromptVaultContext, type VaultContextSnapshot } from './vault-context.js';
 import {
   extractAcceptanceCriteria,
@@ -156,10 +157,8 @@ export interface PullRequestContext {
   diff: string;
 }
 
-// Uma chave por job exigido em repository-policy.ts (DEV-0117).
-export interface CheckSummary {
-  githubReviewer: string;
-}
+// Uma chave por job exigido em repository-policy.ts (DEV-0117, DEV-0016).
+export type CheckSummary = Record<RequiredAgentCheck, string>;
 
 export interface FormalCodeReviewEvidence {
   state: 'APPROVED';

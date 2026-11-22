@@ -282,10 +282,9 @@ export function summarizeAgentChecks(runs: Array<Record<string, unknown>>, expec
     if (matches.some((run) => run.conclusion !== 'success')) return 'FAILED';
     return 'PASSED';
   };
-  // FitHub (DEV-0117): sem SonarQube e, até a DEV-0016, só o job das ferramentas de revisão.
-  return {
-    githubReviewer: status(REQUIRED_AGENT_CHECKS.githubReviewer, ACTIONS_APP_ID),
-  };
+  // FitHub (DEV-0117, DEV-0016): sem SonarQube; um estado por job exigido, sempre das Actions.
+  return Object.fromEntries(Object.entries(REQUIRED_AGENT_CHECKS)
+    .map(([key, matcher]) => [key, status(matcher, ACTIONS_APP_ID)])) as AgentReviewInputs['checks'];
 }
 
 export function fingerprintAgentReviewInputs(inputs: AgentReviewInputs): Record<string, unknown> {

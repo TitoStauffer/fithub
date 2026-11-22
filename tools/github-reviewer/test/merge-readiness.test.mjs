@@ -6,7 +6,9 @@ import { summarizeAgentChecks, summarizeCheckRunEvidence } from '../dist/agent-r
 
 const sha = 'a'.repeat(40);
 const oldSha = 'b'.repeat(40);
-const checks = ['API', 'Web', 'Mobile', 'Automation Tools', 'SonarQube', 'SonarCloud Code Analysis', 'PR title'].map((name) => ({ name, head_sha: sha, status: 'completed', conclusion: 'success', ...(name === 'Automation Tools' ? { app: { id: 15368 } } : {}) }));
+// DEV-0016: os jobs por área do CI vêm do app das Actions, como o das ferramentas de revisão.
+const ACTIONS_JOBS = ['Automation Tools', 'Java Services', 'Apps', 'Local Infrastructure'];
+const checks = ['API', 'Web', 'Mobile', ...ACTIONS_JOBS, 'SonarQube', 'SonarCloud Code Analysis', 'PR title'].map((name) => ({ name, head_sha: sha, status: 'completed', conclusion: 'success', ...(ACTIONS_JOBS.includes(name) ? { app: { id: 15368 } } : {}) }));
 const reviewInputs = { diff: 'diff contents', checks: summarizeAgentChecks(checks), checkRuns: summarizeCheckRunEvidence(checks, sha), repositoryInstructions: 'trusted instructions', sourceFiles: [] };
 const contextHash = computeAgentContextHash('owner/repo', 7, {
   title: 'Example PR', html_url: 'https://github.com/owner/repo/pull/7', body: '',
@@ -302,6 +304,28 @@ test('blocks when the Mobile check is missing or failed', async () => {
   const failed = await fixture({ checks: fixture().data.checks.map((check) => check.name === 'Mobile' ? { ...check, conclusion: 'failure' } : check) }).evaluate();
   assert.equal(failed.status, 'BLOCKED');
   assert.match(failed.reasons.join(' '), /Mobile: FAILED/);
+});
+
+// DEV-0016: cada job por área do CI (Java Services, Apps, Local Infrastructure) é exigido do app das
+// Actions no HEAD, mesmo com a política do FitHub (sem os checks herdados do CashIn). Ausente, falho,
+// pulado, de outro app ou de outro SHA nunca chega a READY_TO_MERGE.
+test('requires every per-area CI job from GitHub Actions on the current HEAD', async () => {
+  const policy = { branchProtectionAvailable: true, requiredQualityChecks: ['PR title'] };
+  assert.equal((await fixture({ policy }).evaluate()).status, 'READY_TO_MERGE');
+  for (const name of ['Java Services', 'Apps', 'Local Infrastructure']) {
+    const variants = [
+      ['MISSING', fixture().data.checks.filter((check) => check.name !== name)],
+      ['FAILED', fixture().data.checks.map((check) => check.name === name ? { ...check, conclusion: 'failure' } : check)],
+      ['FAILED', fixture().data.checks.map((check) => check.name === name ? { ...check, conclusion: 'skipped' } : check)],
+      ['WRONG_APP', fixture().data.checks.map((check) => check.name === name ? { ...check, app: { id: 5, slug: 'other-app' } } : check)],
+      ['STALE', fixture().data.checks.map((check) => check.name === name ? { ...check, head_sha: oldSha } : check)],
+    ];
+    for (const [state, checks] of variants) {
+      const result = await fixture({ checks, policy }).evaluate();
+      assert.notEqual(result.status, 'READY_TO_MERGE', `${name} ${state}`);
+      assert.ok(result.reasons.includes(`Check obrigatório ${name}: ${state}.`), `${name} ${state}: ${result.reasons.join(' ')}`);
+    }
+  }
 });
 
 test('blocks when a required check is reported by a different GitHub App', async () => {

@@ -2,7 +2,7 @@
 
 | Workflow | Quando roda | O que faz |
 |---|---|---|
-| `ci.yml` (`CI`) | push na master e PR | Job `GitHub Reviewer`: build e testes de `tools/github-reviewer`, teste do hook `pre-push` e dos scripts do runner. Jobs dos serviços e apps entram na DEV-0016 (DEV-0007) |
+| `ci.yml` (`CI`) | push na master e PR | `Detect changes` decide as áreas pelo diff (push na master roda tudo). `GitHub Reviewer`: reviewer, docs, scripts de CI, hook `pre-push` e scripts do runner. `Java Services`: `mvn verify` (unitários, ArchUnit, Testcontainers) e guarda de teste pulado. `Apps`: lint, typecheck e testes do workspace pnpm. `Local Infrastructure`: compose de desenvolvimento saudável. Os quatro são exigidos e sempre rodam; área sem mudança termina com sucesso sem trabalhar (DEV-0007, DEV-0016) |
 | `issue-key.yml` | issue aberta; manual | Dá a próxima chave `[DEV-NNNN] - ` ao título da issue (DEV-0004) |
 | `pr-title.yml` | PR aberto, editado ou atualizado | Valida título, branch e issue vinculada com a mesma chave e publica o status `PR title` (DEV-0005) |
 | `agent-orchestration.yml` | CI concluído com sucesso num PR; manual | Code Review → QA (trilho completo) → Quality Gate Coordinator, no runner `fithub-agents`; publica revisão formal e relatórios pelo GitHub App (DEV-0118) |
