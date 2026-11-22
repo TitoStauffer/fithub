@@ -610,7 +610,7 @@ test('builds the diff from the file list when GitHub refuses the full diff with 
   const sources = { 'docs/old/file-0.md': 'antigo\n', 'docs/old/file-1.md': 'antigo\n' };
   const inputs = await loadAgentReviewInputs(createFetch({ files, sources, diffStatus: 406 }), 'owner/repo', 7, { head: { sha: headSha }, base: { sha: baseSha } }, 'token');
   assert.ok(inputs.diff.includes('diff --git a/src/example.ts b/src/example.ts\n--- a/src/example.ts\n+++ b/src/example.ts\n@@ -1 +1 @@\n-export const value = 41;\n+export const value = 42;'));
-  assert.ok(inputs.diff.includes('diff --git a/docs/old/file-0.md b/docs/old/file-0.md\ndeleted file mode 100644\n--- a/docs/old/file-0.md\n+++ /dev/null\n[arquivo removido; 3 linha(s) removida(s); conteúdo omitido do contexto]'));
+  assert.ok(inputs.diff.startsWith('[arquivos removidos: 2; conteúdo omitido do contexto]\nD docs/old/file-0.md (3 linha(s) removida(s))\nD docs/old/file-1.md (3 linha(s) removida(s))\n'));
   assert.deepEqual(inputs.changedFiles, files.map(({ filename }) => filename));
 });
 
@@ -663,7 +663,26 @@ test('406 with removed files beyond the snapshot limit still reviews the changed
   const files = [{ filename: 'src/example.ts', status: 'modified', patch: '@@ -1 +1 @@\n-x\n+y' }, ...removedFiles(40)];
   const inputs = await loadAgentReviewInputs(createFetch({ files, diffStatus: 406 }), 'owner/repo', 7, { head: { sha: headSha }, base: { sha: baseSha } }, 'token');
   assert.deepEqual(inputs.sourceFiles.map(({ path }) => path), ['src/example.ts']);
-  assert.equal((inputs.diff.match(/\[arquivo removido;/g) ?? []).length, 40);
+  assert.equal((inputs.diff.match(/^D docs\/old\/file-\d+\.md /gm) ?? []).length, 40);
+});
+
+// DEV-0138: o PR #162 remove 1440 arquivos; o cabeçalho de 5 linhas por removido passava do teto de 350.000.
+test('mass removal stays under the diff ceiling and lists every removed path', () => {
+  const longDir = `docs/${'x'.repeat(100)}`;
+  const files = Array.from({ length: 1440 }, (_, index) => ({ filename: `${longDir}/arquivo-${String(index).padStart(4, '0')}.md`, status: 'removed', deletions: 120 }));
+  const diff = synthesizeDiffFromFiles(files);
+  assert.ok(diff.length < 350_000, `diff sintetizado com ${diff.length} caracteres`);
+  for (const { filename } of files) assert.ok(diff.includes(`D ${filename} (120 linha(s) removida(s))`));
+});
+
+test('removed block precedes every diff section and survives sanitization', () => {
+  const diff = sanitizeAgentDiff(synthesizeDiffFromFiles([
+    { filename: 'docs/old.md', status: 'removed', deletions: 2 },
+    { filename: 'apps/mobile/package-lock.json', status: 'modified', patch: '@@ -1 +1 @@\n-a\n+b' },
+  ]));
+  assert.ok(diff.startsWith('[arquivos removidos: 1; conteúdo omitido do contexto]\nD docs/old.md (2 linha(s) removida(s))\n'));
+  assert.ok(diff.includes('diff --git a/apps/mobile/package-lock.json b/apps/mobile/package-lock.json\n[npm lockfile diff section omitted'));
+  assert.equal(synthesizeDiffFromFiles([{ filename: 'src/a.ts', status: 'modified', patch: '+a' }]).startsWith('diff --git'), true);
 });
 
 // Code Review do PR #164 (rodada 2): sem changed_files no payload, lista no teto (3000) falha fechado.

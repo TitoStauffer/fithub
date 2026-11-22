@@ -199,3 +199,7 @@ contra o total do PR (`changed_files`), falhando fechado se não bater ou se o t
   - **Impacto:** acima de 3000 arquivos a revisão seria parcial e o trilho poderia sair leve indevidamente.
   - **Correção:** comparação com `changed_files` e falha fechada quando o total falta e a lista está no teto.
   - **Prevenção:** testes de total divergente e de total ausente no teto, provados por mutação.
+- **Validação:** orquestração do PR #162, run 44979145343 (Agent Code Review: `Pull Request diff exceeds the supported review size.`) — DEV-0138 (#167) · **PR:** #168
+  - **Impacto:** com 1440 removidos, o cabeçalho de 5 linhas por arquivo no diff sintetizado passou do teto de 350.000 caracteres e o PR ficou sem revisão.
+  - **Correção:** removidos viram um bloco compacto no início do diff sintetizado, uma linha por caminho.
+  - **Prevenção:** teste de 1440 removidos com caminhos longos abaixo do teto e teste da posição do bloco frente ao `sanitizeAgentDiff`, provados por mutação. Ao mudar o formato de uma entrada do modelo, meça o pior caso contra todos os tetos da cadeia, não só o limite da API.

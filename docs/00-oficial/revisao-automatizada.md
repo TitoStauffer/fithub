@@ -43,12 +43,15 @@ nas evidências.
 - **Arquivos removidos** não contam nesse limite quando ele seria excedido: entram só
   pelo caminho e pelo número de linhas removidas (DEV-0137).
 - Acima de **300 arquivos**, o GitHub não entrega o diff completo (erro 406); o reviewer
-  monta o diff a partir da lista de arquivos, com o patch de cada arquivo alterado.
+  monta o diff a partir da lista de arquivos, com o patch de cada arquivo alterado; os removidos
+  entram num bloco inicial, uma linha por caminho (DEV-0138).
+- O diff entregue ao modelo tem teto de **350.000 caracteres**; acima disso o estágio falha fechado.
 - A lista de arquivos do GitHub para em **3000 arquivos**; se ela não bater com o total que o
   PR informa (`changed_files`), a revisão falha fechado em vez de revisar só parte do PR.
 
 - Fonte: [agent-review-inputs.ts](../../tools/github-reviewer/src/agent-review-inputs.ts) —
-  `readPullRequestDiff`, `synthesizeDiffFromFiles` e `MAX_SOURCE_FILES`.
+  `readPullRequestDiff`, `synthesizeDiffFromFiles` e `MAX_SOURCE_FILES`; teto do diff em
+  [agent-stage-cli.ts](../../tools/github-reviewer/src/agent-stage-cli.ts).
 
 ## Contexto dos agentes
 
