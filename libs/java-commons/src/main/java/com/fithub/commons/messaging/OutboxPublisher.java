@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageBuilder;
+import org.springframework.amqp.core.MessageDeliveryMode;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.context.SmartLifecycle;
@@ -20,32 +21,38 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Publica no RabbitMQ os eventos pendentes do outbox. Só enxerga linhas já commitadas, então um
- * rollback nunca vira mensagem. Marca como publicado apenas depois da confirmação do broker; a entrega
- * é pelo menos uma vez (por isso o consumo é idempotente). Na primeira falha de um lote, registra o
- * erro e para, preservando a ordem; o próximo ciclo tenta de novo. {@code FOR UPDATE SKIP LOCKED}
- * deixa várias instâncias do serviço publicarem sem duplicar o trabalho.
+ * Publica no RabbitMQ os eventos pendentes do outbox, na ordem de gravação.
+ * <ul>
+ * <li>Só enxerga linhas já commitadas: um rollback nunca vira mensagem.</li>
+ * <li>Marca como publicado apenas depois da confirmação do broker. A entrega é pelo menos uma vez, por
+ * isso o consumo é idempotente.</li>
+ * <li><b>Ordem:</b> um único publicador por banco de serviço, garantido pelo lock consultivo
+ * {@value #ADVISORY_LOCK_KEY} do Postgres, mesmo com várias instâncias. Quem não obtém o lock sai do
+ * ciclo sem fazer nada. Na primeira falha de um lote, registra o erro e para; o próximo ciclo tenta de
+ * novo a partir do mesmo evento.</li>
+ * <li>Expurga, de tempos em tempos, os eventos já publicados e os registros de consumo mais antigos que
+ * a retenção configurada (o payload pode ter dado pessoal).</li>
+ * </ul>
  */
 public class OutboxPublisher implements SmartLifecycle {
+
+    /** Chave fixa do lock consultivo que serializa o publicador entre instâncias do mesmo serviço. */
+    public static final long ADVISORY_LOCK_KEY = 0x6669746875624FL; // "fithubO"
 
     private static final Logger log = LoggerFactory.getLogger(OutboxPublisher.class);
 
     private final JdbcClient jdbc;
     private final TransactionTemplate transaction;
     private final RabbitTemplate rabbit;
-    private final int batchSize;
-    private final Duration pollInterval;
-    private final Duration confirmTimeout;
+    private final FithubMessagingProperties.Publisher settings;
     private ScheduledExecutorService scheduler;
 
-    public OutboxPublisher(JdbcClient jdbc, TransactionTemplate transaction, RabbitTemplate rabbit, int batchSize,
-            Duration pollInterval, Duration confirmTimeout) {
+    public OutboxPublisher(JdbcClient jdbc, TransactionTemplate transaction, RabbitTemplate rabbit,
+            FithubMessagingProperties.Publisher settings) {
         this.jdbc = jdbc;
         this.transaction = transaction;
         this.rabbit = rabbit;
-        this.batchSize = batchSize;
-        this.pollInterval = pollInterval;
-        this.confirmTimeout = confirmTimeout;
+        this.settings = settings;
     }
 
     private record PendingEvent(UUID id, String exchange, String routingKey, String payload, Timestamp createdAt) {
@@ -54,14 +61,15 @@ public class OutboxPublisher implements SmartLifecycle {
     /** Publica um lote de pendentes; devolve quantos foram confirmados pelo broker. */
     public int publishPending() {
         Integer published = transaction.execute(status -> {
+            Boolean locked = jdbc.sql("select pg_try_advisory_xact_lock(?)").param(ADVISORY_LOCK_KEY).query(Boolean.class).single();
+            if (!Boolean.TRUE.equals(locked)) return 0;
             List<PendingEvent> pending = jdbc.sql("""
                     select id, exchange, routing_key, payload::text as payload, created_at
                     from fithub_outbox_event
                     where published_at is null
-                    order by created_at, id
-                    limit ?
-                    for update skip locked""")
-                    .param(batchSize)
+                    order by sequence
+                    limit ?""")
+                    .param(settings.batchSize())
                     .query((rs, row) -> new PendingEvent(rs.getObject("id", UUID.class), rs.getString("exchange"),
                             rs.getString("routing_key"), rs.getString("payload"), rs.getTimestamp("created_at")))
                     .list();
@@ -86,6 +94,17 @@ public class OutboxPublisher implements SmartLifecycle {
         return published == null ? 0 : published;
     }
 
+    /** Remove eventos publicados e registros de consumo além da retenção; devolve quantas linhas saíram. */
+    public int purgeExpired() {
+        int outbox = jdbc.sql("delete from fithub_outbox_event where published_at < now() - make_interval(secs => ?)")
+                .param(settings.outboxRetention().toSeconds())
+                .update();
+        int processed = jdbc.sql("delete from fithub_processed_event where processed_at < now() - make_interval(secs => ?)")
+                .param(settings.processedRetention().toSeconds())
+                .update();
+        return outbox + processed;
+    }
+
     private void send(PendingEvent event) {
         Message message = MessageBuilder.withBody(event.payload().getBytes(StandardCharsets.UTF_8))
                 .setContentType(MessageProperties.CONTENT_TYPE_JSON)
@@ -93,11 +112,11 @@ public class OutboxPublisher implements SmartLifecycle {
                 .setMessageId(event.id().toString())
                 .setType(event.routingKey())
                 .setTimestamp(event.createdAt())
-                .setDeliveryMode(org.springframework.amqp.core.MessageDeliveryMode.PERSISTENT)
+                .setDeliveryMode(MessageDeliveryMode.PERSISTENT)
                 .build();
         rabbit.invoke(operations -> {
             operations.send(event.exchange(), event.routingKey(), message);
-            operations.waitForConfirmsOrDie(confirmTimeout.toMillis());
+            operations.waitForConfirmsOrDie(settings.confirmTimeout().toMillis());
             return null;
         });
     }
@@ -110,14 +129,17 @@ public class OutboxPublisher implements SmartLifecycle {
     public synchronized void start() {
         if (scheduler != null) return;
         scheduler = Executors.newSingleThreadScheduledExecutor(Thread.ofVirtual().name("fithub-outbox-publisher").factory());
-        scheduler.scheduleWithFixedDelay(this::publishSafely, pollInterval.toMillis(), pollInterval.toMillis(), TimeUnit.MILLISECONDS);
+        long poll = settings.pollInterval().toMillis();
+        scheduler.scheduleWithFixedDelay(() -> safely("publicação", () -> publishPending()), poll, poll, TimeUnit.MILLISECONDS);
+        long purge = settings.purgeInterval().toMillis();
+        scheduler.scheduleWithFixedDelay(() -> safely("expurgo", () -> purgeExpired()), purge, purge, TimeUnit.MILLISECONDS);
     }
 
-    private void publishSafely() {
+    private static void safely(String task, Runnable action) {
         try {
-            publishPending();
+            action.run();
         } catch (RuntimeException exception) {
-            log.warn("Ciclo do publicador do outbox falhou; nova tentativa no próximo ciclo", exception);
+            log.warn("Ciclo de {} do outbox falhou; nova tentativa no próximo ciclo", task, exception);
         }
     }
 
@@ -126,7 +148,7 @@ public class OutboxPublisher implements SmartLifecycle {
         if (scheduler == null) return;
         scheduler.shutdown();
         try {
-            if (!scheduler.awaitTermination(confirmTimeout.toMillis() * 2, TimeUnit.MILLISECONDS)) scheduler.shutdownNow();
+            if (!scheduler.awaitTermination(settings.confirmTimeout().toMillis() * 2, TimeUnit.MILLISECONDS)) scheduler.shutdownNow();
         } catch (InterruptedException exception) {
             scheduler.shutdownNow();
             Thread.currentThread().interrupt();

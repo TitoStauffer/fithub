@@ -5,6 +5,7 @@ import java.time.Clock;
 import java.util.UUID;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
+import com.fithub.commons.ids.UuidV7;
 import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -39,7 +40,7 @@ public class OutboxWriter {
             throw new IllegalTransactionStateException("O outbox só grava dentro da transação do dado.");
         }
         if (routingKey == null || routingKey.isBlank()) throw new IllegalArgumentException("routingKey é obrigatória.");
-        UUID id = UUID.randomUUID();
+        UUID id = UuidV7.next(clock);
         jdbc.sql("insert into fithub_outbox_event (id, exchange, routing_key, payload, created_at) values (?, ?, ?, cast(? as jsonb), ?)")
                 .params(id, exchange, routingKey, jsonMapper.writeValueAsString(payload), Timestamp.from(clock.instant()))
                 .update();

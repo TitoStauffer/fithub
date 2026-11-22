@@ -73,9 +73,8 @@ public class FithubMessagingAutoConfiguration {
         @ConditionalOnProperty(name = "fithub.messaging.publisher.enabled", matchIfMissing = true)
         public OutboxPublisher outboxPublisher(DataSource dataSource, PlatformTransactionManager transactionManager,
                 RabbitTemplate rabbitTemplate, FithubMessagingProperties properties, FithubCommonsMigrations migrations) {
-            FithubMessagingProperties.Publisher publisher = properties.publisher();
             return new OutboxPublisher(JdbcClient.create(dataSource), new TransactionTemplate(transactionManager), rabbitTemplate,
-                    publisher.batchSize(), publisher.pollInterval(), publisher.confirmTimeout());
+                    properties.publisher());
         }
     }
 }

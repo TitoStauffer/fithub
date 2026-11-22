@@ -29,10 +29,16 @@ ambiente do serviço sobrescreve.
 
 | Peça | Comportamento | Configuração |
 |---|---|---|
-| Tabelas técnicas | `fithub_outbox_event` e `fithub_processed_event`, aplicadas por um Flyway próprio (`db/fithub-commons`, histórico em `flyway_fithub_commons_history`) que não colide com a numeração do serviço | — |
-| `OutboxWriter.append(routingKey, payload)` | Grava o evento (JSON) na transação do dado; **fora de transação é recusado**. Devolve o id do evento | `fithub.messaging.exchange` (exchange `topic` do serviço, ex.: `fithub.client`), declarada automaticamente |
-| `OutboxPublisher` | Publica os pendentes já commitados (rollback nunca vira mensagem), com `messageId` = id do evento e confirmação do broker antes de marcar como publicado. Falhou, registra `attempts`/`last_error` e para o lote para preservar a ordem. `FOR UPDATE SKIP LOCKED` permite várias instâncias | `fithub.messaging.publisher.{enabled, poll-interval, batch-size, confirm-timeout}` (padrões `true`, `1s`, `100`, `5s`) |
+| Tabelas técnicas | `fithub_outbox_event` (com `sequence` como ordem de gravação) e `fithub_processed_event`, aplicadas por um Flyway próprio (`db/fithub-commons`, histórico em `flyway_fithub_commons_history`) que não colide com a numeração do serviço | — |
+| `OutboxWriter.append(routingKey, payload)` | Grava o evento (JSON) na transação do dado; **fora de transação é recusado**. Devolve o id do evento (UUID v7) | `fithub.messaging.exchange` (exchange `topic` do serviço, ex.: `fithub.client`), declarada automaticamente |
+| `OutboxPublisher` | Publica os pendentes já commitados (rollback nunca vira mensagem), **na ordem de gravação**, com `messageId` = id do evento e confirmação do broker antes de marcar como publicado. Um único publicador por banco de serviço, mesmo com várias instâncias (lock consultivo do Postgres). Na falha, registra `attempts`/`last_error` e para o lote; o próximo ciclo recomeça do mesmo evento. Expurga publicados e consumos além da retenção | `fithub.messaging.publisher.{enabled, poll-interval, batch-size, confirm-timeout, outbox-retention, processed-retention, purge-interval}` (padrões `true`, `1s`, `100`, `5s`, `7d`, `30d`, `1h`) |
 | `ProcessedEvents.processOnce(consumer, eventId \| message, handler)` | Roda o handler uma vez por evento e consumidor, na mesma transação do registro; falha do handler desfaz o registro e a reentrega processa | — |
+
+**Cada consumidor declara a própria fila durável, ligada à exchange de origem, antes de o produtor
+emitir.** Mensagem sem fila ligada é confirmada pelo broker e descartada; o publicador não usa
+`mandatory`.
+
+Ids gerados pela lib seguem a convenção UUID v7 (`com.fithub.commons.ids.UuidV7`, RFC 9562).
 
 A entrega é **pelo menos uma vez**: um evento confirmado pelo broker pode ser reenviado se o commit
 da marcação falhar, e o consumo idempotente absorve a repetição.

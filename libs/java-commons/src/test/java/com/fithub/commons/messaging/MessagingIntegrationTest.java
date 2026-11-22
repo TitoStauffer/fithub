@@ -5,6 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
+import java.sql.Statement;
+import java.util.List;
 import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
@@ -12,9 +15,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.sql.DataSource;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.amqp.core.AnonymousQueue;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Message;
@@ -57,6 +60,8 @@ class MessagingIntegrationTest {
     @Autowired
     private OutboxWriter outbox;
     @Autowired
+    private OutboxPublisher publisher;
+    @Autowired
     private ProcessedEvents processedEvents;
     @Autowired
     private TransactionTemplate transaction;
@@ -73,10 +78,16 @@ class MessagingIntegrationTest {
     @BeforeEach
     void bindQueue() {
         jdbc = JdbcClient.create(dataSource);
-        queue = new AnonymousQueue();
+        // Fila durável e não exclusiva, como a de um consumidor real: sobrevive à troca de conexão.
+        queue = new Queue("teste-" + UUID.randomUUID(), true, false, false);
         rabbitAdmin.declareQueue(queue);
         Binding binding = BindingBuilder.bind(queue).to(new TopicExchange(EXCHANGE)).with("teste.#");
         rabbitAdmin.declareBinding(binding);
+    }
+
+    @AfterEach
+    void deleteQueue() {
+        rabbitAdmin.deleteQueue(queue.getName());
     }
 
     // --- Outbox transacional ---
@@ -128,6 +139,66 @@ class MessagingIntegrationTest {
             assertThat(row.get("last_error")).isNotNull();
         } finally {
             jdbc.sql("delete from fithub_outbox_event where id = ?").param(id).update();
+        }
+    }
+
+    @Test
+    void eventsArePublishedInTheOrderTheyWereWritten() {
+        List<UUID> written = transaction.execute(status -> List.of(
+                outbox.append(ROUTING_KEY, Map.of("ordem", 1)),
+                outbox.append(ROUTING_KEY, Map.of("ordem", 2)),
+                outbox.append(ROUTING_KEY, Map.of("ordem", 3))));
+
+        List<String> received = new java.util.ArrayList<>();
+        for (int index = 0; index < 3; index++) {
+            Message message = rabbitTemplate.receive(queue.getName(), Duration.ofSeconds(15).toMillis());
+            assertThat(message).isNotNull();
+            received.add(message.getMessageProperties().getMessageId());
+        }
+        assertThat(received).containsExactlyElementsOf(written.stream().map(UUID::toString).toList());
+    }
+
+    @Test
+    void onlyOnePublisherRunsAtATimeAcrossInstances() throws Exception {
+        // Outra instância do serviço segurando o lock consultivo do publicador.
+        try (Connection otherInstance = dataSource.getConnection(); Statement statement = otherInstance.createStatement()) {
+            otherInstance.setAutoCommit(false);
+            statement.execute("select pg_advisory_xact_lock(" + OutboxPublisher.ADVISORY_LOCK_KEY + ")");
+            UUID id = transaction.execute(status -> outbox.append(ROUTING_KEY, Map.of("clienteId", "c-5")));
+
+            assertThat(publisher.publishPending()).isZero();
+            assertThat(rabbitTemplate.receive(queue.getName(), Duration.ofSeconds(2).toMillis())).isNull();
+            assertThat(jdbc.sql("select published_at is null from fithub_outbox_event where id = ?").param(id).query(Boolean.class).single()).isTrue();
+
+            otherInstance.rollback();
+            Message message = rabbitTemplate.receive(queue.getName(), Duration.ofSeconds(15).toMillis());
+            assertThat(message).isNotNull();
+            assertThat(message.getMessageProperties().getMessageId()).isEqualTo(id.toString());
+        }
+    }
+
+    @Test
+    void purgeRemovesOnlyRowsOlderThanTheRetention() {
+        UUID oldEvent = UUID.randomUUID();
+        UUID recentEvent = UUID.randomUUID();
+        UUID pendingOldEvent = UUID.randomUUID();
+        jdbc.sql("insert into fithub_outbox_event (id, exchange, routing_key, payload, created_at, published_at) values (?, 'x', 'k', '{}'::jsonb, now() - interval '9 days', now() - interval '8 days')").param(oldEvent).update();
+        jdbc.sql("insert into fithub_outbox_event (id, exchange, routing_key, payload, created_at, published_at) values (?, 'x', 'k', '{}'::jsonb, now() - interval '1 day', now() - interval '1 day')").param(recentEvent).update();
+        UUID oldProcessed = UUID.randomUUID();
+        UUID recentProcessed = UUID.randomUUID();
+        jdbc.sql("insert into fithub_processed_event (consumer, event_id, processed_at) values ('c', ?, now() - interval '31 days')").param(oldProcessed).update();
+        jdbc.sql("insert into fithub_processed_event (consumer, event_id, processed_at) values ('c', ?, now() - interval '29 days')").param(recentProcessed).update();
+        try {
+            // Pendente antigo nunca é expurgado: ainda não foi entregue.
+            jdbc.sql("insert into fithub_outbox_event (id, exchange, routing_key, payload, created_at) values (?, 'fithub.inexistente', 'k', '{}'::jsonb, now() - interval '30 days')").param(pendingOldEvent).update();
+            publisher.purgeExpired();
+
+            assertThat(jdbc.sql("select id from fithub_outbox_event where id in (?, ?, ?)").params(oldEvent, recentEvent, pendingOldEvent).query(UUID.class).list())
+                    .containsExactlyInAnyOrder(recentEvent, pendingOldEvent);
+            assertThat(jdbc.sql("select event_id from fithub_processed_event where event_id in (?, ?)").params(oldProcessed, recentProcessed).query(UUID.class).list())
+                    .containsExactly(recentProcessed);
+        } finally {
+            jdbc.sql("delete from fithub_outbox_event where id in (?, ?)").params(recentEvent, pendingOldEvent).update();
         }
     }
 
