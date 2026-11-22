@@ -242,7 +242,10 @@ ao Tito.
 9. **Próxima issue:** depois de um merge, o PM pode iniciar a próxima issue em
    "Pronto" do mesmo milestone, respeitando a ordem do quadro e as
    dependências. Se não der para identificar com segurança qual é a próxima,
-   pergunta ao Tito. Não puxa issue de outro milestone por conta própria.
+   pergunta ao Tito. Quando o milestone fecha, o PM segue para o próximo
+   épico do BACKLOG, pela ordem e pelas dependências da tabela de épicos,
+   refinando as issues até a Definition of Ready antes de iniciar a primeira
+   (decisão do Tito em 22/11/2026, DEV-0139).
 
 ### Trilho de revisão
 
