@@ -6,7 +6,7 @@ import { spawn } from 'node:child_process';
 import { StringDecoder } from 'node:string_decoder';
 import type { AgentStage, AgentStageResult, OrchestrationContext } from './agent-orchestrator.js';
 import { extractAcceptanceCriteria, failClosedIncompleteResult, isAgentEvaluationEvidence } from './agent-result-validation.js';
-import { buildPrompt, CODEX_OUTPUT_SCHEMA, type AgentEvidenceInput } from './codex-cli-agent.js';
+import { buildPrompt, CODEX_OUTPUT_SCHEMA, reviewCoverageFiles, type AgentEvidenceInput } from './codex-cli-agent.js';
 
 // The Claude models used by Claude Code expose a 1M-token window; this byte budget keeps the
 // prompt far below it while allowing PRs that exceed the Codex budget.
@@ -63,7 +63,7 @@ export async function executeClaudeAgent(
     return failClosedIncompleteResult(parsed, {
       stage,
       commitSha: context.commitSha,
-      changedFiles: evidence.changedFiles ?? [],
+      changedFiles: reviewCoverageFiles(evidence),
       acceptanceCriteria: extractAcceptanceCriteria(evidence.pullRequest.body),
     });
   } finally {

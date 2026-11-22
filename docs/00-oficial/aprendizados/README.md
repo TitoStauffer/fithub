@@ -19,11 +19,14 @@ Organize por tema, um arquivo por tema (ex.: `autorizacao.md`,
 
 ### Ocorrências
 
-- **Revisão:** <link da revisão no PR, ou a origem do bug de validação/produção (issue, execução)> · **PR:** <PR da correção> · **SHA:** <sha da correção>
+- **Revisão:** <link da revisão no PR, ou a origem do bug de validação/produção (issue, execução)> · **PR:** <PR da correção> · **SHA:** <sha, se já integrado>
   - **Impacto:** …
   - **Correção:** …
   - **Prevenção:** teste, regra de ArchUnit, checklist…
 ```
+
+Registre na branch da correção, antes de pedir nova revisão: o PR identifica a
+correção e o SHA é opcional enquanto ela não está integrada.
 
 Ocorrência repetida entra como nova linha em **Ocorrências** da regra
 existente. Nunca registre segredos, dados pessoais ou valores reais de

@@ -32,7 +32,7 @@ jobs:
   automation-tools:
     name: GitHub Reviewer
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: tools/github-reviewer
@@ -63,3 +63,33 @@ jobs:
         working-directory: .
         shell: pwsh
         run: ./tools/github-runner/test-runner-scripts.ps1
+
+      # Raiz do monorepo (DEV-0011): o POM pai e o workspace pnpm precisam resolver sem erro.
+      # Fica neste job até a DEV-0016 criar os jobs próprios dos serviços e apps.
+      - name: Setup Java
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Validate Maven parent POM
+        working-directory: .
+        run: mvn -q -B validate
+
+      - name: Validate pnpm workspace
+        working-directory: .
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+
+      # Infraestrutura local (DEV-0012): o compose sobe e todos os serviços ficam saudáveis.
+      - name: Validate local infrastructure compose
+        working-directory: .
+        run: |
+          docker compose -f infra/compose/docker-compose.dev.yml up -d --wait --wait-timeout 300
+          docker compose -f infra/compose/docker-compose.dev.yml ps
+
+      - name: Stop local infrastructure compose
+        if: always()
+        working-directory: .
+        run: docker compose -f infra/compose/docker-compose.dev.yml down -v

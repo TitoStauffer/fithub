@@ -26,10 +26,13 @@
 - **Documentação da primeira versão** removida da árvore (DEV-0010); recuperável pelo histórico do git
   conforme [docs/HISTORICO.md](../HISTORICO.md).
 
+- **Estrutura do monorepo** (DEV-0011): `services/` (4 serviços), `libs/`, `apps/`, `packages/`, `infra/`
+  só com READMEs; `pom.xml` parent (Java 25, Spring Boot 4.1.3, enforcer) e workspace pnpm.
+- **Infraestrutura local** (DEV-0012): `infra/compose/docker-compose.dev.yml` com Postgres 17 (um banco e um usuário por serviço, mais o do Keycloak), RabbitMQ, Keycloak, SeaweedFS (S3, ADR-006) e Mailpit, todos com healthcheck; o CI sobe o compose e espera todos saudáveis. O `infrastructure/` legado foi removido
+
 ## Ainda não existe
 
-- Os microsserviços (`services/`), apps (`apps/web`, `apps/mobile`), bibliotecas (`libs/`) e
-  infraestrutura local (`infra/`) — épico E0 em diante.
+- Código dos microsserviços, apps, bibliotecas e infraestrutura local — épico E0 em diante.
 - CI dos serviços e apps — DEV-0016. Verificação por mutação no CI — DEV-0116.
 
 ## Limitações conhecidas

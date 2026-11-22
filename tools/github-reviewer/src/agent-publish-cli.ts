@@ -53,7 +53,7 @@ async function main(): Promise<void> {
     const initialReviewInputs = await loadAgentReviewInputs(fetch, repository, positivePrNumber(), pr, contextToken);
     const completeness = validateAgentResultCompleteness(result, {
       stage: 'codeReview', commitSha: result.commitSha,
-      changedFiles: initialReviewInputs.changedFiles,
+      changedFiles: initialReviewInputs.reviewCoverageFiles,
       acceptanceCriteria: extractAcceptanceCriteria(typeof pr.body === 'string' ? pr.body : ''),
     });
     if (completeness.length) throw new Error(`Code Review result is incomplete: ${completeness.join(' ')}`);

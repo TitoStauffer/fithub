@@ -8,8 +8,15 @@ export interface StageEvidenceContext {
   commitSha: string;
   contextHash: string;
   botLogin: string;
+  /** Lista completa: decide o trilho. */
   changedFiles: string[];
+  /** Cobertura exigida do Code Review (DEV-0140); sem ela, vale changedFiles. */
+  reviewCoverageFiles?: string[];
   acceptanceCriteria: string[];
+}
+
+function coverageExpectation(stage: AgentStage, context: StageEvidenceContext) {
+  return { stage, commitSha: context.commitSha, changedFiles: context.reviewCoverageFiles ?? context.changedFiles, acceptanceCriteria: context.acceptanceCriteria };
 }
 
 /** Only a deliberately requested manual dispatch may retry unchanged inconclusive evidence. */
@@ -39,7 +46,7 @@ export function selectReusableStageResult(
       && (!latest || Date.parse(String(comment.entry.updated_at)) > Date.parse(String(latest.submitted_at)))
       ? comment.result : formal;
   if (!candidate || !isAgentStageResult(candidate)
-    || validateAgentResultCompleteness(candidate, { stage, ...context }).length > 0) return undefined;
+    || validateAgentResultCompleteness(candidate, coverageExpectation(stage, context)).length > 0) return undefined;
   if (stage === 'codeReview' && candidate.decision === 'APPROVED'
     && latest && hasLaterChangeRequest(reviews, latest, context.commitSha, context.botLogin)) return undefined;
   return candidate;
@@ -82,7 +89,7 @@ export function evaluateDeterministicQualityGate(input: StageEvidenceContext & {
     const artifacts = input.priorResults.filter((result) => isAgentStageResult(result) && result.stage === stage);
     const artifact = artifacts[0];
     if (!published || !isAgentStageResult(published)
-      || validateAgentResultCompleteness(published, { stage, ...input }).length > 0) {
+      || validateAgentResultCompleteness(published, coverageExpectation(stage, input)).length > 0) {
       reasons.push(`Evidência publicada de ${stage} ausente, incompleta ou desatualizada.`);
       continue;
     }

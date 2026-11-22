@@ -9,6 +9,9 @@ export const REVIEW_RISK_AREAS = [
   'tests',
 ] as const;
 
+// Teto de evidence.changedFilesReviewed (schema e validação). Acima dele, a cobertura exclui os removidos (DEV-0140).
+export const MAX_REVIEW_COVERAGE_FILES = 200;
+
 export type ReviewRiskArea = typeof REVIEW_RISK_AREAS[number];
 export type ReviewCoverageStatus = 'REVIEWED' | 'NOT_APPLICABLE' | 'INCONCLUSIVE';
 export type AcceptanceCriterionStatus = 'PASSED' | 'FAILED' | 'NOT_APPLICABLE' | 'INCONCLUSIVE';
@@ -141,7 +144,7 @@ export function isAgentEvaluationEvidence(value: unknown): value is AgentEvaluat
     || !Array.isArray(value.riskAreas)
     || !Array.isArray(value.findings)
     || !Array.isArray(value.acceptanceCriteria)
-    || value.changedFilesReviewed.length > 200
+    || value.changedFilesReviewed.length > MAX_REVIEW_COVERAGE_FILES
     || value.riskAreas.length > REVIEW_RISK_AREAS.length
     || value.findings.length > 100
     || value.acceptanceCriteria.length > 100) return false;

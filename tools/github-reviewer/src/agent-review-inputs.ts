@@ -1,13 +1,16 @@
 import { createHash } from 'node:crypto';
 import { posix } from 'node:path';
-import { requestGitHubApi, requestGitHubApiPages, requestGitHubText } from './github-api-client.js';
+import { GitHubApiError, requestGitHubApi, requestGitHubApiPages, requestGitHubText } from './github-api-client.js';
 import { ACTIONS_APP_ID, loadActionsEvidence, loadCiSnapshots, unavailableActionsEvidence, type AgentActionsEvidence, type AgentCiSnapshot } from './agent-ci-evidence.js';
 import { loadVaultContext, type VaultContextSnapshot } from './vault-context.js';
+import { MAX_REVIEW_COVERAGE_FILES } from './agent-result-validation.js';
 import { CONTEXT_EXCLUDED_CHECKS, KNOWN_TEST_JOBS, REQUIRED_AGENT_CHECKS, VAULT_CONTEXT_MAP_PATH, VAULT_ROOT } from './repository-policy.js';
 
 export interface AgentReviewInputs {
   diff: string;
   changedFiles: string[];
+  /** Arquivos que o Code Review precisa cobrir em evidence.changedFilesReviewed (DEV-0140). */
+  reviewCoverageFiles: string[];
   checks: Record<keyof typeof REQUIRED_AGENT_CHECKS, string>;
   checkRuns: AgentCheckEvidence[];
   repositoryInstructions: string;
@@ -47,12 +50,23 @@ export async function loadAgentReviewInputs(
   if (!headSha || !baseSha) throw new Error('Pull Request is missing a complete head or base commit.');
 
   const [rawDiff, runs, instructionsPayload, filesPayload] = await Promise.all([
-    requestGitHubText(fetchImpl, `/repos/${repository}/pulls/${pullRequestNumber}`, token, 'application/vnd.github.v3.diff'),
+    readPullRequestDiff(fetchImpl, repository, pullRequestNumber, token),
     readCheckRuns(fetchImpl, repository, headSha, token),
     requestGitHubApi<Record<string, unknown>>(fetchImpl, `/repos/${repository}/contents/AGENTS.md?ref=${encodeURIComponent(baseSha)}`, token),
     requestGitHubApiPages<Record<string, unknown>>(fetchImpl, `/repos/${repository}/pulls/${pullRequestNumber}/files`, token),
   ]);
-  const diff = sanitizeAgentDiff(rawDiff);
+  // DEV-0137: acima de 300 arquivos o GitHub recusa o diff (406); o diff é montado da lista de arquivos.
+  // A lista de arquivos do GitHub para em 3000; se ela não bater com o total do PR, a revisão seria
+  // parcial sem ninguém perceber (Code Review do PR #164). Falha fechado.
+  const expectedFiles = pullRequest.changed_files;
+  if (typeof expectedFiles === 'number' && filesPayload.length !== expectedFiles) {
+    throw new Error(`GitHub returned ${filesPayload.length} changed files but the Pull Request reports ${expectedFiles}; the review context would be incomplete.`);
+  }
+  // Sem o total no payload, uma lista no teto do GitHub (3000) pode estar cortada: falha fechado.
+  if (typeof expectedFiles !== 'number' && filesPayload.length >= 3000) {
+    throw new Error('GitHub returned the maximum changed-file list and the Pull Request total is unknown; the review context may be incomplete.');
+  }
+  const diff = sanitizeAgentDiff(rawDiff ?? synthesizeDiffFromFiles(filesPayload));
   const encoding = stringValue(instructionsPayload.encoding);
   const encodedInstructions = stringValue(instructionsPayload.content);
   if (encoding !== 'base64' || !encodedInstructions) throw new Error('Could not read AGENTS.md from the Pull Request base commit.');
@@ -71,7 +85,7 @@ export async function loadAgentReviewInputs(
     ? await loadCiSnapshots(fetchImpl, repository, headSha, token) : [];
   const changedFiles = filesPayload.map((file) => stringValue(file.filename));
   if (changedFiles.some((path) => !path)) throw new Error('GitHub returned incomplete changed-file metadata.');
-  return { diff, changedFiles: changedFiles as string[], checks: summarizeAgentChecks(runs, headSha), checkRuns, repositoryInstructions, sourceFiles, vaultContext, ciConfiguration };
+  return { diff, changedFiles: changedFiles as string[], reviewCoverageFiles: selectReviewCoverageFiles(filesPayload), checks: summarizeAgentChecks(runs, headSha), checkRuns, repositoryInstructions, sourceFiles, vaultContext, ciConfiguration };
 }
 
 async function loadChangedSourceFiles(
@@ -91,7 +105,11 @@ async function loadChangedSourceFiles(
     const path = filename as string;
     return !alreadyLoadedPaths.has(path) || !isVaultManagedDocument(path);
   });
-  if (sourceCandidates.length > MAX_SOURCE_FILES) throw new Error('Pull Request changes too many files for a complete agent review context.');
+  // DEV-0137: arquivo removido não traz conteúdo novo a revisar. Se o total passar do limite, os removidos
+  // saem dos snapshots (continuam no diff pelo caminho); o limite segue valendo para novos e alterados.
+  const changedOrAdded = sourceCandidates.filter(({ status }) => status !== 'removed');
+  if (changedOrAdded.length > MAX_SOURCE_FILES) throw new Error('Pull Request changes too many files for a complete agent review context.');
+  if (sourceCandidates.length > MAX_SOURCE_FILES) sourceCandidates.splice(0, sourceCandidates.length, ...changedOrAdded);
 
   const sourceFiles: AgentReviewInputs['sourceFiles'] = [];
   let totalBytes = 0;
@@ -305,6 +323,56 @@ export function summarizeCheckRunEvidence(runs: Array<Record<string, unknown>>, 
       ...(isTestCheck(String(run.name ?? '')) ? { actions: unavailableActionsEvidence() } : {}),
     }))
     .sort((left, right) => left.name.localeCompare(right.name) || (left.appId ?? 0) - (right.appId ?? 0));
+}
+
+async function readPullRequestDiff(fetchImpl: typeof fetch, repository: string, pullRequestNumber: number, token: string): Promise<string | undefined> {
+  try {
+    return await requestGitHubText(fetchImpl, `/repos/${repository}/pulls/${pullRequestNumber}`, token, 'application/vnd.github.v3.diff');
+  } catch (error) {
+    // 406: o diff passou do limite do GitHub (300 arquivos). Qualquer outro erro continua falhando fechado.
+    if (error instanceof GitHubApiError && error.status === 406) return undefined;
+    throw error;
+  }
+}
+
+/**
+ * Diff equivalente montado a partir de `/pulls/N/files` (DEV-0137): patch de cada arquivo novo ou alterado;
+ * arquivos removidos viram uma linha cada (caminho e linhas removidas) num bloco inicial, sem o conteúdo apagado.
+ */
+export function synthesizeDiffFromFiles(files: Array<Record<string, unknown>>): string {
+  // DEV-0138: removido não traz conteúdo novo, e o cabeçalho de 5 linhas por arquivo estourava o teto do
+  // diff numa remoção em massa. Os removidos vão num bloco compacto, uma linha por caminho, ANTES de
+  // qualquer seção "diff --git": depois dela, o sanitizeAgentDiff o trataria como parte daquela seção.
+  const isRemoved = (file: Record<string, unknown>) => file.status === 'removed';
+  const removed = files.filter(isRemoved);
+  const removedBlock = removed.length === 0 ? [] : [[
+    `[arquivos removidos: ${removed.length}; conteúdo omitido do contexto]`,
+    ...removed.map((file) => `D ${String(file.filename ?? '')} (${Number(file.deletions ?? 0)} linha(s) removida(s))`),
+  ].join('\n')];
+  const sections = files.filter((file) => !isRemoved(file)).map((file) => {
+    const path = String(file.filename ?? '');
+    const status = String(file.status ?? '');
+    const previous = typeof file.previous_filename === 'string' ? file.previous_filename : path;
+    const header = `diff --git a/${status === 'renamed' ? previous : path} b/${path}`;
+    const patch = typeof file.patch === 'string' ? file.patch : '[patch omitido pelo GitHub (arquivo grande ou binário)]';
+    const from = status === 'added' ? '/dev/null' : `a/${previous}`;
+    return `${header}
+--- ${from}
++++ b/${path}
+${patch}`;
+  });
+  return [...removedBlock, ...sections].join('\n');
+}
+
+/**
+ * DEV-0140: a cobertura do Code Review cabe em MAX_REVIEW_COVERAGE_FILES itens. Acima disso, os removidos
+ * saem da matriz: não trazem conteúdo novo e já entram no diff pelo bloco de removidos. Novos e alterados
+ * continuam obrigatórios em qualquer tamanho de PR; a classificação do trilho segue usando a lista completa.
+ */
+export function selectReviewCoverageFiles(files: Array<Record<string, unknown>>): string[] {
+  const all = files.map((file) => String(file.filename ?? ''));
+  if (all.length <= MAX_REVIEW_COVERAGE_FILES) return all;
+  return files.filter((file) => file.status !== 'removed').map((file) => String(file.filename ?? ''));
 }
 
 function isTestCheck(name: string): boolean {

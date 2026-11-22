@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!--
+    Parent do monorepo (DEV-0011). Herda o gerenciamento de dependências e plugins do Spring Boot.
+    Spring Boot 4.1.3: linha estável mais recente; a 4.2.0 saiu em 19/11/2026 e entra depois de um patch.
+  -->
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>4.1.3</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>com.fithub</groupId>
+  <artifactId>fithub-parent</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <name>FitHub</name>
+
+  <properties>
+    <java.version>25</java.version>
+    <maven.compiler.release>25</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <!-- Módulos entram conforme forem criados: libs (DEV-0013, DEV-0014, DEV-0018) e serviços (DEV-0015). -->
+  <modules>
+  </modules>
+
+  <build>
+    <plugins>
+      <!-- Falha cedo com Java ou Maven abaixo do exigido. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>require-java-and-maven</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireJavaVersion>
+                  <version>[25,)</version>
+                  <message>O FitHub exige Java 25 (ENGENHARIA.md). Aponte o JAVA_HOME para um JDK 25.</message>
+                </requireJavaVersion>
+                <requireMavenVersion>
+                  <version>[3.9,)</version>
+                </requireMavenVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

@@ -36,6 +36,26 @@ nas evidências.
 
 - Fonte: [merge-readiness.ts](../../tools/github-reviewer/src/merge-readiness.ts)
 
+## Tamanho do PR
+
+- Até **32 arquivos novos ou alterados** por PR têm o conteúdo completo no contexto;
+  acima disso o Code Review falha fechado (`INCONCLUSIVE`): quebre o PR.
+- **Arquivos removidos** não contam nesse limite quando ele seria excedido: entram só
+  pelo caminho e pelo número de linhas removidas (DEV-0137).
+- Acima de **300 arquivos**, o GitHub não entrega o diff completo (erro 406); o reviewer
+  monta o diff a partir da lista de arquivos, com o patch de cada arquivo alterado; os removidos
+  entram num bloco inicial, uma linha por caminho (DEV-0138).
+- O diff entregue ao modelo tem teto de **350.000 caracteres**; acima disso o estágio falha fechado.
+- A cobertura do Code Review (`changedFilesReviewed`) aceita até **200 arquivos**. Acima disso, os
+  removidos saem da matriz de cobertura e os novos e alterados continuam obrigatórios. O trilho
+  segue classificado pela lista completa, removidos incluídos (DEV-0140, `selectReviewCoverageFiles`).
+- A lista de arquivos do GitHub para em **3000 arquivos**; se ela não bater com o total que o
+  PR informa (`changed_files`), a revisão falha fechado em vez de revisar só parte do PR.
+
+- Fonte: [agent-review-inputs.ts](../../tools/github-reviewer/src/agent-review-inputs.ts) —
+  `readPullRequestDiff`, `synthesizeDiffFromFiles` e `MAX_SOURCE_FILES`; teto do diff em
+  [agent-stage-cli.ts](../../tools/github-reviewer/src/agent-stage-cli.ts).
+
 ## Contexto dos agentes
 
 Os agentes recebem os arquivos alterados, este vault (índice, estado atual e as

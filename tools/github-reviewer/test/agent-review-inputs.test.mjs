@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { gunzipSync } from 'node:zlib';
-import { loadAgentReviewInputs, sanitizeAgentDiff, summarizeAgentChecks, summarizeCheckRunEvidence, summarizeNpmLockfile } from '../dist/agent-review-inputs.js';
+import { loadAgentReviewInputs, sanitizeAgentDiff, selectReviewCoverageFiles, summarizeAgentChecks, summarizeCheckRunEvidence, summarizeNpmLockfile, synthesizeDiffFromFiles } from '../dist/agent-review-inputs.js';
 import { requestGitHubApiPages } from '../dist/github-api-client.js';
 
 const headSha = 'a'.repeat(40);
@@ -43,6 +43,8 @@ function createFetch({
   // Paths GitHub treats as over 1 MB: the JSON body comes with `encoding: none`, and only the raw
   // media type returns the content.
   largeFiles = new Set(),
+  // DEV-0137: status HTTP para a requisição do diff (ex.: 406 quando o PR passa de 300 arquivos).
+  diffStatus,
 } = {}) {
   return async (url, options = {}) => {
     const parsed = new URL(url);
@@ -51,6 +53,7 @@ function createFetch({
     let payload;
     let text = false;
     if (path.endsWith('/pulls/7') && options.headers?.Accept === 'application/vnd.github.v3.diff') {
+      if (diffStatus) return new Response('', { status: diffStatus });
       payload = 'diff --git a/src/example.ts b/src/example.ts\n';
       text = true;
     } else if (path.endsWith(`/commits/${headSha}/check-runs`)) {
@@ -64,7 +67,10 @@ function createFetch({
     } else if (path.endsWith('/contents/AGENTS.md')) {
       payload = { encoding: 'base64', content: encoded('Project rules') };
     } else if (path.endsWith('/pulls/7/files')) {
-      payload = files;
+      // Pagina como o GitHub (per_page/page), para listas grandes terminarem na página certa.
+      const perPage = Number(parsed.searchParams.get('per_page') ?? 30);
+      const page = Number(parsed.searchParams.get('page') ?? 1);
+      payload = files.slice((page - 1) * perPage, page * perPage);
     } else if (path.includes('/contents/')) {
       const sourcePath = decodeURIComponent(path.split('/contents/')[1]);
       const ref = parsed.searchParams.get('ref');
@@ -589,4 +595,121 @@ test('exposes every current-SHA check except volatile automation checks, with Ac
   ]);
   assert.ok(evidence.find(({ name }) => name === 'GitHub Reviewer').actions);
   assert.equal(evidence.find(({ name }) => name === 'Verificar GitHub App').actions, undefined);
+});
+
+// DEV-0137: PRs grandes por remoção. O GitHub recusa o diff acima de 300 arquivos (406), e arquivo
+// removido não traz conteúdo novo a revisar.
+const removedFiles = (count) => Array.from({ length: count }, (_, index) => ({ filename: `docs/old/file-${index}.md`, status: 'removed', deletions: 3 }));
+
+test('builds the diff from the file list when GitHub refuses the full diff with 406', async () => {
+  const files = [
+    { filename: 'src/example.ts', status: 'modified', patch: '@@ -1 +1 @@\n-export const value = 41;\n+export const value = 42;' },
+    ...removedFiles(2),
+  ];
+  // Abaixo do limite, o reviewer ainda carrega o conteúdo original (base) dos removidos.
+  const sources = { 'docs/old/file-0.md': 'antigo\n', 'docs/old/file-1.md': 'antigo\n' };
+  const inputs = await loadAgentReviewInputs(createFetch({ files, sources, diffStatus: 406 }), 'owner/repo', 7, { head: { sha: headSha }, base: { sha: baseSha } }, 'token');
+  assert.ok(inputs.diff.includes('diff --git a/src/example.ts b/src/example.ts\n--- a/src/example.ts\n+++ b/src/example.ts\n@@ -1 +1 @@\n-export const value = 41;\n+export const value = 42;'));
+  assert.ok(inputs.diff.startsWith('[arquivos removidos: 2; conteúdo omitido do contexto]\nD docs/old/file-0.md (3 linha(s) removida(s))\nD docs/old/file-1.md (3 linha(s) removida(s))\n'));
+  assert.deepEqual(inputs.changedFiles, files.map(({ filename }) => filename));
+});
+
+test('other diff errors still fail closed', async () => {
+  await assert.rejects(
+    loadAgentReviewInputs(createFetch({ diffStatus: 403 }), 'owner/repo', 7, { head: { sha: headSha }, base: { sha: baseSha } }, 'token'),
+    /GitHub API request failed \(403\)/,
+  );
+});
+
+test('removed files beyond the snapshot limit enter only through the diff', async () => {
+  const files = [{ filename: 'src/example.ts', status: 'modified' }, ...removedFiles(40)];
+  const inputs = await loadAgentReviewInputs(createFetch({ files }), 'owner/repo', 7, { head: { sha: headSha }, base: { sha: baseSha } }, 'token');
+  assert.deepEqual(inputs.sourceFiles.map(({ path }) => path), ['src/example.ts']);
+  assert.equal(inputs.changedFiles.length, 41);
+});
+
+test('added or modified files beyond the snapshot limit are still refused', async () => {
+  const files = Array.from({ length: 33 }, (_, index) => ({ filename: `src/file-${index}.ts`, status: 'modified' }));
+  const sources = Object.fromEntries(files.map(({ filename }) => [filename, 'export {};\n']));
+  await assert.rejects(
+    loadAgentReviewInputs(createFetch({ files, sources }), 'owner/repo', 7, { head: { sha: headSha }, base: { sha: baseSha } }, 'token'),
+    /changes too many files/,
+  );
+});
+
+// Code Review do PR #164: a lista do GitHub para em 3000 arquivos; total divergente falha fechado.
+test('fails closed when the file list does not match the pull request changed_files count', async () => {
+  const files = [{ filename: 'src/example.ts', status: 'modified' }];
+  await assert.rejects(
+    loadAgentReviewInputs(createFetch({ files }), 'owner/repo', 7, { head: { sha: headSha }, base: { sha: baseSha }, changed_files: 3001 }, 'token'),
+    /reports 3001; the review context would be incomplete/,
+  );
+  const inputs = await loadAgentReviewInputs(createFetch({ files }), 'owner/repo', 7, { head: { sha: headSha }, base: { sha: baseSha }, changed_files: 1 }, 'token');
+  assert.deepEqual(inputs.changedFiles, ['src/example.ts']);
+});
+
+test('synthesized diff covers added, renamed and patchless files', () => {
+  const diff = synthesizeDiffFromFiles([
+    { filename: 'src/new.ts', status: 'added', patch: '@@ -0,0 +1 @@\n+export {};' },
+    { filename: 'src/renamed.ts', previous_filename: 'src/old-name.ts', status: 'renamed', patch: '@@ -1 +1 @@\n-a\n+b' },
+    { filename: 'assets/logo.png', status: 'modified' },
+  ]);
+  assert.ok(diff.includes('diff --git a/src/new.ts b/src/new.ts\n--- /dev/null\n+++ b/src/new.ts\n@@ -0,0 +1 @@\n+export {};'));
+  assert.ok(diff.includes('diff --git a/src/old-name.ts b/src/renamed.ts\n--- a/src/old-name.ts\n+++ b/src/renamed.ts'));
+  assert.ok(diff.includes('diff --git a/assets/logo.png b/assets/logo.png\n--- a/assets/logo.png\n+++ b/assets/logo.png\n[patch omitido pelo GitHub (arquivo grande ou binário)]'));
+});
+
+test('406 with removed files beyond the snapshot limit still reviews the changed file', async () => {
+  const files = [{ filename: 'src/example.ts', status: 'modified', patch: '@@ -1 +1 @@\n-x\n+y' }, ...removedFiles(40)];
+  const inputs = await loadAgentReviewInputs(createFetch({ files, diffStatus: 406 }), 'owner/repo', 7, { head: { sha: headSha }, base: { sha: baseSha } }, 'token');
+  assert.deepEqual(inputs.sourceFiles.map(({ path }) => path), ['src/example.ts']);
+  assert.equal((inputs.diff.match(/^D docs\/old\/file-\d+\.md /gm) ?? []).length, 40);
+});
+
+// DEV-0138: o PR #162 remove 1440 arquivos; o cabeçalho de 5 linhas por removido passava do teto de 350.000.
+test('mass removal stays under the diff ceiling and lists every removed path', () => {
+  const longDir = `docs/${'x'.repeat(100)}`;
+  const files = Array.from({ length: 1440 }, (_, index) => ({ filename: `${longDir}/arquivo-${String(index).padStart(4, '0')}.md`, status: 'removed', deletions: 120 }));
+  const diff = synthesizeDiffFromFiles(files);
+  assert.ok(diff.length < 350_000, `diff sintetizado com ${diff.length} caracteres`);
+  for (const { filename } of files) assert.ok(diff.includes(`D ${filename} (120 linha(s) removida(s))`));
+});
+
+test('removed block precedes every diff section and survives sanitization', () => {
+  const diff = sanitizeAgentDiff(synthesizeDiffFromFiles([
+    { filename: 'docs/old.md', status: 'removed', deletions: 2 },
+    { filename: 'apps/mobile/package-lock.json', status: 'modified', patch: '@@ -1 +1 @@\n-a\n+b' },
+  ]));
+  assert.ok(diff.startsWith('[arquivos removidos: 1; conteúdo omitido do contexto]\nD docs/old.md (2 linha(s) removida(s))\n'));
+  assert.ok(diff.includes('diff --git a/apps/mobile/package-lock.json b/apps/mobile/package-lock.json\n[npm lockfile diff section omitted'));
+  assert.equal(synthesizeDiffFromFiles([{ filename: 'src/a.ts', status: 'modified', patch: '+a' }]).startsWith('diff --git'), true);
+});
+
+// Code Review do PR #164 (rodada 2): sem changed_files no payload, lista no teto (3000) falha fechado.
+test('fails closed when the file list hits the GitHub ceiling and the total is unknown', async () => {
+  const files = removedFiles(3000);
+  await assert.rejects(
+    loadAgentReviewInputs(createFetch({ files, diffStatus: 406 }), 'owner/repo', 7, { head: { sha: headSha }, base: { sha: baseSha } }, 'token'),
+    /maximum changed-file list and the Pull Request total is unknown/,
+  );
+});
+
+// DEV-0140: a cobertura do Code Review cabe em 200 itens; acima disso, os removidos saem dela.
+test('review coverage keeps every file up to 200 and drops only removed files above it', () => {
+  const modified = [
+    { filename: 'src/a.ts', status: 'modified' },
+    { filename: 'src/b.ts', status: 'added' },
+    { filename: 'src/c.ts', previous_filename: 'src/old-c.ts', status: 'renamed' },
+  ];
+  const atLimit = [...modified, ...removedFiles(197)];
+  assert.deepEqual(selectReviewCoverageFiles(atLimit), atLimit.map(({ filename }) => filename));
+  const aboveLimit = [...modified, ...removedFiles(198)];
+  assert.deepEqual(selectReviewCoverageFiles(aboveLimit), ['src/a.ts', 'src/b.ts', 'src/c.ts']);
+});
+
+test('review inputs expose the coverage list next to the full changed-file list', async () => {
+  const files = [{ filename: 'src/example.ts', status: 'modified', patch: '+y' }, ...removedFiles(250)];
+  const inputs = await loadAgentReviewInputs(createFetch({ files, diffStatus: 406 }), 'owner/repo', 7, { head: { sha: headSha }, base: { sha: baseSha } }, 'token');
+  assert.equal(inputs.changedFiles.length, 251);
+  assert.deepEqual(inputs.reviewCoverageFiles, ['src/example.ts']);
 });
