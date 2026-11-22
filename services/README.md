@@ -11,7 +11,7 @@ Um microsserviço por pasta, cada um com o próprio banco PostgreSQL e comunica�
 
 ## Esqueleto (DEV-0015)
 
-O template entrou com o `account-service`; `client`, `training` e `nutrition` o recebem na DEV-0141.
+O template entrou com o `account-service` (DEV-0015) e foi aplicado a `client`, `training` e `nutrition` na DEV-0141.
 
 Todo serviço tem a mesma forma ([ENGENHARIA.md §5](../docs/00-oficial/ENGENHARIA.md)):
 
