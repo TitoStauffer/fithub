@@ -132,7 +132,7 @@ async function loadChangedSourceFiles(
     );
     // GitHub omits the body of files over 1 MB from this response (`encoding: none`). A lockfile can
     // pass that size and is summarized anyway, so it alone is read again through the raw media type.
-    const rawLockfile = isNpmLockfile(path) && payload.encoding === 'none'
+    const rawLockfile = isLockfile(path) && payload.encoding === 'none'
       ? await requestGitHubText(fetchImpl, `/repos/${repository}/contents/${encodedPath}?ref=${encodeURIComponent(ref)}`, token, 'application/vnd.github.raw')
       : null;
     if (rawLockfile !== null && Buffer.byteLength(rawLockfile, 'utf8') > MAX_RAW_LOCKFILE_BYTES) {
@@ -145,7 +145,8 @@ async function loadChangedSourceFiles(
     if (content.includes('\0')) throw new Error(`Pull Request includes a binary file that cannot be reviewed as source: ${path}.`);
     const reviewContent = isEncodedReviewFixture(path)
       ? encodedFixtureMarker(path, content)
-      : isNpmLockfile(path) ? summarizeNpmLockfile(path, content) : content;
+      : isNpmLockfile(path) ? summarizeNpmLockfile(path, content)
+        : isPnpmLockfile(path) ? summarizePnpmLockfile(path, content) : content;
     const contentBytes = Buffer.byteLength(reviewContent, 'utf8');
     if (totalBytes + contentBytes > MAX_SOURCE_BYTES) {
       if (isChangedFile) throw new Error('Pull Request source files exceed the supported review context size.');
@@ -179,6 +180,9 @@ export function sanitizeAgentDiff(diff: string): string {
     if (isNpmLockfile(path)) {
       return `${header}\n[npm lockfile diff section omitted from model context; the source context carries its deterministic summary; diffSectionBytes=${bytes}; diffSectionSha256=${hash(section)}]\n`;
     }
+    if (isPnpmLockfile(path)) {
+      return `${header}\n[pnpm lockfile diff section omitted from model context; the source context carries its deterministic summary; diffSectionBytes=${bytes}; diffSectionSha256=${hash(section)}]\n`;
+    }
     return section;
   }).join('');
 }
@@ -204,6 +208,147 @@ const MAX_LOCKFILE_VALUE_CHARS = 200;
 
 function isNpmLockfile(path: string): boolean {
   return /(^|\/)package-lock\.json$/.test(path);
+}
+
+// DEV-0142: o FitHub usa pnpm. O pnpm-lock.yaml recebe o mesmo tratamento do package-lock.json: sai do
+// diff do modelo e entra no contexto como resumo determinístico.
+function isPnpmLockfile(path: string): boolean {
+  return /(^|\/)pnpm-lock\.yaml$/.test(path);
+}
+
+function isLockfile(path: string): boolean {
+  return isNpmLockfile(path) || isPnpmLockfile(path);
+}
+
+const PNPM_SUPPORTED_LOCKFILE_VERSION = /^(?:'9\.\d+'|9\.\d+)$/;
+// Chave de pacote nua na seção packages: com aspas simples (o pnpm usa para @scope) ou sem aspas, sem
+// espaço, sem valor na mesma linha. Aspas duplas, `?`, `{`, `#` e `&`/`*` (âncoras) ficam de fora.
+const PNPM_PACKAGE_KEY = /^ {2}('(?:[^']|'')+'|[^\s'"?{}#&*!|>%@,[\]][^\s{}#,[\]]*|@[^\s{}#,[\]]+):$/;
+// Nome de pacote npm (com escopo opcional) seguido de @ e da versão ou especificador, sem espaço nem aspas.
+const PNPM_PACKAGE_NAME = /^(@[a-z0-9][a-z0-9._~-]*\/)?[a-z0-9][a-z0-9._~-]*@[^\s'"@][^\s'"]*$/i;
+// Campos que a resolution de um pacote pode ter no formato 9. Chave fora da lista, entre aspas, valor
+// com espaço ou estrutura aninhada falham fechado: o resumo só lista anomalias que ele sabe ler.
+const PNPM_RESOLUTION_FIELDS = new Set(['integrity', 'tarball', 'type', 'repo', 'commit', 'directory', 'path']);
+
+/**
+ * A linha fecha na própria linha tudo o que abre: aspas simples e duplas (com os escapes do YAML) e
+ * coleções flow ({}, []). Fora das aspas, o restante não pode ter aspas soltas nem colchetes desbalanceados.
+ */
+function closesOnItsOwnLine(line: string): boolean {
+  const outsideQuotes = line.replace(/'(?:[^']|'')*'|"(?:[^"\\]|\\.)*"/g, '');
+  if (/['"]/.test(outsideQuotes)) return false;
+  let depth = 0;
+  for (const character of outsideQuotes) {
+    if (character === '{' || character === '[') depth += 1;
+    if (character === '}' || character === ']') depth -= 1;
+    if (depth < 0) return false;
+  }
+  return depth === 0;
+}
+
+function parsePnpmResolution(body: string, fail: () => never): Map<string, string> {
+  const fields = new Map<string, string>();
+  for (const field of body.split(', ')) {
+    const match = /^([a-z]+): ('[^',{}]*'|[^\s'",{}[\]]+)$/.exec(field);
+    if (!match || !PNPM_RESOLUTION_FIELDS.has(match[1]) || fields.has(match[1])) fail();
+    fields.set(match![1], match![2].replace(/^'(.*)'$/, '$1'));
+  }
+  return fields;
+}
+
+/**
+ * Resumo do pnpm-lock.yaml (formato 9, um ou mais documentos YAML). Lido por linha, sem parser de YAML:
+ * cada documento tem `packages:` no nível zero, cada pacote é uma chave com dois espaços de recuo, e a
+ * `resolution` do pacote é um mapa de uma linha. O pacote que não vem do registry padrão traz `tarball`,
+ * `type` (git, directory), `repo` ou `directory`; o que vem tem `integrity`. Como no resumo do npm,
+ * nenhum valor sai cru: tudo passa por `quoted`. Versão de formato desconhecida falha fechado, porque o
+ * leitor por linha só vale para o formato que ele conhece.
+ */
+export function summarizePnpmLockfile(path: string, content: string): string {
+  const header = `[pnpm lockfile summarized for the model context; path=${quoted(path)}; sourceBytes=${Buffer.byteLength(content, 'utf8')}; sourceSha256=${hash(content)}`;
+  // Code Review do PR #185, rodada 2: o YAML do pnpm quebra linha também em CR solto (e o YAML 1.1 em
+  // NEL, LS e PS), e o leitor só separa por \n e \r\n. Uma quebra que só o pnpm enxerga esconderia um
+  // pacote dentro de uma linha que o leitor ignora; por isso ela, e todo controle além de \t e \n, falham.
+  const hiddenBreak = new RegExp('\\r(?!\\n)|[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F\\u0085\\u2028\\u2029]').exec(content);
+  if (hiddenBreak) {
+    throw new Error(`Unsupported pnpm lockfile format in ${path}: control character U+${hiddenBreak[0].codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')}.`);
+  }
+  const lines = content.split(/\r?\n/);
+  const versions = lines.filter((line) => line.startsWith('lockfileVersion:')).map((line) => line.slice('lockfileVersion:'.length).trim());
+  if (versions.length === 0 || versions.some((version) => !PNPM_SUPPORTED_LOCKFILE_VERSION.test(version))) {
+    throw new Error(`Unsupported pnpm lockfile format in ${path}: lockfileVersion ${versions.map(quoted).join(', ') || '(missing)'}.`);
+  }
+
+  // Code Review do PR #185: o leitor por linha só é seguro se nada fora do formato conhecido passar em
+  // silêncio. Na seção packages:, toda linha é uma chave de pacote nua, uma propriedade do pacote com
+  // quatro ou mais espaços, ou vazia; qualquer outra coisa (valor flow na linha da chave, chave complexa,
+  // comentário, tabulação, recuo torto, resolution em bloco ou repetida) falha fechado.
+  const unsupported = (reason: string, line: string): never => {
+    throw new Error(`Unsupported pnpm lockfile format in ${path}: ${reason}: ${quoted(line)}.`);
+  };
+  const resolutions = new Map<string, Map<string, string> | null>();
+  let inPackages = false;
+  let current: string | null = null;
+  for (const line of lines) {
+    if (line.trim() === '') continue;
+    // Rodada 3 do Code Review: no arquivo todo, nenhuma linha pode continuar na seguinte. Aspas e
+    // coleções flow abertas que fecham em outra linha fariam o YAML ler as linhas seguintes como parte
+    // do valor, enquanto o leitor as trataria como estrutura (e vice-versa).
+    if (!closesOnItsOwnLine(line)) unsupported('value spanning more than one line', line);
+    if (/^\S/.test(line)) {
+      // Na coluna 0 só cabem chave de nível superior e marcador de documento. Um comentário ali não
+      // encerra o mapa no YAML, mas encerraria a seção para o leitor, e os pacotes seguintes sumiriam.
+      if (!/^(---|[A-Za-z][A-Za-z0-9_-]*:( \S.*)?)$/.test(line)) unsupported('column-0 line is not a top-level key', line);
+      if (line.startsWith('packages') && line !== 'packages:') unsupported('packages section not in block style', line);
+      inPackages = line === 'packages:';
+      current = null;
+      continue;
+    }
+    if (!inPackages) continue;
+    if (/\t/.test(line) || /^\s*#/.test(line)) unsupported('tab or comment in packages', line);
+    const indent = line.length - line.trimStart().length;
+    if (indent === 2) {
+      const key = PNPM_PACKAGE_KEY.exec(line);
+      if (!key) unsupported('package entry not written as a bare key', line);
+      current = key![1].startsWith("'") ? key![1].slice(1, -1).replace(/''/g, "'") : key![1];
+      // Só nome@versão: nada de `<<` (merge do YAML, que funde outro mapa na seção) nem chave solta.
+      if (!PNPM_PACKAGE_NAME.test(current)) unsupported('package key is not name@version', line);
+      if (resolutions.has(current)) unsupported('repeated package key', line);
+      resolutions.set(current, null);
+      continue;
+    }
+    if (indent < 4 || current === null) unsupported('unexpected indentation in packages', line);
+    if (indent === 4 && /^ {4}resolution\b/.test(line)) {
+      const resolution = /^ {4}resolution: \{(.*)\}$/.exec(line);
+      if (!resolution) unsupported('resolution not written as a one-line map', line);
+      if (resolutions.get(current!) !== null) unsupported('repeated resolution', line);
+      resolutions.set(current!, parsePnpmResolution(resolution![1], () => unsupported('unknown resolution field', line)));
+    }
+  }
+  if (resolutions.size === 0) throw new Error(`Unsupported pnpm lockfile format in ${path}: no packages section.`);
+
+  const outsideRegistry: string[] = [];
+  const withoutIntegrity: string[] = [];
+  for (const [name, fields] of resolutions) {
+    if (fields === null) {
+      outsideRegistry.push(`${quoted(name)} -> (no resolution)`);
+      withoutIntegrity.push(quoted(name));
+      continue;
+    }
+    const tarball = fields.get('tarball');
+    const external = fields.has('type') || fields.has('repo') || fields.has('directory') || fields.has('path')
+      || (tarball !== undefined && !tarball.startsWith(NPM_REGISTRY_PREFIX));
+    if (external) {
+      const shown = [...fields.entries()].map(([key, value]) => `${key}: ${value}`).join(', ');
+      outsideRegistry.push(`${quoted(name)} -> ${quoted(`{${shown}}`)}`);
+    }
+    if (!/^sha(256|384|512)-/.test(fields.get('integrity') ?? '')) withoutIntegrity.push(quoted(name));
+  }
+  return [
+    `${header}; lockfileVersion=${quoted(versions[0].replace(/'/g, ''))}; packages=${resolutions.size}`,
+    `packagesResolvedOutsideRegistry (${outsideRegistry.length}): ${listAnomalies(outsideRegistry)}`,
+    `packagesWithoutIntegrity (${withoutIntegrity.length}): ${listAnomalies(withoutIntegrity)}]`,
+  ].join('\n');
 }
 
 function quoted(value: string): string {

@@ -231,3 +231,36 @@ quebra de linha, e o prefixo da área não casa. Teste a regra com um repositór
   - **Impacto:** uma migration como `V2__criação.sql` em `services/` sairia como `"services/...V2__cria\303\247\303\243o.sql"`, e o `Java Services` ficaria verde sem build.
   - **Correção:** `changedFiles` usa `-z` e separa a saída por `\0`.
   - **Prevenção:** teste com repositório temporário, `core.quotePath=true` e `services/a/V2__criação.sql`, provado por mutação (sem `-z`, só ele falha).
+
+## lockfile-do-gerenciador-em-uso
+
+**Regra:** a ferramenta herdada de outro repositório trata os arquivos gerados do gerenciador de
+pacotes que **este** repositório usa. O reviewer do CashIn só resumia `package-lock.json` (npm); no
+FitHub, com pnpm, o `pnpm-lock.yaml` entrava cru no diff e no contexto. Ao adotar ou trocar gerenciador
+(pnpm, Maven Wrapper, Gradle), confira cada lugar que reconhece arquivo gerado pelo nome. Leitor
+feito à mão (sem parser completo) para conteúdo não confiável só é seguro se **falhar fechado em
+qualquer linha fora do formato conhecido**: ignorar em silêncio o que não reconhece é como o atacante
+esconde a entrada que importa.
+
+### Ocorrências
+
+- **Validação:** orquestração do PR #183, run 45018246655 (Agent Code Review: `Pull Request diff exceeds the supported review size.`) — DEV-0142 (#184) · **PR:** #185
+  - **Impacto:** o Expo levou o `pnpm-lock.yaml` a 416 KB. O diff do PR #183 ficou com 443.670 caracteres, 421.720 do lockfile, contra o teto de 350.000, e o PR ficou sem revisão. Todo PR de dependência de app travaria igual.
+  - **Correção:** `summarizePnpmLockfile` lê o formato 9 por linha, sem dependência nova, e falha fechado em outra versão. A seção do diff vira marcador com hash, como no npm.
+  - **Prevenção:** teste com o lockfile real do repositório, entradas hostis, versão desconhecida e leitura raw acima de 1 MB, provado por mutação.
+- **Revisão:** Code Review do PR #185, no SHA `77b7f30` (HIGH: pacote escondido do resumo do pnpm) — DEV-0142 (#184) · **PR:** #185
+  - **Impacto:** linha fora do formato na seção `packages:` era ignorada. Isso incluía entrada flow na linha da chave, chave complexa e comentário, e também campo da `resolution` com chave entre aspas. Um tarball de outro host sumia do resumo, que diria "nenhuma anomalia".
+  - **Correção:** toda linha da seção é chave nua, propriedade com 4 ou mais espaços ou vazia; o resto lança erro. A `resolution` só aceita campos nus de uma lista fixa (`integrity`, `tarball`, `type`, `repo`, `commit`, `directory`, `path`), sem repetição.
+  - **Prevenção:** um teste com cada forma recusada (flow, `?`, comentário, aspas, campo desconhecido, bloco, repetição, recuo, tabulação), provado por mutação de cada guarda.
+- **Revisão:** Code Review do PR #185, rodada 2, no SHA `4dbf40d` (HIGH: quebra de linha que só o YAML enxerga; LOW: merge key `<<`) — DEV-0142 (#184) · **PR:** #185
+  - **Impacto:**
+    - **Quebra escondida:** um CR solto é quebra de linha para o js-yaml do pnpm, mas não para o leitor, que só separava por `\n`/`\r\n`. Dava para pôr um pacote inteiro dentro de uma linha de propriedade ignorada.
+    - **Merge key:** a chave `<<` fundia outro mapa na seção e escondia nome e tarball dos pacotes fundidos.
+  - **Correção:**
+    - CR fora de `\r\n`, NEL, LS, PS e todo controle além de `\t` e `\n` lançam erro antes da leitura.
+    - Toda chave de pacote precisa ser `nome@versão`.
+  - **Prevenção:** compare o que o leitor considera "linha" com o que o parser de verdade considera. Os testes cobrem CR solto, U+0085, U+2028, U+2029, U+000B, U+0000 e `<<`, e o CRLF continua aceito.
+- **Revisão:** Code Review do PR #185, rodada 3, no SHA `61cfd01` (HIGH: comentário na coluna 0 e valor em várias linhas) — DEV-0142 (#184) · **PR:** #185
+  - **Impacto:** um comentário na coluna 0 não encerra o mapa no YAML, mas tirava o leitor da seção `packages:`. Os pacotes seguintes sumiam do resumo. Um escalar entre aspas ou uma coleção flow que continuassem na linha seguinte abriam o mesmo caminho.
+  - **Correção:** no arquivo inteiro, a coluna 0 só aceita chave de nível superior ou `---`, e toda linha fecha na própria linha as aspas e as coleções flow que abre (`closesOnItsOwnLine`).
+  - **Prevenção:** três rodadas acharam três formas de dessincronizar o leitor do parser. A regra geral é a da seção: o leitor feito à mão define uma gramática pequena (linha a linha, sem continuação) e recusa tudo fora dela, em vez de tentar reconhecer o que é perigoso. Os testes cobrem coluna 0 (comentário, `-`, `...`, diretiva, chave entre aspas) e valores abertos (aspas, `{`, `[`, `]` sobrando).

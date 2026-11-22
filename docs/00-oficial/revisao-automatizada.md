@@ -86,9 +86,17 @@ nas evidências.
   segue classificado pela lista completa, removidos incluídos (DEV-0140, `selectReviewCoverageFiles`).
 - A lista de arquivos do GitHub para em **3000 arquivos**; se ela não bater com o total que o
   PR informa (`changed_files`), a revisão falha fechado em vez de revisar só parte do PR.
+- **Lockfiles** (`package-lock.json` e `pnpm-lock.yaml`, na raiz ou em subpasta) não entram crus:
+  - no diff, a seção vira um marcador com tamanho e SHA-256;
+  - no contexto de fonte, entra um resumo determinístico com o total de pacotes, os resolvidos fora
+    do registry oficial (tarball, git, diretório) e os sem hash de integridade, todos como literais JSON;
+  - o `pnpm-lock.yaml` é lido por linha, só no formato 9; outra versão falha fechado (DEV-0142).
+
+  Que o lockfile bate com os manifestos, quem garante é o `install --frozen-lockfile` do CI, não o modelo.
 
 - Fonte: [agent-review-inputs.ts](../../tools/github-reviewer/src/agent-review-inputs.ts) —
-  `readPullRequestDiff`, `synthesizeDiffFromFiles` e `MAX_SOURCE_FILES`; teto do diff em
+  `readPullRequestDiff`, `synthesizeDiffFromFiles`, `MAX_SOURCE_FILES`, `summarizeNpmLockfile` e
+  `summarizePnpmLockfile`; teto do diff em
   [agent-stage-cli.ts](../../tools/github-reviewer/src/agent-stage-cli.ts).
 
 ## Contexto dos agentes

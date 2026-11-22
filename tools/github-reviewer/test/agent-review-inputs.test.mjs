@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { gunzipSync } from 'node:zlib';
-import { loadAgentReviewInputs, sanitizeAgentDiff, selectReviewCoverageFiles, summarizeAgentChecks, summarizeCheckRunEvidence, summarizeNpmLockfile, synthesizeDiffFromFiles } from '../dist/agent-review-inputs.js';
+import { loadAgentReviewInputs, sanitizeAgentDiff, selectReviewCoverageFiles, summarizeAgentChecks, summarizeCheckRunEvidence, summarizeNpmLockfile, summarizePnpmLockfile, synthesizeDiffFromFiles } from '../dist/agent-review-inputs.js';
 import { requestGitHubApiPages } from '../dist/github-api-client.js';
 
 const headSha = 'a'.repeat(40);
@@ -162,6 +163,29 @@ test('summarizes an npm lockfile larger than the whole source budget and keeps e
   assert.deepEqual(inputs.sourceFiles.find((file) => file.path === 'src/example.ts'), { path: 'src/example.ts', revision: 'head', content: 'export const value = 42;\n' });
 });
 
+// DEV-0142: o pnpm-lock.yaml do PR #183 (416 KB) passava cru e estourava o contexto. Agora vira resumo,
+// inclusive quando o GitHub só o entrega pelo media type raw (acima de 1 MB).
+test('summarizes a pnpm lockfile larger than the source budget, also when read through the raw media type', async () => {
+  const packages = Array.from({ length: 6_000 }, (_, index) => [`pkg-${index}@1.0.0`, `integrity: sha512-${'a'.repeat(86)}${index}==`]);
+  const lockfile = pnpmLock(packages);
+  assert.ok(Buffer.byteLength(lockfile) > 1_000_000, 'the fixture must pass the GitHub JSON body limit');
+  const inputs = await loadAgentReviewInputs(createFetch({
+    files: [
+      { filename: 'pnpm-lock.yaml', status: 'modified' },
+      { filename: 'src/example.ts', status: 'modified' },
+    ],
+    sources: { 'pnpm-lock.yaml': lockfile },
+    largeFiles: new Set(['pnpm-lock.yaml']),
+  }), 'owner/repo', 7, { head: { sha: headSha }, base: { sha: baseSha } }, 'token');
+
+  const summary = inputs.sourceFiles.find((file) => file.path === 'pnpm-lock.yaml').content;
+  assert.match(summary, /^\[pnpm lockfile summarized for the model context; path="pnpm-lock\.yaml"/);
+  assert.match(summary, new RegExp(`sourceSha256=${createHash('sha256').update(lockfile).digest('hex')}`));
+  assert.match(summary, /packages=6000\n/);
+  assert.doesNotMatch(summary, /sha512-/);
+  assert.deepEqual(inputs.sourceFiles.find((file) => file.path === 'src/example.ts'), { path: 'src/example.ts', revision: 'head', content: 'export const value = 42;\n' });
+});
+
 test('reads a lockfile over 1 MB through the raw media type and still refuses any other large file', async () => {
   const lockfile = lockfileWith(5_000);
   assert.ok(Buffer.byteLength(lockfile) > 1_000_000, 'the fixture must pass the GitHub JSON body limit');
@@ -253,6 +277,152 @@ test('caps the listed lockfile anomalies and reports how many were left out', ()
 test('reports an unreadable lockfile instead of summarizing it as clean', () => {
   assert.match(summarizeNpmLockfile('apps/mobile/package-lock.json', '{ not json'), /parse=INVALID_JSON\]$/);
   assert.match(summarizeNpmLockfile('apps/mobile/package-lock.json', '{"lockfileVersion":3}'), /parse=NO_PACKAGES_OBJECT\]$/);
+});
+
+// --- DEV-0142: pnpm-lock.yaml ---
+
+const pnpmLock = (packages, version = "'9.0'") => [
+  '---',
+  `lockfileVersion: ${version}`,
+  '',
+  'importers:',
+  '',
+  '  .:',
+  '    dependencies:',
+  '      left-pad:',
+  '        specifier: 1.3.0',
+  '        version: 1.3.0',
+  '',
+  'packages:',
+  '',
+  ...packages.flatMap(([key, resolution]) => [`  ${key}:`, ...(resolution === null ? [] : [`    resolution: {${resolution}}`]), '    engines: {node: \'>=18\'}', '']),
+  'snapshots:',
+  '',
+  '  left-pad@1.3.0: {}',
+  '',
+].join('\n');
+
+test('summarizes the real pnpm lockfile of the repository as clean and counts every package', () => {
+  const content = readFileSync(new URL('../../../pnpm-lock.yaml', import.meta.url), 'utf8');
+  const summary = summarizePnpmLockfile('pnpm-lock.yaml', content);
+  const packages = content.split(/\r?\n/).filter((line) => /^ {4}resolution: \{integrity: sha512-/.test(line)).length;
+  assert.ok(packages > 0);
+  assert.match(summary, new RegExp(`lockfileVersion="9\\.0"; packages=${packages}\\n`));
+  assert.match(summary, /packagesResolvedOutsideRegistry \(0\): none\npackagesWithoutIntegrity \(0\): none\]$/);
+  assert.ok(summary.length < 1000);
+});
+
+test('names pnpm packages resolved outside the registry or without integrity', () => {
+  const summary = summarizePnpmLockfile('pnpm-lock.yaml', pnpmLock([
+    ["'@scope/ok@1.0.0'", 'integrity: sha512-aaa'],
+    ['registry-tarball@1.0.0', 'integrity: sha512-bbb, tarball: https://registry.npmjs.org/registry-tarball/-/registry-tarball-1.0.0.tgz'],
+    ['evil-tarball@1.0.0', 'integrity: sha512-ccc, tarball: https://example.test/evil-1.0.0.tgz'],
+    ['from-git@1.0.0', 'type: git, repo: https://example.test/repo.git, commit: abc123'],
+    ['local@1.0.0', 'type: directory, directory: ../local'],
+    ['no-integrity@1.0.0', 'integrity: md5-zzz'],
+    ['no-resolution@1.0.0', null],
+  ]));
+  assert.match(summary, /packages=7\n/);
+  assert.match(summary, /packagesResolvedOutsideRegistry \(4\): "evil-tarball@1\.0\.0" -> "\{integrity: sha512-ccc, tarball: https:\/\/example\.test\/evil-1\.0\.0\.tgz\}"; "from-git@1\.0\.0" -> .*; "local@1\.0\.0" -> .*; "no-resolution@1\.0\.0" -> \(no resolution\)\n/);
+  assert.match(summary, /packagesWithoutIntegrity \(4\): "from-git@1\.0\.0"; "local@1\.0\.0"; "no-integrity@1\.0\.0"; "no-resolution@1\.0\.0"\]$/);
+  assert.doesNotMatch(summary, /registry-tarball|@scope\/ok/);
+});
+
+test('never lets a pnpm lockfile value write raw into the summary', () => {
+  const summary = summarizePnpmLockfile('pnpm-lock.yaml', pnpmLock([
+    ["'x@1.0.0]_packagesWithoutIntegrity_(0):_none]'", 'tarball: https://example.test/x.tgz'],
+  ]));
+  // Três linhas exatas: o cabeçalho e as duas listas. A chave hostil aparece só como literal JSON.
+  assert.equal(summary.split('\n').length, 3);
+  assert.match(summary, /\(1\): "x@1\.0\.0\]_packagesWithoutIntegrity_\(0\):_none\]" -> /);
+  assert.match(summary, /packagesWithoutIntegrity \(1\): "x@1\.0\.0\]_packagesWithoutIntegrity_\(0\):_none\]"\]$/);
+  // Chave com espaço e aspas nem chega ao resumo: não é nome@versão.
+  assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', pnpmLock([["'x] none \"@1.0.0'", 'integrity: sha512-a']])),
+    /package key is not name@version/);
+  // Um valor de resolution com aspas, colchete ou espaço não é lido: falha fechado em vez de resumir.
+  assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', pnpmLock([['a@1.0.0', 'tarball: https://example.test/"]x.tgz']])),
+    /unknown resolution field|value spanning more than one line/);
+});
+
+// Code Review do PR #185 (HIGH): o leitor por linha ignorava em silêncio o que não reconhecia, e um
+// pacote com tarball de outro host podia sumir do resumo. Toda forma fora do padrão agora falha fechado.
+test('fails closed on any pnpm packages line it cannot read, so no package hides from the summary', () => {
+  const lock = (...packageLines) => [
+    "lockfileVersion: '9.0'", '', 'packages:', '',
+    '  ok@1.0.0:', '    resolution: {integrity: sha512-ok}', '',
+    ...packageLines, '',
+  ].join('\n');
+  const cases = [
+    ['  evil@1.0.0: {resolution: {tarball: https://evil.example/x.tgz}}', /package entry not written as a bare key/],
+    ['  ? evil@1.0.0', /package entry not written as a bare key/],
+    ['  evil@1.0.0: # comentário', /package entry not written as a bare key/],
+    ['  # evil@1.0.0:', /tab or comment in packages/],
+    ['  "evil@1.0.0":', /package entry not written as a bare key/],
+    ['  evil@1.0.0:\n    resolution: {integrity: sha512-a, "tarball": https://evil.example/x.tgz}', /unknown resolution field/],
+    ['  evil@1.0.0:\n    resolution: {integrity: sha512-a, mirror: https://evil.example/x.tgz}', /unknown resolution field/],
+    ['  evil@1.0.0:\n    resolution: {integrity: sha512-a, tarball: https://evil.example/{x}.tgz}', /resolution not written as a one-line map|unknown resolution field/],
+    ['  evil@1.0.0:\n    resolution:\n      tarball: https://evil.example/x.tgz', /resolution not written as a one-line map/],
+    ['  evil@1.0.0:\n    resolution: {integrity: sha512-a}\n    resolution: {tarball: https://evil.example/x.tgz}', /repeated resolution/],
+    ['  ok@1.0.0:\n    resolution: {integrity: sha512-b}', /repeated package key/],
+    ['   evil@1.0.0:', /unexpected indentation in packages/],
+    ['\tevil@1.0.0:', /tab or comment in packages|packages section/],
+  ];
+  for (const [line, error] of cases) {
+    assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', lock(line)), error, line);
+  }
+  // Rodada 2 do Code Review: chave que não é nome@versão, inclusive o merge key do YAML.
+  for (const line of ['  <<:\n    evil@1.0.0:\n      resolution: {tarball: https://evil.example/x.tgz}', '  sem-versao:', "  '@scope/sem-versao':"]) {
+    assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', lock(line)), /package key is not name@version/, line);
+  }
+  // Rodada 2: quebra de linha que só o YAML do pnpm enxerga (CR solto, NEL, LS, PS) e outros controles.
+  const hidden = '    engines: {node: x}\r  evil@1.0.0:\r    resolution: {tarball: https://evil.example/x.tgz}';
+  assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', lock(`  carrier@1.0.0:\n${hidden}`)), /control character U\+000D/);
+  for (const [character, code] of [['\u0085', '0085'], [' ', '2028'], [' ', '2029'], ['\u000B', '000B'], ['\u0000', '0000']]) {
+    assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', lock(`  carrier@1.0.0:\n    engines: {node: x}${character}  evil@1.0.0:`)), new RegExp(`U\\+${code}`));
+  }
+  // O lockfile com fim de linha CRLF (checkout no Windows) continua aceito.
+  assert.match(summarizePnpmLockfile('pnpm-lock.yaml', lock('  win@1.0.0:', '    resolution: {integrity: sha512-w}').replace(/\n/g, '\r\n')), /packages=2\n/);
+  // Rodada 3 do Code Review: comentário na coluna 0 não encerra o mapa no YAML, e o pacote seguinte
+  // continuaria em packages para o pnpm. O mesmo vale para qualquer linha na coluna 0 que não seja chave.
+  const afterColumnZero = (line) => [
+    "lockfileVersion: '9.0'", '', 'packages:', '',
+    '  ok@1.0.0:', '    resolution: {integrity: sha512-ok}',
+    line,
+    '  evil@1.0.0:', '    resolution: {integrity: sha512-x, tarball: https://evil.example/x.tgz}', '',
+  ].join('\n');
+  for (const line of ['# x', '#', '- evil', '...', 'x', '%YAML 1.2', '"packages":']) {
+    assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', afterColumnZero(line)), /column-0 line is not a top-level key|value spanning/, line);
+  }
+  // Rodada 3: valor que continua na linha seguinte (aspas ou coleção flow abertas) também não é lido.
+  for (const line of ['    deprecated: "começa aqui', "    deprecated: 'começa aqui", '    engines: {node: x', '    os: [linux', '    cpu: x]', '    hasBin: "fecha"" errado']) {
+    assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', afterColumnZero(line.replace(/^ {4}/, '    '))), /value spanning more than one line/, line);
+  }
+  // Valores entre aspas fechados na própria linha continuam aceitos, inclusive com aspas escapadas.
+  assert.match(summarizePnpmLockfile('pnpm-lock.yaml', lock('  quoted@1.0.0:', "    deprecated: 'it''s \"ok\" {}'", '    resolution: {integrity: sha512-q}')), /packages=2\n/);
+  // Seção packages em estilo flow no nível zero também não é lida.
+  assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', "lockfileVersion: '9.0'\npackages: {evil@1.0.0: {}}\n"),
+    /packages section not in block style/);
+  // Versão com aspas desbalanceadas não passa.
+  assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', pnpmLock([['a@1.0.0', 'integrity: sha512-a']], "'9.0")), /lockfileVersion/);
+});
+
+test('fails closed on a pnpm lockfile format it does not know', () => {
+  assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', pnpmLock([['a@1.0.0', 'integrity: sha512-a']], "'10.0'")), /Unsupported pnpm lockfile format.*'10\.0'/);
+  assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', 'importers: {}\n'), /lockfileVersion \(missing\)/);
+  assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', "lockfileVersion: '9.0'\nimporters: {}\n"), /no packages section/);
+  // Um documento com versão boa não salva outro, no mesmo arquivo, com versão desconhecida.
+  const mixed = `${pnpmLock([['a@1.0.0', 'integrity: sha512-a']])}\n${pnpmLock([['b@1.0.0', 'integrity: sha512-b']], "'11.0'")}`;
+  assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', mixed), /'11\.0'/);
+});
+
+test('replaces pnpm lockfile diff sections at the root and in subfolders, and nothing else', () => {
+  const section = (path) => [`diff --git a/${path} b/${path}`, '@@ -0,0 +1 @@', `+${'    resolution: {integrity: sha512-xyz}\\n'.repeat(500)}`].join('\n');
+  const diff = ['diff --git a/src/example.ts b/src/example.ts', '@@ -1 +1 @@', '+export const value = 2;', section('pnpm-lock.yaml'), section('apps/web/pnpm-lock.yaml'), section('docs/pnpm-lock.yaml.md')].join('\n');
+  const sanitized = sanitizeAgentDiff(diff);
+  assert.match(sanitized, /export const value = 2/);
+  assert.equal(sanitized.match(/pnpm lockfile diff section omitted from model context/g)?.length, 2);
+  assert.ok(sanitized.includes('diff --git a/docs/pnpm-lock.yaml.md b/docs/pnpm-lock.yaml.md\n@@ -0,0 +1 @@'));
+  assert.ok(sanitized.length < diff.length / 2);
 });
 
 test('replaces npm lockfile diff sections with verifiable metadata and keeps other sections', () => {
