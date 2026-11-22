@@ -1,0 +1,170 @@
+{
+    "issue": "DEV-0027",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Rota protegida deixa de conferir o papel",
+            "area": "apps",
+            "file": "apps/web/src/features/auth/ProtectedRoute.tsx",
+            "find": "if (!roles.some((role) => user.roles.includes(role))) {",
+            "replace": "if (false) {",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Papel client passa a entrar na área do profissional",
+            "area": "apps",
+            "file": "apps/web/src/App.tsx",
+            "find": "const PROFESSIONAL_ROLES = ['personal', 'nutritionist'] as const;",
+            "replace": "const PROFESSIONAL_ROLES = ['personal', 'nutritionist', 'client'] as const;",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Quem volta do login sem sessão é redirecionado de novo (laço)",
+            "area": "apps",
+            "file": "apps/web/src/features/auth/AuthProvider.tsx",
+            "find": "status: cameBackFromLogin() ? 'failed' : 'anonymous'",
+            "replace": "status: 'anonymous'",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Papel desconhecido do token passa a ser aceito",
+            "area": "apps",
+            "file": "apps/web/src/features/auth/authClient.ts",
+            "find": "typeof role === 'string' && ROLES.includes(role)",
+            "replace": "typeof role === 'string'",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Falha na renovação periódica não encerra a sessão",
+            "area": "apps",
+            "file": "apps/web/src/features/auth/AuthProvider.tsx",
+            "find": ".catch(endSession);",
+            "replace": ".catch(() => undefined);",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Token vencido sem renovação não encerra a sessão",
+            "area": "apps",
+            "file": "apps/web/src/features/auth/AuthProvider.tsx",
+            "find": "if (active) endSession();",
+            "replace": "if (active) void 0;",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "getAccessToken sem sessão não encerra a sessão local",
+            "area": "apps",
+            "file": "apps/web/src/features/auth/AuthProvider.tsx",
+            "find": "                } catch {\n                    endSession();",
+            "replace": "                } catch {",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "Token de acesso é enviado para origem fora das APIs do FitHub",
+            "area": "apps",
+            "file": "apps/web/src/lib/http.ts",
+            "find": "if (!target || !options.allowedOrigins.includes(target.origin)) {",
+            "replace": "if (!target) {",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "API recusando o token renovado não encerra a sessão",
+            "area": "apps",
+            "file": "apps/web/src/lib/http.ts",
+            "find": "        options.onSessionRejected();\n        throw new SessionExpiredError();",
+            "replace": "        throw new SessionExpiredError();",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "Depois de um 401 o pedido é repetido sem renovar o token",
+            "area": "apps",
+            "file": "apps/web/src/lib/http.ts",
+            "find": "await options.getAccessToken({ force: true })",
+            "replace": "await options.getAccessToken()",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "Janela da trava de redirecionamento deixa de expirar",
+            "area": "apps",
+            "file": "apps/web/src/features/auth/loginRedirect.ts",
+            "find": "now - at < REDIRECT_WINDOW_MS",
+            "replace": "true",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}
