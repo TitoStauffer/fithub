@@ -1,0 +1,61 @@
+name: Approval reset
+
+# DEV-0132: commit novo no PR invalida as aprovações dos agentes para o HEAD anterior. Este workflow
+# desmarca os checkboxes "Code Review aprovado" e "QA aprovado" do corpo do PR; cada agente volta a
+# marcar o seu ao aprovar o HEAD atual. Aprovação do bot que já vale para o HEAD atual é preservada
+# (o reset pode rodar depois de o agente aprovar o commit novo). Edição só de checkbox não dispara nova rodada de agentes
+# (a orquestração começa pelo CI, que ignora `edited`).
+
+on:
+  pull_request_target: # zizmor: ignore[dangerous-triggers] — executa só código confiável da master; nunca faz checkout nem executa código do PR.
+    branches: [master]
+    types: [synchronize]
+
+permissions: {}
+
+env:
+  # Mesma versão do workflow CI.
+  NODE_VERSION: "24.22.0"
+
+concurrency:
+  group: approval-reset-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  reset:
+    name: Desmarcar aprovações do HEAD anterior
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read # relatórios do QA (comentários) para preservar aprovação já válida
+    steps:
+      # Em pull_request_target, o checkout padrão é o da branch base (master): código confiável.
+      - name: Checkout trusted default branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: tools/github-reviewer/package-lock.json
+
+      - name: Build trusted tools
+        working-directory: tools/github-reviewer
+        run: |
+          npm ci --fetch-timeout=15000 --fetch-retries=1
+          npm run build
+
+      - name: Desmarcar checkboxes de aprovação
+        working-directory: tools/github-reviewer
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          FITHUB_APP_BOT_LOGIN: ${{ vars.FITHUB_APP_BOT_LOGIN }}
+        run: node dist/approval-reset-cli.js

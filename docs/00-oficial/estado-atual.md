@@ -16,6 +16,7 @@
 - **Hook local `.githooks/pre-push`** (DEV-0130): recusa push direto para `master`/`main`; ativação por
   clone com `git config core.hooksPath .githooks`.
   - `github-app-check`: verifica os secrets do GitHub App.
+  - `approval-reset`: desmarca as aprovações dos agentes do HEAD anterior quando entra commit novo.
   - `agent-orchestration`, `merge-readiness`, `pr-review-signal`, `agent-report-recovery`: bots de
     Code Review, QA, Coordinator e Merge Readiness (DEV-0118). Validação ponta a ponta na DEV-0009.
 - **Reviewer** em `tools/github-reviewer`, portado do CashIn e adaptado: sem SonarQube, sem

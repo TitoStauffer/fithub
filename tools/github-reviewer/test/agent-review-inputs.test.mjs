@@ -579,6 +579,7 @@ test('exposes every current-SHA check except volatile automation checks, with Ac
     { name: 'Sincronizar quadro', head_sha: headSha, status: 'completed', conclusion: 'skipped', app: { id: 15368 } },
     { name: 'Validate PR metadata', head_sha: headSha, status: 'in_progress', conclusion: null, app: { id: 15368 } },
     { name: 'Review event relay', head_sha: headSha, status: 'completed', conclusion: 'success', app: { id: 15368 } },
+    { name: 'Desmarcar aprovações do HEAD anterior', head_sha: headSha, status: 'in_progress', conclusion: null, app: { id: 15368 } },
     { name: 'Verificar GitHub App', head_sha: 'c'.repeat(40), status: 'completed', conclusion: 'failure', app: { id: 15368 } },
   ];
   const evidence = summarizeCheckRunEvidence(runs, headSha);
