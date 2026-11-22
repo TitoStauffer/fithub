@@ -169,6 +169,18 @@ $script:PreservedRunnerEntries = @('.runner', '.credentials', '.credentials_rsap
 
 # Removes what a previous extraction left, so binaries dropped from the new archive do not survive the
 # update next to the new ones (DEV-80). Only called while no listener of this installation is running.
+# Arquivos do registro local do runner. O config.cmd recusa configurar enquanto eles existem, mesmo com
+# --replace (que só substitui o registro no GitHub). -Reregister os remove antes (DEV-0135).
+$script:RunnerRegistrationFiles = @('.runner', '.credentials', '.credentials_rsaparams')
+
+# Remove só o registro local, preservando binários, _work e _diag. Chamado com o runner parado.
+function Clear-RunnerRegistration {
+  param([string]$RunnerDirectory = $script:RunnerDir)
+  foreach ($name in $script:RunnerRegistrationFiles) {
+    $path = Join-Path $RunnerDirectory $name
+    if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path -Force }
+  }
+}
 function Clear-ExtractionTarget {
   param([string]$Destination, [string[]]$Preserve = $script:PreservedRunnerEntries)
   if (-not (Test-Path -LiteralPath $Destination)) { return }

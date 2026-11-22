@@ -116,6 +116,8 @@ Install-VerifiedArchive `
   -ExpectedSha256 $PwshSha256 -Destination $PwshDir -Marker 'pwsh.exe'
 
 if ($Reregister -or -not (Test-RunnerInstalled)) {
+  # O config.cmd recusa reconfigurar com registro local existente; -Reregister o remove antes (DEV-0135).
+  if ($Reregister -and (Test-RunnerInstalled)) { Clear-RunnerRegistration }
   Register-Runner
 } else {
   Write-Output "Registro existente mantido para $RunnerName."
