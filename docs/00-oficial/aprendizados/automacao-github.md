@@ -108,3 +108,18 @@ git ignora o hook em silêncio. Marque com `git update-index --chmod=+x` e teste
   - **Impacto:** HIGH no Code Review — em Linux/macOS o hook não rodaria e o push direto na master passaria.
   - **Correção:** `git update-index --chmod=+x .githooks/pre-push .githooks/test-pre-push.sh`.
   - **Prevenção:** `test-pre-push.sh` falha se `git ls-files -s` não mostrar `100755`.
+
+## bot-so-confirma-o-que-o-vault-cita
+
+**Regra:** o Code Review recebe os arquivos alterados, o vault e os arquivos que as notas do vault
+**citam**. Um PR que afirma algo sobre código não alterado (ex.: "o classificador já faz isso") só é
+confirmável se uma nota ligada pelo `context-map.json` citar esse código. Sem isso, o resultado é
+`INCONCLUSIVE`, não aprovação.
+
+### Ocorrências
+
+- **Revisão:** relatório INCONCLUSIVE do Code Review no PR #153 (duas rodadas) — DEV-0133 (#152) · **PR:** #153
+  - **Impacto:** PR correto ficou bloqueado; o bot não tinha `review-track.ts` nem o teste no contexto.
+  - **Correção:** nota `docs/00-oficial/revisao-automatizada.md` cita o código do reviewer e entra pela
+    rota de `AGENTS.md`/`tools/**` no `context-map.json`.
+  - **Prevenção:** regra registrada na própria nota (seção "Contexto dos agentes").
