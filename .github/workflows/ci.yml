@@ -80,10 +80,12 @@ jobs:
         with:
           distribution: temurin
           java-version: "25"
+          cache: maven
 
-      - name: Validate Maven parent POM
+      # Build e testes dos módulos Java (DEV-0013 em diante); o enforcer do POM pai roda junto.
+      - name: Build and test Java modules
         working-directory: .
-        run: mvn -q -B validate
+        run: mvn -B -ntp verify
 
       - name: Validate pnpm workspace
         working-directory: .
