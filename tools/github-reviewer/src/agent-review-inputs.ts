@@ -3,7 +3,7 @@ import { posix } from 'node:path';
 import { requestGitHubApi, requestGitHubApiPages, requestGitHubText } from './github-api-client.js';
 import { ACTIONS_APP_ID, loadActionsEvidence, loadCiSnapshots, unavailableActionsEvidence, type AgentActionsEvidence, type AgentCiSnapshot } from './agent-ci-evidence.js';
 import { loadVaultContext, type VaultContextSnapshot } from './vault-context.js';
-import { KNOWN_TEST_JOBS, REQUIRED_AGENT_CHECKS, VAULT_CONTEXT_MAP_PATH, VAULT_ROOT } from './repository-policy.js';
+import { CONTEXT_EXCLUDED_CHECKS, KNOWN_TEST_JOBS, REQUIRED_AGENT_CHECKS, VAULT_CONTEXT_MAP_PATH, VAULT_ROOT } from './repository-policy.js';
 
 export interface AgentReviewInputs {
   diff: string;
@@ -289,8 +289,10 @@ export function fingerprintAgentReviewInputs(inputs: AgentReviewInputs): Record<
 }
 
 export function summarizeCheckRunEvidence(runs: Array<Record<string, unknown>>, expectedHeadSha: string): AgentCheckEvidence[] {
+  // FitHub (DEV-0128): todos os checks do HEAD entram, exceto os voláteis da automação; as etapas
+  // das Actions continuam só para os jobs de teste (abaixo).
   const relevantRuns = latestRunsByName(runs.filter((run) => run.head_sha === expectedHeadSha
-    && isTestCheck(String(run.name ?? ''))));
+    && !CONTEXT_EXCLUDED_CHECKS.includes(String(run.name ?? ''))));
   return relevantRuns
     .map((run) => ({
       name: String(run.name ?? 'Unnamed check'),

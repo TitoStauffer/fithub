@@ -569,3 +569,23 @@ test('fails closed when a paginated GitHub response is not an array', async () =
     /invalid paginated response/,
   );
 });
+
+// FitHub (DEV-0128): o QA precisa ver qualquer check do HEAD (ex.: `Verificar GitHub App`), mas não os
+// checks voláteis da automação, que reexecutam por evento e mudariam o contexto entre as etapas.
+test('exposes every current-SHA check except volatile automation checks, with Actions steps only for test jobs', () => {
+  const runs = [
+    { name: 'GitHub Reviewer', head_sha: headSha, status: 'completed', conclusion: 'success', app: { id: 15368 } },
+    { name: 'Verificar GitHub App', head_sha: headSha, status: 'completed', conclusion: 'success', app: { id: 15368 } },
+    { name: 'Sincronizar quadro', head_sha: headSha, status: 'completed', conclusion: 'skipped', app: { id: 15368 } },
+    { name: 'Validate PR metadata', head_sha: headSha, status: 'in_progress', conclusion: null, app: { id: 15368 } },
+    { name: 'Review event relay', head_sha: headSha, status: 'completed', conclusion: 'success', app: { id: 15368 } },
+    { name: 'Verificar GitHub App', head_sha: 'c'.repeat(40), status: 'completed', conclusion: 'failure', app: { id: 15368 } },
+  ];
+  const evidence = summarizeCheckRunEvidence(runs, headSha);
+  assert.deepEqual(evidence.map(({ name, conclusion }) => ({ name, conclusion })), [
+    { name: 'GitHub Reviewer', conclusion: 'success' },
+    { name: 'Verificar GitHub App', conclusion: 'success' },
+  ]);
+  assert.ok(evidence.find(({ name }) => name === 'GitHub Reviewer').actions);
+  assert.equal(evidence.find(({ name }) => name === 'Verificar GitHub App').actions, undefined);
+});
