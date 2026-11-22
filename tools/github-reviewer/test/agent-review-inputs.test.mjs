@@ -341,7 +341,7 @@ test('never lets a pnpm lockfile value write raw into the summary', () => {
     /package key is not name@version/);
   // Um valor de resolution com aspas, colchete ou espaço não é lido: falha fechado em vez de resumir.
   assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', pnpmLock([['a@1.0.0', 'tarball: https://example.test/"]x.tgz']])),
-    /unknown resolution field/);
+    /unknown resolution field|value spanning more than one line/);
 });
 
 // Code Review do PR #185 (HIGH): o leitor por linha ignorava em silêncio o que não reconhecia, e um
@@ -382,6 +382,23 @@ test('fails closed on any pnpm packages line it cannot read, so no package hides
   }
   // O lockfile com fim de linha CRLF (checkout no Windows) continua aceito.
   assert.match(summarizePnpmLockfile('pnpm-lock.yaml', lock('  win@1.0.0:', '    resolution: {integrity: sha512-w}').replace(/\n/g, '\r\n')), /packages=2\n/);
+  // Rodada 3 do Code Review: comentário na coluna 0 não encerra o mapa no YAML, e o pacote seguinte
+  // continuaria em packages para o pnpm. O mesmo vale para qualquer linha na coluna 0 que não seja chave.
+  const afterColumnZero = (line) => [
+    "lockfileVersion: '9.0'", '', 'packages:', '',
+    '  ok@1.0.0:', '    resolution: {integrity: sha512-ok}',
+    line,
+    '  evil@1.0.0:', '    resolution: {integrity: sha512-x, tarball: https://evil.example/x.tgz}', '',
+  ].join('\n');
+  for (const line of ['# x', '#', '- evil', '...', 'x', '%YAML 1.2', '"packages":']) {
+    assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', afterColumnZero(line)), /column-0 line is not a top-level key|value spanning/, line);
+  }
+  // Rodada 3: valor que continua na linha seguinte (aspas ou coleção flow abertas) também não é lido.
+  for (const line of ['    deprecated: "começa aqui', "    deprecated: 'começa aqui", '    engines: {node: x', '    os: [linux', '    cpu: x]', '    hasBin: "fecha"" errado']) {
+    assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', afterColumnZero(line.replace(/^ {4}/, '    '))), /value spanning more than one line/, line);
+  }
+  // Valores entre aspas fechados na própria linha continuam aceitos, inclusive com aspas escapadas.
+  assert.match(summarizePnpmLockfile('pnpm-lock.yaml', lock('  quoted@1.0.0:', "    deprecated: 'it''s \"ok\" {}'", '    resolution: {integrity: sha512-q}')), /packages=2\n/);
   // Seção packages em estilo flow no nível zero também não é lida.
   assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', "lockfileVersion: '9.0'\npackages: {evil@1.0.0: {}}\n"),
     /packages section not in block style/);

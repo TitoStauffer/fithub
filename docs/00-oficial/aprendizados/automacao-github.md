@@ -260,3 +260,7 @@ esconde a entrada que importa.
     - CR fora de `\r\n`, NEL, LS, PS e todo controle além de `\t` e `\n` lançam erro antes da leitura.
     - Toda chave de pacote precisa ser `nome@versão`.
   - **Prevenção:** compare o que o leitor considera "linha" com o que o parser de verdade considera. Os testes cobrem CR solto, U+0085, U+2028, U+2029, U+000B, U+0000 e `<<`, e o CRLF continua aceito.
+- **Revisão:** Code Review do PR #185, rodada 3, no SHA `61cfd01` (HIGH: comentário na coluna 0 e valor em várias linhas) — DEV-0142 (#184) · **PR:** #185
+  - **Impacto:** um comentário na coluna 0 não encerra o mapa no YAML, mas tirava o leitor da seção `packages:`. Os pacotes seguintes sumiam do resumo. Um escalar entre aspas ou uma coleção flow que continuassem na linha seguinte abriam o mesmo caminho.
+  - **Correção:** no arquivo inteiro, a coluna 0 só aceita chave de nível superior ou `---`, e toda linha fecha na própria linha as aspas e as coleções flow que abre (`closesOnItsOwnLine`).
+  - **Prevenção:** três rodadas acharam três formas de dessincronizar o leitor do parser. A regra geral é a da seção: o leitor feito à mão define uma gramática pequena (linha a linha, sem continuação) e recusa tudo fora dela, em vez de tentar reconhecer o que é perigoso. Os testes cobrem coluna 0 (comentário, `-`, `...`, diretiva, chave entre aspas) e valores abertos (aspas, `{`, `[`, `]` sobrando).

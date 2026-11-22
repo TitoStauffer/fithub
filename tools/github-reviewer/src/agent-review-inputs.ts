@@ -230,6 +230,22 @@ const PNPM_PACKAGE_NAME = /^(@[a-z0-9][a-z0-9._~-]*\/)?[a-z0-9][a-z0-9._~-]*@[^\
 // com espaço ou estrutura aninhada falham fechado: o resumo só lista anomalias que ele sabe ler.
 const PNPM_RESOLUTION_FIELDS = new Set(['integrity', 'tarball', 'type', 'repo', 'commit', 'directory', 'path']);
 
+/**
+ * A linha fecha na própria linha tudo o que abre: aspas simples e duplas (com os escapes do YAML) e
+ * coleções flow ({}, []). Fora das aspas, o restante não pode ter aspas soltas nem colchetes desbalanceados.
+ */
+function closesOnItsOwnLine(line: string): boolean {
+  const outsideQuotes = line.replace(/'(?:[^']|'')*'|"(?:[^"\\]|\\.)*"/g, '');
+  if (/['"]/.test(outsideQuotes)) return false;
+  let depth = 0;
+  for (const character of outsideQuotes) {
+    if (character === '{' || character === '[') depth += 1;
+    if (character === '}' || character === ']') depth -= 1;
+    if (depth < 0) return false;
+  }
+  return depth === 0;
+}
+
 function parsePnpmResolution(body: string, fail: () => never): Map<string, string> {
   const fields = new Map<string, string>();
   for (const field of body.split(', ')) {
@@ -275,7 +291,14 @@ export function summarizePnpmLockfile(path: string, content: string): string {
   let current: string | null = null;
   for (const line of lines) {
     if (line.trim() === '') continue;
+    // Rodada 3 do Code Review: no arquivo todo, nenhuma linha pode continuar na seguinte. Aspas e
+    // coleções flow abertas que fecham em outra linha fariam o YAML ler as linhas seguintes como parte
+    // do valor, enquanto o leitor as trataria como estrutura (e vice-versa).
+    if (!closesOnItsOwnLine(line)) unsupported('value spanning more than one line', line);
     if (/^\S/.test(line)) {
+      // Na coluna 0 só cabem chave de nível superior e marcador de documento. Um comentário ali não
+      // encerra o mapa no YAML, mas encerraria a seção para o leitor, e os pacotes seguintes sumiriam.
+      if (!/^(---|[A-Za-z][A-Za-z0-9_-]*:( \S.*)?)$/.test(line)) unsupported('column-0 line is not a top-level key', line);
       if (line.startsWith('packages') && line !== 'packages:') unsupported('packages section not in block style', line);
       inPackages = line === 'packages:';
       current = null;
