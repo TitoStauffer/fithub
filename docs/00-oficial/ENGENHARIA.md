@@ -130,6 +130,17 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
   onde qualquer usuário logado lê qualquer paciente.
 - A web usa Authorization Code + PKCE. O mobile também, via
   `expo-auth-session`.
+- **Realm `fithub` versionado** em `infra/keycloak/realm-fithub.json`
+  (DEV-0024, [ADR-007](adr/ADR-007-papeis-e-clients-do-realm.md)):
+  - Papéis de realm: `client`, `personal`, `nutritionist` e `admin`. Conta
+    nova recebe só `client`. O papel de profissional é atribuído pelo
+    `account-service` no cadastro do profissional; `admin`, manualmente.
+  - Clients públicos `fithub-web` e `fithub-mobile`: só Authorization Code
+    com PKCE S256. Fluxo implícito e login por senha direta ficam desligados.
+  - Cadastro e login por e-mail, verificação de e-mail, recuperação de
+    senha, senha de no mínimo 8 caracteres e proteção contra força bruta.
+  - O arquivo não tem usuário, credencial nem secret. O CI confere as
+    guardas no arquivo e no Keycloak de pé (job `Local Infrastructure`).
 - Fotos: bucket privado e URL pré-assinada de curta duração. Nunca é pública.
 - Auditoria: acessos de profissionais a dados sensíveis são registrados no
   serviço dono do dado.

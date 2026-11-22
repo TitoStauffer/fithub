@@ -322,12 +322,28 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Setup Node.js
+        if: env.RUN_AREA == 'true'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # Guardas do realm versionado (DEV-0024): clients só com Authorization Code + PKCE, papel padrão, senha.
+      - name: Check Keycloak realm file
+        if: env.RUN_AREA == 'true'
+        run: node --test infra/keycloak/realm.test.mjs
+
       # Infraestrutura local (DEV-0012): o compose sobe e todos os serviços ficam saudáveis.
       - name: Validate local infrastructure compose
         if: env.RUN_AREA == 'true'
         run: |
           docker compose -f infra/compose/docker-compose.dev.yml up -d --wait --wait-timeout 300
           docker compose -f infra/compose/docker-compose.dev.yml ps
+
+      # O realm foi importado e o Keycloak de pé recusa o que não é Authorization Code + PKCE (DEV-0024).
+      - name: Check imported Keycloak realm
+        if: env.RUN_AREA == 'true'
+        run: node infra/keycloak/check-live-realm.mjs http://localhost:8080
 
       - name: Stop local infrastructure compose
         if: always() && env.RUN_AREA == 'true'
