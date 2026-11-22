@@ -10,5 +10,6 @@ superado ganha status "substituído por ADR-NNN" em vez de ser apagado.
 | [ADR-003](ADR-003-rabbitmq-outbox.md) | RabbitMQ com outbox transacional | aceito |
 | [ADR-004](ADR-004-keycloak.md) | Keycloak como provedor de identidade | aceito |
 | [ADR-005](ADR-005-deploy-compose-vps.md) | Deploy inicial com Docker Compose em VPS | aceito |
+| [ADR-006](ADR-006-seaweedfs-s3-local.md) | SeaweedFS como S3 compatível no ambiente local | aceito |
 
 Formato: contexto, decisão, alternativas consideradas e consequências.

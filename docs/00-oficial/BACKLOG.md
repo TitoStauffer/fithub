@@ -91,7 +91,7 @@ merge: a regra "merge só com READY_TO_MERGE" fica escrita no `AGENTS.md`.
 |---|---|---|---|
 | DEV-0010 | Mover a documentação antiga para `docs/_historico/` e deixar `docs/00-oficial/` como fonte única | P | DEV-0001 |
 | DEV-0011 | Criar a estrutura do monorepo (`services/`, `libs/`, `apps/`, `packages/`, `infra/`), o parent POM (Java 25, Boot 4 BOM) e o `pnpm-workspace` | M | DEV-0001 |
-| DEV-0012 | `infra/compose/docker-compose.dev.yml` com Postgres (um banco por serviço), RabbitMQ, Keycloak, MinIO e Mailpit | M | DEV-0011 |
+| DEV-0012 | `infra/compose/docker-compose.dev.yml` com Postgres (um banco por serviço), RabbitMQ, Keycloak, S3 local (SeaweedFS, ADR-006) e Mailpit | M | DEV-0011 |
 | DEV-0013 | `libs/java-commons`: resource server JWT, Problem Details, logging JSON com traceId | M | DEV-0011 |
 | DEV-0014 | `libs/java-commons`: outbox transacional e consumidor idempotente, com testes Testcontainers | M | DEV-0013 |
 | DEV-0015 | Template de serviço (esqueleto hexagonal + ArchUnit + Flyway + Actuator + OpenAPI) aplicado aos 4 serviços | M | DEV-0013 |

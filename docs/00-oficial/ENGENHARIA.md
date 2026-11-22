@@ -27,7 +27,7 @@ vale até alguém contestar.
 | Mensageria | RabbitMQ + outbox transacional | DECIDIDO |
 | Identidade | Keycloak (OIDC), login e-mail/senha e Google | DECIDIDO |
 | Borda / roteamento | Traefik (TLS, roteamento por path) | PROPOSTO |
-| Armazenamento de arquivos | S3 compatível: MinIO local, Cloudflare R2 (ou similar) em produção | PROPOSTO |
+| Armazenamento de arquivos | S3 compatível: SeaweedFS local ([ADR-006](adr/ADR-006-seaweedfs-s3-local.md)), Cloudflare R2 (ou similar) em produção | PROPOSTO |
 | Web (profissional) | React + Vite + TypeScript, TanStack Query, shadcn/ui | DECIDIDO |
 | Mobile (cliente) | React Native + Expo + TypeScript, EAS para build e lojas | DECIDIDO |
 | Tipos da API no front | Gerados a partir do OpenAPI de cada serviço | PROPOSTO |
@@ -200,7 +200,7 @@ novos serviços quando cada épico chegar. Ele não é evoluído no lugar.
 
 | Ambiente | Como roda |
 |---|---|
-| **Local** | `docker compose -f infra/compose/docker-compose.dev.yml up` sobe Postgres, RabbitMQ, Keycloak, MinIO e Mailpit. Os serviços rodam na IDE ou também via compose |
+| **Local** | `docker compose -f infra/compose/docker-compose.dev.yml up -d --wait` sobe Postgres (um banco por serviço), RabbitMQ, Keycloak, SeaweedFS (S3) e Mailpit ([infra/README.md](../../infra/README.md)). Os serviços rodam na IDE ou também via compose |
 | **Produção** | VPS com Docker Compose: Traefik (TLS Let's Encrypt), Keycloak, RabbitMQ e os serviços. Postgres gerenciado ou em container com volume e backup diário para storage externo |
 | **Staging** | Fora do início. Criar quando houver usuários reais (mesma VPS, outro compose) |
 

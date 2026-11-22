@@ -1,0 +1,98 @@
+# Infraestrutura local do FitHub (DEV-0012). Sobe com um comando, a partir da raiz:
+#   docker compose -f infra/compose/docker-compose.dev.yml up -d --wait
+# Valores padrão são só de desenvolvimento; para trocar, copie .env.example para .env
+# nesta pasta. Portas publicadas só em 127.0.0.1.
+name: fithub-dev
+
+services:
+  postgres:
+    image: postgres:17.12
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      # Um banco e um usuário por serviço, mais o do Keycloak (postgres/init-databases.sh).
+      FITHUB_DATABASES: account client training nutrition keycloak
+      FITHUB_DB_PASSWORD: ${FITHUB_DB_PASSWORD:-fithub}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:4.3.8-management
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-fithub}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-fithub}
+    ports:
+      - "127.0.0.1:${RABBITMQ_PORT:-5672}:5672"
+      - "127.0.0.1:${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.2
+    command: start-dev
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${FITHUB_DB_PASSWORD:-fithub}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "127.0.0.1:${KEYCLOAK_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # A imagem não traz curl: o health fica na porta de gestão (9000), lido via /dev/tcp.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  # Storage S3 compatível (ADR-006): o MinIO deixou de publicar a imagem comunitária.
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.54
+    command: server -s3 -dir=/data -master.telemetry=false
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY:-fithub-dev}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:-fithub-dev-secret}
+    ports:
+      - "127.0.0.1:${S3_PORT:-8333}:8333"
+    volumes:
+      - seaweedfs-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8333/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  mailpit:
+    image: axllent/mailpit:v1.34.0
+    ports:
+      - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  postgres-data:
+  rabbitmq-data:
+  seaweedfs-data:
