@@ -1,3 +1,0 @@
-- Nome obrigatório.
-- Data de nascimento válida.
-- Contatos em formato válido.

@@ -1,1 +1,0 @@
-TrainingUpdated / TrainingAssigned quando aplicável.

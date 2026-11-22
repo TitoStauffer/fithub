@@ -1,1 +1,0 @@
-PRG-ERR-* conforme catálogo.

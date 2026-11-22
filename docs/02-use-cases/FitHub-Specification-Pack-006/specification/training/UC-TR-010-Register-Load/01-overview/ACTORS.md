@@ -1,2 +1,0 @@
-Primary: Patient
-Secondary: Professional

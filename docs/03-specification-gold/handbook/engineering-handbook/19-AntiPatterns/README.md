@@ -1,1 +1,0 @@
-Padrões a evitar.

@@ -23,6 +23,8 @@
   proteção de branch, checks do FitHub (`src/repository-policy.ts`), vault nesta pasta.
 - **Runner self-hosted** `fithub-agents-windows` na máquina do Tito (`tools/github-runner`).
 - **Código da primeira versão** em `legacy/` (monólito modular), só como referência.
+- **Documentação da primeira versão** removida da árvore (DEV-0010); recuperável pelo histórico do git
+  conforme [docs/HISTORICO.md](../HISTORICO.md).
 
 ## Ainda não existe
 

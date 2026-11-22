@@ -1,2 +1,0 @@
-Aggregate: Training
-Entity: TrainingExercise

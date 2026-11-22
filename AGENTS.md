@@ -11,9 +11,9 @@ engenharia:
 3. [docs/00-oficial/BACKLOG.md](docs/00-oficial/BACKLOG.md) — épicos e tarefas
 4. Este arquivo — como trabalhamos
 
-Os demais documentos do repositório (`docs/00-knowledge base`, playbooks,
-`MVP_SPECIFICATION.md`, `IMPROVEMENTS.md` etc.) e o código em `legacy/` são
-histórico: servem de referência, nunca de regra.
+A documentação da primeira versão saiu da árvore e continua no histórico do git
+([docs/HISTORICO.md](docs/HISTORICO.md)); ela e o código em `legacy/` são
+referência, nunca regra.
 
 ## Comunicação e autonomia
 

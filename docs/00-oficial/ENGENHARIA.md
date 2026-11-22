@@ -7,8 +7,8 @@
 > Decisões técnicas, arquitetura, stack, workflow e método de trabalho.
 > O "o quê" e o "porquê" do produto estão no [PRD.md](PRD.md); a divisão do
 > trabalho está em [BACKLOG.md](BACKLOG.md). Onde este documento conflitar com
-> documentos anteriores (`docs/00-knowledge base`, `docs/01-playbook`,
-> `DDD_MODELING.md`, `REPOSITORY_LAYER.md` etc.), **vale este**.
+> documentos da primeira versão (hoje só no histórico do git, ver
+> [docs/HISTORICO.md](../HISTORICO.md)), **vale este**.
 
 Legenda: **DECIDIDO** = escolhido pelo Tito · **PROPOSTO** = sugestão minha,
 vale até alguém contestar.

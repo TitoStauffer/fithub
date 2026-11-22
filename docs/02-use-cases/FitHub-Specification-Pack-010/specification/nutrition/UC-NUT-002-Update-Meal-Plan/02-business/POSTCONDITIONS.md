@@ -1,2 +1,0 @@
-Plano persistido.
-Auditoria registrada.
