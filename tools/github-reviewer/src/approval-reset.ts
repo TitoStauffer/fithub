@@ -12,11 +12,17 @@ export function resetApprovalCheckboxes(
   body: string,
   stages: readonly ApprovalChecklistStage[] = STAGES,
 ): { body: string; changed: boolean } {
+  // CRLF (corpo editado pela web) não precisa de tratamento: com a flag m, ^ e $ do JavaScript já
+  // tratam \r como fim de linha, e a regra do publicador casa a linha do checkbox (teste dedicado).
   let updated = body;
   for (const stage of stages) {
     if (!hasCheckedBox(updated, LABELS[stage])) continue;
-    // Reaproveita a regra do publicador: exige exatamente um checkbox do estágio no corpo.
-    updated = updateApprovalCheckbox(updated, stage, false);
+    try {
+      // Reaproveita a regra do publicador: exige exatamente um checkbox do estágio no corpo.
+      updated = updateApprovalCheckbox(updated, stage, false);
+    } catch {
+      throw new Error(`O corpo do PR tem mais de um checkbox "${LABELS[stage]}"; corrija o template para o reset funcionar.`);
+    }
   }
   return { body: updated, changed: updated !== body };
 }
@@ -49,11 +55,11 @@ export async function runApprovalReset(options: ApprovalResetOptions): Promise<A
   if (skip) return skip;
 
   const keep = new Set<ApprovalChecklistStage>();
-  const reviews = await call(`/pulls/${options.prNumber}/reviews?per_page=100`) as unknown as Array<Record<string, unknown>>;
+  const reviews = await pages(call, `/pulls/${options.prNumber}/reviews`);
   if (reviews.some((review) => login(review) === options.botLogin && review.state === 'APPROVED' && review.commit_id === options.expectedHead)) {
     keep.add('codeReview');
   }
-  const comments = await call(`/issues/${options.prNumber}/comments?per_page=100`) as unknown as Array<Record<string, unknown>>;
+  const comments = await pages(call, `/issues/${options.prNumber}/comments`);
   const qaMarker = `fithub-agent-report:v1 stage=qa sha=${options.expectedHead.toLowerCase()}`;
   if (comments.some((comment) => login(comment) === options.botLogin && typeof comment.body === 'string'
     && comment.body.includes(qaMarker) && /^\*\*Status:\*\* APPROVED$/m.test(comment.body))) {
@@ -73,6 +79,18 @@ export async function runApprovalReset(options: ApprovalResetOptions): Promise<A
   if (saved.body !== body) throw new Error('O GitHub não confirmou o corpo atualizado do PR.');
   const unchecked = stages.filter((stage) => hasCheckedBox(typeof fresh.body === 'string' ? fresh.body : '', LABELS[stage]));
   return { action: 'updated', stages: unchecked };
+}
+
+// Lê todas as páginas (até 10 × 100): num PR longo, o relatório mais recente pode não estar na primeira.
+async function pages(call: (path: string) => Promise<unknown>, path: string): Promise<Array<Record<string, unknown>>> {
+  const all: Array<Record<string, unknown>> = [];
+  for (let page = 1; page <= 10; page += 1) {
+    const batch = await call(`${path}?per_page=100&page=${page}`);
+    if (!Array.isArray(batch)) throw new Error(`Resposta inesperada do GitHub em ${path}.`);
+    all.push(...batch as Array<Record<string, unknown>>);
+    if (batch.length < 100) return all;
+  }
+  throw new Error(`Mais de 1000 itens em ${path}; leitura interrompida.`);
 }
 
 function guard(pullRequest: Record<string, unknown>, expectedHead: string): ApprovalResetResult | undefined {

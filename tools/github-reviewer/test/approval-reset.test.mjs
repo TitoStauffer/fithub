@@ -117,3 +117,55 @@ test('re-reads the pull request before writing and stops if the HEAD moved', asy
   assert.equal((await gh.run()).action, 'skipped');
   assert.equal(patches(gh.calls).length, 0);
 });
+
+// Code Review do PR #154, rodada 2: cada guarda do QA e a releitura têm teste que falha sem elas.
+const qaReport = (status, sha = head) => `<!-- fithub-agent-report:v1 stage=qa sha=${sha} -->\n### Codex — QA Agent\n\n**Status:** ${status}`;
+
+test('does not keep QA for a report with the HEAD marker written by another user', async () => {
+  const gh = fakeGitHub({ comments: [{ user: { login: 'someone' }, body: qaReport('APPROVED') }] });
+  assert.deepEqual(await gh.run(), { action: 'updated', stages: ['codeReview', 'qa'] });
+});
+
+test('does not keep QA for a bot report of the HEAD that is not APPROVED', async () => {
+  const gh = fakeGitHub({ comments: [{ user: { login: bot }, body: qaReport('INCONCLUSIVE') }] });
+  assert.deepEqual(await gh.run(), { action: 'updated', stages: ['codeReview', 'qa'] });
+});
+
+test('keeps only the QA approval when only QA approved the current HEAD', async () => {
+  const gh = fakeGitHub({ comments: [{ user: { login: bot }, body: qaReport('APPROVED') }] });
+  assert.deepEqual(await gh.run(), { action: 'updated', stages: ['codeReview'] });
+  assert.equal(JSON.parse(patches(gh.calls)[0].body).body, template(' ', 'x'));
+});
+
+test('writes from the re-read body so a concurrent edit is not lost', async () => {
+  const gh = fakeGitHub({ freshBody: `${template('x', 'x')}\n\nEdição concorrente.` });
+  await gh.run();
+  assert.equal(JSON.parse(patches(gh.calls)[0].body).body, `${template(' ', ' ')}\n\nEdição concorrente.`);
+});
+
+test('reads approvals beyond the first page of comments', async () => {
+  const filler = Array.from({ length: 100 }, (_, index) => ({ user: { login: 'someone' }, body: `comentário ${index}` }));
+  const fetchImpl = async (url, init = {}) => {
+    const parsed = new URL(url);
+    const path = parsed.pathname.replace('/repos/owner/repo', '');
+    if (path === '/pulls/7' && init.method === 'PATCH') return Response.json({ body: JSON.parse(init.body).body });
+    if (path === '/pulls/7') return Response.json({ state: 'open', head: { sha: head }, body: template('x', 'x') });
+    if (path === '/pulls/7/reviews') return Response.json([]);
+    if (path === '/issues/7/comments') return Response.json(parsed.searchParams.get('page') === '2' ? [{ user: { login: bot }, body: qaReport('APPROVED') }] : filler);
+    return new Response('', { status: 404 });
+  };
+  const result = await runApprovalReset({ repository: 'owner/repo', prNumber: 7, expectedHead: head, botLogin: bot, token: 't', fetchImpl });
+  assert.deepEqual(result, { action: 'updated', stages: ['codeReview'] });
+});
+
+test('handles a CRLF body and keeps its line endings', () => {
+  const body = template('x', 'x').replace(/\n/g, '\r\n');
+  const result = resetApprovalCheckboxes(body);
+  assert.equal(result.changed, true);
+  assert.equal(result.body, template(' ', ' ').replace(/\n/g, '\r\n'));
+});
+
+test('fails with a clear message when the approval checkbox is duplicated', () => {
+  const body = `${template('x', ' ')}\n- [x] **Code Review aprovado** — duplicado`;
+  assert.throws(() => resetApprovalCheckboxes(body), /mais de um checkbox "Code Review aprovado"/);
+});
