@@ -35,6 +35,12 @@ o do CashIn não sobe pelo hook até o CashIn reconhecer o fithub como irmão.
 
 ## Instalar ou reparar
 
+Rode num **PowerShell comum, fora do app desktop do Claude**: dentro do app o
+`%LOCALAPPDATA%` pode ser redirecionado para
+`AppDataLocalPackagesClaude_*LocalCacheLocal`, e o atalho de login não
+encontra o runner depois de reiniciar o Windows (ver
+`docs/00-oficial/aprendizados/automacao-github.md`).
+
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/github-runner/install-runner.ps1
 ```

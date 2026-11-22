@@ -5,20 +5,54 @@
   ],
   "routes": [
     {
-      "paths": ["AGENTS.md", "CLAUDE.md", ".github/**", ".claude/**", "tools/**"],
-      "documents": ["docs/00-oficial/ENGENHARIA.md", "docs/00-oficial/aprendizados/README.md"]
+      "paths": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".github/**",
+        ".claude/**",
+        ".githooks/**",
+        "tools/**",
+        ".gitattributes"
+      ],
+      "documents": [
+        "docs/00-oficial/ENGENHARIA.md",
+        "docs/00-oficial/aprendizados/README.md",
+        "docs/00-oficial/aprendizados/automacao-github.md"
+      ]
     },
     {
-      "paths": ["services/**", "libs/**", "infra/**", "pom.xml"],
-      "documents": ["docs/00-oficial/ENGENHARIA.md", "docs/00-oficial/PRD.md", "docs/00-oficial/aprendizados/README.md"]
+      "paths": [
+        "services/**",
+        "libs/**",
+        "infra/**",
+        "pom.xml"
+      ],
+      "documents": [
+        "docs/00-oficial/ENGENHARIA.md",
+        "docs/00-oficial/PRD.md",
+        "docs/00-oficial/aprendizados/README.md"
+      ]
     },
     {
-      "paths": ["apps/**", "packages/**", "pnpm-workspace.yaml"],
-      "documents": ["docs/00-oficial/PRD.md", "docs/00-oficial/ENGENHARIA.md", "docs/00-oficial/aprendizados/README.md"]
+      "paths": [
+        "apps/**",
+        "packages/**",
+        "pnpm-workspace.yaml"
+      ],
+      "documents": [
+        "docs/00-oficial/PRD.md",
+        "docs/00-oficial/ENGENHARIA.md",
+        "docs/00-oficial/aprendizados/README.md"
+      ]
     },
     {
-      "paths": ["docs/00-oficial/**"],
-      "documents": ["docs/00-oficial/PRD.md", "docs/00-oficial/ENGENHARIA.md"]
+      "paths": [
+        "docs/00-oficial/**"
+      ],
+      "documents": [
+        "docs/00-oficial/PRD.md",
+        "docs/00-oficial/ENGENHARIA.md"
+      ]
     }
   ]
 }
