@@ -26,7 +26,8 @@
         "services/**",
         "libs/**",
         "infra/**",
-        "pom.xml"
+        "pom.xml",
+        ".java-version"
       ],
       "documents": [
         "docs/00-oficial/ENGENHARIA.md",
@@ -39,7 +40,10 @@
       "paths": [
         "apps/**",
         "packages/**",
-        "pnpm-workspace.yaml"
+        "pnpm-workspace.yaml",
+        "package.json",
+        "pnpm-lock.yaml",
+        ".nvmrc"
       ],
       "documents": [
         "docs/00-oficial/PRD.md",

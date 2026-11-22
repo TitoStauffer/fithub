@@ -1,0 +1,9 @@
+{
+  "name": "fithub",
+  "private": true,
+  "description": "Monorepo do FitHub: apps (web, mobile) e pacotes TypeScript. Serviços Java ficam no Maven (pom.xml).",
+  "packageManager": "pnpm@12.21.0",
+  "engines": {
+    "node": ">=24"
+  }
+}
