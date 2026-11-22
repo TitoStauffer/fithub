@@ -1,0 +1,16 @@
+<!doctype html>
+<!--
+  Página carregada num iframe escondido pelo keycloak-js para retomar a sessão sem tirar a pessoa da
+  tela (DEV-0027). Só devolve a própria URL para a janela do app, na mesma origem.
+-->
+<html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8" />
+        <title>FitHub</title>
+    </head>
+    <body>
+        <script>
+            parent.postMessage(location.href, location.origin);
+        </script>
+    </body>
+</html>

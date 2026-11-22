@@ -130,6 +130,22 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
   onde qualquer usuário logado lê qualquer paciente.
 - A web usa Authorization Code + PKCE. O mobile também, via
   `expo-auth-session`.
+- **Sessão na web** (DEV-0027, `apps/web/src/features/auth`): `keycloak-js`
+  em Authorization Code + PKCE S256.
+  - Os tokens ficam só em memória; nada vai para `localStorage` ou
+    `sessionStorage`. O adaptador guarda no `localStorage`, só durante o
+    redirecionamento, o `state` e o verificador do PKCE, e apaga na volta.
+  - Ao recarregar a página, a sessão é retomada pelo Keycloak (iframe
+    escondido, `silent-check-sso.html`). Se o navegador bloquear, a rota
+    protegida leva ao login, que volta direto enquanto houver sessão.
+  - O token é renovado antes de vencer. Falha na renovação encerra a sessão
+    local e leva ao login uma vez; quem volta do login sem sessão vê um erro,
+    sem novo redirecionamento.
+  - Rota de profissional exige `personal` ou `nutritionist`; sem o papel, a
+    tela mostra acesso negado. A proteção de verdade é sempre da API.
+  - As chamadas às APIs usam `createApiFetch` (`src/lib/http.ts`): Bearer
+    token, uma nova tentativa com token renovado num 401, e o token só vai
+    para as origens das APIs do FitHub.
 - **Realm `fithub` versionado** em `infra/keycloak/realm-fithub.json`
   (DEV-0024, [ADR-007](adr/ADR-007-papeis-e-clients-do-realm.md)):
   - Papéis de realm: `client`, `personal`, `nutritionist` e `admin`. Conta
