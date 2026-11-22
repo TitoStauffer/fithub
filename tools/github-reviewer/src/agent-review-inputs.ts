@@ -334,21 +334,23 @@ async function readPullRequestDiff(fetchImpl: typeof fetch, repository: string, 
 
 /**
  * Diff equivalente montado a partir de `/pulls/N/files` (DEV-0137): patch de cada arquivo novo ou alterado;
- * arquivo removido vira um marcador com caminho e linhas removidas, sem o conteúdo apagado.
+ * arquivos removidos viram uma linha cada (caminho e linhas removidas) num bloco inicial, sem o conteúdo apagado.
  */
 export function synthesizeDiffFromFiles(files: Array<Record<string, unknown>>): string {
-  const sections = files.map((file) => {
+  // DEV-0138: removido não traz conteúdo novo, e o cabeçalho de 5 linhas por arquivo estourava o teto do
+  // diff numa remoção em massa. Os removidos vão num bloco compacto, uma linha por caminho, ANTES de
+  // qualquer seção "diff --git": depois dela, o sanitizeAgentDiff o trataria como parte daquela seção.
+  const isRemoved = (file: Record<string, unknown>) => file.status === 'removed';
+  const removed = files.filter(isRemoved);
+  const removedBlock = removed.length === 0 ? [] : [[
+    `[arquivos removidos: ${removed.length}; conteúdo omitido do contexto]`,
+    ...removed.map((file) => `D ${String(file.filename ?? '')} (${Number(file.deletions ?? 0)} linha(s) removida(s))`),
+  ].join('\n')];
+  const sections = files.filter((file) => !isRemoved(file)).map((file) => {
     const path = String(file.filename ?? '');
     const status = String(file.status ?? '');
     const previous = typeof file.previous_filename === 'string' ? file.previous_filename : path;
     const header = `diff --git a/${status === 'renamed' ? previous : path} b/${path}`;
-    if (status === 'removed') {
-      return `${header}
-deleted file mode 100644
---- a/${path}
-+++ /dev/null
-[arquivo removido; ${Number(file.deletions ?? 0)} linha(s) removida(s); conteúdo omitido do contexto]`;
-    }
     const patch = typeof file.patch === 'string' ? file.patch : '[patch omitido pelo GitHub (arquivo grande ou binário)]';
     const from = status === 'added' ? '/dev/null' : `a/${previous}`;
     return `${header}
@@ -356,7 +358,7 @@ deleted file mode 100644
 +++ b/${path}
 ${patch}`;
   });
-  return sections.join('\n');
+  return [...removedBlock, ...sections].join('\n');
 }
 
 function isTestCheck(name: string): boolean {
