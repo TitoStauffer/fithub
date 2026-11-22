@@ -36,8 +36,10 @@ etapas verificadas vão para o QA.
 - Os jobs `Java Services` e `Apps` rodam a guarda contra teste pulado
   ([check-skipped-tests.mjs](../../tools/repo-checks/check-skipped-tests.mjs)) nos
   relatórios JUnit. Teste pulado precisa de `DEV-xxxx` na justificativa, e sem
-  nenhum teste a guarda falha. O `Apps` usa `--allow-none` até existirem apps
-  (DEV-0020 e DEV-0021).
+  nenhum teste a guarda falha. O JUnit do Vitest não grava motivo, então nos apps
+  a issue vai no nome do teste: `it.skip('motivo DEV-xxxx', ...)`. Desde a DEV-0020
+  o `Apps` exige relatório (o `apps/web` publica em `reports/junit.xml`) e roda
+  lint, typecheck, testes e build.
 - Snapshots de CI (`CI_SNAPSHOT_PATHS`): o `ci.yml` (sem os valores de `env`), os
   `scripts` do `package.json` do reviewer e os dois scripts acima, inteiros. Arquivo
   sem projeção conhecida falha fechado (`projectCiSnapshot`).

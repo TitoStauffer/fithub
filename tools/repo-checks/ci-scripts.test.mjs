@@ -176,6 +176,19 @@ test('teste pulado com a issue na justificativa passa', () => {
   assert.deepEqual(unjustified, []);
 });
 
+// DEV-0020: o JUnit do Vitest grava só <skipped/>; sem motivo gravado, vale a issue no nome do teste.
+// Motivo gravado continua decidindo: issue só no nome não salva um @Disabled("instável").
+test('sem motivo gravado, a issue no nome do teste justifica o pulo', () => {
+  const { unjustified } = inspectReport(report(
+    '<testcase classname="src/a.test.tsx" name="depende do realm DEV-0024"><skipped/></testcase>'
+    + '<testcase classname="src/a.test.tsx" name="sem issue"><skipped/></testcase>'
+    + '<testcase classname="a.B" name="nome DEV-0024"><skipped message="instável"/></testcase>'));
+  assert.deepEqual(unjustified, [
+    { test: 'src/a.test.tsx.sem issue', reason: '(sem motivo)' },
+    { test: 'a.B.nome DEV-0024', reason: 'instável' },
+  ]);
+});
+
 test('falha de teste não é confundida com teste pulado', () => {
   const { total, unjustified } = inspectReport(report(
     '<testcase name="t" classname="a.B"><failure message="esperado 1"/></testcase>'));
