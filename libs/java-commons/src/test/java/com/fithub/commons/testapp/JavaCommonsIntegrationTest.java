@@ -18,7 +18,11 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest
+// Sem banco nem broker: as peças de mensageria (DEV-0014) têm o próprio teste com Testcontainers.
+@SpringBootTest(properties = "spring.autoconfigure.exclude="
+        + "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration,"
+        + "org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration,"
+        + "org.springframework.boot.amqp.autoconfigure.RabbitAutoConfiguration")
 @AutoConfigureMockMvc
 @ExtendWith(OutputCaptureExtension.class)
 class JavaCommonsIntegrationTest {

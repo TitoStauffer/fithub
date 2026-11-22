@@ -6,6 +6,7 @@ que fazemos para não repeti-los.
 | Tema | Arquivo |
 |---|---|
 | Workflows, runner e bots | [automacao-github.md](automacao-github.md) |
+| Outbox, consumidores e eventos | [mensageria.md](mensageria.md) |
 
 Regras de registro: [AGENTS.md](../../../AGENTS.md), seção **Aprendizados**.
 

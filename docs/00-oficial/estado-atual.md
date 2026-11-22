@@ -30,6 +30,7 @@
   só com READMEs; `pom.xml` parent (Java 25, Spring Boot 4.1.3, enforcer) e workspace pnpm.
 - **Infraestrutura local** (DEV-0012): `infra/compose/docker-compose.dev.yml` com Postgres 17 (um banco e um usuário por serviço, mais o do Keycloak), RabbitMQ, Keycloak, SeaweedFS (S3, ADR-006) e Mailpit, todos com healthcheck; o CI sobe o compose e espera todos saudáveis. O `infrastructure/` legado foi removido
 - **java-commons** (DEV-0013): primeiro módulo Maven ([libs/java-commons](../../libs/java-commons/README.md)). Autoconfiguração de resource server JWT do Keycloak (papéis do realm como `ROLE_*`, `@PreAuthorize`), erros em Problem Details (RFC 9457) e logging JSON (ECS) com `traceId`. ArchUnit garante que a lib não tem domínio. O CI roda `mvn -B verify` na raiz
+- **Mensageria na java-commons** (DEV-0014, ADR-003): outbox transacional (`OutboxWriter` recusa gravar fora de transação e gera ids UUID v7; `OutboxPublisher` publica só o que foi commitado, na ordem de gravação, com um único publicador por banco via lock consultivo, confirmação do broker e expurgo por retenção) e consumo idempotente (`ProcessedEvents`). As tabelas técnicas usam um Flyway próprio, com histórico separado; o Flyway dos serviços passa a ter linha de base 0 por padrão. Testes com Testcontainers (Postgres e RabbitMQ)
 
 ## Ainda não existe
 
