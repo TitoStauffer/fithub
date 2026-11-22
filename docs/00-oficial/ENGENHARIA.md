@@ -141,6 +141,13 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
     senha, senha de no mínimo 8 caracteres e proteção contra força bruta.
   - O arquivo não tem usuário, credencial nem secret. O CI confere as
     guardas no arquivo e no Keycloak de pé (job `Local Infrastructure`).
+  - **Cadastro em duas etapas:** com a verificação de e-mail ligada, o
+    Keycloak pede só o e-mail e o nome no cadastro; a senha é definida depois
+    de a pessoa confirmar o e-mail. Só o dono do e-mail cria a senha.
+  - **Tema `fithub`** (DEV-0026) em `infra/keycloak/themes/fithub`: herda as
+    telas do `keycloak.v2` e muda só CSS e textos (login) e a moldura dos
+    e-mails. Sem script, sem página de login própria e sem recurso externo.
+    As cores espelham os tokens da web (`apps/web/src/index.css`).
 - Fotos: bucket privado e URL pré-assinada de curta duração. Nunca é pública.
 - Auditoria: acessos de profissionais a dados sensíveis são registrados no
   serviço dono do dado.

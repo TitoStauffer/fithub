@@ -43,6 +43,13 @@ e-mail pelo Mailpit ([ADR-007](../docs/00-oficial/adr/ADR-007-papeis-e-clients-d
 - **Alterar o realm:** edite o JSON, rode `node --test infra/keycloak/realm.test.mjs` e recrie o realm
   local. O jeito mais simples é resetar os dados (abaixo); para manter os outros bancos, apague só o
   realm `fithub` no console e reinicie o Keycloak.
+- **Tema das telas e dos e-mails:** `keycloak/themes/fithub`, montado no Keycloak do compose. Ele
+  herda as telas do `keycloak.v2`: mude só o CSS (`login/resources/css/fithub.css`), os textos
+  (`login/messages/messages_pt_BR.properties`) e a moldura dos e-mails (`email/html/template.ftl`).
+  No `start-dev` o Keycloak não guarda o tema em cache: basta recarregar a página. Não adicione
+  script, página `.ftl` de login nem recurso de outro domínio; o teste das guardas recusa.
+- **Cadastro:** a tela pede e-mail e nome. Depois de confirmar o e-mail (a mensagem chega no
+  Mailpit), a pessoa define a senha.
 - **Conferir o realm de pé:** `node infra/keycloak/check-live-realm.mjs http://localhost:8080`.
 - Mudança feita só pelo console não vai para o repositório: leve para o JSON o que precisar ficar.
 - Nunca coloque usuário, senha ou secret no arquivo; o teste das guardas recusa.

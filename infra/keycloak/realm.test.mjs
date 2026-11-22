@@ -3,7 +3,7 @@
 //
 //   node --test infra/keycloak/realm.test.mjs
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const realm = JSON.parse(readFileSync(new URL('./realm-fithub.json', import.meta.url), 'utf8'));
@@ -52,6 +52,19 @@ test('redirect URIs e origens não têm curinga de host nem aceitam qualquer des
   assert.deepEqual(client('fithub-mobile').redirectUris, ['fithub://auth']);
 });
 
+// Code Review do PR #190 (LOW): recusar curinga não basta, porque um host fixo de terceiro passaria.
+// Os destinos de cada client são fixados por valor; mudar um deles é decisão revisada, com este teste.
+test('os destinos do web e do mobile são exatamente os esperados', () => {
+  const web = client('fithub-web');
+  assert.deepEqual(web.redirectUris, ['http://localhost:5173/*']);
+  assert.deepEqual(web.webOrigins, ['http://localhost:5173']);
+  assert.equal(web.attributes['post.logout.redirect.uris'], 'http://localhost:5173/*');
+  assert.equal(web.rootUrl, 'http://localhost:5173');
+  const mobile = client('fithub-mobile');
+  assert.deepEqual(mobile.webOrigins, []);
+  assert.equal(mobile.attributes['post.logout.redirect.uris'], 'fithub://auth');
+});
+
 test('os quatro papéis existem e conta nova recebe só client', () => {
   const roles = new Map(realm.roles.realm.map((role) => [role.name, role]));
   for (const name of REALM_ROLES) assert.ok(roles.has(name), `papel ${name} ausente`);
@@ -88,6 +101,54 @@ test('telas e e-mails em pt-BR', () => {
   assert.equal(realm.internationalizationEnabled, true);
   assert.equal(realm.defaultLocale, 'pt-BR');
   assert.ok(realm.supportedLocales.includes('pt-BR'));
+});
+
+// --- tema (DEV-0026) ---
+
+const THEME = new URL('./themes/fithub/', import.meta.url);
+const themeFiles = (directory = THEME) => readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+  const url = new URL(entry.isDirectory() ? `${entry.name}/` : entry.name, directory);
+  return entry.isDirectory() ? themeFiles(url) : [url];
+});
+
+test('o realm usa o tema fithub nas telas de login e nos e-mails, e o tema existe', () => {
+  assert.equal(realm.loginTheme, 'fithub');
+  assert.equal(realm.emailTheme, 'fithub');
+  assert.ok(existsSync(new URL('login/theme.properties', THEME)));
+  assert.ok(existsSync(new URL('email/theme.properties', THEME)));
+});
+
+test('o tema só muda aparência e textos: sem script, sem página de login própria e sem recurso externo', () => {
+  const files = themeFiles();
+  assert.ok(files.length > 0);
+  for (const url of files) {
+    const path = url.pathname.slice(url.pathname.indexOf('/themes/fithub/'));
+    assert.doesNotMatch(path, /\.(js|mjs)$/, `script no tema: ${path}`);
+    // Sobrescrever uma página do login tiraria as correções das telas do Keycloak; só a moldura do e-mail muda.
+    if (path.endsWith('.ftl')) assert.equal(path, '/themes/fithub/email/html/template.ftl', `página sobrescrita: ${path}`);
+    const content = readFileSync(url, 'utf8');
+    assert.doesNotMatch(content, /<script|javascript:|\bon[a-z]+\s*=/i, `script em ${path}`);
+    assert.doesNotMatch(content, /https?:\/\/|\/\/[a-z0-9.-]+\.[a-z]{2,}|@import|<img|<link|<iframe/i, `recurso externo em ${path}`);
+    assert.doesNotMatch(content, /url\(/i, `url() em ${path}`);
+  }
+});
+
+test('o tema de login herda as telas do keycloak.v2 e só acrescenta o CSS do FitHub', () => {
+  const properties = readFileSync(new URL('login/theme.properties', THEME), 'utf8');
+  assert.match(properties, /^parent=keycloak\.v2$/m);
+  assert.match(properties, /^styles=css\/styles\.css css\/fithub\.css$/m);
+  assert.doesNotMatch(properties, /^scripts=/m);
+});
+
+test('as mensagens não revelam se o e-mail tem conta', () => {
+  const messages = Object.fromEntries(readFileSync(new URL('login/messages/messages_pt_BR.properties', THEME), 'utf8')
+    .split(/\r?\n/).filter((line) => line && !line.startsWith('#')).map((line) => [line.slice(0, line.indexOf('=')), line.slice(line.indexOf('=') + 1)]));
+  assert.equal(messages.invalidUserMessage, 'E-mail ou senha inválidos.');
+  assert.equal(messages.emailExistsMessage, messages.usernameExistsMessage);
+  for (const key of ['emailExistsMessage', 'usernameExistsMessage', 'emailSentMessage']) {
+    assert.doesNotMatch(messages[key], /já existe|já está|não existe|não encontrad/i, `${key} revela se a conta existe`);
+  }
+  assert.match(messages.emailSentMessage, /^Se houver uma conta/);
 });
 
 test('token de acesso curto e TLS exigido fora da máquina local', () => {
