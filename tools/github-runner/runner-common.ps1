@@ -125,6 +125,12 @@ function Set-RunnerEnvironment {
     if ($value) { $pathEntries += $value.Split(';') | Where-Object { $_ } }
   }
   $env:Path = ($pathEntries | Select-Object -Unique) -join ';'
+  # core.longpaths só para o git dos jobs (DEV-0126): a pasta de trabalho do runner somada aos caminhos
+  # longos do repositório passa do limite de 260 caracteres do Windows e o checkout falha. Variáveis
+  # GIT_CONFIG_* valem só para este processo e seus filhos, sem tocar na configuração global.
+  $env:GIT_CONFIG_COUNT = '1'
+  $env:GIT_CONFIG_KEY_0 = 'core.longpaths'
+  $env:GIT_CONFIG_VALUE_0 = 'true'
   if ($codex) { $env:CODEX_EXECUTABLE = $codex }
   return $codex
 }

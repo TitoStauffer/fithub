@@ -120,6 +120,8 @@ eval "$HOOK_CMD"
   $resolvedCodex = Set-RunnerEnvironment
   Assert-True ($null -eq $resolvedCodex -and -not $env:CODEX_EXECUTABLE) 'Set-RunnerEnvironment não exige o Codex, que é opcional'
   Assert-True ($env:Path.Split(';')[0] -eq $PwshDir) 'Set-RunnerEnvironment coloca o PowerShell portátil à frente do PATH'
+  # DEV-0126: core.longpaths para o git dos jobs, só no ambiente do processo.
+  Assert-True ($env:GIT_CONFIG_COUNT -eq '1' -and $env:GIT_CONFIG_KEY_0 -eq 'core.longpaths' -and $env:GIT_CONFIG_VALUE_0 -eq 'true') 'Set-RunnerEnvironment liga core.longpaths para o git dos jobs'
   $env:Path = $previousPath
 
   # DEV-0125: Git for Windows vem logo depois do pwsh, à frente de um git do MSYS2 no PATH da máquina.
