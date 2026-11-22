@@ -365,8 +365,9 @@ ao Tito.
 - Pesquise antes se o padrão já existe: ocorrência repetida amplia a regra
   existente; regra nova só para padrão novo.
 - Cada ocorrência registra a referência da revisão (ou, para bug de validação
-  ou produção, a issue ou execução onde apareceu), o PR e o SHA da correção, o
-  impacto, a correção e a prevenção. Hipótese, falso positivo, preferência de estilo e
+  ou produção, a issue ou execução onde apareceu), o PR da correção, o impacto,
+  a correção e a prevenção. O SHA entra quando a correção já está integrada; na
+  branch da correção, o PR a identifica (o aprendizado não espera o merge). Hipótese, falso positivo, preferência de estilo e
   apontamento inconclusivo não viram aprendizado.
 - Aprendizado entra por PR, nunca direto na `master`.
 

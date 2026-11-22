@@ -182,3 +182,20 @@ verifique presença.
   - **Impacto:** teste do Git for Windows no PATH falhou no Linux.
   - **Correção:** verificação por presença (`-contains`).
   - **Prevenção:** esta regra.
+
+## diff-e-lista-de-arquivos-tem-teto-no-github
+
+**Regra:** o GitHub recusa o diff completo de PRs acima de 300 arquivos (HTTP 406) e corta a lista
+`/pulls/N/files` em 3000 arquivos. Quem depende deles monta o diff a partir da lista e confere a lista
+contra o total do PR (`changed_files`), falhando fechado se não bater ou se o total faltar no teto.
+
+### Ocorrências
+
+- **Revisão:** orquestração do PR #162 (Agent Code Review: `GitHub API request failed (406)`) — DEV-0137 (#163) · **PR:** #164
+  - **Impacto:** PR de 1.448 arquivos (remoção de docs) ficou sem revisão; o mesmo travaria PRs de esqueleto do E0.
+  - **Correção:** `readPullRequestDiff` trata o 406 e `synthesizeDiffFromFiles` monta o diff da lista; removidos acima do limite entram só pelo caminho.
+  - **Prevenção:** testes de 406, removidos acima do limite e alterados acima do limite, provados por mutação.
+- **Revisão:** https://github.com/TitoStauffer/fithub/pull/164#pullrequestreview-6009778773 (HIGH: lista cortada em 3000) — DEV-0137 (#163) · **PR:** #164
+  - **Impacto:** acima de 3000 arquivos a revisão seria parcial e o trilho poderia sair leve indevidamente.
+  - **Correção:** comparação com `changed_files` e falha fechada quando o total falta e a lista está no teto.
+  - **Prevenção:** testes de total divergente e de total ausente no teto, provados por mutação.
