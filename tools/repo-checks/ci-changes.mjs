@@ -37,11 +37,16 @@ export function formatOutputs(areas) {
   return AREAS.map((area) => `${area}=${areas[area] ? 'true' : 'false'}`).join('\n');
 }
 
-function changedFiles(base, head) {
+/**
+ * Caminhos alterados entre a base e o HEAD. `--no-renames` é obrigatório: com a detecção de renomeação
+ * (padrão do git), um arquivo movido de services/ para fora das áreas apareceria só pelo caminho novo,
+ * e a área de origem ficaria sem build (falso verde num check exigido).
+ */
+export function changedFiles(base, head, { cwd } = {}) {
   for (const sha of [base, head]) {
     if (!/^[0-9a-f]{40}$/i.test(sha ?? '')) throw new Error(`SHA inválido: ${sha ?? '(vazio)'}`);
   }
-  return execFileSync('git', ['diff', '--name-only', `${base}...${head}`], { encoding: 'utf8' }).split('\n');
+  return execFileSync('git', ['diff', '--name-only', '--no-renames', `${base}...${head}`], { encoding: 'utf8', cwd }).split('\n');
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

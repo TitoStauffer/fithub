@@ -4,7 +4,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { classifyChanges, formatOutputs } from './ci-changes.mjs';
+import { execFileSync } from 'node:child_process';
+
+import { changedFiles, classifyChanges, formatOutputs } from './ci-changes.mjs';
 import { checkSkippedTests, inspectReport } from './check-skipped-tests.mjs';
 
 // --- ci-changes ---
@@ -29,6 +31,36 @@ test('mudança no próprio CI, nestes scripts ou lista vazia roda tudo', () => {
   assert.deepEqual(classifyChanges(['tools/repo-checks/ci-changes.mjs']), all);
   assert.deepEqual(classifyChanges([]), all);
   assert.deepEqual(classifyChanges(['', '  ']), all);
+});
+
+// Code Review do PR #179: com a detecção de renomeação do git, mover um arquivo de services/ para fora
+// das áreas mostrava só o caminho novo, e o Java Services passava sem compilar o serviço que o perdeu.
+test('arquivo movido para fora da área ainda liga a área de origem', () => {
+  const repo = mkdtempSync(join(tmpdir(), 'ci-changes-'));
+  const git = (...args) => execFileSync('git', ['-c', 'user.name=ci', '-c', 'user.email=ci@example.invalid', ...args], { cwd: repo, encoding: 'utf8' }).trim();
+  try {
+    git('init', '-q');
+    mkdirSync(join(repo, 'services', 'a'), { recursive: true });
+    writeFileSync(join(repo, 'services', 'a', 'Foo.java'), 'class Foo {\n  int a = 1;\n  int b = 2;\n}\n');
+    git('add', '-A');
+    git('commit', '-q', '-m', 'base');
+    const base = git('rev-parse', 'HEAD');
+    mkdirSync(join(repo, 'legacy'));
+    git('mv', 'services/a/Foo.java', 'legacy/Foo.java');
+    git('commit', '-q', '-m', 'move');
+    const head = git('rev-parse', 'HEAD');
+
+    const files = changedFiles(base, head, { cwd: repo }).filter(Boolean).sort();
+    assert.deepEqual(files, ['legacy/Foo.java', 'services/a/Foo.java']);
+    assert.equal(classifyChanges(files).java, true);
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+test('SHA fora do formato é recusado antes de chamar o git', () => {
+  assert.throws(() => changedFiles('main', 'a'.repeat(40)), /SHA inválido/);
+  assert.throws(() => changedFiles('a'.repeat(40), '--output=x'), /SHA inválido/);
 });
 
 test('as saídas seguem o formato do GITHUB_OUTPUT', () => {

@@ -207,3 +207,17 @@ contra o total do PR (`changed_files`), falhando fechado se não bater ou se o t
   - **Impacto:** nenhuma resposta do modelo conseguia aprovar um PR com mais de 200 arquivos, mesmo sem bloqueio no conteúdo.
   - **Correção:** acima de 200 arquivos, os removidos saem da matriz de cobertura (`reviewCoverageFiles`); o trilho continua usando a lista completa.
   - **Prevenção:** testes da seleção no limite, do Coordinator com remoção em massa e da classificação do trilho, provados por mutação. Um teto de schema e a regra que o consome precisam ser testados juntos, no pior caso.
+
+## diff-por-caminho-sem-renomeacao
+
+**Regra:** quem decide o que verificar pelos caminhos alterados (filtro de CI, trilho de revisão)
+lê o diff com `git diff --no-renames`. Com a detecção de renomeação, padrão do git, um arquivo
+movido aparece só pelo caminho novo, e a área de onde ele saiu fica sem verificação. Teste a regra
+com um repositório git de verdade e um `git mv` para fora da área.
+
+### Ocorrências
+
+- **Revisão:** https://github.com/TitoStauffer/fithub/pull/179#pullrequestreview-6011325578 (MEDIUM: falso verde no detector de áreas) — DEV-0016 (#8) · **PR:** #179
+  - **Impacto:** mover um arquivo de `services/` para fora das áreas deixaria o `Java Services`, check exigido, verde sem compilar o serviço que perdeu a classe. A quebra só apareceria no push da `master`, depois do merge.
+  - **Correção:** `changedFiles` em `tools/repo-checks/ci-changes.mjs` usa `--no-renames`; o caminho antigo e o novo entram na classificação.
+  - **Prevenção:** teste com repositório git temporário e `git mv services/... legacy/...`, provado por mutação (sem `--no-renames` o teste falha).
