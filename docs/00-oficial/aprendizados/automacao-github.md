@@ -123,3 +123,17 @@ confirmável se uma nota ligada pelo `context-map.json` citar esse código. Sem 
   - **Correção:** nota `docs/00-oficial/revisao-automatizada.md` cita o código do reviewer e entra pela
     rota de `AGENTS.md`/`tools/**` no `context-map.json`.
   - **Prevenção:** regra registrada na própria nota (seção "Contexto dos agentes").
+
+## aprovacao-vale-so-para-o-head
+
+**Regra:** marca de aprovação (checkbox, relatório, revisão) vale para um SHA. Quando entra commit
+novo, o que foi marcado para o SHA anterior é desmarcado, sem apagar a aprovação que o agente já deu
+ao SHA novo (o reset pode chegar depois dela).
+
+### Ocorrências
+
+- **Revisão:** https://github.com/TitoStauffer/fithub/pull/138#pullrequestreview-6009185188 — DEV-0132 (#151) · **PR:** #154 · **SHA:** `31666d3`
+  - **Impacto:** o PR #138 declarava Code Review e QA aprovados para um HEAD que ainda não tinha sido revisado.
+  - **Correção:** workflow `approval-reset` no `synchronize`, preservando a aprovação do bot que já vale
+    para o HEAD atual, relendo o PR antes de gravar e paginando as leituras.
+  - **Prevenção:** testes das guardas em `test/approval-reset.test.mjs`, cada uma provada por mutação.

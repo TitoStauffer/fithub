@@ -20,9 +20,9 @@ const API_BASE = 'https://api.github.com';
 const API_VERSION = '2022-11-28';
 const TARGET_BRANCH = 'master';
 const REPORT_SIGNATURES = [
-  '### Codex — Quality Gate Coordinator',
-  '### Codex — QA Agent',
-  '### Codex — PM Agent',
+  '### Agent — Quality Gate Coordinator',
+  '### Agent — QA',
+  '### Agent — PM',
   '### Code Review — APPROVED',
   '### Code Review — CHANGES_REQUESTED',
   '### Code Review - APPROVED',

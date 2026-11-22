@@ -89,7 +89,7 @@ test('unchecks stale approvals and writes the expected body', async () => {
 });
 
 test('keeps approvals the bot already gave to the current HEAD', async () => {
-  const qaReport = `<!-- fithub-agent-report:v1 stage=qa sha=${head} -->\n### Codex — QA Agent\n\n**Status:** APPROVED`;
+  const qaReport = `<!-- fithub-agent-report:v1 stage=qa sha=${head} -->\n### Agent — QA\n\n**Status:** APPROVED`;
   const gh = fakeGitHub({
     reviews: [{ user: { login: bot }, state: 'APPROVED', commit_id: head }],
     comments: [{ user: { login: bot }, body: qaReport }],
@@ -119,7 +119,7 @@ test('re-reads the pull request before writing and stops if the HEAD moved', asy
 });
 
 // Code Review do PR #154, rodada 2: cada guarda do QA e a releitura têm teste que falha sem elas.
-const qaReport = (status, sha = head) => `<!-- fithub-agent-report:v1 stage=qa sha=${sha} -->\n### Codex — QA Agent\n\n**Status:** ${status}`;
+const qaReport = (status, sha = head) => `<!-- fithub-agent-report:v1 stage=qa sha=${sha} -->\n### Agent — QA\n\n**Status:** ${status}`;
 
 test('does not keep QA for a report with the HEAD marker written by another user', async () => {
   const gh = fakeGitHub({ comments: [{ user: { login: 'someone' }, body: qaReport('APPROVED') }] });

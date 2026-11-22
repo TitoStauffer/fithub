@@ -53,7 +53,7 @@ test('skips a pull request targeting another branch', async () => {
 test('skips comments by users other than the configured GitHub App', async () => {
   const result = await resolveWorkflowEvent(baseOptions({
     eventName: 'issue_comment',
-    payload: { action: 'created', issue: { number: 7, pull_request: {} }, comment: { user: { login: 'human' }, body: '### Codex — QA Agent' } },
+    payload: { action: 'created', issue: { number: 7, pull_request: {} }, comment: { user: { login: 'human' }, body: '### Agent — QA' } },
     fetchImpl: async () => { throw new Error('must not request GitHub'); },
   }));
   assert.equal(result.action, 'skip');
@@ -63,7 +63,7 @@ test('skips comments by users other than the configured GitHub App', async () =>
 test('accepts a structured report comment from the configured GitHub App', async () => {
   const result = await resolveWorkflowEvent(baseOptions({
     eventName: 'issue_comment',
-    payload: { action: 'created', issue: { number: 7, pull_request: {} }, comment: { user: { login: 'cashin-devagents[bot]' }, body: '### Codex — QA Agent\n**Status:** APPROVED' } },
+    payload: { action: 'created', issue: { number: 7, pull_request: {} }, comment: { user: { login: 'cashin-devagents[bot]' }, body: '### Agent — QA\n**Status:** APPROVED' } },
   }));
   assert.equal(result.action, 'evaluate');
   assert.equal(result.pullRequestNumber, 7);

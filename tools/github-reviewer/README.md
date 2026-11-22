@@ -103,9 +103,9 @@ Supported agent values and signatures:
 
 | Value | Signature |
 | --- | --- |
-| `qualityGate` | Codex — Quality Gate Coordinator |
-| `qa` | Codex — QA Agent |
-| `pm` | Codex — PM Agent |
+| `qualityGate` | Agent — Quality Gate Coordinator |
+| `qa` | Agent — QA |
+| `pm` | Agent — PM |
 
 The command verifies that the PR is open and that its current head SHA matches the supplied SHA before posting. This prevents a report from being attached to a newer, unreviewed commit. The command creates a visible comment; run it only with the intended PR number. `--env-file`, `--owner`, and `--repository` can override the default configuration.
 
@@ -208,7 +208,7 @@ To run it manually, open **Actions → Merge Readiness → Run workflow**, enter
 
 ### Validate hosted agent orchestration
 
-Use an open pull request targeting `master`. Only a successful, complete `CI` run triggers `Codex Agent Orchestration`; `agent-stage-cli.ts` revalidates all required CI/Sonar evidence for the PR HEAD before starting a model. A running orchestration is allowed to finish; repeated events wait and reuse published evidence. Each stage still rejects an obsolete SHA/context. The first job runs on the self-hosted Windows runner labeled `codex-plus`; subsequent jobs publish the formal Code Review and the deterministic Quality Gate Coordinator report through the GitHub App, plus the QA report when the review track is `full`. Code Review and QA update only their own template checkboxes after current-context publication; non-approved results clear the corresponding checkbox, and on the `light` track the QA checkbox stays unmarked because the stage never runs. After resolving an INCONCLUSIVE blocker with unchanged inputs, open **Actions → Codex Agent Orchestration → Run workflow**, select `master`, enter the open PR number, select `retry_inconclusive`, and start the run. Without this explicit option, unchanged INCONCLUSIVE evidence is reused. APPROVED and CHANGES_REQUESTED evidence is not forcibly rerun. The trigger and job sequence are defined in `.github/workflows/agent-orchestration.yml`.
+Use an open pull request targeting `master`. Only a successful, complete `CI` run triggers `Agent Orchestration`; `agent-stage-cli.ts` revalidates all required CI/Sonar evidence for the PR HEAD before starting a model. A running orchestration is allowed to finish; repeated events wait and reuse published evidence. Each stage still rejects an obsolete SHA/context. The first job runs on the self-hosted Windows runner labeled `codex-plus`; subsequent jobs publish the formal Code Review and the deterministic Quality Gate Coordinator report through the GitHub App, plus the QA report when the review track is `full`. Code Review and QA update only their own template checkboxes after current-context publication; non-approved results clear the corresponding checkbox, and on the `light` track the QA checkbox stays unmarked because the stage never runs. After resolving an INCONCLUSIVE blocker with unchanged inputs, open **Actions → Agent Orchestration → Run workflow**, select `master`, enter the open PR number, select `retry_inconclusive`, and start the run. Without this explicit option, unchanged INCONCLUSIVE evidence is reused. APPROVED and CHANGES_REQUESTED evidence is not forcibly rerun. The trigger and job sequence are defined in `.github/workflows/agent-orchestration.yml`.
 
 If analysis completed and only publication failed, do not rerun the orchestration. Open **Actions → Recover Agent Report Publication**, provide the original orchestration run ID, PR number and failed publication stage. Before downloading anything, recovery verifies through the Actions API that the run came from `.github/workflows/agent-orchestration.yml` on `master`, correlates each artifact timestamp with the job attempt that produced it, and selects the artifact ID from the latest successful attempt. Ambiguous, expired, empty or unauthenticated artifacts fail closed. The publisher then binds its structured evidence to the requested PR, current HEAD and context fingerprint. Recovery invokes no model call.
 
