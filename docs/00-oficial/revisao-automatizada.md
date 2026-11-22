@@ -46,6 +46,9 @@ nas evidências.
   monta o diff a partir da lista de arquivos, com o patch de cada arquivo alterado; os removidos
   entram num bloco inicial, uma linha por caminho (DEV-0138).
 - O diff entregue ao modelo tem teto de **350.000 caracteres**; acima disso o estágio falha fechado.
+- A cobertura do Code Review (`changedFilesReviewed`) aceita até **200 arquivos**. Acima disso, os
+  removidos saem da matriz de cobertura e os novos e alterados continuam obrigatórios. O trilho
+  segue classificado pela lista completa, removidos incluídos (DEV-0140, `selectReviewCoverageFiles`).
 - A lista de arquivos do GitHub para em **3000 arquivos**; se ela não bater com o total que o
   PR informa (`changed_files`), a revisão falha fechado em vez de revisar só parte do PR.
 

@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { gunzipSync } from 'node:zlib';
-import { loadAgentReviewInputs, sanitizeAgentDiff, summarizeAgentChecks, summarizeCheckRunEvidence, summarizeNpmLockfile, synthesizeDiffFromFiles } from '../dist/agent-review-inputs.js';
+import { loadAgentReviewInputs, sanitizeAgentDiff, selectReviewCoverageFiles, summarizeAgentChecks, summarizeCheckRunEvidence, summarizeNpmLockfile, synthesizeDiffFromFiles } from '../dist/agent-review-inputs.js';
 import { requestGitHubApiPages } from '../dist/github-api-client.js';
 
 const headSha = 'a'.repeat(40);
@@ -692,4 +692,24 @@ test('fails closed when the file list hits the GitHub ceiling and the total is u
     loadAgentReviewInputs(createFetch({ files, diffStatus: 406 }), 'owner/repo', 7, { head: { sha: headSha }, base: { sha: baseSha } }, 'token'),
     /maximum changed-file list and the Pull Request total is unknown/,
   );
+});
+
+// DEV-0140: a cobertura do Code Review cabe em 200 itens; acima disso, os removidos saem dela.
+test('review coverage keeps every file up to 200 and drops only removed files above it', () => {
+  const modified = [
+    { filename: 'src/a.ts', status: 'modified' },
+    { filename: 'src/b.ts', status: 'added' },
+    { filename: 'src/c.ts', previous_filename: 'src/old-c.ts', status: 'renamed' },
+  ];
+  const atLimit = [...modified, ...removedFiles(197)];
+  assert.deepEqual(selectReviewCoverageFiles(atLimit), atLimit.map(({ filename }) => filename));
+  const aboveLimit = [...modified, ...removedFiles(198)];
+  assert.deepEqual(selectReviewCoverageFiles(aboveLimit), ['src/a.ts', 'src/b.ts', 'src/c.ts']);
+});
+
+test('review inputs expose the coverage list next to the full changed-file list', async () => {
+  const files = [{ filename: 'src/example.ts', status: 'modified', patch: '+y' }, ...removedFiles(250)];
+  const inputs = await loadAgentReviewInputs(createFetch({ files, diffStatus: 406 }), 'owner/repo', 7, { head: { sha: headSha }, base: { sha: baseSha } }, 'token');
+  assert.equal(inputs.changedFiles.length, 251);
+  assert.deepEqual(inputs.reviewCoverageFiles, ['src/example.ts']);
 });

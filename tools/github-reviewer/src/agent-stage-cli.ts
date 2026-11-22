@@ -54,7 +54,7 @@ async function main(): Promise<void> {
   await assertPullRequestContainsBase(fetch, repository, pullRequest, token);
 
   const reviewInputs = await loadAgentReviewInputs(fetch, repository, prNumber, pullRequest, token);
-  const { diff, changedFiles, checks, checkRuns, repositoryInstructions, sourceFiles, vaultContext, ciConfiguration } = reviewInputs;
+  const { diff, changedFiles, reviewCoverageFiles, checks, checkRuns, repositoryInstructions, sourceFiles, vaultContext, ciConfiguration } = reviewInputs;
   const acceptanceCriteria = extractAcceptanceCriteria(stringValue(pullRequest.body) ?? '');
   // Classified from the API's changed-file list inside the privileged job. The light track skips QA,
   // the only model stage on the serialized runner; every other stage still runs.
@@ -77,9 +77,9 @@ async function main(): Promise<void> {
     return;
   }
 
-  const priorResults = await readPriorResults(stage, contextHash, resolution.headSha, changedFiles, acceptanceCriteria, reviewTrack);
+  const priorResults = await readPriorResults(stage, contextHash, resolution.headSha, reviewCoverageFiles, acceptanceCriteria, reviewTrack);
   const formalCodeReview = stage !== 'codeReview'
-    ? await readFormalReviewEvidence(prNumber, resolution.headSha, repository, token, contextHash, changedFiles, acceptanceCriteria)
+    ? await readFormalReviewEvidence(prNumber, resolution.headSha, repository, token, contextHash, reviewCoverageFiles, acceptanceCriteria)
     : undefined;
   if (priorResults.some((result) => result.commitSha.toLowerCase() !== resolution.headSha?.toLowerCase())) {
     throw new Error('A previous agent result belongs to a different Pull Request SHA.');
@@ -89,7 +89,7 @@ async function main(): Promise<void> {
     throw new Error('Quality Gate Coordinator requires an approved QA result for the current SHA.');
   }
 
-  const evidenceContext = { commitSha: resolution.headSha, contextHash, botLogin: required('FITHUB_APP_BOT_LOGIN'), changedFiles, acceptanceCriteria };
+  const evidenceContext = { commitSha: resolution.headSha, contextHash, botLogin: required('FITHUB_APP_BOT_LOGIN'), changedFiles, reviewCoverageFiles, acceptanceCriteria };
   if (stage === 'qualityGate') {
     await verifyContextUnchanged(prNumber, repository, token, pullRequest, resolution.headSha, contextHash);
     const [reviews, comments] = await Promise.all([
@@ -105,7 +105,7 @@ async function main(): Promise<void> {
   const retry = mayRetryInconclusive(process.env.GITHUB_EVENT_NAME ?? '', payload, process.env.AGENT_RETRY_INCONCLUSIVE);
   if (cachedResult && !(cachedResult.decision === 'INCONCLUSIVE' && retry)) {
     await verifyContextUnchanged(prNumber, repository, token, pullRequest, resolution.headSha, contextHash);
-    if (stage !== 'codeReview') await readFormalReviewEvidence(prNumber, resolution.headSha, repository, token, contextHash, changedFiles, acceptanceCriteria);
+    if (stage !== 'codeReview') await readFormalReviewEvidence(prNumber, resolution.headSha, repository, token, contextHash, reviewCoverageFiles, acceptanceCriteria);
     const currentResult = await readReusableResult(stage, prNumber, repository, token, evidenceContext);
     if (JSON.stringify(currentResult) !== JSON.stringify(cachedResult)) throw new Error('Published agent evidence changed during reuse.');
     await writeStageResult(cachedResult, prNumber, 'reused');
@@ -136,6 +136,7 @@ async function main(): Promise<void> {
       diff,
     },
     changedFiles,
+    reviewCoverageFiles,
     checks,
     checkRuns,
     ciConfiguration,
@@ -147,7 +148,7 @@ async function main(): Promise<void> {
   const result = { ...modelResult, contextHash };
   await verifyHeadUnchanged(prNumber, resolution.headSha, repository, token);
   await verifyContextUnchanged(prNumber, repository, token, pullRequest, resolution.headSha, contextHash);
-  if (stage !== 'codeReview') await readFormalReviewEvidence(prNumber, resolution.headSha, repository, token, contextHash, changedFiles, acceptanceCriteria);
+  if (stage !== 'codeReview') await readFormalReviewEvidence(prNumber, resolution.headSha, repository, token, contextHash, reviewCoverageFiles, acceptanceCriteria);
   await writeStageResult(result, prNumber, 'model');
   process.exitCode = result.decision === 'APPROVED' ? 0 : result.decision === 'CHANGES_REQUESTED' ? 1 : 2;
 }
@@ -244,7 +245,7 @@ async function readFormalReviewEvidence(number: number, sha: string, repository:
     throw new Error('A later reviewer requested changes for the current SHA after Code Review approval.');
   }
   const comments = await githubJsonPages<Array<Record<string, unknown>>>(`/repos/${repository}/issues/${number}/comments`, token);
-  const published = selectReusableStageResult('codeReview', { commitSha: sha, contextHash, changedFiles, acceptanceCriteria, botLogin: botLogin ?? '' }, reviews, comments);
+  const published = selectReusableStageResult('codeReview', { commitSha: sha, contextHash, changedFiles, reviewCoverageFiles: changedFiles, acceptanceCriteria, botLogin: botLogin ?? '' }, reviews, comments);
   if (published?.decision !== 'APPROVED') throw new Error('Code Review structured approval is missing, superseded, or invalid for the current context.');
   return {
     state: 'APPROVED',

@@ -3,11 +3,14 @@ import { posix } from 'node:path';
 import { GitHubApiError, requestGitHubApi, requestGitHubApiPages, requestGitHubText } from './github-api-client.js';
 import { ACTIONS_APP_ID, loadActionsEvidence, loadCiSnapshots, unavailableActionsEvidence, type AgentActionsEvidence, type AgentCiSnapshot } from './agent-ci-evidence.js';
 import { loadVaultContext, type VaultContextSnapshot } from './vault-context.js';
+import { MAX_REVIEW_COVERAGE_FILES } from './agent-result-validation.js';
 import { CONTEXT_EXCLUDED_CHECKS, KNOWN_TEST_JOBS, REQUIRED_AGENT_CHECKS, VAULT_CONTEXT_MAP_PATH, VAULT_ROOT } from './repository-policy.js';
 
 export interface AgentReviewInputs {
   diff: string;
   changedFiles: string[];
+  /** Arquivos que o Code Review precisa cobrir em evidence.changedFilesReviewed (DEV-0140). */
+  reviewCoverageFiles: string[];
   checks: Record<keyof typeof REQUIRED_AGENT_CHECKS, string>;
   checkRuns: AgentCheckEvidence[];
   repositoryInstructions: string;
@@ -82,7 +85,7 @@ export async function loadAgentReviewInputs(
     ? await loadCiSnapshots(fetchImpl, repository, headSha, token) : [];
   const changedFiles = filesPayload.map((file) => stringValue(file.filename));
   if (changedFiles.some((path) => !path)) throw new Error('GitHub returned incomplete changed-file metadata.');
-  return { diff, changedFiles: changedFiles as string[], checks: summarizeAgentChecks(runs, headSha), checkRuns, repositoryInstructions, sourceFiles, vaultContext, ciConfiguration };
+  return { diff, changedFiles: changedFiles as string[], reviewCoverageFiles: selectReviewCoverageFiles(filesPayload), checks: summarizeAgentChecks(runs, headSha), checkRuns, repositoryInstructions, sourceFiles, vaultContext, ciConfiguration };
 }
 
 async function loadChangedSourceFiles(
@@ -359,6 +362,17 @@ export function synthesizeDiffFromFiles(files: Array<Record<string, unknown>>): 
 ${patch}`;
   });
   return [...removedBlock, ...sections].join('\n');
+}
+
+/**
+ * DEV-0140: a cobertura do Code Review cabe em MAX_REVIEW_COVERAGE_FILES itens. Acima disso, os removidos
+ * saem da matriz: não trazem conteúdo novo e já entram no diff pelo bloco de removidos. Novos e alterados
+ * continuam obrigatórios em qualquer tamanho de PR; a classificação do trilho segue usando a lista completa.
+ */
+export function selectReviewCoverageFiles(files: Array<Record<string, unknown>>): string[] {
+  const all = files.map((file) => String(file.filename ?? ''));
+  if (all.length <= MAX_REVIEW_COVERAGE_FILES) return all;
+  return files.filter((file) => file.status !== 'removed').map((file) => String(file.filename ?? ''));
 }
 
 function isTestCheck(name: string): boolean {

@@ -75,7 +75,7 @@ export class GitHubReportPublisher {
       }, {
         stage: report.agentName === 'qualityGate' ? 'qualityGate' : report.agentName,
         commitSha: report.commitSha,
-        changedFiles: reviewInputs.changedFiles,
+        changedFiles: reviewInputs.reviewCoverageFiles,
         acceptanceCriteria: extractAcceptanceCriteria(typeof pullRequest.body === 'string' ? pullRequest.body : ''),
       });
       if (completeness.length) throw new Error(`Agent report is incomplete: ${completeness.join(' ')}`);

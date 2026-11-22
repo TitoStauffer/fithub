@@ -10,6 +10,7 @@ import {
   extractAcceptanceCriteria,
   failClosedIncompleteResult,
   isAgentEvaluationEvidence,
+  MAX_REVIEW_COVERAGE_FILES,
   REVIEW_RISK_AREAS,
   type AgentEvaluationEvidence,
 } from './agent-result-validation.js';
@@ -28,7 +29,7 @@ const EVIDENCE_SCHEMA = {
   required: ['reviewComplete', 'changedFilesReviewed', 'riskAreas', 'findings', 'acceptanceCriteria'],
   properties: {
     reviewComplete: { type: 'boolean' },
-    changedFilesReviewed: { type: 'array', maxItems: 200, items: { type: 'string', minLength: 1, maxLength: 500 } },
+    changedFilesReviewed: { type: 'array', maxItems: MAX_REVIEW_COVERAGE_FILES, items: { type: 'string', minLength: 1, maxLength: 500 } },
     riskAreas: {
       type: 'array',
       maxItems: 6,
@@ -93,10 +94,16 @@ const STAGE_INSTRUCTIONS: Record<AgentStage, string> = {
   qualityGate: `Atue como Quality Gate Coordinator. Consolide apenas evidências reais de CI, Code Review formal e QA fornecidas no contexto. Não substitua nem reinterprete aprovações ausentes. Use APPROVED somente quando todas as evidências exigidas estiverem aprovadas para o mesmo SHA; caso contrário, use INCONCLUSIVE ou CHANGES_REQUESTED conforme a evidência. Para que o Merge Readiness leia o relatório, inclua exatamente o cabeçalho **Checks verificados:** seguido imediatamente por uma lista de bullets com evidências observadas.`,
 };
 
+export function reviewCoverageFiles(evidence: Pick<AgentEvidenceInput, 'changedFiles' | 'reviewCoverageFiles'>): string[] {
+  return evidence.reviewCoverageFiles ?? evidence.changedFiles ?? [];
+}
+
 // Review evidence shared by every agent runtime (Codex and Claude Code).
 export interface AgentEvidenceInput {
   pullRequest: PullRequestContext;
   changedFiles?: string[];
+  /** Cobertura exigida do Code Review (DEV-0140); sem ela, vale changedFiles. */
+  reviewCoverageFiles?: string[];
   checks: CheckSummary;
   checkRuns?: AgentCheckEvidence[];
   ciConfiguration?: AgentCiSnapshot[];
@@ -130,7 +137,7 @@ export async function executeCodexAgent(
     return failClosedIncompleteResult(parsed, {
       stage,
       commitSha: context.commitSha,
-      changedFiles: evidence.changedFiles ?? [],
+      changedFiles: reviewCoverageFiles(evidence),
       acceptanceCriteria: extractAcceptanceCriteria(evidence.pullRequest.body),
     });
   } finally {
@@ -225,10 +232,10 @@ export function buildPrompt(
     '```',
     '',
     '### Deterministic completeness matrix',
-    'Every changed file must appear exactly once in evidence.changedFilesReviewed during Code Review. Every risk area must appear in evidence.riskAreas. Every acceptance criterion must appear exactly once in evidence.acceptanceCriteria during QA. Use reviewComplete=false and INCONCLUSIVE whenever any applicable item remains unevaluated.',
+    'Every file in changedFiles below must appear exactly once in evidence.changedFilesReviewed during Code Review; removed files absent from it are listed in the removed-files block of the diff and need no entry. Every risk area must appear in evidence.riskAreas. Every acceptance criterion must appear exactly once in evidence.acceptanceCriteria during QA. Use reviewComplete=false and INCONCLUSIVE whenever any applicable item remains unevaluated.',
     '```json',
     JSON.stringify({
-      changedFiles: evidence.changedFiles ?? [],
+      changedFiles: reviewCoverageFiles(evidence),
       riskAreas: REVIEW_RISK_AREAS,
       acceptanceCriteria: extractAcceptanceCriteria(evidence.pullRequest.body),
     }, null, 2),

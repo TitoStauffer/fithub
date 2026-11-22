@@ -203,3 +203,7 @@ contra o total do PR (`changed_files`), falhando fechado se não bater ou se o t
   - **Impacto:** com 1440 removidos, o cabeçalho de 5 linhas por arquivo no diff sintetizado passou do teto de 350.000 caracteres e o PR ficou sem revisão.
   - **Correção:** removidos viram um bloco compacto no início do diff sintetizado, uma linha por caminho.
   - **Prevenção:** teste de 1440 removidos com caminhos longos abaixo do teto e teste da posição do bloco frente ao `sanitizeAgentDiff`, provados por mutação. Ao mudar o formato de uma entrada do modelo, meça o pior caso contra todos os tetos da cadeia, não só o limite da API.
+- **Validação:** orquestração do PR #162, run 44982067949 (Agent Code Review `INCONCLUSIVE`: cobertura exigia ~1450 arquivos, schema aceita 200) — DEV-0140 (#172) · **PR:** #173
+  - **Impacto:** nenhuma resposta do modelo conseguia aprovar um PR com mais de 200 arquivos, mesmo sem bloqueio no conteúdo.
+  - **Correção:** acima de 200 arquivos, os removidos saem da matriz de cobertura (`reviewCoverageFiles`); o trilho continua usando a lista completa.
+  - **Prevenção:** testes da seleção no limite, do Coordinator com remoção em massa e da classificação do trilho, provados por mutação. Um teto de schema e a regra que o consome precisam ser testados juntos, no pior caso.
