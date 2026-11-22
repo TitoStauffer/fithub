@@ -231,3 +231,17 @@ quebra de linha, e o prefixo da área não casa. Teste a regra com um repositór
   - **Impacto:** uma migration como `V2__criação.sql` em `services/` sairia como `"services/...V2__cria\303\247\303\243o.sql"`, e o `Java Services` ficaria verde sem build.
   - **Correção:** `changedFiles` usa `-z` e separa a saída por `\0`.
   - **Prevenção:** teste com repositório temporário, `core.quotePath=true` e `services/a/V2__criação.sql`, provado por mutação (sem `-z`, só ele falha).
+
+## lockfile-do-gerenciador-em-uso
+
+**Regra:** a ferramenta herdada de outro repositório trata os arquivos gerados do gerenciador de
+pacotes que **este** repositório usa. O reviewer do CashIn só resumia `package-lock.json` (npm); no
+FitHub, com pnpm, o `pnpm-lock.yaml` entrava cru no diff e no contexto. Ao adotar ou trocar gerenciador
+(pnpm, Maven Wrapper, Gradle), confira cada lugar que reconhece arquivo gerado pelo nome.
+
+### Ocorrências
+
+- **Validação:** orquestração do PR #183, run 45018246655 (Agent Code Review: `Pull Request diff exceeds the supported review size.`) — DEV-0142 (#184) · **PR:** a abrir
+  - **Impacto:** o Expo levou o `pnpm-lock.yaml` a 416 KB. O diff do PR #183 ficou com 443.670 caracteres, 421.720 do lockfile, contra o teto de 350.000, e o PR ficou sem revisão. Todo PR de dependência de app travaria igual.
+  - **Correção:** `summarizePnpmLockfile` lê o formato 9 por linha, sem dependência nova, e falha fechado em outra versão. A seção do diff vira marcador com hash, como no npm.
+  - **Prevenção:** teste com o lockfile real do repositório, entradas hostis, versão desconhecida e leitura raw acima de 1 MB, provado por mutação.

@@ -132,7 +132,7 @@ async function loadChangedSourceFiles(
     );
     // GitHub omits the body of files over 1 MB from this response (`encoding: none`). A lockfile can
     // pass that size and is summarized anyway, so it alone is read again through the raw media type.
-    const rawLockfile = isNpmLockfile(path) && payload.encoding === 'none'
+    const rawLockfile = isLockfile(path) && payload.encoding === 'none'
       ? await requestGitHubText(fetchImpl, `/repos/${repository}/contents/${encodedPath}?ref=${encodeURIComponent(ref)}`, token, 'application/vnd.github.raw')
       : null;
     if (rawLockfile !== null && Buffer.byteLength(rawLockfile, 'utf8') > MAX_RAW_LOCKFILE_BYTES) {
@@ -145,7 +145,8 @@ async function loadChangedSourceFiles(
     if (content.includes('\0')) throw new Error(`Pull Request includes a binary file that cannot be reviewed as source: ${path}.`);
     const reviewContent = isEncodedReviewFixture(path)
       ? encodedFixtureMarker(path, content)
-      : isNpmLockfile(path) ? summarizeNpmLockfile(path, content) : content;
+      : isNpmLockfile(path) ? summarizeNpmLockfile(path, content)
+        : isPnpmLockfile(path) ? summarizePnpmLockfile(path, content) : content;
     const contentBytes = Buffer.byteLength(reviewContent, 'utf8');
     if (totalBytes + contentBytes > MAX_SOURCE_BYTES) {
       if (isChangedFile) throw new Error('Pull Request source files exceed the supported review context size.');
@@ -179,6 +180,9 @@ export function sanitizeAgentDiff(diff: string): string {
     if (isNpmLockfile(path)) {
       return `${header}\n[npm lockfile diff section omitted from model context; the source context carries its deterministic summary; diffSectionBytes=${bytes}; diffSectionSha256=${hash(section)}]\n`;
     }
+    if (isPnpmLockfile(path)) {
+      return `${header}\n[pnpm lockfile diff section omitted from model context; the source context carries its deterministic summary; diffSectionBytes=${bytes}; diffSectionSha256=${hash(section)}]\n`;
+    }
     return section;
   }).join('');
 }
@@ -204,6 +208,80 @@ const MAX_LOCKFILE_VALUE_CHARS = 200;
 
 function isNpmLockfile(path: string): boolean {
   return /(^|\/)package-lock\.json$/.test(path);
+}
+
+// DEV-0142: o FitHub usa pnpm. O pnpm-lock.yaml recebe o mesmo tratamento do package-lock.json: sai do
+// diff do modelo e entra no contexto como resumo determinístico.
+function isPnpmLockfile(path: string): boolean {
+  return /(^|\/)pnpm-lock\.yaml$/.test(path);
+}
+
+function isLockfile(path: string): boolean {
+  return isNpmLockfile(path) || isPnpmLockfile(path);
+}
+
+const PNPM_SUPPORTED_LOCKFILE_VERSION = /^'?9\.\d+'?$/;
+
+/**
+ * Resumo do pnpm-lock.yaml (formato 9, um ou mais documentos YAML). Lido por linha, sem parser de YAML:
+ * cada documento tem `packages:` no nível zero, cada pacote é uma chave com dois espaços de recuo, e a
+ * `resolution` do pacote é um mapa de uma linha. O pacote que não vem do registry padrão traz `tarball`,
+ * `type` (git, directory), `repo` ou `directory`; o que vem tem `integrity`. Como no resumo do npm,
+ * nenhum valor sai cru: tudo passa por `quoted`. Versão de formato desconhecida falha fechado, porque o
+ * leitor por linha só vale para o formato que ele conhece.
+ */
+export function summarizePnpmLockfile(path: string, content: string): string {
+  const header = `[pnpm lockfile summarized for the model context; path=${quoted(path)}; sourceBytes=${Buffer.byteLength(content, 'utf8')}; sourceSha256=${hash(content)}`;
+  const lines = content.split(/\r?\n/);
+  const versions = lines.filter((line) => line.startsWith('lockfileVersion:')).map((line) => line.slice('lockfileVersion:'.length).trim());
+  if (versions.length === 0 || versions.some((version) => !PNPM_SUPPORTED_LOCKFILE_VERSION.test(version))) {
+    throw new Error(`Unsupported pnpm lockfile format in ${path}: lockfileVersion ${versions.map(quoted).join(', ') || '(missing)'}.`);
+  }
+
+  const resolutions = new Map<string, string | null>();
+  let inPackages = false;
+  let current: string | null = null;
+  for (const line of lines) {
+    if (/^\S/.test(line)) {
+      inPackages = line === 'packages:';
+      current = null;
+      continue;
+    }
+    if (!inPackages) continue;
+    const key = /^ {2}(\S.*):\s*(\{\})?$/.exec(line);
+    if (key) {
+      current = key[1].replace(/^'(.*)'$/, '$1');
+      if (!resolutions.has(current)) resolutions.set(current, null);
+      continue;
+    }
+    const resolution = /^ {4}resolution:\s*\{(.*)\}\s*$/.exec(line);
+    if (resolution && current !== null) resolutions.set(current, resolution[1]);
+  }
+  if (resolutions.size === 0) throw new Error(`Unsupported pnpm lockfile format in ${path}: no packages section.`);
+
+  const outsideRegistry: string[] = [];
+  const withoutIntegrity: string[] = [];
+  for (const [name, resolution] of resolutions) {
+    if (resolution === null) {
+      outsideRegistry.push(`${quoted(name)} -> (no resolution)`);
+      withoutIntegrity.push(quoted(name));
+      continue;
+    }
+    const fields = new Map(resolution.split(',').map((field) => {
+      const separator = field.indexOf(':');
+      return separator < 0 ? [field.trim(), ''] : [field.slice(0, separator).trim(), field.slice(separator + 1).trim()];
+    }));
+    const tarball = fields.get('tarball');
+    const external = fields.has('type') || fields.has('repo') || fields.has('directory')
+      || (tarball !== undefined && !tarball.startsWith(NPM_REGISTRY_PREFIX));
+    if (external) outsideRegistry.push(`${quoted(name)} -> ${quoted(`{${resolution}}`)}`);
+    if (!/^sha(256|384|512)-/.test(fields.get('integrity') ?? '')) withoutIntegrity.push(quoted(name));
+  }
+  return [
+    `${header}; lockfileVersion=${quoted(versions[0].replace(/'/g, ''))}; packages=${resolutions.size}`,
+    `packagesResolvedOutsideRegistry (${outsideRegistry.length}): ${listAnomalies(outsideRegistry)}`,
+    `packagesWithoutIntegrity (${withoutIntegrity.length}): ${listAnomalies(withoutIntegrity)}]`,
+  ].join('\n');
 }
 
 function quoted(value: string): string {
