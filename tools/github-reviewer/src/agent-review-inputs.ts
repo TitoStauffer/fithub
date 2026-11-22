@@ -53,6 +53,12 @@ export async function loadAgentReviewInputs(
     requestGitHubApiPages<Record<string, unknown>>(fetchImpl, `/repos/${repository}/pulls/${pullRequestNumber}/files`, token),
   ]);
   // DEV-0137: acima de 300 arquivos o GitHub recusa o diff (406); o diff é montado da lista de arquivos.
+  // A lista de arquivos do GitHub para em 3000; se ela não bater com o total do PR, a revisão seria
+  // parcial sem ninguém perceber (Code Review do PR #164). Falha fechado.
+  const expectedFiles = pullRequest.changed_files;
+  if (typeof expectedFiles === 'number' && filesPayload.length !== expectedFiles) {
+    throw new Error(`GitHub returned ${filesPayload.length} changed files but the Pull Request reports ${expectedFiles}; the review context would be incomplete.`);
+  }
   const diff = sanitizeAgentDiff(rawDiff ?? synthesizeDiffFromFiles(filesPayload));
   const encoding = stringValue(instructionsPayload.encoding);
   const encodedInstructions = stringValue(instructionsPayload.content);
@@ -330,7 +336,8 @@ export function synthesizeDiffFromFiles(files: Array<Record<string, unknown>>): 
   const sections = files.map((file) => {
     const path = String(file.filename ?? '');
     const status = String(file.status ?? '');
-    const header = `diff --git a/${path} b/${path}`;
+    const previous = typeof file.previous_filename === 'string' ? file.previous_filename : path;
+    const header = `diff --git a/${status === 'renamed' ? previous : path} b/${path}`;
     if (status === 'removed') {
       return `${header}
 deleted file mode 100644
@@ -339,7 +346,7 @@ deleted file mode 100644
 [arquivo removido; ${Number(file.deletions ?? 0)} linha(s) removida(s); conteúdo omitido do contexto]`;
     }
     const patch = typeof file.patch === 'string' ? file.patch : '[patch omitido pelo GitHub (arquivo grande ou binário)]';
-    const from = status === 'added' ? '/dev/null' : `a/${String(file.previous_filename ?? path)}`;
+    const from = status === 'added' ? '/dev/null' : `a/${previous}`;
     return `${header}
 --- ${from}
 +++ b/${path}

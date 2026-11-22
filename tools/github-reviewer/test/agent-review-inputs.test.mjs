@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { gunzipSync } from 'node:zlib';
-import { loadAgentReviewInputs, sanitizeAgentDiff, summarizeAgentChecks, summarizeCheckRunEvidence, summarizeNpmLockfile } from '../dist/agent-review-inputs.js';
+import { loadAgentReviewInputs, sanitizeAgentDiff, summarizeAgentChecks, summarizeCheckRunEvidence, summarizeNpmLockfile, synthesizeDiffFromFiles } from '../dist/agent-review-inputs.js';
 import { requestGitHubApiPages } from '../dist/github-api-client.js';
 
 const headSha = 'a'.repeat(40);
@@ -632,4 +632,33 @@ test('added or modified files beyond the snapshot limit are still refused', asyn
     loadAgentReviewInputs(createFetch({ files, sources }), 'owner/repo', 7, { head: { sha: headSha }, base: { sha: baseSha } }, 'token'),
     /changes too many files/,
   );
+});
+
+// Code Review do PR #164: a lista do GitHub para em 3000 arquivos; total divergente falha fechado.
+test('fails closed when the file list does not match the pull request changed_files count', async () => {
+  const files = [{ filename: 'src/example.ts', status: 'modified' }];
+  await assert.rejects(
+    loadAgentReviewInputs(createFetch({ files }), 'owner/repo', 7, { head: { sha: headSha }, base: { sha: baseSha }, changed_files: 3001 }, 'token'),
+    /reports 3001; the review context would be incomplete/,
+  );
+  const inputs = await loadAgentReviewInputs(createFetch({ files }), 'owner/repo', 7, { head: { sha: headSha }, base: { sha: baseSha }, changed_files: 1 }, 'token');
+  assert.deepEqual(inputs.changedFiles, ['src/example.ts']);
+});
+
+test('synthesized diff covers added, renamed and patchless files', () => {
+  const diff = synthesizeDiffFromFiles([
+    { filename: 'src/new.ts', status: 'added', patch: '@@ -0,0 +1 @@\n+export {};' },
+    { filename: 'src/renamed.ts', previous_filename: 'src/old-name.ts', status: 'renamed', patch: '@@ -1 +1 @@\n-a\n+b' },
+    { filename: 'assets/logo.png', status: 'modified' },
+  ]);
+  assert.ok(diff.includes('diff --git a/src/new.ts b/src/new.ts\n--- /dev/null\n+++ b/src/new.ts\n@@ -0,0 +1 @@\n+export {};'));
+  assert.ok(diff.includes('diff --git a/src/old-name.ts b/src/renamed.ts\n--- a/src/old-name.ts\n+++ b/src/renamed.ts'));
+  assert.ok(diff.includes('diff --git a/assets/logo.png b/assets/logo.png\n--- a/assets/logo.png\n+++ b/assets/logo.png\n[patch omitido pelo GitHub (arquivo grande ou binário)]'));
+});
+
+test('406 with removed files beyond the snapshot limit still reviews the changed file', async () => {
+  const files = [{ filename: 'src/example.ts', status: 'modified', patch: '@@ -1 +1 @@\n-x\n+y' }, ...removedFiles(40)];
+  const inputs = await loadAgentReviewInputs(createFetch({ files, diffStatus: 406 }), 'owner/repo', 7, { head: { sha: headSha }, base: { sha: baseSha } }, 'token');
+  assert.deepEqual(inputs.sourceFiles.map(({ path }) => path), ['src/example.ts']);
+  assert.equal((inputs.diff.match(/\[arquivo removido;/g) ?? []).length, 40);
 });

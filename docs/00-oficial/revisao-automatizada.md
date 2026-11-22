@@ -44,6 +44,8 @@ nas evidências.
   pelo caminho e pelo número de linhas removidas (DEV-0137).
 - Acima de **300 arquivos**, o GitHub não entrega o diff completo (erro 406); o reviewer
   monta o diff a partir da lista de arquivos, com o patch de cada arquivo alterado.
+- A lista de arquivos do GitHub para em **3000 arquivos**; se ela não bater com o total que o
+  PR informa (`changed_files`), a revisão falha fechado em vez de revisar só parte do PR.
 
 - Fonte: [agent-review-inputs.ts](../../tools/github-reviewer/src/agent-review-inputs.ts) —
   `readPullRequestDiff`, `synthesizeDiffFromFiles` e `MAX_SOURCE_FILES`.
