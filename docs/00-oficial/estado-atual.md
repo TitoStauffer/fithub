@@ -15,8 +15,7 @@
   - `ci` (`CI`): job `GitHub Reviewer` (testes do reviewer e dos scripts do runner).
   - `github-app-check`: verifica os secrets do GitHub App.
   - `agent-orchestration`, `merge-readiness`, `pr-review-signal`, `agent-report-recovery`: bots de
-    Code Review, QA, Coordinator e Merge Readiness (DEV-0118). Validados ponta a ponta no PR #138
-    (DEV-0009): Code Review e QA aprovados pelo GitHub App, Coordinator aprovado e `READY_TO_MERGE`.
+    Code Review, QA, Coordinator e Merge Readiness (DEV-0118). Validação ponta a ponta na DEV-0009.
 - **Reviewer** em `tools/github-reviewer`, portado do CashIn e adaptado: sem SonarQube, sem
   proteção de branch, checks do FitHub (`src/repository-policy.ts`), vault nesta pasta.
 - **Runner self-hosted** `fithub-agents-windows` na máquina do Tito (`tools/github-runner`).
