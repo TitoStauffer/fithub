@@ -19,7 +19,8 @@ const CI_CONFIGURATION = [
 ];
 
 const MATCHERS = {
-  java: (path) => path === 'pom.xml' || path === '.java-version'
+  // .mvn/ e mvnw* ainda não existem; se vierem (Maven Wrapper, maven.config), mudam o build.
+  java: (path) => path === 'pom.xml' || path === '.java-version' || path.startsWith('.mvn/') || path.startsWith('mvnw')
     || path.startsWith('libs/') || path.startsWith('services/'),
   apps: (path) => path.startsWith('apps/') || path.startsWith('packages/')
     || ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.nvmrc', '.npmrc'].includes(path),
@@ -40,13 +41,15 @@ export function formatOutputs(areas) {
 /**
  * Caminhos alterados entre a base e o HEAD. `--no-renames` é obrigatório: com a detecção de renomeação
  * (padrão do git), um arquivo movido de services/ para fora das áreas apareceria só pelo caminho novo,
- * e a área de origem ficaria sem build (falso verde num check exigido).
+ * e a área de origem ficaria sem build (falso verde num check exigido). `-z` também: sem ele, o git põe
+ * entre aspas e escapa (core.quotePath) caminhos com acento, aspas ou quebra de linha, e
+ * `"services/...\303\247..."` não casaria com services/.
  */
 export function changedFiles(base, head, { cwd } = {}) {
   for (const sha of [base, head]) {
     if (!/^[0-9a-f]{40}$/i.test(sha ?? '')) throw new Error(`SHA inválido: ${sha ?? '(vazio)'}`);
   }
-  return execFileSync('git', ['diff', '--name-only', '--no-renames', `${base}...${head}`], { encoding: 'utf8', cwd }).split('\n');
+  return execFileSync('git', ['diff', '--name-only', '--no-renames', '-z', `${base}...${head}`], { encoding: 'utf8', cwd }).split('\0');
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

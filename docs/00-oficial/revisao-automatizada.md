@@ -25,8 +25,10 @@ etapas verificadas vão para o QA.
 
 - O job `Detect changes` roda
   [ci-changes.mjs](../../tools/repo-checks/ci-changes.mjs) e decide as áreas pelo
-  diff do PR. Push na master roda tudo, e mudança no próprio CI ou em
-  `tools/repo-checks/` também.
+  diff do PR. O diff é lido com `--no-renames -z`, para que arquivo movido e nome
+  com acento não escapem da área (aprendizado `diff-por-caminho-sem-renomeacao`).
+  Push na master roda tudo, e mudança no próprio CI ou em `tools/repo-checks/`
+  também.
 - Cada job de área **sempre roda**. Quando a área não mudou, o passo `Skip` termina
   com sucesso e os passos de verdade aparecem como pulados. Se o detector falhar ou
   não disser `false`, o job fica sem sucesso, e o merge bloqueia. Job pulado

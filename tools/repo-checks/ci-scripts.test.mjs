@@ -33,29 +33,60 @@ test('mudança no próprio CI, nestes scripts ou lista vazia roda tudo', () => {
   assert.deepEqual(classifyChanges(['', '  ']), all);
 });
 
-// Code Review do PR #179: com a detecção de renomeação do git, mover um arquivo de services/ para fora
-// das áreas mostrava só o caminho novo, e o Java Services passava sem compilar o serviço que o perdeu.
-test('arquivo movido para fora da área ainda liga a área de origem', () => {
+test('Maven Wrapper e configuração do Maven ligam a área Java', () => {
+  assert.equal(classifyChanges(['.mvn/maven.config']).java, true);
+  assert.equal(classifyChanges(['mvnw.cmd']).java, true);
+});
+
+// Repositório git temporário: base com um commit, `change` monta o commit do HEAD.
+function withRepo(setup, change, check) {
   const repo = mkdtempSync(join(tmpdir(), 'ci-changes-'));
   const git = (...args) => execFileSync('git', ['-c', 'user.name=ci', '-c', 'user.email=ci@example.invalid', ...args], { cwd: repo, encoding: 'utf8' }).trim();
+  const write = (path, content) => {
+    mkdirSync(join(repo, ...path.split('/').slice(0, -1)), { recursive: true });
+    writeFileSync(join(repo, ...path.split('/')), content);
+  };
   try {
     git('init', '-q');
-    mkdirSync(join(repo, 'services', 'a'), { recursive: true });
-    writeFileSync(join(repo, 'services', 'a', 'Foo.java'), 'class Foo {\n  int a = 1;\n  int b = 2;\n}\n');
+    // O padrão do git, explícito: o teste não depende da configuração global de quem roda.
+    git('config', 'core.quotePath', 'true');
+    setup({ git, write });
     git('add', '-A');
-    git('commit', '-q', '-m', 'base');
+    git('commit', '-q', '--allow-empty', '-m', 'base');
     const base = git('rev-parse', 'HEAD');
-    mkdirSync(join(repo, 'legacy'));
-    git('mv', 'services/a/Foo.java', 'legacy/Foo.java');
-    git('commit', '-q', '-m', 'move');
-    const head = git('rev-parse', 'HEAD');
-
-    const files = changedFiles(base, head, { cwd: repo }).filter(Boolean).sort();
-    assert.deepEqual(files, ['legacy/Foo.java', 'services/a/Foo.java']);
-    assert.equal(classifyChanges(files).java, true);
+    change({ git, write });
+    git('add', '-A');
+    git('commit', '-q', '-m', 'change');
+    check(changedFiles(base, git('rev-parse', 'HEAD'), { cwd: repo }).filter(Boolean).sort());
   } finally {
     rmSync(repo, { recursive: true, force: true });
   }
+}
+
+// Code Review do PR #179: com a detecção de renomeação do git, mover um arquivo de services/ para fora
+// das áreas mostrava só o caminho novo, e o Java Services passava sem compilar o serviço que o perdeu.
+test('arquivo movido para fora da área ainda liga a área de origem', () => {
+  withRepo(
+    ({ write }) => write('services/a/Foo.java', 'class Foo {\n  int a = 1;\n  int b = 2;\n}\n'),
+    ({ git }) => { git('mv', 'services/a/Foo.java', 'legacy-Foo.java'); },
+    (files) => {
+      assert.deepEqual(files, ['legacy-Foo.java', 'services/a/Foo.java']);
+      assert.equal(classifyChanges(files).java, true);
+    },
+  );
+});
+
+// Code Review do PR #179 (rodada 2): com core.quotePath, o git devolvia
+// "services/a/A\303\247\303\243o.java", entre aspas, e o caminho não casava com services/.
+test('caminho com acento chega sem aspas nem escapes e liga a área', () => {
+  withRepo(
+    () => {},
+    ({ write }) => write('services/a/V2__criação.sql', 'select 1;\n'),
+    (files) => {
+      assert.deepEqual(files, ['services/a/V2__criação.sql']);
+      assert.equal(classifyChanges(files).java, true);
+    },
+  );
 });
 
 test('SHA fora do formato é recusado antes de chamar o git', () => {
