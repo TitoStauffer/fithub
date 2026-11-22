@@ -25,6 +25,24 @@ Basta declarar a dependência no serviço; tudo se ativa por autoconfiguração 
 Os padrões de logging entram com a menor precedência: qualquer `application.yml` ou variável de
 ambiente do serviço sobrescreve.
 
+## Mensageria (DEV-0014, ADR-003)
+
+| Peça | Comportamento | Configuração |
+|---|---|---|
+| Tabelas técnicas | `fithub_outbox_event` e `fithub_processed_event`, aplicadas por um Flyway próprio (`db/fithub-commons`, histórico em `flyway_fithub_commons_history`) que não colide com a numeração do serviço | — |
+| `OutboxWriter.append(routingKey, payload)` | Grava o evento (JSON) na transação do dado; **fora de transação é recusado**. Devolve o id do evento | `fithub.messaging.exchange` (exchange `topic` do serviço, ex.: `fithub.client`), declarada automaticamente |
+| `OutboxPublisher` | Publica os pendentes já commitados (rollback nunca vira mensagem), com `messageId` = id do evento e confirmação do broker antes de marcar como publicado. Falhou, registra `attempts`/`last_error` e para o lote para preservar a ordem. `FOR UPDATE SKIP LOCKED` permite várias instâncias | `fithub.messaging.publisher.{enabled, poll-interval, batch-size, confirm-timeout}` (padrões `true`, `1s`, `100`, `5s`) |
+| `ProcessedEvents.processOnce(consumer, eventId \| message, handler)` | Roda o handler uma vez por evento e consumidor, na mesma transação do registro; falha do handler desfaz o registro e a reentrega processa | — |
+
+A entrega é **pelo menos uma vez**: um evento confirmado pelo broker pode ser reenviado se o commit
+da marcação falhar, e o consumo idempotente absorve a repetição.
+
+Padrões que a biblioteca define com a menor precedência:
+- `spring.rabbitmq.publisher-confirm-type=simple`, exigido pela confirmação do publicador;
+- `spring.flyway.baseline-on-migrate=true` e `spring.flyway.baseline-version=0`. As tabelas da
+  biblioteca deixam o schema não vazio, e sem esses padrões o Flyway do serviço recusaria a primeira
+  migração. Com a base em 0, a V1 do serviço ainda roda.
+
 A verificação de vínculo ativo entre profissional e cliente **não** fica aqui: ela depende da
 projeção local de cada serviço (AGENTS.md).
 
@@ -33,5 +51,10 @@ projeção local de cada serviço (AGENTS.md).
 Exige JDK 25. Na raiz: `mvn -B verify`. Sem JDK 25 local, dá para rodar no container:
 
 ```sh
-docker run --rm -v "$PWD:/ws" -w /ws maven:3.9.16-eclipse-temurin-25 mvn -B verify
+docker run --rm -v "$PWD:/ws" -w /ws \
+  -v /var/run/docker.sock:/var/run/docker.sock -e TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal \
+  maven:3.9.16-eclipse-temurin-25 mvn -B verify
 ```
+
+Os testes de mensageria usam Testcontainers (Postgres 17.12 e RabbitMQ 4.3.8), por isso o socket do
+Docker entra no comando.

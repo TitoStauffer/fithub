@@ -1,2 +1,3 @@
 org.springframework.boot.EnvironmentPostProcessor=\
-  com.fithub.commons.logging.StructuredLoggingDefaults
+  com.fithub.commons.logging.StructuredLoggingDefaults,\
+  com.fithub.commons.messaging.MessagingDefaults
