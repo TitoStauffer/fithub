@@ -264,3 +264,19 @@ esconde a entrada que importa.
   - **Impacto:** um comentário na coluna 0 não encerra o mapa no YAML, mas tirava o leitor da seção `packages:`. Os pacotes seguintes sumiam do resumo. Um escalar entre aspas ou uma coleção flow que continuassem na linha seguinte abriam o mesmo caminho.
   - **Correção:** no arquivo inteiro, a coluna 0 só aceita chave de nível superior ou `---`, e toda linha fecha na própria linha as aspas e as coleções flow que abre (`closesOnItsOwnLine`).
   - **Prevenção:** três rodadas acharam três formas de dessincronizar o leitor do parser. A regra geral é a da seção: o leitor feito à mão define uma gramática pequena (linha a linha, sem continuação) e recusa tudo fora dela, em vez de tentar reconhecer o que é perigoso. Os testes cobrem coluna 0 (comentário, `-`, `...`, diretiva, chave entre aspas) e valores abertos (aspas, `{`, `[`, `]` sobrando).
+
+## detector-liga-a-area-que-le-o-arquivo
+
+**Regra:** o detector de áreas do CI (`tools/repo-checks/ci-changes.mjs`) decide pelo caminho alterado,
+mas um teste pode ler arquivo de outra área. Quando um teste da área A lê um arquivo da área B, o
+matcher de A inclui o caminho desse arquivo. Senão, mudar só o arquivo deixa o check exigido de A verde
+sem conferir, e a quebra só aparece no push da `master`, que roda tudo.
+
+### Ocorrências
+
+- **Revisão:** Code Review do PR #187, no SHA `1b1dff6` (MEDIUM: falso verde entre Java e apps) — DEV-0022 (#14) · **PR:** #187
+  - **Impacto:**
+    - O teste de esqueleto (Java) compara o OpenAPI com `packages/api-types/openapi/`, mas mudar só esse JSON não ligava o `Java Services`.
+    - O teste do `api-types` lê os `services/*/Dockerfile`, mas mudar só um deles não ligava o `Apps`.
+  - **Correção:** `OPENAPI_CONTRACT` no matcher `java` e `SERVICE_DOCKERFILE` no matcher `apps`.
+  - **Prevenção:** teste de classificação para cada leitura cruzada, provado por mutação. Ao escrever um teste que lê arquivo fora do próprio módulo, ajuste o detector no mesmo PR.

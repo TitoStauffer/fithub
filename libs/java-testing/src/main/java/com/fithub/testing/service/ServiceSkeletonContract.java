@@ -57,6 +57,14 @@ public abstract class ServiceSkeletonContract extends ServiceIntegrationTest {
     }
 
     @Test
+    void openApiMatchesTheContractCommittedForTheApps() throws Exception {
+        // DEV-0022: o JSON versionado em packages/api-types/openapi é a fonte dos tipos dos apps.
+        String live = mvc.perform(get("/v3/api-docs")).andExpect(status().isOk()).andReturn().getResponse()
+                .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        OpenApiContract.verify(serviceName, live);
+    }
+
+    @Test
     void everyOtherPathRequiresATokenAndAnswersWithProblemDetails() throws Exception {
         // Vem da java-commons: o serviço não abre nada além de health e OpenAPI.
         mvc.perform(get("/actuator/env"))

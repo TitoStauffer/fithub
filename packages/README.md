@@ -2,4 +2,4 @@
 
 Pacotes TypeScript compartilhados pelos apps.
 
-- `api-types` — tipos gerados do OpenAPI dos serviços (DEV-0022)
+- [`api-types`](api-types/README.md) — tipos gerados do OpenAPI dos serviços, consumidos pelo web e pelo mobile (DEV-0022)

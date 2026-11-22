@@ -73,9 +73,10 @@ export const CI_SNAPSHOT_PATHS: readonly string[] = [
   'tools/github-reviewer/package.json',
   'tools/repo-checks/ci-changes.mjs',
   'tools/repo-checks/check-skipped-tests.mjs',
-  // Scripts lint, typecheck, test e build que o job Apps roda por `pnpm -r` (DEV-0020, DEV-0021).
+  // Scripts lint, typecheck, test e build que o job Apps roda por `pnpm -r` (DEV-0020, DEV-0021, DEV-0022).
   'apps/web/package.json',
   'apps/mobile/package.json',
+  'packages/api-types/package.json',
 ];
 
 /**

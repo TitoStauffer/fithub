@@ -40,7 +40,9 @@ Cada serviço tem dois testes, com a base de [libs/java-testing](../libs/java-te
 
 - `ArchitectureTest`: as regras ArchUnit da arquitetura hexagonal.
 - `<Servico>ServiceSkeletonTest`: o serviço sobe inteiro contra Postgres e RabbitMQ reais
-  (Testcontainers) e confere health, OpenAPI, segurança e migrations.
+  (Testcontainers) e confere health, OpenAPI, segurança e migrations. O OpenAPI precisa bater com
+  `packages/api-types/openapi/<servico>.json`, que gera os tipos dos apps; quando a API mudar, veja
+  [packages/api-types](../packages/api-types/README.md) (DEV-0022).
 
 Na raiz: `mvn -B verify` (exige JDK 25 e Docker; sem JDK 25 local, veja o comando em contêiner no
 [README da java-commons](../libs/java-commons/README.md#build)).
