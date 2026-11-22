@@ -101,17 +101,21 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
   decidir se o personal pode ver um aluno, sem perguntar ao `client-service` a
   cada request. Isso atende o NFR-06 (um lado cair não derruba o outro).
 - **Contratos de eventos** versionados em `libs/event-contracts` (JSON Schema).
-  Mudança incompatível = nova versão do evento.
+  Mudança incompatível = nova versão do evento. A versão faz parte da routing
+  key (`<origem>.<evento>.v<N>`). Durante a migração, o produtor publica as duas
+  versões até o último consumidor migrar, e o consumidor ignora campos que não
+  conhece. As regras do que é compatível estão no
+  [README da lib](../../libs/event-contracts/README.md#versionamento) (DEV-0018).
 
 ### Eventos iniciais
 
-| Evento | Origem | Consumidores | Para quê |
-|---|---|---|---|
-| `VinculoAtivado` (cliente, profissional, tipo, escopo) | client | training, nutrition | Liberar acesso do profissional |
-| `VinculoEncerrado` | client | training, nutrition | Cortar acesso |
-| `ClienteAtualizado` (nome, nascimento, gênero) | client | training, nutrition | Exibir dados básicos sem chamada síncrona |
-| `ProfissionalCadastrado` / `AssinaturaAlterada` | account | training, nutrition, client | Bloquear criação de prescrições sem assinatura |
-| `ContaExcluida` | client | todos | Exclusão e anonimização (LGPD) |
+| Evento | Routing key | Origem | Consumidores | Para quê |
+|---|---|---|---|---|
+| `VinculoAtivado` (cliente, profissional, tipo, escopo) | `client.link-activated.v1` | client | training, nutrition | Liberar acesso do profissional |
+| `VinculoEncerrado` | `client.link-ended.v1` | client | training, nutrition | Cortar acesso |
+| `ClienteAtualizado` (nome, nascimento, gênero) | `client.client-updated.v1` | client | training, nutrition | Exibir dados básicos sem chamada síncrona |
+| `ProfissionalCadastrado` / `AssinaturaAlterada` | `account.professional-registered.v1` / `account.subscription-changed.v1` | account | training, nutrition, client | Bloquear criação de prescrições sem assinatura |
+| `ContaExcluida` | `client.account-deleted.v1` | client | todos | Exclusão e anonimização (LGPD) |
 
 ---
 

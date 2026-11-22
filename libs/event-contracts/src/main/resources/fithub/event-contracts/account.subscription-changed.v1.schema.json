@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:fithub:event:account.subscription-changed.v1",
+  "title": "AssinaturaAlterada v1",
+  "description": "A assinatura do profissional passou a permitir ou a bloquear novas prescrições (FR-06, BR-14). Planos, preço e meio de pagamento ficam no account-service (QUESTÃO-01). Origem: account-service (exchange fithub.account). Consumidores: training-service, nutrition-service e client-service.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["professionalId", "active", "occurredAt"],
+  "properties": {
+    "professionalId": { "type": "string", "format": "uuid" },
+    "active": { "type": "boolean", "description": "true: pode criar e editar prescrições. false: só o que já foi entregue continua visível (BR-14)." },
+    "occurredAt": { "type": "string", "format": "date-time", "description": "Quando a assinatura mudou, em UTC (ISO-8601)." }
+  },
+  "examples": [
+    {
+      "professionalId": "01937c4e-2222-7ccc-8ddd-000000000002",
+      "active": true,
+      "occurredAt": "2026-11-20T09:05:00Z"
+    }
+  ]
+}
