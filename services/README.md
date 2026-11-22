@@ -45,6 +45,21 @@ Cada serviço tem dois testes, com a base de [libs/java-testing](../libs/java-te
 Na raiz: `mvn -B verify` (exige JDK 25 e Docker; sem JDK 25 local, veja o comando em contêiner no
 [README da java-commons](../libs/java-commons/README.md#build)).
 
+## Imagem Docker (DEV-0017)
+
+Cada serviço tem um `Dockerfile` multi-stage: o build Maven compila só o serviço e o que ele usa, e o
+runtime tem só o JRE e o jar, rodando como o usuário `fithub` (uid 10001). O contexto de build é a
+raiz do repositório (o serviço depende do POM pai e das libs):
+
+```sh
+docker build -f services/account-service/Dockerfile -t fithub-account-service .
+```
+
+No PR, o CI constrói a imagem dos serviços alterados e recusa imagem que rode como root
+([check-image-user.mjs](../tools/repo-checks/check-image-user.mjs)). No merge na master, publica no
+GHCR como `ghcr.io/<dono>/fithub-<servico>:<sha do commit>`. Mudança no POM pai, nas libs ou no
+`.dockerignore` gera a imagem de todos os serviços.
+
 ## Rodar localmente
 
 Com o compose de desenvolvimento no ar ([infra/README.md](../infra/README.md)):

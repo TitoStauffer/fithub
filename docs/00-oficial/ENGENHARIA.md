@@ -233,7 +233,12 @@ teste pulado sem `DEV-xxxx` na justificativa derruba o job (DEV-0016; detalhes e
    Depois do CI verde rodam Code Review, QA, Coordinator e Merge Readiness
    (AGENTS.md).
 2. **Merge na master:** gera a imagem Docker do serviço alterado e publica no
-   GHCR com a tag do commit.
+   GHCR com a tag do commit (`ghcr.io/<dono>/fithub-<servico>:<sha>`), no job
+   `Publish Images`, depois do `Java Services` verde no mesmo commit. Só esse
+   job tem `packages: write`, com o `GITHUB_TOKEN`. Cada serviço tem um
+   Dockerfile multi-stage (build Maven e runtime só com o JRE, usuário sem
+   privilégio). No PR, o `Java Services` já constrói a imagem dos serviços
+   alterados e barra imagem que rode como root (DEV-0017).
 3. **Deploy:** workflow manual (`workflow_dispatch`) que entra na VPS por SSH
    e roda `docker compose pull && up -d` para o serviço escolhido. Vira
    automático quando houver staging.

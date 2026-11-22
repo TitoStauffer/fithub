@@ -6,7 +6,8 @@ import test from 'node:test';
 
 import { execFileSync } from 'node:child_process';
 
-import { changedFiles, classifyChanges, formatOutputs } from './ci-changes.mjs';
+import { changedFiles, classifyChanges, classifyServices, discoverServices, formatOutputs } from './ci-changes.mjs';
+import { isNonRootUser } from './check-image-user.mjs';
 import { checkSkippedTests, inspectReport } from './check-skipped-tests.mjs';
 
 // --- ci-changes ---
@@ -92,6 +93,61 @@ test('caminho com acento chega sem aspas nem escapes e liga a área', () => {
 test('SHA fora do formato é recusado antes de chamar o git', () => {
   assert.throws(() => changedFiles('main', 'a'.repeat(40)), /SHA inválido/);
   assert.throws(() => changedFiles('a'.repeat(40), '--output=x'), /SHA inválido/);
+});
+
+// --- imagens (DEV-0017) ---
+
+const SERVICES = ['account-service', 'client-service', 'nutrition-service', 'training-service'];
+
+test('só o serviço alterado gera imagem', () => {
+  assert.deepEqual(classifyServices(['services/client-service/src/main/java/A.java'], SERVICES), ['client-service']);
+  assert.deepEqual(classifyServices(['services/client-service/Dockerfile', 'services/training-service/pom.xml'], SERVICES),
+    ['client-service', 'training-service']);
+  // Prefixo de outro serviço não conta: services/client-service-x/ não é o client-service.
+  assert.deepEqual(classifyServices(['services/client-service-x/A.java'], SERVICES), []);
+});
+
+test('documentação, apps e o README de services não geram imagem', () => {
+  assert.deepEqual(classifyServices(['docs/00-oficial/PRD.md', 'apps/web/src/App.tsx', 'services/README.md'], SERVICES), []);
+});
+
+test('build compartilhado, contexto das imagens, CI ou lista vazia geram todas as imagens', () => {
+  for (const files of [['pom.xml'], ['libs/java-commons/pom.xml'], ['.dockerignore'], ['.mvn/maven.config'],
+    ['.github/workflows/ci.yml'], ['tools/repo-checks/ci-changes.mjs'], []]) {
+    assert.deepEqual(classifyServices(files, SERVICES), SERVICES, JSON.stringify(files));
+  }
+});
+
+test('serviços com imagem são as pastas de services/ com Dockerfile, e o nome é validado', () => {
+  const root = mkdtempSync(join(tmpdir(), 'services-'));
+  try {
+    mkdirSync(join(root, 'services', 'b-service'), { recursive: true });
+    writeFileSync(join(root, 'services', 'b-service', 'Dockerfile'), 'FROM scratch\n');
+    mkdirSync(join(root, 'services', 'a-service'), { recursive: true });
+    writeFileSync(join(root, 'services', 'a-service', 'Dockerfile'), 'FROM scratch\n');
+    mkdirSync(join(root, 'services', 'sem-imagem'), { recursive: true });
+    writeFileSync(join(root, 'services', 'README.md'), '# services\n');
+    assert.deepEqual(discoverServices(root), ['a-service', 'b-service']);
+
+    mkdirSync(join(root, 'services', 'Mau Nome'), { recursive: true });
+    writeFileSync(join(root, 'services', 'Mau Nome', 'Dockerfile'), 'FROM scratch\n');
+    assert.throws(() => discoverServices(root), /Nome de serviço inválido/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('os quatro serviços do repositório têm Dockerfile', () => {
+  assert.deepEqual(discoverServices(join(import.meta.dirname, '..', '..')), SERVICES);
+});
+
+test('imagem que roda como root é recusada', () => {
+  for (const user of ['', '  ', 'root', '0', '000', 'root:root', '10001:0', '0:10001', 'fithub:root', undefined]) {
+    assert.equal(isNonRootUser(user), false, JSON.stringify(user));
+  }
+  for (const user of ['10001', '10001:10001', 'fithub', 'fithub:fithub', '1000:1000']) {
+    assert.equal(isNonRootUser(user), true, user);
+  }
 });
 
 test('as saídas seguem o formato do GITHUB_OUTPUT', () => {

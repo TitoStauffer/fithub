@@ -7,8 +7,9 @@ name: CI
 #   Java Services         libs Java e serviços: build, unitários, ArchUnit e integração (Testcontainers)
 #   Apps                  workspace pnpm: lint, typecheck e testes dos apps e pacotes
 #   Local Infrastructure  compose de desenvolvimento sobe saudável
+#   Publish Images        só no push na master: imagem dos serviços alterados no GHCR (DEV-0017)
 #
-# Os quatro últimos são checks exigidos pelos bots de orquestração (repository-policy.ts). Por isso
+# GitHub Reviewer, Java Services, Apps e Local Infrastructure são checks exigidos pelos bots de orquestração (repository-policy.ts). Por isso
 # eles sempre rodam e terminam com sucesso quando a área não mudou: o passo "Skip" registra isso, e
 # os passos de verdade aparecem como pulados. Se "Detect changes" falhar ou não disser "false", os
 # jobs ficam sem sucesso e o merge bloqueia. O nome "CI" e os dos jobs são lidos pelos bots: mude-os juntos.
@@ -46,6 +47,7 @@ jobs:
       java: ${{ steps.detect.outputs.java }}
       apps: ${{ steps.detect.outputs.apps }}
       infra: ${{ steps.detect.outputs.infra }}
+      services: ${{ steps.images.outputs.services }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -70,6 +72,24 @@ jobs:
             node tools/repo-checks/ci-changes.mjs "$BASE_SHA" "$HEAD_SHA" >> "$GITHUB_OUTPUT"
           else
             node tools/repo-checks/ci-changes.mjs --all >> "$GITHUB_OUTPUT"
+          fi
+
+      # Serviços cuja imagem muda (DEV-0017). No PR, pelo diff do PR; no push na master, pelo diff do
+      # push. Sem um "before" utilizável (primeiro push, histórico reescrito), gera todas.
+      - name: Detect changed service images
+        id: images
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          if [ "$EVENT_NAME" = pull_request ]; then
+            node tools/repo-checks/ci-changes.mjs --services "$BASE_SHA" "$HEAD_SHA" >> "$GITHUB_OUTPUT"
+          elif [[ "$BEFORE_SHA" =~ ^[0-9a-f]{40}$ ]] && [[ ! "$BEFORE_SHA" =~ ^0+$ ]] && git cat-file -e "$BEFORE_SHA^{commit}" 2>/dev/null; then
+            node tools/repo-checks/ci-changes.mjs --services "$BEFORE_SHA" "$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+          else
+            node tools/repo-checks/ci-changes.mjs --services --all >> "$GITHUB_OUTPUT"
           fi
 
   automation-tools:
@@ -125,7 +145,8 @@ jobs:
     name: Java Services
     needs: changes
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # mvn verify mais a imagem de cada serviço alterado (até quatro builds Maven dentro do Docker).
+    timeout-minutes: 45
     env:
       RUN_AREA: ${{ needs.changes.outputs.java }}
     steps:
@@ -163,6 +184,25 @@ jobs:
       - name: Check skipped tests
         if: env.RUN_AREA == 'true'
         run: node tools/repo-checks/check-skipped-tests.mjs libs services
+
+      # No PR, a imagem de cada serviço alterado precisa construir e rodar sem root antes do merge
+      # (DEV-0017); o push na master constrói de novo e publica no job Publish Images.
+      - name: Build service images
+        if: env.RUN_AREA == 'true' && github.event_name == 'pull_request'
+        env:
+          SERVICES: ${{ needs.changes.outputs.services }}
+        run: |
+          images=()
+          for service in $(jq -r '.[]' <<<"$SERVICES"); do
+            [[ "$service" =~ ^[a-z0-9-]+$ ]] || { echo "Nome de serviço inválido: '$service'."; exit 1; }
+            docker build --file "services/$service/Dockerfile" --tag "fithub-$service:ci" .
+            images+=("fithub-$service:ci")
+          done
+          if [ "${#images[@]}" -gt 0 ]; then
+            node tools/repo-checks/check-image-user.mjs "${images[@]}"
+          else
+            echo "Nenhuma imagem de serviço mudou neste PR."
+          fi
 
   apps:
     name: Apps
@@ -245,3 +285,51 @@ jobs:
       - name: Stop local infrastructure compose
         if: always() && env.RUN_AREA == 'true'
         run: docker compose -f infra/compose/docker-compose.dev.yml down -v
+
+  # Imagens no GHCR (DEV-0017): só no push na master, depois de o Java Services passar no mesmo
+  # commit, e só para os serviços alterados. Tag = SHA do commit; deploy continua manual (ADR-005).
+  publish-images:
+    name: Publish Images
+    needs: [changes, java-services]
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' && needs.changes.outputs.services != '[]' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    # Único job com escrita: publicar pacotes. Usa o GITHUB_TOKEN, sem secret extra.
+    permissions:
+      contents: read
+      packages: write
+    env:
+      SERVICES: ${{ needs.changes.outputs.services }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Log in to GHCR
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+
+      - name: Build, check and push images
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          for service in $(jq -r '.[]' <<<"$SERVICES"); do
+            [[ "$service" =~ ^[a-z0-9-]+$ ]] || { echo "Nome de serviço inválido: '$service'."; exit 1; }
+            image="ghcr.io/$owner/fithub-$service:$GITHUB_SHA"
+            docker build --file "services/$service/Dockerfile" --tag "$image" \
+              --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+              --label "org.opencontainers.image.revision=$GITHUB_SHA" .
+            node tools/repo-checks/check-image-user.mjs "$image"
+            docker push "$image"
+            echo "Publicada: $image"
+          done
+
+      - name: Log out of GHCR
+        if: always()
+        run: docker logout ghcr.io
