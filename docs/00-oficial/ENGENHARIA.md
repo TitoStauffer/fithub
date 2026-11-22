@@ -221,7 +221,11 @@ novos serviços quando cada épico chegar. Ele não é evoluído no lugar.
 
 ## 8. CI/CD
 
-GitHub Actions, com filtro por caminho (só builda o que mudou):
+GitHub Actions, com filtro por caminho (só builda o que mudou). O workflow `CI`
+tem um job por área (`Java Services`, `Apps`, `Local Infrastructure`, além do
+`GitHub Reviewer`). Cada job sempre roda e só trabalha quando a área mudou, e
+teste pulado sem `DEV-xxxx` na justificativa derruba o job (DEV-0016; detalhes em
+[revisao-automatizada.md](revisao-automatizada.md)).
 
 1. **PR:** `PR title` (título, branch e issue com a mesma chave DEV), build e
    testes do serviço ou app afetado (unitários, ArchUnit, integração com

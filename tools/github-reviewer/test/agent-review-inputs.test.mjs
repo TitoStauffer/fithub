@@ -58,8 +58,8 @@ function createFetch({
       text = true;
     } else if (path.endsWith(`/commits/${headSha}/check-runs`)) {
       payload = { check_runs: [
-        { name: 'API', head_sha: headSha, status: 'completed', conclusion: 'success', details_url: 'https://example.test/api', completed_at: '2026-10-21T10:00:00Z' },
-        { name: 'Web', head_sha: headSha, status: 'completed', conclusion: 'success' },
+        { name: 'Java Services', head_sha: headSha, status: 'completed', conclusion: 'success', details_url: 'https://example.test/api', completed_at: '2026-10-21T10:00:00Z' },
+        { name: 'Apps', head_sha: headSha, status: 'completed', conclusion: 'success' },
         { name: 'Automation Tools', app: { id: 15368 }, head_sha: headSha, status: 'completed', conclusion: 'success' },
         { name: 'SonarQube', head_sha: headSha, status: 'completed', conclusion: 'success' },
         { name: 'SonarCloud Code Analysis', head_sha: headSha, status: 'completed', conclusion: 'success' },
@@ -97,10 +97,10 @@ test('loads complete changed source snapshots at the PR HEAD alongside diff and 
   }, 'token');
 
   assert.equal(inputs.diff.startsWith('diff --git'), true);
-  // FitHub (DEV-0117): sem Sonar e sem API/Web/Mobile no resumo exigido.
-  assert.deepEqual(inputs.checks, { githubReviewer: 'PASSED' });
-  assert.deepEqual(inputs.checkRuns.find((run) => run.name === 'API'), {
-    name: 'API', appId: null, headSha, status: 'completed', conclusion: 'success', detailsUrl: 'https://example.test/api', completedAt: '2026-10-21T10:00:00Z',
+  // FitHub (DEV-0117, DEV-0016): sem Sonar; job exigido sem o app das Actions não conta.
+  assert.deepEqual(inputs.checks, { githubReviewer: 'PASSED', javaServices: 'MISSING', apps: 'MISSING', localInfrastructure: 'MISSING' });
+  assert.deepEqual(inputs.checkRuns.find((run) => run.name === 'Java Services'), {
+    name: 'Java Services', appId: null, headSha, status: 'completed', conclusion: 'success', detailsUrl: 'https://example.test/api', completedAt: '2026-10-21T10:00:00Z',
     actions: { availability: 'unavailable', reason: 'Verified GitHub Actions job evidence is unavailable.' },
   });
   assert.equal(inputs.repositoryInstructions, 'Project rules');
@@ -279,8 +279,9 @@ test('uses latest rerun results for summaries and exposes only current-SHA requi
     { name: 'Web', head_sha: 'c'.repeat(40), status: 'completed', conclusion: 'success' },
   ];
 
-  // FitHub (DEV-0117): o resumo exigido só tem o job das ferramentas de revisão, pela última execução.
-  assert.deepEqual(summarizeAgentChecks(runs, headSha), { githubReviewer: 'MISSING' });
+  // FitHub (DEV-0117, DEV-0016): o resumo exigido tem os quatro jobs por área, pela última execução;
+  // nomes do CashIn (API, Web) não contam.
+  assert.deepEqual(summarizeAgentChecks(runs, headSha), { githubReviewer: 'MISSING', javaServices: 'MISSING', apps: 'MISSING', localInfrastructure: 'MISSING' });
   const reviewerRuns = [
     { name: 'GitHub Reviewer', head_sha: headSha, status: 'completed', conclusion: 'failure', app: { id: 15368 }, started_at: '2026-10-21T09:00:00Z' },
     { name: 'GitHub Reviewer', head_sha: headSha, status: 'completed', conclusion: 'success', app: { id: 15368 }, started_at: '2026-10-21T10:00:00Z' },
@@ -298,6 +299,21 @@ test('requires a current successful Automation Tools check in the prerequisite s
     [[{ ...reviewer, conclusion: 'failure' }], 'FAILED'], [[{ ...reviewer, conclusion: 'skipped' }], 'FAILED'],
     [[{ ...reviewer, status: 'in_progress', conclusion: null }], 'PENDING'],
   ]) assert.equal(summarizeAgentChecks(runs, headSha).githubReviewer, expected);
+});
+
+// DEV-0016: cada job por área do CI é exigido como o GitHub Reviewer: só conta a última execução do
+// HEAD, vinda do app das Actions e com sucesso. Job pulado (needs falhou) não passa.
+test('requires each per-area CI job from GitHub Actions on the current HEAD', () => {
+  for (const [key, name] of [['javaServices', 'Java Services'], ['apps', 'Apps'], ['localInfrastructure', 'Local Infrastructure']]) {
+    const job = { name, app: { id: 15368 }, head_sha: headSha, status: 'completed', conclusion: 'success' };
+    for (const [runs, expected] of [
+      [[], 'MISSING'], [[job], 'PASSED'], [[{ ...job, name: `CI / ${name}` }], 'PASSED'],
+      [[{ ...job, head_sha: baseSha }], 'MISSING'], [[{ ...job, app: { id: 999 } }], 'MISSING'],
+      [[{ ...job, name: `${name} extra` }], 'MISSING'],
+      [[{ ...job, conclusion: 'failure' }], 'FAILED'], [[{ ...job, conclusion: 'skipped' }], 'FAILED'],
+      [[{ ...job, status: 'in_progress', conclusion: null }], 'PENDING'],
+    ]) assert.equal(summarizeAgentChecks(runs, headSha)[key], expected, `${name}: ${JSON.stringify(runs)}`);
+  }
 });
 
 test('loads removed source files from the base commit', async () => {

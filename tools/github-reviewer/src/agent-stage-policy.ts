@@ -2,6 +2,7 @@ import type { AgentStage, AgentStageResult } from './agent-orchestrator.js';
 import { hasLaterChangeRequest, latestCurrentFormalReview, parseStoredAgentComment, parseStoredFormalReview } from './agent-evidence.js';
 import { isAgentStageResult, validateAgentResultCompleteness } from './agent-result-validation.js';
 import type { CheckSummary } from './codex-cli-agent.js';
+import { REQUIRED_AGENT_CHECKS } from './repository-policy.js';
 import { LIGHT_TRACK_RULE, classifyReviewTrack, runtimeAffectingPaths, type ReviewTrack } from './review-track.js';
 
 export interface StageEvidenceContext {
@@ -65,7 +66,8 @@ export function evaluateDeterministicQualityGate(input: StageEvidenceContext & {
   // taken from a previous report or from the Pull Request body.
   const reviewTrack = classifyReviewTrack(input.changedFiles);
   const requiredStages = reviewTrack === 'full' ? ['codeReview', 'qa'] as const : ['codeReview'] as const;
-  const checkNames: Array<keyof CheckSummary> = ['githubReviewer'];
+  // Todo job exigido (repository-policy.ts), não só os presentes no resumo: chave ausente vira UNKNOWN.
+  const checkNames = Object.keys(REQUIRED_AGENT_CHECKS) as Array<keyof CheckSummary>;
   for (const name of checkNames) {
     const state = input.checks[name];
     if (state !== 'PASSED') reasons.push(`Check ${name}: ${state ?? 'UNKNOWN'}.`);

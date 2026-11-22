@@ -3,10 +3,12 @@ import { agentReportMarker, computeAgentContextHash } from './agent-evidence.js'
 import { loadAgentReviewInputs } from './agent-review-inputs.js';
 import { ACTIONS_APP_ID } from './agent-ci-evidence.js';
 import { classifyReviewTrack } from './review-track.js';
-import { BRANCH_PROTECTION_AVAILABLE, BRANCH_PROTECTION_UNAVAILABLE_NOTE, REQUIRED_STATUS_CONTEXTS } from './repository-policy.js';
+import { BRANCH_PROTECTION_AVAILABLE, BRANCH_PROTECTION_UNAVAILABLE_NOTE, REQUIRED_CI_JOBS, REQUIRED_STATUS_CONTEXTS } from './repository-policy.js';
 
-// FitHub (DEV-0117): sem SonarQube e sem jobs API/Web/Mobile até a DEV-0016; o `PR title` é obrigatório.
+// FitHub (DEV-0117): sem SonarQube; o `PR title` é obrigatório.
 const REQUIRED_QUALITY_CHECKS: readonly string[] = REQUIRED_STATUS_CONTEXTS;
+// Jobs do CI por área (DEV-0016), exigidos das GitHub Actions além do `GitHub Reviewer`.
+const DEFAULT_REQUIRED_CI_JOBS: readonly string[] = Object.values(REQUIRED_CI_JOBS);
 const AUTOMATION_CHECK_CONTEXTS = ['Automation Tools', 'GitHub Reviewer'] as const;
 const GRAPHQL_REVIEW_THREADS_QUERY = `query($owner: String!, $name: String!, $number: Int!, $after: String) {
   repository(owner: $owner, name: $name) {
@@ -44,12 +46,15 @@ export interface MergeReadinessPolicy {
   branchProtectionAvailable?: boolean;
   /** Checks e status contexts exigidos além do job das ferramentas de revisão. */
   requiredQualityChecks?: readonly string[];
+  /** Jobs do workflow CI exigidos das GitHub Actions, além do job das ferramentas de revisão. */
+  requiredCiJobs?: readonly string[];
 }
 
 export async function evaluateMergeReadiness(options: MergeReadinessOptions): Promise<MergeReadinessResult> {
   const now = options.now ?? (() => new Date());
   const protectionAvailable = options.policy?.branchProtectionAvailable ?? BRANCH_PROTECTION_AVAILABLE;
   const qualityChecks = options.policy?.requiredQualityChecks ?? REQUIRED_QUALITY_CHECKS;
+  const ciJobs = options.policy?.requiredCiJobs ?? DEFAULT_REQUIRED_CI_JOBS;
   const reasons: string[] = [];
   const limitations: string[] = [];
   const evidence: Record<string, unknown> = {};
@@ -228,6 +233,7 @@ export async function evaluateMergeReadiness(options: MergeReadinessOptions): Pr
   const requiredCheckCandidates: RequiredCheck[] = [
     ...qualityChecks.map((context) => ({ context })),
     { context: automationCheckContext, appId: ACTIONS_APP_ID },
+    ...ciJobs.map((context) => ({ context, appId: ACTIONS_APP_ID })),
     ...requiredContexts,
   ];
   const requiredChecks = [...new Map(requiredCheckCandidates.map((requirement) => [`${requirement.context}:${requirement.appId ?? ''}`, requirement])).values()];

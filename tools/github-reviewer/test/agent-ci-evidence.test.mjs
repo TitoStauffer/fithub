@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { loadActionsEvidence, loadCiSnapshots } from '../dist/agent-ci-evidence.js';
+import { loadActionsEvidence, loadCiSnapshots, projectCiSnapshot } from '../dist/agent-ci-evidence.js';
 import { fingerprintAgentReviewInputs, loadAgentReviewInputs } from '../dist/agent-review-inputs.js';
 import { buildPrompt } from '../dist/codex-cli-agent.js';
 import { detectPullRequestPromptInjection } from '../dist/prompt-injection-guard.js';
@@ -10,11 +10,11 @@ import { detectPullRequestPromptInjection } from '../dist/prompt-injection-guard
 const sha = 'a'.repeat(40);
 const baseSha = 'b'.repeat(40);
 const check = {
-  id: 20, name: 'API', app: { id: 15368 }, check_suite: { id: 30 }, head_sha: sha,
+  id: 20, name: 'Java Services', app: { id: 15368 }, check_suite: { id: 30 }, head_sha: sha,
   status: 'completed', conclusion: 'success', details_url: 'https://github.com/owner/repo/actions/runs/10/job/20',
 };
 const job = {
-  id: 20, run_id: 10, head_sha: sha, name: 'API', status: 'completed', conclusion: 'success',
+  id: 20, run_id: 10, head_sha: sha, name: 'Java Services', status: 'completed', conclusion: 'success',
   html_url: check.details_url, check_run_url: 'https://api.github.com/repos/owner/repo/check-runs/20',
   steps: ['Wait for PostgreSQL', 'Test with coverage (unit + integration)', 'Ensure no test was skipped'].map((name, index) => ({ number: index + 1, name, status: 'completed', conclusion: 'success' })),
 };
@@ -50,7 +50,9 @@ function fakeFetch({ checkValue = check, jobValue = job, checkValues, jobValues,
       const packageScripts = path === 'tools/github-reviewer/package.json'
         ? reviewerScripts
         : path === 'tools/jira-dispatcher/package.json' ? dispatcherScripts : scripts;
-      content = path === '.github/workflows/ci.yml' ? workflowValue : JSON.stringify({ scripts: packageScripts, dependencies: { 'omitted-package': '1' } });
+      content = path === '.github/workflows/ci.yml' ? workflowValue
+        : path.endsWith('.mjs') ? `// script de CI: ${path}\n`
+          : JSON.stringify({ scripts: packageScripts, dependencies: { 'omitted-package': '1' } });
     }
     return Response.json({ encoding: 'base64', content: Buffer.from(content).toString('base64') });
   };
@@ -83,8 +85,8 @@ test('loads verified Actions steps and current-HEAD configuration through review
   assert.deepEqual(actions.steps, job.steps);
   assert.equal(actions.headSha, sha);
   assert.equal(actions.workflowPath, '.github/workflows/ci.yml');
-  // FitHub (DEV-0118): o workflow CI e o manifesto do reviewer (repository-policy.ts).
-  assert.equal(inputs.ciConfiguration.length, 2);
+  // FitHub (DEV-0118, DEV-0016): o workflow CI, o manifesto do reviewer e os dois scripts de CI.
+  assert.equal(inputs.ciConfiguration.length, 4);
   assert.equal(requests.some(({ url }) => url.pathname.endsWith('/logs')), false);
   assert.equal(requests.filter(({ url }) => url.pathname.includes('/actions/')).every(({ options }) => options.redirect === 'error' && options.signal), true);
 });
@@ -97,19 +99,24 @@ test('omits env values and package dependencies but preserves configured variabl
   assert.match(snapshots[0].content, /test "\$skipped" = "0"/);
   assert.doesNotMatch(JSON.stringify(snapshots), /ci-placeholder|omitted-package/);
   assert.equal(snapshots[0].originalSha256, createHash('sha256').update(workflow).digest('hex'));
-  // FitHub (DEV-0118): só o manifesto do reviewer, com as dependências omitidas.
-  assert.deepEqual(snapshots.map(({ path }) => path), ['.github/workflows/ci.yml', 'tools/github-reviewer/package.json']);
+  // FitHub (DEV-0118): o manifesto do reviewer, com as dependências omitidas.
+  // DEV-0016: os scripts de CI de tools/repo-checks entram inteiros.
+  assert.deepEqual(snapshots.map(({ path }) => path), [
+    '.github/workflows/ci.yml', 'tools/github-reviewer/package.json',
+    'tools/repo-checks/ci-changes.mjs', 'tools/repo-checks/check-skipped-tests.mjs',
+  ]);
   assert.deepEqual(JSON.parse(snapshots[1].content), { scripts: reviewerScripts });
+  assert.equal(snapshots[2].content, '// script de CI: tools/repo-checks/ci-changes.mjs\n');
 });
 
-test('also attaches verified job evidence to Web checks', async () => {
-  const inputs = await loadAgentReviewInputs(fakeFetch({ checkValue: { ...check, name: 'Web' }, jobValue: { ...job, name: 'Web' } }), 'owner/repo', 7, { head: { sha }, base: { sha: baseSha } }, 'not-a-real-token');
-  assert.equal(inputs.checkRuns[0].name, 'Web');
+test('also attaches verified job evidence to Apps checks', async () => {
+  const inputs = await loadAgentReviewInputs(fakeFetch({ checkValue: { ...check, name: 'Apps' }, jobValue: { ...job, name: 'Apps' } }), 'owner/repo', 7, { head: { sha }, base: { sha: baseSha } }, 'not-a-real-token');
+  assert.equal(inputs.checkRuns[0].name, 'Apps');
   assert.equal(inputs.checkRuns[0].actions.availability, 'available');
 });
 
 test('verifies all four CI jobs and supplies Automation Tools test steps and the CI snapshots', async () => {
-  const checkValues = ['API', 'Web', 'Mobile', 'Automation Tools'].map((name, index) => ({ ...check, name, id: 20 + index, details_url: `https://github.com/owner/repo/actions/runs/10/job/${20 + index}` }));
+  const checkValues = ['Java Services', 'Apps', 'Local Infrastructure', 'Automation Tools'].map((name, index) => ({ ...check, name, id: 20 + index, details_url: `https://github.com/owner/repo/actions/runs/10/job/${20 + index}` }));
   const jobValues = checkValues.map((entry) => ({ ...job, id: entry.id, name: entry.name, html_url: entry.details_url, check_run_url: `https://api.github.com/repos/owner/repo/check-runs/${entry.id}`,
     ...(entry.name === 'Automation Tools' ? { steps: [
       'Build and test GitHub integration tools',
@@ -119,14 +126,13 @@ test('verifies all four CI jobs and supplies Automation Tools test steps and the
   }));
   const inputs = await loadAgentReviewInputs(fakeFetch({ checkValues, jobValues }), 'owner/repo', 7, { head: { sha }, base: { sha: baseSha } }, 'not-a-real-token');
   assert.equal(inputs.checks.githubReviewer, 'PASSED');
-  // FitHub (DEV-0117): só o job das ferramentas de revisão é exigido; os demais jobs de teste
-  // reconhecidos continuam levando suas etapas aos agentes.
-  assert.deepEqual(Object.keys(inputs.checks), ['githubReviewer']);
-  assert.equal(inputs.checkRuns.find(({ name }) => name === 'Mobile').actions.availability, 'available');
+  // FitHub (DEV-0016): os quatro jobs por área são exigidos e levam suas etapas aos agentes.
+  assert.deepEqual(inputs.checks, { githubReviewer: 'PASSED', javaServices: 'PASSED', apps: 'PASSED', localInfrastructure: 'PASSED' });
+  assert.equal(inputs.checkRuns.find(({ name }) => name === 'Local Infrastructure').actions.availability, 'available');
   assert.equal(inputs.checkRuns.filter(({ actions }) => actions?.availability === 'available').length, 4);
   assert.deepEqual(inputs.checkRuns.find(({ name }) => name === 'Automation Tools').actions.steps, jobValues[3].steps);
-  // FitHub (DEV-0118): o workflow CI e o manifesto do reviewer (repository-policy.ts).
-  assert.equal(inputs.ciConfiguration.length, 2);
+  // FitHub (DEV-0118, DEV-0016): o workflow CI, o manifesto do reviewer e os dois scripts de CI.
+  assert.equal(inputs.ciConfiguration.length, 4);
   assert.ok(inputs.ciConfiguration.some(({ path }) => path === '.github/workflows/ci.yml'));
   assert.deepEqual(
     inputs.checkRuns.find(({ name }) => name === 'Automation Tools').actions.steps.map(({ name }) => name),
@@ -144,7 +150,7 @@ test('verifies all four CI jobs and supplies Automation Tools test steps and the
 });
 
 test('limits the context to four CI jobs', async () => {
-  const checkValues = ['API', 'Web', 'Mobile', 'Automation Tools', 'CI / API'].map((name) => ({ ...check, name }));
+  const checkValues = ['Java Services', 'Apps', 'Local Infrastructure', 'Automation Tools', 'CI / Java Services'].map((name) => ({ ...check, name }));
   await assert.rejects(loadAgentReviewInputs(fakeFetch({ checkValues }), 'owner/repo', 7, { head: { sha }, base: { sha: baseSha } }, 'not-a-real-token'), /Too many CI checks/);
 });
 
@@ -177,7 +183,7 @@ for (const [field, patch] of [
   ['run', { repository: { full_name: 'other/repo' } }], ['run', { head_repository: { full_name: 'fork/repo' } }],
   ['run', { event: 'push' }], ['run', { check_suite_id: 99 }], ['job', { run_id: 99 }],
   ['job', { check_run_url: 'https://api.github.com/repos/other/repo/check-runs/20' }], ['job', { id: 21 }],
-  ['job', { status: 'in_progress' }], ['job', { conclusion: 'failure' }], ['job', { name: 'Web' }],
+  ['job', { status: 'in_progress' }], ['job', { conclusion: 'failure' }], ['job', { name: 'Apps' }],
 ]) {
   test(`rejects mismatched ${field} ${Object.keys(patch).join(',')}`, async () => {
     await assert.rejects(read(fakeFetch({ jobValue: field === 'job' ? { ...job, ...patch } : job, runValue: field === 'run' ? { ...run, ...patch } : run })), /does not match/);
@@ -327,5 +333,16 @@ test('every workflow context reader declares Actions read access for independent
     const permissionBlocks = [...content.matchAll(/^    permissions:\n((?:      [\w-]+: \w+\n)+)/gm)];
     assert.equal(permissionBlocks.length, expectedJobs);
     for (const [, permissions] of permissionBlocks) assert.match(permissions, /^      actions: read$/m);
+  }
+});
+
+// DEV-0016: cada arquivo da lista de snapshots precisa de uma projeção conhecida. Script de CI de
+// tools/repo-checks entra inteiro; qualquer outro tipo falha fechado em vez de ir cru para o prompt.
+test('projects only known CI snapshot kinds and refuses the rest', () => {
+  const script = '// detector\nexport const AREAS = [];\n';
+  assert.equal(projectCiSnapshot('tools/repo-checks/ci-changes.mjs', script), script);
+  assert.deepEqual(JSON.parse(projectCiSnapshot('package.json', JSON.stringify({ scripts: { test: 'x' }, dependencies: { a: '1' } }))), { scripts: { test: 'x' } });
+  for (const path of ['pom.xml', 'tools/repo-checks/sub/x.mjs', 'tools/github-reviewer/src/cli.mjs', 'tools/repo-checks/x.js', '.env']) {
+    assert.throws(() => projectCiSnapshot(path, 'conteúdo'), /no projection/, path);
   }
 });

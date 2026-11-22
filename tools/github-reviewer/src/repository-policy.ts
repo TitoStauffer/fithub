@@ -5,29 +5,40 @@
  * - Sem proteção de branch: no plano gratuito, repositório privado não tem branch protection nem
  *   rulesets (a API responde 403). A regra "merge só com READY_TO_MERGE" é escrita no AGENTS.md; o
  *   Merge Readiness não exige proteção e registra isso nas evidências.
- * - Checks de CI: por enquanto só existe o job `GitHub Reviewer`; os jobs dos serviços e apps entram
- *   na DEV-0016 e devem ser acrescentados aqui.
+ * - Checks de CI (DEV-0016): um job por área do workflow `CI` (`GitHub Reviewer`, `Java Services`,
+ *   `Apps`, `Local Infrastructure`). Todos sempre rodam; a área que não mudou termina com sucesso sem
+ *   trabalhar, e isso aparece nas etapas do job.
  */
 
-/** Jobs do workflow `CI` que precisam passar no HEAD antes dos agentes e do merge. */
+/**
+ * Nomes dos jobs do workflow `CI` que precisam passar no HEAD antes dos agentes e do merge, além do
+ * `GitHub Reviewer` (que tem nome antigo aceito, abaixo). Mudar um nome aqui exige mudar no ci.yml.
+ */
+export const REQUIRED_CI_JOBS = {
+  javaServices: 'Java Services',
+  apps: 'Apps',
+  localInfrastructure: 'Local Infrastructure',
+} as const;
+
+function jobNamed(job: string): (name: string) => boolean {
+  // Aceita o nome do job sozinho ou com o prefixo do workflow ("CI / Apps").
+  const pattern = new RegExp(`(^|/\\s*)${job.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+  return (name: string) => pattern.test(name);
+}
+
+/** Jobs exigidos, pela chave usada no resumo de checks dos agentes. */
 export const REQUIRED_AGENT_CHECKS = {
   // `Automation Tools` é o nome antigo do mesmo job no CashIn, aceito por compatibilidade.
   githubReviewer: (name: string) => /(^|\/\s*)(?:automation tools|github reviewer)$/i.test(name),
+  javaServices: jobNamed(REQUIRED_CI_JOBS.javaServices),
+  apps: jobNamed(REQUIRED_CI_JOBS.apps),
+  localInfrastructure: jobNamed(REQUIRED_CI_JOBS.localInfrastructure),
 } as const;
 
 export type RequiredAgentCheck = keyof typeof REQUIRED_AGENT_CHECKS;
 
-/**
- * Jobs de teste cujas etapas verificadas nas Actions entram no contexto do QA, exigidos ou não.
- * `API`, `Web` e `Mobile` são os nomes do CashIn, mantidos como reconhecedores até a DEV-0016 definir
- * os jobs dos serviços e apps do FitHub — quando ela definir, trocar aqui e em REQUIRED_AGENT_CHECKS.
- */
-export const KNOWN_TEST_JOBS: ReadonlyArray<(name: string) => boolean> = [
-  ...Object.values(REQUIRED_AGENT_CHECKS),
-  (name: string) => /(^|\/\s*)api(\s|$)/i.test(name),
-  (name: string) => /(^|\/\s*)web(\s|$)/i.test(name),
-  (name: string) => /(^|\/\s*)mobile(\s|$)/i.test(name),
-];
+/** Jobs de teste cujas etapas verificadas nas Actions entram no contexto do QA: os exigidos acima. */
+export const KNOWN_TEST_JOBS: ReadonlyArray<(name: string) => boolean> = Object.values(REQUIRED_AGENT_CHECKS);
 
 /** Status contexts (além dos jobs acima) exigidos pelo Merge Readiness. */
 export const REQUIRED_STATUS_CONTEXTS = ['PR title'] as const;
@@ -52,12 +63,16 @@ export const VAULT_CONTEXT_MAP_PATH = `${VAULT_ROOT}context-map.json`;
 /**
  * Arquivos de configuração de CI que os agentes recebem como contexto (scripts dos pacotes e o
  * workflow `CI`), lidos no HEAD do PR (DEV-0118). Todos precisam existir: um ausente falha fechado.
- * Ao criar serviço ou app com CI próprio (DEV-0016 em diante), acrescente o manifesto aqui.
+ * O workflow tem os valores de `env` omitidos; um `package.json` entra só com os `scripts`; os scripts
+ * `.mjs` de tools/repo-checks que decidem o que o CI roda e barram teste pulado (DEV-0016) entram
+ * inteiros. Ao criar app com `package.json` próprio que tenha `scripts`, acrescente-o aqui.
  */
 export const CI_WORKFLOW_PATH = '.github/workflows/ci.yml';
 export const CI_SNAPSHOT_PATHS: readonly string[] = [
   CI_WORKFLOW_PATH,
   'tools/github-reviewer/package.json',
+  'tools/repo-checks/ci-changes.mjs',
+  'tools/repo-checks/check-skipped-tests.mjs',
 ];
 
 /**

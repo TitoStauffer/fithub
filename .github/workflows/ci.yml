@@ -1,8 +1,17 @@
 name: CI
 
-# CI do FitHub. Por enquanto só o job das ferramentas de revisão; os jobs dos
-# serviços e apps entram na DEV-0016. O nome "CI" e o do job "GitHub Reviewer"
-# são lidos pelos bots de orquestração (DEV-0118): mude os dois juntos.
+# CI do FitHub (DEV-0016). Um job por área, e cada área só trabalha quando algo dela mudou:
+#
+#   Detect changes        decide as áreas (tools/repo-checks/ci-changes.mjs); push na master roda tudo
+#   GitHub Reviewer       ferramentas de revisão, docs, hook e scripts do runner (sempre)
+#   Java Services         libs Java e serviços: build, unitários, ArchUnit e integração (Testcontainers)
+#   Apps                  workspace pnpm: lint, typecheck e testes dos apps e pacotes
+#   Local Infrastructure  compose de desenvolvimento sobe saudável
+#
+# Os quatro últimos são checks exigidos pelos bots de orquestração (repository-policy.ts). Por isso
+# eles sempre rodam e terminam com sucesso quando a área não mudou: o passo "Skip" registra isso, e
+# os passos de verdade aparecem como pulados. Se "Detect changes" falhar ou não disser "false", os
+# jobs ficam sem sucesso e o merge bloqueia. O nome "CI" e os dos jobs são lidos pelos bots: mude-os juntos.
 
 on:
   pull_request:
@@ -29,6 +38,40 @@ defaults:
     shell: bash
 
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      java: ${{ steps.detect.outputs.java }}
+      apps: ${{ steps.detect.outputs.apps }}
+      infra: ${{ steps.detect.outputs.infra }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # A base e o HEAD do PR precisam estar no histórico para o diff.
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Detect changed areas
+        id: detect
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT_NAME" = pull_request ]; then
+            node tools/repo-checks/ci-changes.mjs "$BASE_SHA" "$HEAD_SHA" >> "$GITHUB_OUTPUT"
+          else
+            node tools/repo-checks/ci-changes.mjs --all >> "$GITHUB_OUTPUT"
+          fi
+
   automation-tools:
     name: GitHub Reviewer
     runs-on: ubuntu-24.04
@@ -64,6 +107,11 @@ jobs:
           node --test tools/repo-checks/check-docs.test.mjs
           node tools/repo-checks/check-docs.mjs
 
+      # Detector de áreas e guarda de teste pulado usados pelos outros jobs (DEV-0016).
+      - name: Test CI scripts
+        working-directory: .
+        run: node --test tools/repo-checks/ci-scripts.test.mjs
+
       - name: Test pre-push hook
         working-directory: .
         run: sh .githooks/test-pre-push.sh
@@ -73,34 +121,127 @@ jobs:
         shell: pwsh
         run: ./tools/github-runner/test-runner-scripts.ps1
 
-      # Raiz do monorepo (DEV-0011): o POM pai e o workspace pnpm precisam resolver sem erro.
-      # Fica neste job até a DEV-0016 criar os jobs próprios dos serviços e apps.
+  java-services:
+    name: Java Services
+    needs: changes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      RUN_AREA: ${{ needs.changes.outputs.java }}
+    steps:
+      - name: Skip (no Java changes)
+        if: env.RUN_AREA != 'true'
+        run: |
+          [ "$RUN_AREA" = false ] || { echo "Saída do detector inválida: '$RUN_AREA'."; exit 1; }
+          echo "Nenhuma mudança em pom.xml, libs/ ou services/; build e testes Java não rodam."
+
+      - name: Checkout
+        if: env.RUN_AREA == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
       - name: Setup Java
+        if: env.RUN_AREA == 'true'
         uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:
           distribution: temurin
           java-version: "25"
           cache: maven
 
-      # Build e testes dos módulos Java (DEV-0013 em diante); o enforcer do POM pai roda junto.
+      - name: Setup Node.js
+        if: env.RUN_AREA == 'true'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # Unitários, ArchUnit e integração com Testcontainers (Postgres e RabbitMQ); o enforcer do POM pai roda junto.
       - name: Build and test Java modules
-        working-directory: .
+        if: env.RUN_AREA == 'true'
         run: mvn -B -ntp verify
 
-      - name: Validate pnpm workspace
-        working-directory: .
+      - name: Check skipped tests
+        if: env.RUN_AREA == 'true'
+        run: node tools/repo-checks/check-skipped-tests.mjs libs services
+
+  apps:
+    name: Apps
+    needs: changes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      RUN_AREA: ${{ needs.changes.outputs.apps }}
+    steps:
+      - name: Skip (no app changes)
+        if: env.RUN_AREA != 'true'
+        run: |
+          [ "$RUN_AREA" = false ] || { echo "Saída do detector inválida: '$RUN_AREA'."; exit 1; }
+          echo "Nenhuma mudança em apps/, packages/ ou no workspace pnpm; lint, typecheck e testes não rodam."
+
+      - name: Checkout
+        if: env.RUN_AREA == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        if: env.RUN_AREA == 'true'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install workspace dependencies
+        if: env.RUN_AREA == 'true'
         run: |
           corepack enable
           pnpm install --frozen-lockfile
 
+      # Cada app ou pacote declara os próprios scripts lint, typecheck e test; quem não tem é pulado.
+      - name: Lint
+        if: env.RUN_AREA == 'true'
+        run: pnpm -r --if-present run lint
+
+      - name: Typecheck
+        if: env.RUN_AREA == 'true'
+        run: pnpm -r --if-present run typecheck
+
+      - name: Test
+        if: env.RUN_AREA == 'true'
+        run: pnpm -r --if-present run test
+
+      # Os testes dos apps publicam JUnit em reports/junit*.xml. --allow-none só enquanto não houver
+      # app nem pacote com testes (DEV-0020 e DEV-0021 retiram a opção ao criar os apps).
+      - name: Check skipped tests
+        if: env.RUN_AREA == 'true'
+        run: node tools/repo-checks/check-skipped-tests.mjs --allow-none apps packages
+
+  local-infrastructure:
+    name: Local Infrastructure
+    needs: changes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      RUN_AREA: ${{ needs.changes.outputs.infra }}
+    steps:
+      - name: Skip (no infrastructure changes)
+        if: env.RUN_AREA != 'true'
+        run: |
+          [ "$RUN_AREA" = false ] || { echo "Saída do detector inválida: '$RUN_AREA'."; exit 1; }
+          echo "Nenhuma mudança em infra/; o compose de desenvolvimento não sobe."
+
+      - name: Checkout
+        if: env.RUN_AREA == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
       # Infraestrutura local (DEV-0012): o compose sobe e todos os serviços ficam saudáveis.
       - name: Validate local infrastructure compose
-        working-directory: .
+        if: env.RUN_AREA == 'true'
         run: |
           docker compose -f infra/compose/docker-compose.dev.yml up -d --wait --wait-timeout 300
           docker compose -f infra/compose/docker-compose.dev.yml ps
 
       - name: Stop local infrastructure compose
-        if: always()
-        working-directory: .
+        if: always() && env.RUN_AREA == 'true'
         run: docker compose -f infra/compose/docker-compose.dev.yml down -v

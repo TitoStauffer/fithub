@@ -12,7 +12,7 @@
   - `issue-key`: numera toda issue nova com `[DEV-NNNN] - `.
   - `pr-title`: valida título, branch e issue do PR.
   - `project-status`: move as issues no quadro e atribui o autor ao PR.
-  - `ci` (`CI`): job `GitHub Reviewer` (testes do reviewer, do hook `pre-push` e dos scripts do runner).
+  - `ci` (`CI`, DEV-0016): `Detect changes` decide as áreas pelo diff; `GitHub Reviewer` (reviewer, docs, scripts de CI, hook `pre-push`, scripts do runner), `Java Services` (`mvn verify` e guarda de teste pulado), `Apps` (lint, typecheck e testes do workspace pnpm) e `Local Infrastructure` (compose saudável). Os quatro são checks exigidos pelos bots e sempre rodam; área sem mudança termina com sucesso sem trabalhar.
 - **Hook local `.githooks/pre-push`** (DEV-0130): recusa push direto para `master`/`main`; ativação por
   clone com `git config core.hooksPath .githooks`.
   - `github-app-check`: verifica os secrets do GitHub App.
@@ -36,7 +36,7 @@
 ## Ainda não existe
 
 - Regras de negócio, endpoints e tabelas dos serviços — épicos E1 em diante. Apps e demais bibliotecas — resto do E0.
-- CI dos serviços e apps — DEV-0016. Verificação por mutação no CI — DEV-0116.
+- Verificação por mutação no CI — DEV-0116. Imagens no GHCR — DEV-0017.
 
 ## Limitações conhecidas
 
