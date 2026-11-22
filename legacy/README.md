@@ -1,7 +1,8 @@
 # Legado (v0.4.0)
 
 Primeira versão do FitHub, construída a partir da especificação anterior
-(`MVP_SPECIFICATION.md`): backend em monólito modular (identity, patients,
+(`MVP_SPECIFICATION.md`, hoje no histórico do git — ver
+[docs/HISTORICO.md](../docs/HISTORICO.md)): backend em monólito modular (identity, patients,
 training, nutrition) e frontend web em React (JavaScript).
 
 **Este código não é mais evoluído.** Ele serve de referência para portar

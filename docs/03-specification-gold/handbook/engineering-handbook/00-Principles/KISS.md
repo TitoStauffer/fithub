@@ -1,1 +1,0 @@
-Prefira soluções simples.

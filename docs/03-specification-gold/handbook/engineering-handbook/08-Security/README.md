@@ -1,1 +1,0 @@
-Autenticação, autorização e OWASP.

@@ -1,1 +1,0 @@
-Responsabilidades por camada.

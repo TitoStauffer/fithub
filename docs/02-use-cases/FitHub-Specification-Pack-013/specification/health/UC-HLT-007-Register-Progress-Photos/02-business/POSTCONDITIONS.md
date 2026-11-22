@@ -1,2 +1,0 @@
-Operação persistida.
-Auditoria registrada.

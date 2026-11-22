@@ -1,3 +1,0 @@
-# Engineering
-
-Padrões e metodologia.

@@ -1,2 +1,0 @@
-Primary: Nutritionist
-Secondary: Patient

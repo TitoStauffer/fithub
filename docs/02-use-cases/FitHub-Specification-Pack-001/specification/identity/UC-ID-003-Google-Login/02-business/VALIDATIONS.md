@@ -1,3 +1,0 @@
-- Campos obrigatórios.
-- Formatos válidos.
-- Permissões.

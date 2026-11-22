@@ -1,1 +1,0 @@
-Aggregates: Training e TrainingExecution.

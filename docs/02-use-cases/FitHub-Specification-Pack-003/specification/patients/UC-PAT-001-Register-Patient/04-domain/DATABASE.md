@@ -1,1 +1,0 @@
-Tabela principal: patient.

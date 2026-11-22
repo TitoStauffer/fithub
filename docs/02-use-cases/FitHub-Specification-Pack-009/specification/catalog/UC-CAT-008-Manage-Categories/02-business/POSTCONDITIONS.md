@@ -1,2 +1,0 @@
-Catálogo atualizado.
-Auditoria registrada.

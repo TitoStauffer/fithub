@@ -1,1 +1,0 @@
-NUT-ERR-* conforme catálogo.
