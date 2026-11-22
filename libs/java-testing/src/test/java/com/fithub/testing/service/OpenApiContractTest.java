@@ -28,7 +28,10 @@ class OpenApiContractTest {
     void outdatedOrMissingContractFailsWithTheCommandsToFixIt() throws IOException {
         Path file = dir.resolve("openapi/account-service.json");
         assertThatThrownBy(() -> OpenApiContract.verify(file, "{\"openapi\":\"3.1.0\"}", false))
-                .hasMessageContaining("Contrato OpenAPI ausente").hasMessageContaining("fithub.openapi.update=true");
+                .hasMessageContaining("Contrato OpenAPI ausente")
+                // O comando sugerido roda copiado: caminho do módulo, -am e o filtro do teste de esqueleto.
+                .hasMessageContaining("`mvn -pl services/account-service -am test -Dtest=*SkeletonTest "
+                        + "-Dsurefire.failIfNoSpecifiedTests=false -Dfithub.openapi.update=true`");
 
         Files.createDirectories(file.getParent());
         Files.writeString(file, OpenApiContract.normalize("{\"openapi\":\"3.0.1\"}"));

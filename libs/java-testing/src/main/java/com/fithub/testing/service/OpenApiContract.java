@@ -57,7 +57,8 @@ public final class OpenApiContract {
                 return;
             }
             String hint = "O OpenAPI do serviço mudou. Regrave o contrato com "
-                    + "`mvn -pl <servico> test -D" + UPDATE_PROPERTY + "=true` e gere os tipos com "
+                    + "`mvn -pl services/" + serviceNameOf(file) + " -am test -Dtest=*SkeletonTest "
+                    + "-Dsurefire.failIfNoSpecifiedTests=false -D" + UPDATE_PROPERTY + "=true` e gere os tipos com "
                     + "`pnpm --filter @fithub/api-types generate` (packages/api-types/README.md).";
             assertThat(file).as("Contrato OpenAPI ausente: %s. %s", file, hint).exists();
             // O checkout no Windows pode trazer CRLF (core.autocrlf); o contrato é o mesmo.
@@ -66,6 +67,10 @@ public final class OpenApiContract {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    private static String serviceNameOf(Path contract) {
+        return contract.getFileName().toString().replaceFirst("\\.json$", "");
     }
 
     /** Sobe a partir da pasta do módulo até a raiz do monorepo (onde está o pnpm-workspace.yaml). */

@@ -28,9 +28,15 @@ const CI_CONFIGURATION = [
 const SHARED_JAVA_BUILD = (path) => path === 'pom.xml' || path === '.java-version' || path === '.dockerignore'
   || path.startsWith('.mvn/') || path.startsWith('mvnw') || path.startsWith('libs/');
 
+// Dependências entre áreas (DEV-0022): o teste Java de cada serviço compara o OpenAPI vivo com
+// packages/api-types/openapi/, e o teste do api-types confere que todo services/*/Dockerfile tem contrato.
+// Mudança num lado liga a área que lê esse arquivo, para nenhum check exigido ficar verde sem conferir.
+const OPENAPI_CONTRACT = (path) => path.startsWith('packages/api-types/openapi/');
+const SERVICE_DOCKERFILE = (path) => /^services\/[^/]+\/Dockerfile$/.test(path);
+
 const MATCHERS = {
-  java: (path) => SHARED_JAVA_BUILD(path) || path.startsWith('services/'),
-  apps: (path) => path.startsWith('apps/') || path.startsWith('packages/')
+  java: (path) => SHARED_JAVA_BUILD(path) || path.startsWith('services/') || OPENAPI_CONTRACT(path),
+  apps: (path) => path.startsWith('apps/') || path.startsWith('packages/') || SERVICE_DOCKERFILE(path)
     || ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.nvmrc', '.npmrc'].includes(path),
   infra: (path) => path.startsWith('infra/'),
 };
