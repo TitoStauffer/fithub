@@ -55,6 +55,10 @@ jobs:
       - name: Build and test GitHub integration tools
         run: npm test
 
+      - name: Test pre-push hook
+        working-directory: .
+        run: sh .githooks/test-pre-push.sh
+
       - name: Validate local runner scripts
         working-directory: .
         shell: pwsh

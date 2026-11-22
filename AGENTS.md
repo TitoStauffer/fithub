@@ -97,6 +97,11 @@ Resumo; o detalhe está no ENGENHARIA.md.
 - Prefixos `feature/`, `fix/` ou `chore/`, seguidos da chave e de uma descrição
   curta: `feature/DEV-0042-registro-por-serie`.
 - Sempre a partir da `master` atualizada.
+- **Nunca há push direto na `master`**: código entra só por PR. O hook
+  `.githooks/pre-push` recusa push para `master`/`main`; ative uma vez por
+  clone com `git config core.hooksPath .githooks`. Não use `--no-verify` para
+  contorná-lo. (O plano gratuito do GitHub não oferece proteção de branch no
+  servidor; o hook é a barreira local.)
 
 ### Commit
 
