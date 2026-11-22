@@ -1,0 +1,45 @@
+# training-service (DEV-0015). Os padrões apontam para o compose de desenvolvimento (infra/compose);
+# fora dele, tudo vem de variável de ambiente. As senhas padrão são só de desenvolvimento local.
+spring:
+  application:
+    name: training-service
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:training}
+    username: ${DB_USER:training}
+    password: ${DB_PASSWORD:fithub}
+  jpa:
+    open-in-view: false
+    hibernate:
+      # O esquema é só das migrations (Flyway); o Hibernate apenas confere.
+      ddl-auto: validate
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:fithub}
+    password: ${RABBITMQ_PASSWORD:fithub}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8080/realms/fithub}
+
+server:
+  port: ${SERVER_PORT:8083}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+fithub:
+  messaging:
+    # Exchange topic de origem dos eventos deste serviço (ADR-003).
+    exchange: fithub.training

@@ -35,6 +35,9 @@
     <module>libs/java-commons</module>
     <module>libs/java-testing</module>
     <module>services/account-service</module>
+    <module>services/client-service</module>
+    <module>services/training-service</module>
+    <module>services/nutrition-service</module>
   </modules>
 
   <dependencyManagement>
