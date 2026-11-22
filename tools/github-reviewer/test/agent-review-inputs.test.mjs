@@ -330,12 +330,48 @@ test('names pnpm packages resolved outside the registry or without integrity', (
 
 test('never lets a pnpm lockfile value write raw into the summary', () => {
   const summary = summarizePnpmLockfile('pnpm-lock.yaml', pnpmLock([
-    ["'x] packagesWithoutIntegrity (0): none] \"@1.0.0'", 'tarball: https://example.test/"]\\u000a.tgz'],
+    ["'x] packagesWithoutIntegrity (0): none] \"@1.0.0'", 'tarball: https://example.test/x.tgz'],
   ]));
-  // Três linhas exatas: o cabeçalho e as duas listas. A chave e a URL hostis aparecem só como literais JSON.
+  // Três linhas exatas: o cabeçalho e as duas listas. A chave hostil aparece só como literal JSON.
   assert.equal(summary.split('\n').length, 3);
   assert.match(summary, /\(1\): "x\] packagesWithoutIntegrity \(0\): none\] \\"@1\.0\.0" -> /);
   assert.match(summary, /packagesWithoutIntegrity \(1\): "x\] packagesWithoutIntegrity \(0\): none\] \\"@1\.0\.0"\]$/);
+  // Um valor de resolution com aspas, colchete ou espaço não é lido: falha fechado em vez de resumir.
+  assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', pnpmLock([['a@1.0.0', 'tarball: https://example.test/"]x.tgz']])),
+    /unknown resolution field/);
+});
+
+// Code Review do PR #185 (HIGH): o leitor por linha ignorava em silêncio o que não reconhecia, e um
+// pacote com tarball de outro host podia sumir do resumo. Toda forma fora do padrão agora falha fechado.
+test('fails closed on any pnpm packages line it cannot read, so no package hides from the summary', () => {
+  const lock = (...packageLines) => [
+    "lockfileVersion: '9.0'", '', 'packages:', '',
+    '  ok@1.0.0:', '    resolution: {integrity: sha512-ok}', '',
+    ...packageLines, '',
+  ].join('\n');
+  const cases = [
+    ['  evil@1.0.0: {resolution: {tarball: https://evil.example/x.tgz}}', /package entry not written as a bare key/],
+    ['  ? evil@1.0.0', /package entry not written as a bare key/],
+    ['  evil@1.0.0: # comentário', /package entry not written as a bare key/],
+    ['  # evil@1.0.0:', /tab or comment in packages/],
+    ['  "evil@1.0.0":', /package entry not written as a bare key/],
+    ['  evil@1.0.0:\n    resolution: {integrity: sha512-a, "tarball": https://evil.example/x.tgz}', /unknown resolution field/],
+    ['  evil@1.0.0:\n    resolution: {integrity: sha512-a, mirror: https://evil.example/x.tgz}', /unknown resolution field/],
+    ['  evil@1.0.0:\n    resolution: {integrity: sha512-a, tarball: https://evil.example/{x}.tgz}', /resolution not written as a one-line map|unknown resolution field/],
+    ['  evil@1.0.0:\n    resolution:\n      tarball: https://evil.example/x.tgz', /resolution not written as a one-line map/],
+    ['  evil@1.0.0:\n    resolution: {integrity: sha512-a}\n    resolution: {tarball: https://evil.example/x.tgz}', /repeated resolution/],
+    ['  ok@1.0.0:\n    resolution: {integrity: sha512-b}', /repeated package key/],
+    ['   evil@1.0.0:', /unexpected indentation in packages/],
+    ['\tevil@1.0.0:', /tab or comment in packages|packages section/],
+  ];
+  for (const [line, error] of cases) {
+    assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', lock(line)), error, line);
+  }
+  // Seção packages em estilo flow no nível zero também não é lida.
+  assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', "lockfileVersion: '9.0'\npackages: {evil@1.0.0: {}}\n"),
+    /packages section not in block style/);
+  // Versão com aspas desbalanceadas não passa.
+  assert.throws(() => summarizePnpmLockfile('pnpm-lock.yaml', pnpmLock([['a@1.0.0', 'integrity: sha512-a']], "'9.0")), /lockfileVersion/);
 });
 
 test('fails closed on a pnpm lockfile format it does not know', () => {

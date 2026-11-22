@@ -237,11 +237,18 @@ quebra de linha, e o prefixo da área não casa. Teste a regra com um repositór
 **Regra:** a ferramenta herdada de outro repositório trata os arquivos gerados do gerenciador de
 pacotes que **este** repositório usa. O reviewer do CashIn só resumia `package-lock.json` (npm); no
 FitHub, com pnpm, o `pnpm-lock.yaml` entrava cru no diff e no contexto. Ao adotar ou trocar gerenciador
-(pnpm, Maven Wrapper, Gradle), confira cada lugar que reconhece arquivo gerado pelo nome.
+(pnpm, Maven Wrapper, Gradle), confira cada lugar que reconhece arquivo gerado pelo nome. Leitor
+feito à mão (sem parser completo) para conteúdo não confiável só é seguro se **falhar fechado em
+qualquer linha fora do formato conhecido**: ignorar em silêncio o que não reconhece é como o atacante
+esconde a entrada que importa.
 
 ### Ocorrências
 
-- **Validação:** orquestração do PR #183, run 45018246655 (Agent Code Review: `Pull Request diff exceeds the supported review size.`) — DEV-0142 (#184) · **PR:** a abrir
+- **Validação:** orquestração do PR #183, run 45018246655 (Agent Code Review: `Pull Request diff exceeds the supported review size.`) — DEV-0142 (#184) · **PR:** #185
   - **Impacto:** o Expo levou o `pnpm-lock.yaml` a 416 KB. O diff do PR #183 ficou com 443.670 caracteres, 421.720 do lockfile, contra o teto de 350.000, e o PR ficou sem revisão. Todo PR de dependência de app travaria igual.
   - **Correção:** `summarizePnpmLockfile` lê o formato 9 por linha, sem dependência nova, e falha fechado em outra versão. A seção do diff vira marcador com hash, como no npm.
   - **Prevenção:** teste com o lockfile real do repositório, entradas hostis, versão desconhecida e leitura raw acima de 1 MB, provado por mutação.
+- **Revisão:** Code Review do PR #185, no SHA `77b7f30` (HIGH: pacote escondido do resumo do pnpm) — DEV-0142 (#184) · **PR:** #185
+  - **Impacto:** linha fora do formato na seção `packages:` era ignorada. Isso incluía entrada flow na linha da chave, chave complexa e comentário, e também campo da `resolution` com chave entre aspas. Um tarball de outro host sumia do resumo, que diria "nenhuma anomalia".
+  - **Correção:** toda linha da seção é chave nua, propriedade com 4 ou mais espaços ou vazia; o resto lança erro. A `resolution` só aceita campos nus de uma lista fixa (`integrity`, `tarball`, `type`, `repo`, `commit`, `directory`, `path`), sem repetição.
+  - **Prevenção:** um teste com cada forma recusada (flow, `?`, comentário, aspas, campo desconhecido, bloco, repetição, recuo, tabulação), provado por mutação de cada guarda.

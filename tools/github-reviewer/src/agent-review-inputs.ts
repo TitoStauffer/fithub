@@ -220,7 +220,23 @@ function isLockfile(path: string): boolean {
   return isNpmLockfile(path) || isPnpmLockfile(path);
 }
 
-const PNPM_SUPPORTED_LOCKFILE_VERSION = /^'?9\.\d+'?$/;
+const PNPM_SUPPORTED_LOCKFILE_VERSION = /^(?:'9\.\d+'|9\.\d+)$/;
+// Chave de pacote nua na seção packages: com aspas simples (o pnpm usa para @scope) ou sem aspas, sem
+// espaço, sem valor na mesma linha. Aspas duplas, `?`, `{`, `#` e `&`/`*` (âncoras) ficam de fora.
+const PNPM_PACKAGE_KEY = /^ {2}('(?:[^']|'')+'|[^\s'"?{}#&*!|>%@,[\]][^\s{}#,[\]]*|@[^\s{}#,[\]]+):$/;
+// Campos que a resolution de um pacote pode ter no formato 9. Chave fora da lista, entre aspas, valor
+// com espaço ou estrutura aninhada falham fechado: o resumo só lista anomalias que ele sabe ler.
+const PNPM_RESOLUTION_FIELDS = new Set(['integrity', 'tarball', 'type', 'repo', 'commit', 'directory', 'path']);
+
+function parsePnpmResolution(body: string, fail: () => never): Map<string, string> {
+  const fields = new Map<string, string>();
+  for (const field of body.split(', ')) {
+    const match = /^([a-z]+): ('[^',{}]*'|[^\s'",{}[\]]+)$/.exec(field);
+    if (!match || !PNPM_RESOLUTION_FIELDS.has(match[1]) || fields.has(match[1])) fail();
+    fields.set(match![1], match![2].replace(/^'(.*)'$/, '$1'));
+  }
+  return fields;
+}
 
 /**
  * Resumo do pnpm-lock.yaml (formato 9, um ou mais documentos YAML). Lido por linha, sem parser de YAML:
@@ -238,43 +254,60 @@ export function summarizePnpmLockfile(path: string, content: string): string {
     throw new Error(`Unsupported pnpm lockfile format in ${path}: lockfileVersion ${versions.map(quoted).join(', ') || '(missing)'}.`);
   }
 
-  const resolutions = new Map<string, string | null>();
+  // Code Review do PR #185: o leitor por linha só é seguro se nada fora do formato conhecido passar em
+  // silêncio. Na seção packages:, toda linha é uma chave de pacote nua, uma propriedade do pacote com
+  // quatro ou mais espaços, ou vazia; qualquer outra coisa (valor flow na linha da chave, chave complexa,
+  // comentário, tabulação, recuo torto, resolution em bloco ou repetida) falha fechado.
+  const unsupported = (reason: string, line: string): never => {
+    throw new Error(`Unsupported pnpm lockfile format in ${path}: ${reason}: ${quoted(line)}.`);
+  };
+  const resolutions = new Map<string, Map<string, string> | null>();
   let inPackages = false;
   let current: string | null = null;
   for (const line of lines) {
+    if (line.trim() === '') continue;
     if (/^\S/.test(line)) {
+      if (line.startsWith('packages') && line !== 'packages:') unsupported('packages section not in block style', line);
       inPackages = line === 'packages:';
       current = null;
       continue;
     }
     if (!inPackages) continue;
-    const key = /^ {2}(\S.*):\s*(\{\})?$/.exec(line);
-    if (key) {
-      current = key[1].replace(/^'(.*)'$/, '$1');
-      if (!resolutions.has(current)) resolutions.set(current, null);
+    if (/\t/.test(line) || /^\s*#/.test(line)) unsupported('tab or comment in packages', line);
+    const indent = line.length - line.trimStart().length;
+    if (indent === 2) {
+      const key = PNPM_PACKAGE_KEY.exec(line);
+      if (!key) unsupported('package entry not written as a bare key', line);
+      current = key![1].startsWith("'") ? key![1].slice(1, -1).replace(/''/g, "'") : key![1];
+      if (resolutions.has(current)) unsupported('repeated package key', line);
+      resolutions.set(current, null);
       continue;
     }
-    const resolution = /^ {4}resolution:\s*\{(.*)\}\s*$/.exec(line);
-    if (resolution && current !== null) resolutions.set(current, resolution[1]);
+    if (indent < 4 || current === null) unsupported('unexpected indentation in packages', line);
+    if (indent === 4 && /^ {4}resolution\b/.test(line)) {
+      const resolution = /^ {4}resolution: \{(.*)\}$/.exec(line);
+      if (!resolution) unsupported('resolution not written as a one-line map', line);
+      if (resolutions.get(current!) !== null) unsupported('repeated resolution', line);
+      resolutions.set(current!, parsePnpmResolution(resolution![1], () => unsupported('unknown resolution field', line)));
+    }
   }
   if (resolutions.size === 0) throw new Error(`Unsupported pnpm lockfile format in ${path}: no packages section.`);
 
   const outsideRegistry: string[] = [];
   const withoutIntegrity: string[] = [];
-  for (const [name, resolution] of resolutions) {
-    if (resolution === null) {
+  for (const [name, fields] of resolutions) {
+    if (fields === null) {
       outsideRegistry.push(`${quoted(name)} -> (no resolution)`);
       withoutIntegrity.push(quoted(name));
       continue;
     }
-    const fields = new Map(resolution.split(',').map((field) => {
-      const separator = field.indexOf(':');
-      return separator < 0 ? [field.trim(), ''] : [field.slice(0, separator).trim(), field.slice(separator + 1).trim()];
-    }));
     const tarball = fields.get('tarball');
-    const external = fields.has('type') || fields.has('repo') || fields.has('directory')
+    const external = fields.has('type') || fields.has('repo') || fields.has('directory') || fields.has('path')
       || (tarball !== undefined && !tarball.startsWith(NPM_REGISTRY_PREFIX));
-    if (external) outsideRegistry.push(`${quoted(name)} -> ${quoted(`{${resolution}}`)}`);
+    if (external) {
+      const shown = [...fields.entries()].map(([key, value]) => `${key}: ${value}`).join(', ');
+      outsideRegistry.push(`${quoted(name)} -> ${quoted(`{${shown}}`)}`);
+    }
     if (!/^sha(256|384|512)-/.test(fields.get('integrity') ?? '')) withoutIntegrity.push(quoted(name));
   }
   return [
