@@ -1,0 +1,4 @@
+# Saídas do build e dos testes (DEV-0020).
+dist/
+reports/
+coverage/

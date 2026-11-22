@@ -235,7 +235,7 @@ jobs:
           corepack enable
           pnpm install --frozen-lockfile
 
-      # Cada app ou pacote declara os próprios scripts lint, typecheck e test; quem não tem é pulado.
+      # Cada app ou pacote declara os próprios scripts lint, typecheck, test e build; quem não tem é pulado.
       - name: Lint
         if: env.RUN_AREA == 'true'
         run: pnpm -r --if-present run lint
@@ -248,11 +248,15 @@ jobs:
         if: env.RUN_AREA == 'true'
         run: pnpm -r --if-present run test
 
-      # Os testes dos apps publicam JUnit em reports/junit*.xml. --allow-none só enquanto não houver
-      # app nem pacote com testes (DEV-0020 e DEV-0021 retiram a opção ao criar os apps).
+      - name: Build
+        if: env.RUN_AREA == 'true'
+        run: pnpm -r --if-present run build
+
+      # Os testes dos apps publicam JUnit em reports/junit*.xml (o web desde a DEV-0020); sem nenhum
+      # relatório, a guarda falha. Teste pulado no Vitest precisa da issue no nome: it.skip('... DEV-xxxx').
       - name: Check skipped tests
         if: env.RUN_AREA == 'true'
-        run: node tools/repo-checks/check-skipped-tests.mjs --allow-none apps packages
+        run: node tools/repo-checks/check-skipped-tests.mjs apps packages
 
   local-infrastructure:
     name: Local Infrastructure

@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // Guarda contra teste pulado (DEV-0016, AGENTS.md): todo teste pulado precisa de justificativa com a
-// issue que o reativa, como em @Disabled("motivo + DEV-xxxx"). Lê os relatórios JUnit XML.
+// issue que o reativa, como em @Disabled("motivo + DEV-xxxx"). Lê os relatórios JUnit XML. Quando o
+// relatório não grava motivo (o JUnit do Vitest escreve só <skipped/>), vale a issue no nome do teste:
+// it.skip('motivo DEV-xxxx', ...) (DEV-0020).
 //
 //   node tools/repo-checks/check-skipped-tests.mjs [--allow-none] <dir>...
 //
@@ -32,9 +34,12 @@ export function inspectReport(xml) {
     const skipped = /<skipped\b([^>]*?)\/?>/.exec(match[2] ?? '');
     if (!skipped) continue;
     const reason = attribute(skipped[1], 'message') ?? '';
-    if (!JUSTIFICATION.test(reason)) {
+    const name = attribute(match[1], 'name') ?? '';
+    // Motivo gravado decide; sem motivo, o nome do teste precisa trazer a issue.
+    const justified = reason ? JUSTIFICATION.test(reason) : JUSTIFICATION.test(name);
+    if (!justified) {
       unjustified.push({
-        test: `${attribute(match[1], 'classname') ?? '?'}.${attribute(match[1], 'name') ?? '?'}`,
+        test: `${attribute(match[1], 'classname') ?? '?'}.${name || '?'}`,
         reason: reason || '(sem motivo)',
       });
     }
@@ -82,7 +87,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const { reports, total, errors } = checkSkippedTests(roots, { allowNone });
   for (const error of errors) console.error(`ERRO: ${error}`);
   if (errors.length > 0) {
-    console.error('Teste desabilitado precisa de @Disabled("motivo + DEV-xxxx") (AGENTS.md).');
+    console.error('Teste desabilitado precisa da issue: @Disabled("motivo + DEV-xxxx") no Java, it.skip("motivo DEV-xxxx") no Vitest (AGENTS.md).');
     process.exit(1);
   }
   console.log(`Testes pulados conferidos: ${total} teste(s) em ${reports} relatório(s), nenhum pulado sem justificativa.`);
