@@ -43,6 +43,8 @@ function createFetch({
   // Paths GitHub treats as over 1 MB: the JSON body comes with `encoding: none`, and only the raw
   // media type returns the content.
   largeFiles = new Set(),
+  // DEV-0137: status HTTP para a requisição do diff (ex.: 406 quando o PR passa de 300 arquivos).
+  diffStatus,
 } = {}) {
   return async (url, options = {}) => {
     const parsed = new URL(url);
@@ -51,6 +53,7 @@ function createFetch({
     let payload;
     let text = false;
     if (path.endsWith('/pulls/7') && options.headers?.Accept === 'application/vnd.github.v3.diff') {
+      if (diffStatus) return new Response('', { status: diffStatus });
       payload = 'diff --git a/src/example.ts b/src/example.ts\n';
       text = true;
     } else if (path.endsWith(`/commits/${headSha}/check-runs`)) {
@@ -589,4 +592,44 @@ test('exposes every current-SHA check except volatile automation checks, with Ac
   ]);
   assert.ok(evidence.find(({ name }) => name === 'GitHub Reviewer').actions);
   assert.equal(evidence.find(({ name }) => name === 'Verificar GitHub App').actions, undefined);
+});
+
+// DEV-0137: PRs grandes por remoção. O GitHub recusa o diff acima de 300 arquivos (406), e arquivo
+// removido não traz conteúdo novo a revisar.
+const removedFiles = (count) => Array.from({ length: count }, (_, index) => ({ filename: `docs/old/file-${index}.md`, status: 'removed', deletions: 3 }));
+
+test('builds the diff from the file list when GitHub refuses the full diff with 406', async () => {
+  const files = [
+    { filename: 'src/example.ts', status: 'modified', patch: '@@ -1 +1 @@\n-export const value = 41;\n+export const value = 42;' },
+    ...removedFiles(2),
+  ];
+  // Abaixo do limite, o reviewer ainda carrega o conteúdo original (base) dos removidos.
+  const sources = { 'docs/old/file-0.md': 'antigo\n', 'docs/old/file-1.md': 'antigo\n' };
+  const inputs = await loadAgentReviewInputs(createFetch({ files, sources, diffStatus: 406 }), 'owner/repo', 7, { head: { sha: headSha }, base: { sha: baseSha } }, 'token');
+  assert.ok(inputs.diff.includes('diff --git a/src/example.ts b/src/example.ts\n--- a/src/example.ts\n+++ b/src/example.ts\n@@ -1 +1 @@\n-export const value = 41;\n+export const value = 42;'));
+  assert.ok(inputs.diff.includes('diff --git a/docs/old/file-0.md b/docs/old/file-0.md\ndeleted file mode 100644\n--- a/docs/old/file-0.md\n+++ /dev/null\n[arquivo removido; 3 linha(s) removida(s); conteúdo omitido do contexto]'));
+  assert.deepEqual(inputs.changedFiles, files.map(({ filename }) => filename));
+});
+
+test('other diff errors still fail closed', async () => {
+  await assert.rejects(
+    loadAgentReviewInputs(createFetch({ diffStatus: 403 }), 'owner/repo', 7, { head: { sha: headSha }, base: { sha: baseSha } }, 'token'),
+    /GitHub API request failed \(403\)/,
+  );
+});
+
+test('removed files beyond the snapshot limit enter only through the diff', async () => {
+  const files = [{ filename: 'src/example.ts', status: 'modified' }, ...removedFiles(40)];
+  const inputs = await loadAgentReviewInputs(createFetch({ files }), 'owner/repo', 7, { head: { sha: headSha }, base: { sha: baseSha } }, 'token');
+  assert.deepEqual(inputs.sourceFiles.map(({ path }) => path), ['src/example.ts']);
+  assert.equal(inputs.changedFiles.length, 41);
+});
+
+test('added or modified files beyond the snapshot limit are still refused', async () => {
+  const files = Array.from({ length: 33 }, (_, index) => ({ filename: `src/file-${index}.ts`, status: 'modified' }));
+  const sources = Object.fromEntries(files.map(({ filename }) => [filename, 'export {};\n']));
+  await assert.rejects(
+    loadAgentReviewInputs(createFetch({ files, sources }), 'owner/repo', 7, { head: { sha: headSha }, base: { sha: baseSha } }, 'token'),
+    /changes too many files/,
+  );
 });

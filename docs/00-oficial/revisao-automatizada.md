@@ -36,6 +36,18 @@ nas evidências.
 
 - Fonte: [merge-readiness.ts](../../tools/github-reviewer/src/merge-readiness.ts)
 
+## Tamanho do PR
+
+- Até **32 arquivos novos ou alterados** por PR têm o conteúdo completo no contexto;
+  acima disso o Code Review falha fechado (`INCONCLUSIVE`): quebre o PR.
+- **Arquivos removidos** não contam nesse limite quando ele seria excedido: entram só
+  pelo caminho e pelo número de linhas removidas (DEV-0137).
+- Acima de **300 arquivos**, o GitHub não entrega o diff completo (erro 406); o reviewer
+  monta o diff a partir da lista de arquivos, com o patch de cada arquivo alterado.
+
+- Fonte: [agent-review-inputs.ts](../../tools/github-reviewer/src/agent-review-inputs.ts) —
+  `readPullRequestDiff`, `synthesizeDiffFromFiles` e `MAX_SOURCE_FILES`.
+
 ## Contexto dos agentes
 
 Os agentes recebem os arquivos alterados, este vault (índice, estado atual e as
