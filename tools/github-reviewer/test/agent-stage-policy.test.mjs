@@ -193,3 +193,32 @@ test('stage CLI exits inconclusive on API failure without producing an approved 
     await assert.rejects(access(join(directory, 'agent-result.json')));
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
+
+// DEV-0140: acima de 200 arquivos, a cobertura do Code Review exclui os removidos; o trilho segue a lista completa.
+function massRemovalInput(removedPath) {
+  const kept = 'docs/README.md';
+  const removed = Array.from({ length: 250 }, (_, index) => removedPath(index));
+  const codeReview = { ...result('codeReview'), evidence: { ...result('codeReview').evidence, changedFilesReviewed: [kept] } };
+  return { ...context, changedFiles: [kept, ...removed], reviewCoverageFiles: [kept], checks, priorResults: [codeReview], reviews: [review(codeReview)], comments: [] };
+}
+
+test('coordinator accepts a Code Review that covers only the coverage list of a mass removal', () => {
+  const outcome = evaluateDeterministicQualityGate(massRemovalInput((index) => `docs/old/file-${index}.md`));
+  assert.equal(outcome.reviewTrack, 'light');
+  assert.equal(outcome.decision, 'APPROVED', outcome.reportMarkdown);
+});
+
+test('coordinator still classifies the track from every changed file, removed ones included', () => {
+  const outcome = evaluateDeterministicQualityGate(massRemovalInput((index) => `docs/old/file-${index}.json`));
+  assert.equal(outcome.reviewTrack, 'full');
+  assert.match(outcome.reportMarkdown, /Evidência publicada de qa ausente/);
+  assert.doesNotMatch(outcome.reportMarkdown, /Evidência publicada de codeReview ausente/);
+});
+
+test('without a coverage list, a Code Review that skips a changed file is not accepted', () => {
+  const { reviewCoverageFiles, ...rest } = massRemovalInput((index) => `docs/old/file-${index}.md`);
+  assert.deepEqual(reviewCoverageFiles, ['docs/README.md']);
+  const outcome = evaluateDeterministicQualityGate(rest);
+  assert.notEqual(outcome.decision, 'APPROVED');
+  assert.match(outcome.reportMarkdown, /Evidência publicada de codeReview ausente/);
+});
