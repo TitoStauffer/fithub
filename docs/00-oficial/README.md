@@ -25,6 +25,7 @@ Código, migrations, workflows e testes continuam sendo a evidência executável
 | [ENGENHARIA.md](ENGENHARIA.md) | Stack, serviços, comunicação por eventos, segurança, testes, CI/CD, workflow e método |
 | [BACKLOG.md](BACKLOG.md) | Épicos e tarefas `DEV-NNNN` |
 | [estado-atual.md](estado-atual.md) | O que já existe e o que ainda não |
+| [adr/](adr/README.md) | Decisões de arquitetura (ADR-001 a ADR-005: microsserviços, Java 25/Boot 4, RabbitMQ + outbox, Keycloak, deploy) |
 | [revisao-automatizada.md](revisao-automatizada.md) | Como os bots decidem trilho, contexto e merge, com links para o código |
 | [aprendizados/](aprendizados/README.md) | Problemas confirmados em Code Review e como evitá-los |
 
