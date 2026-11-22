@@ -65,4 +65,4 @@ export const CI_SNAPSHOT_PATHS: readonly string[] = [
  * isso ficam fora da evidência dos agentes (DEV-0128): uma reexecução no meio da orquestração mudaria
  * a impressão digital do contexto entre as etapas. Todos os outros checks do HEAD entram.
  */
-export const CONTEXT_EXCLUDED_CHECKS: readonly string[] = ['Sincronizar quadro', 'Validate PR metadata', 'Review event relay'];
+export const CONTEXT_EXCLUDED_CHECKS: readonly string[] = ['Sincronizar quadro', 'Validate PR metadata', 'Review event relay', 'Desmarcar aprovações do HEAD anterior'];

@@ -9,6 +9,7 @@
 | `merge-readiness.yml` | CI, sinal de revisão, relatório do Coordinator; manual | Publica o status `Merge Readiness` (`READY_TO_MERGE` / `BLOCKED` / `INCONCLUSIVE`) (DEV-0118) |
 | `pr-review-signal.yml` | revisão formal enviada/editada/descartada | Só sinaliza para o Merge Readiness reavaliar; sem permissões (DEV-0118) |
 | `agent-report-recovery.yml` | manual | Republica um resultado de agente já produzido, sem nova chamada ao modelo (DEV-0118) |
+| `approval-reset.yml` | commit novo no PR (`synchronize`) | Desmarca os checkboxes de aprovação dos agentes do HEAD anterior (DEV-0132) |
 | `github-app-check.yml` | manual; PR que o altera | Verifica os secrets do GitHub App sem escrever nada (DEV-0008) |
 | `project-status.yml` | issue aberta, branch criada, PR aberto/rascunho/fechado, review pedindo ajustes | Move a issue no quadro e atribui o autor ao PR (DEV-0006) |
 
