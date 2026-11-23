@@ -164,6 +164,14 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
   - As chamadas usam `createApiFetch` (`src/lib/apiFetch.ts`), com as
     mesmas regras da web: Bearer token, uma nova tentativa no 401 e token só
     para as origens das APIs do FitHub.
+- **Cadastro do profissional** (DEV-0029, [ADR-008](adr/ADR-008-atribuicao-de-papel-pelo-account-service.md)):
+  `POST` e `GET /professionals/me` no account-service. A conta vem do `sub` do
+  token; o cadastro e a organização de uma pessoa são gravados juntos e, depois
+  do commit, o account-service atribui `personal` ou `nutritionist` no
+  Keycloak pelo client confidencial `fithub-account-service`. Se o Keycloak
+  falhar, o cadastro fica com o papel `PENDING` e uma tarefa agendada tenta de
+  novo a cada 30 s. Depois do cadastro, o front renova a sessão para o token
+  trazer o papel novo.
 - **Realm `fithub` versionado** em `infra/keycloak/realm-fithub.json`
   (DEV-0024, [ADR-007](adr/ADR-007-papeis-e-clients-do-realm.md)):
   - Papéis de realm: `client`, `personal`, `nutritionist` e `admin`. Conta

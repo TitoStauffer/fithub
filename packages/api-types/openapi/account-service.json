@@ -1,5 +1,83 @@
 {
   "components" : {
+    "schemas" : {
+      "Professional" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "organizationId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "registration" : {
+            "$ref" : "#/components/schemas/ProfessionalRegistration"
+          },
+          "roleStatus" : {
+            "description" : "PENDING enquanto o papel de profissional não chega ao token; renove a sessão.",
+            "enum" : [ "PENDING", "ASSIGNED" ],
+            "type" : "string"
+          },
+          "situation" : {
+            "enum" : [ "DECLARED" ],
+            "type" : "string"
+          },
+          "type" : {
+            "enum" : [ "PERSONAL", "NUTRITIONIST" ],
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ProfessionalRegistration" : {
+        "properties" : {
+          "category" : {
+            "type" : "string"
+          },
+          "council" : {
+            "enum" : [ "CREF", "CRN" ],
+            "type" : "string"
+          },
+          "display" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "state" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ProfessionalRegistrationRequest" : {
+        "properties" : {
+          "registrationCategory" : {
+            "description" : "Categoria do CREF (G ou P). Não se aplica ao CRN.",
+            "type" : [ "string", "null" ]
+          },
+          "registrationNumber" : {
+            "minLength" : 1,
+            "type" : "string"
+          },
+          "registrationState" : {
+            "minLength" : 1,
+            "type" : "string"
+          },
+          "type" : {
+            "enum" : [ "PERSONAL", "NUTRITIONIST" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "registrationNumber", "registrationState", "type" ],
+        "type" : "object"
+      }
+    },
     "securitySchemes" : {
       "bearer" : {
         "bearerFormat" : "JWT",
@@ -14,12 +92,65 @@
     "version" : "v1"
   },
   "openapi" : "3.1.0",
-  "paths" : { },
+  "paths" : {
+    "/professionals/me" : {
+      "get" : {
+        "description" : "404 se ainda não houver.",
+        "operationId" : "mine",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Professional"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Cadastro de profissional da conta autenticada",
+        "tags" : [ "Profissional" ]
+      },
+      "post" : {
+        "description" : "201 quando cria; 200 quando o mesmo cadastro já existia; 409 quando a conta já tem um cadastro diferente.",
+        "operationId" : "register",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProfessionalRegistrationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Professional"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Cadastra a conta autenticada como profissional",
+        "tags" : [ "Profissional" ]
+      }
+    }
+  },
   "security" : [ {
     "bearer" : [ ]
   } ],
   "servers" : [ {
     "description" : "Generated server url",
     "url" : "http://localhost"
+  } ],
+  "tags" : [ {
+    "description" : "Cadastro do profissional da conta autenticada",
+    "name" : "Profissional"
   } ]
 }

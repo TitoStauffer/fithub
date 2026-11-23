@@ -20,7 +20,9 @@
   "maxDeltaTimeSeconds": 43200,
   "accessTokenLifespan": 300,
   "internationalizationEnabled": true,
-  "supportedLocales": ["pt-BR"],
+  "supportedLocales": [
+    "pt-BR"
+  ],
   "defaultLocale": "pt-BR",
   "loginTheme": "fithub",
   "emailTheme": "fithub",
@@ -46,9 +48,16 @@
         "description": "Papéis de todo usuário novo: só client, além dos padrões do Keycloak",
         "composite": true,
         "composites": {
-          "realm": ["client", "offline_access", "uma_authorization"],
+          "realm": [
+            "client",
+            "offline_access",
+            "uma_authorization"
+          ],
           "client": {
-            "account": ["view-profile", "manage-account"]
+            "account": [
+              "view-profile",
+              "manage-account"
+            ]
           }
         }
       },
@@ -91,8 +100,12 @@
       "serviceAccountsEnabled": false,
       "rootUrl": "http://localhost:5173",
       "baseUrl": "/",
-      "redirectUris": ["http://localhost:5173/*"],
-      "webOrigins": ["http://localhost:5173"],
+      "redirectUris": [
+        "http://localhost:5173/*"
+      ],
+      "webOrigins": [
+        "http://localhost:5173"
+      ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
         "post.logout.redirect.uris": "http://localhost:5173/*"
@@ -108,12 +121,60 @@
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
-      "redirectUris": ["fithub://auth"],
+      "redirectUris": [
+        "fithub://auth"
+      ],
       "webOrigins": [],
       "attributes": {
         "pkce.code.challenge.method": "S256",
         "post.logout.redirect.uris": "fithub://auth"
       }
+    },
+    {
+      "clientId": "fithub-account-service",
+      "name": "account-service (atribuição de papel de profissional)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${FITHUB_ACCOUNT_SERVICE_SECRET}",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "fullScopeAllowed": false,
+      "redirectUris": [],
+      "webOrigins": [],
+      "defaultClientScopes": [
+        "kc-admin-api"
+      ],
+      "optionalClientScopes": [],
+      "attributes": {}
     }
-  ]
+  ],
+  "users": [
+    {
+      "username": "service-account-fithub-account-service",
+      "enabled": true,
+      "serviceAccountClientId": "fithub-account-service",
+      "realmRoles": [],
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-realm"
+        ]
+      }
+    }
+  ],
+  "clientScopeMappings": {
+    "realm-management": [
+      {
+        "client": "fithub-account-service",
+        "roles": [
+          "manage-users",
+          "view-realm"
+        ]
+      }
+    ]
+  }
 }

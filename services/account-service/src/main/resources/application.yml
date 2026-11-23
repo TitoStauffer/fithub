@@ -43,3 +43,14 @@ fithub:
   messaging:
     # Exchange topic de origem dos eventos deste serviço (ADR-003).
     exchange: fithub.account
+  # API de administração do Keycloak, para atribuir o papel de profissional (DEV-0029, ADR-008).
+  # O secret padrão é o do compose local; fora dele vem de FITHUB_ACCOUNT_SERVICE_SECRET.
+  keycloak-admin:
+    base-url: ${KEYCLOAK_URL:http://localhost:8080}
+    realm: fithub
+    client-id: fithub-account-service
+    client-secret: ${FITHUB_ACCOUNT_SERVICE_SECRET:fithub-dev-account-service}
+  professional:
+    role-retry:
+      # Retentativa da atribuição de papel que falhou no cadastro.
+      interval: 30s

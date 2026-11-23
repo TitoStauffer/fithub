@@ -1,0 +1,257 @@
+{
+    "issue": "DEV-0029",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Número de registro com mais de 6 dígitos passa a ser aceito",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/domain/professional/Registration.java",
+            "find": "Pattern.compile(\"\\\\d{1,6}\")",
+            "replace": "Pattern.compile(\"\\\\d{1,9}\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "UF inexistente passa a ser aceita",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/domain/professional/Registration.java",
+            "find": "if (state == null || !STATES.contains(state)) {",
+            "replace": "if (state == null) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "CREF sem categoria G ou P passa a ser aceito",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/domain/professional/Registration.java",
+            "find": "if (council == Council.CREF && (category == null || !CREF_CATEGORIES.contains(category))) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Personal com CRN (ou nutricionista com CREF) passa a ser aceito",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/domain/professional/Professional.java",
+            "find": "if (registration.council() != type.council()) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Conta já cadastrada com outros dados deixa de receber 409",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/RegisterProfessional.java",
+            "find": "if (!existing.sameAs(type, registration)) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalRegistrationTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Pedidos simultâneos da mesma conta viram erro 500 em vez de idempotência",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/persistence/JdbcProfessionalRepository.java",
+            "find": "throw new AlreadyRegisteredException(professional.accountId());",
+            "replace": "throw duplicate;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalRegistrationTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Papel atribuído no Keycloak não é marcado no cadastro",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/RegisterProfessional.java",
+            "find": "        repository.markRoleAssigned(professional.id());\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalRegistrationTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "Retentativa deixa de buscar os papéis pendentes",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/persistence/JdbcProfessionalRepository.java",
+            "find": "where role_status = 'PENDING' order by created_at",
+            "replace": "where role_status = 'ASSIGNED' order by created_at",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalRegistrationTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "Papel devolvido pelo Keycloak com outro nome passa a ser atribuído",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/keycloak/KeycloakProfessionalRoles.java",
+            "find": "if (representation == null || !role.equals(representation.name()) || representation.id() == null) {",
+            "replace": "if (representation == null) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=KeycloakProfessionalRolesTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "Conta que não é UUID passa a chegar à API do Keycloak",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/keycloak/KeycloakProfessionalRoles.java",
+            "find": "UUID userId = UUID.fromString(accountId);",
+            "replace": "String userId = accountId;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=KeycloakProfessionalRolesTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "Client do account-service passa a levar todos os papéis no token",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"fullScopeAllowed\": false",
+            "replace": "\"fullScopeAllowed\": true",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "Conta de serviço ganha realm-admin",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"manage-users\",\n          \"view-realm\"\n        ]\n      }\n    }\n  ]",
+            "replace": "\"manage-users\",\n          \"view-realm\",\n          \"realm-admin\"\n        ]\n      }\n    }\n  ]",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M13",
+            "description": "Secret do client do account-service versionado no realm",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"secret\": \"${FITHUB_ACCOUNT_SERVICE_SECRET}\"",
+            "replace": "\"secret\": \"segredo-fixo\"",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M14",
+            "description": "Client do account-service passa a aceitar login de pessoa",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"clientAuthenticatorType\": \"client-secret\",\n      \"secret\": \"${FITHUB_ACCOUNT_SERVICE_SECRET}\",\n      \"standardFlowEnabled\": false",
+            "replace": "\"clientAuthenticatorType\": \"client-secret\",\n      \"secret\": \"${FITHUB_ACCOUNT_SERVICE_SECRET}\",\n      \"standardFlowEnabled\": true",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        }
+    ]
+}
