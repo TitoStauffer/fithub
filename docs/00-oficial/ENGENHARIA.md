@@ -184,6 +184,10 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
   falhar, o cadastro fica com o papel `PENDING` e uma tarefa agendada tenta de
   novo a cada 30 s. Depois do cadastro, o front renova a sessão para o token
   trazer o papel novo.
+- **Evento `ClienteAtualizado`** (DEV-0034): gravado no outbox na mesma
+  transação do perfil do cliente, na criação e quando nome, nascimento ou
+  gênero mudam. Payload pelo contrato `client.client-updated.v1`; saúde,
+  objetivo e altura não saem do client-service.
 - **Evento `ProfissionalCadastrado`** (DEV-0030): gravado no outbox na mesma
   transação do cadastro, só na primeira vez (pedido repetido não grava de
   novo). Payload pelo contrato `account.professional-registered.v1`: id,

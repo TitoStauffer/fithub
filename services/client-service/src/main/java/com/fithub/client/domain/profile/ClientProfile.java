@@ -95,6 +95,14 @@ public record ClientProfile(
                 accountId, name == null ? null : name.strip(), birthDate, gender, heightCm, goal, createdAt, updatedAt);
     }
 
+    /**
+     * Se os dados que os outros serviços recebem no {@code ClienteAtualizado} (nome, nascimento e gênero)
+     * são os mesmos nos dois perfis. Altura e objetivo ficam no client-service.
+     */
+    public boolean sameSharedDataAs(ClientProfile other) {
+        return name.equals(other.name) && birthDate.equals(other.birthDate) && gender == other.gender;
+    }
+
     /** Idade em anos completos na data dada (FR-09): calculada, nunca gravada. */
     public int ageOn(LocalDate today) {
         return Period.between(birthDate, today).getYears();

@@ -128,6 +128,38 @@ class ClientProfileTest {
     }
 
     @Test
+    void dadosCompartilhadosSaoNomeNascimentoEGenero() {
+        ClientProfile base = profile("Ana", LocalDate.parse("1990-01-01"), 165);
+        ClientProfile otherHeightAndGoal = ClientProfile.of(
+                "conta-1",
+                "Ana",
+                LocalDate.parse("1990-01-01"),
+                ClientProfile.Gender.FEMALE,
+                180,
+                ClientProfile.Goal.HYPERTROPHY,
+                TODAY,
+                NOW,
+                NOW.plusSeconds(60));
+
+        assertThat(base.sameSharedDataAs(otherHeightAndGoal)).isTrue();
+        assertThat(base.sameSharedDataAs(profile("Bia", LocalDate.parse("1990-01-01"), 165)))
+                .isFalse();
+        assertThat(base.sameSharedDataAs(profile("Ana", LocalDate.parse("1990-01-02"), 165)))
+                .isFalse();
+        assertThat(base.sameSharedDataAs(ClientProfile.of(
+                        "conta-1",
+                        "Ana",
+                        LocalDate.parse("1990-01-01"),
+                        ClientProfile.Gender.OTHER,
+                        165,
+                        ClientProfile.Goal.HEALTH,
+                        TODAY,
+                        NOW,
+                        NOW)))
+                .isFalse();
+    }
+
+    @Test
     void perfilSemContaERecusado() {
         assertThatThrownBy(() -> ClientProfile.of(
                         " ",
