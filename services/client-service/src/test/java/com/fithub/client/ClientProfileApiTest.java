@@ -147,7 +147,10 @@ class ClientProfileApiTest extends ServiceIntegrationTest {
         save(account, BODY).andExpect(status().isCreated());
 
         mvc.perform(get("/clients/me/profile").header("Authorization", "Bearer conta-" + newAccount()))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                // 404 em Problem Details, como o contrato declara (aprendizado contratos-api.md).
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.detail").value("Esta conta ainda não tem perfil de cliente."));
     }
 
     @Test

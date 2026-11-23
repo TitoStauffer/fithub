@@ -100,6 +100,26 @@
                 "-Dtest=ClientProfileApiTest",
                 "-Dsurefire.failIfNoSpecifiedTests=false"
             ]
+        },
+        {
+            "id": "M6",
+            "description": "404 do GET /clients/me/profile volta sem a mensagem em Problem Details",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/interfaces/rest/ClientProfileController.java",
+            "find": "return new ErrorResponseException(HttpStatus.NOT_FOUND, problem, null);",
+            "replace": "return new ErrorResponseException(HttpStatus.NOT_FOUND);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ClientProfileApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
         }
     ]
 }
