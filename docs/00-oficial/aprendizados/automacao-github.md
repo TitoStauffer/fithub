@@ -294,3 +294,22 @@ sem conferir, e a quebra só aparece no push da `master`, que roda tudo.
     - O teste do `api-types` lê os `services/*/Dockerfile`, mas mudar só um deles não ligava o `Apps`.
   - **Correção:** `OPENAPI_CONTRACT` no matcher `java` e `SERVICE_DOCKERFILE` no matcher `apps`.
   - **Prevenção:** teste de classificação para cada leitura cruzada, provado por mutação. Ao escrever um teste que lê arquivo fora do próprio módulo, ajuste o detector no mesmo PR.
+
+## cache-de-action-nao-serve-em-runner-persistente
+
+**Regra:** job no runner self-hosted não usa o cache de dependências das actions (`cache: npm` do
+`setup-node` e parecidos). O runner é persistente: as dependências e o cache do gerenciador já estão no
+disco. A action salva o diretório **global** de cache do usuário da máquina, que pode ter gigabytes, e
+baixa e descompacta tudo a cada job. Ao mudar um workflow, confira a duração de cada passo numa execução
+real, não só se ela passou.
+
+### Ocorrências
+
+- **Validação:** execução 45171542100 da orquestração, em 23/11/2026 — DEV-0154 (#216) · **PR:** o desta correção (DEV-0154)
+  - **Impacto:** o `Setup Node.js` levava cerca de 16 minutos em cada etapa com modelo (Code Review e QA),
+    restaurando um cache de 1,5 GB, contra 3 a 4 minutos do modelo. Eram cerca de 32 minutos por PR, numa
+    fila serial.
+  - **Correção:** `package-manager-cache: false` e nenhum `cache` nos dois jobs do runner self-hosted; os jobs
+    hospedados continuam com o cache.
+  - **Prevenção:** teste de contrato do workflow (`keeps the npm cache off the self-hosted jobs`), provado pelos
+    mutantes M1 e M2 de `mutations/DEV-0154.json`.

@@ -1,0 +1,23 @@
+{
+    "issue": "DEV-0154",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Job de Code Review no runner self-hosted volta a restaurar o cache do npm",
+            "area": "tools",
+            "file": ".github/workflows/agent-orchestration.yml",
+            "find": "          package-manager-cache: false\n\n      - name: Install trusted orchestration dependencies\n        working-directory: tools/github-reviewer\n        run: npm ci --fetch-timeout=15000 --fetch-retries=1\n\n      - name: Build orchestration tools\n        working-directory: tools/github-reviewer\n        run: npm run build\n\n      - name: Run Agent Code Review",
+            "replace": "          cache: npm\n\n      - name: Install trusted orchestration dependencies\n        working-directory: tools/github-reviewer\n        run: npm ci --fetch-timeout=15000 --fetch-retries=1\n\n      - name: Build orchestration tools\n        working-directory: tools/github-reviewer\n        run: npm run build\n\n      - name: Run Agent Code Review",
+            "command": ["node", "--test", "tools/github-reviewer/test/workflow-contract.test.mjs"]
+        },
+        {
+            "id": "M2",
+            "description": "Job de QA no runner self-hosted volta a restaurar o cache do npm",
+            "area": "tools",
+            "file": ".github/workflows/agent-orchestration.yml",
+            "find": "          package-manager-cache: false\n\n      - name: Install trusted orchestration dependencies\n        working-directory: tools/github-reviewer\n        run: npm ci --fetch-timeout=15000 --fetch-retries=1\n\n      - name: Build orchestration tools\n        working-directory: tools/github-reviewer\n        run: npm run build\n\n      - name: Download Code Review result",
+            "replace": "          cache: npm\n\n      - name: Install trusted orchestration dependencies\n        working-directory: tools/github-reviewer\n        run: npm ci --fetch-timeout=15000 --fetch-retries=1\n\n      - name: Build orchestration tools\n        working-directory: tools/github-reviewer\n        run: npm run build\n\n      - name: Download Code Review result",
+            "command": ["node", "--test", "tools/github-reviewer/test/workflow-contract.test.mjs"]
+        }
+    ]
+}
