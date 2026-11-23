@@ -1,0 +1,125 @@
+{
+    "issue": "DEV-0031",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Rota protegida deixa de conferir o papel",
+            "area": "apps",
+            "file": "apps/web/src/features/auth/ProtectedRoute.tsx",
+            "find": "if (roles && !roles.some((role) => user.roles.includes(role))) {",
+            "replace": "if (false) {",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Quem não tem o papel deixa de ir para o onboarding",
+            "area": "apps",
+            "file": "apps/web/src/App.tsx",
+            "find": "onMissingRole={<Navigate to=\"/onboarding\" replace />}",
+            "replace": "onMissingRole={undefined}",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Personal sem categoria do CREF passa na validação do navegador",
+            "area": "apps",
+            "file": "apps/web/src/features/onboarding/registrationForm.ts",
+            "find": "if (form.type === 'PERSONAL' && !['G', 'P'].includes(form.registrationCategory)) {",
+            "replace": "if (false) {",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Cadastro de nutricionista envia categoria",
+            "area": "apps",
+            "file": "apps/web/src/features/onboarding/registrationForm.ts",
+            "find": "registrationCategory: form.type === 'PERSONAL' ? form.registrationCategory : null,",
+            "replace": "registrationCategory: form.registrationCategory,",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Depois do cadastro, a sessão não é renovada (o papel novo não chega)",
+            "area": "apps",
+            "file": "apps/web/src/features/auth/AuthProvider.tsx",
+            "find": "                    await client.refresh(-1);\n",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Quem já é profissional não é levado à área",
+            "area": "apps",
+            "file": "apps/web/src/features/onboarding/OnboardingPage.tsx",
+            "find": "if (user && PROFESSIONAL_ROLES.some((role) => user.roles.includes(role))) {",
+            "replace": "if (false) {",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Erro de campo da API deixa de aparecer no campo",
+            "area": "apps",
+            "file": "apps/web/src/features/onboarding/OnboardingPage.tsx",
+            "find": "setErrors(error.fieldErrors);",
+            "replace": "setErrors({});",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "Botão de envio fica habilitado durante o envio",
+            "area": "apps",
+            "file": "apps/web/src/features/onboarding/OnboardingPage.tsx",
+            "find": "disabled={register.isPending}",
+            "replace": "disabled={false}",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}

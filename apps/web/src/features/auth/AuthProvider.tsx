@@ -125,6 +125,20 @@ export function AuthProvider({ client, children }: { client: AuthClient; childre
                 }
                 return token;
             },
+            async reloadSession() {
+                if (rejected.current) throw new SessionExpiredError();
+                try {
+                    await client.refresh(-1);
+                } catch (error) {
+                    if (error instanceof RefreshRejectedError) {
+                        endSession();
+                        throw new SessionExpiredError();
+                    }
+                    throw new SessionUnavailableError();
+                }
+                const user = client.user();
+                if (user) setSession({ status: 'authenticated', user });
+            },
             endSession,
             rejectSession,
         }),

@@ -9,11 +9,14 @@ import { App } from '@/App';
 import { rolesFromClaims } from './authClient';
 import { SessionExpiredError, useAuth, type AuthState } from './authContext';
 import { AuthProvider } from './AuthProvider';
+import { ProtectedRoute } from './ProtectedRoute';
 import { fakeAuthClient, userWith, type FakeAuthClient } from './fakeAuthClient';
 import { cameBackFromLogin, markLoginRedirect, REDIRECT_WINDOW_MS } from './loginRedirect';
 
 // A área do profissional mostra o status do serviço, que não é assunto destes testes.
 vi.mock('@/features/status/ServiceStatus', () => ({ ServiceStatus: () => null }));
+// O onboarding tem os testes dele (OnboardingPage.test.tsx); aqui só importa ser levado até ele.
+vi.mock('@/features/onboarding/OnboardingPage', () => ({ OnboardingPage: () => <h2>Onboarding</h2> }));
 
 let auth: AuthState;
 function AuthProbe() {
@@ -47,6 +50,22 @@ afterEach(() => {
 });
 
 describe('rota protegida', () => {
+    it('sem destino para quem não tem o papel, nega o acesso e não mostra o conteúdo', async () => {
+        const client = fakeAuthClient({ user: userWith('client') });
+        render(
+            <AuthProvider client={client}>
+                <MemoryRouter>
+                    <ProtectedRoute roles={['admin']}>
+                        <p>Conteúdo restrito</p>
+                    </ProtectedRoute>
+                </MemoryRouter>
+            </AuthProvider>,
+        );
+
+        expect(await screen.findByRole('alert')).toHaveTextContent('Acesso negado');
+        expect(screen.queryByText('Conteúdo restrito')).not.toBeInTheDocument();
+    });
+
     it('sem sessão, leva ao login uma vez e volta para a página pedida', async () => {
         const client = fakeAuthClient();
         renderApp(client);
@@ -71,12 +90,12 @@ describe('rota protegida', () => {
     );
 
     it.each([['client'], ['admin'], []] as const)(
-        'com os papéis [%s], nega o acesso e não mostra a área',
+        'com os papéis [%s], leva ao onboarding e não mostra a área (DEV-0031)',
         async (...roles) => {
             const client = fakeAuthClient({ user: userWith(...roles) });
             renderApp(client);
 
-            expect(await screen.findByRole('alert')).toHaveTextContent('Acesso negado');
+            expect(await screen.findByRole('heading', { name: 'Onboarding' })).toBeInTheDocument();
             expect(screen.queryByText('Área do profissional')).not.toBeInTheDocument();
             expect(logins(client)).toEqual([]);
         },
