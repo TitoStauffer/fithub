@@ -130,3 +130,19 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   Medida faltando: avaliação gravada sem a estimativa (fluxo alternativo do PRD).
 - **Bioimpedância (DEV-0047):** `bioimpedanceBodyFatPercent` (3 a 70%) em qualquer avaliação, sem cálculo, devolvido com a
   origem `BIOIMPEDANCE`, separado dos calculados.
+
+## Fotos de evolução (DEV-0048)
+
+| Rota | Quem | Resposta |
+|---|---|---|
+| `POST /clients/me/assessments/{id}/photos/{pose}/upload-url` | cliente | URL pré-assinada de `PUT` (5 min) e `uploadId`; 400 se não for JPEG/PNG |
+| `POST /clients/me/assessments/{id}/photos/{pose}/confirm` | cliente | Confere tipo e tamanho (até 10 MB) no objeto; substitui a foto anterior da pose |
+| `GET /clients/me/assessments/{id}/photos` | cliente | Fotos com URL pré-assinada de leitura (5 min) |
+| `DELETE /clients/me/assessments/{id}/photos/{pose}` | cliente | 204; o arquivo sai do bucket |
+| `GET /professionals/me/clients/{clientId}/assessments/{id}/photos` | profissional com vínculo ativo | Fotos com URL de leitura; 404 sem vínculo |
+
+- Poses `FRONT`, `SIDE` e `BACK`, uma foto por pose. O bucket nunca é público; URLs e chaves de objeto não vão para log.
+- Excluir a avaliação apaga os arquivos das fotos dela.
+- Configuração: `S3_ENDPOINT` (padrão `http://localhost:8333`, o SeaweedFS do compose), `S3_PUBLIC_ENDPOINT` (o endereço
+  que o app alcança, usado nas URLs assinadas), `S3_REGION`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` e `S3_PHOTOS_BUCKET`
+  (padrão `fithub-photos`, criado no primeiro envio se não existir).

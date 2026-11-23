@@ -186,6 +186,10 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
   gravação, cada valor marcado pela origem (FR-19). Na online, a fórmula da
   Marinha dos EUA (DEV-0046) usa a altura do perfil, gravada junto. O % de
   bioimpedância é informado à mão (DEV-0047).
+- **Fotos de evolução** (DEV-0048, ADR-006): SeaweedFS pela API S3 (AWS SDK
+  v2 com o cliente HTTP do JDK), bucket privado, upload e leitura só por URL
+  pré-assinada de 5 minutos; a confirmação confere tipo e tamanho no objeto.
+  Configuração em `fithub.storage.*` (variáveis `S3_*`).
 - **Leitura pelo profissional vinculado** (DEV-0040): `GET
   /professionals/me/clients/{clientId}/profile` e `/health` exigem vínculo
   ativo (404 sem ele, ou com ele encerrado). Cada leitura da saúde é registrada

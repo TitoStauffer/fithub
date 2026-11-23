@@ -455,6 +455,62 @@
         },
         "type" : "object"
       },
+      "Photo" : {
+        "properties" : {
+          "expiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "pose" : {
+            "enum" : [ "FRONT", "SIDE", "BACK" ],
+            "type" : "string"
+          },
+          "uploadedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "url" : {
+            "format" : "uri",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "PhotoConfirmRequest" : {
+        "properties" : {
+          "uploadId" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "PhotoUpload" : {
+        "properties" : {
+          "expiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "uploadId" : {
+            "description" : "Repetido na confirmação.",
+            "type" : "string"
+          },
+          "uploadUrl" : {
+            "description" : "PUT do arquivo, com o mesmo Content-Type.",
+            "format" : "uri",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "PhotoUploadRequest" : {
+        "properties" : {
+          "contentType" : {
+            "description" : "image/jpeg ou image/png.",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "Problem" : {
         "description" : "Erro no formato Problem Details (RFC 9457).",
         "properties" : {
@@ -638,6 +694,258 @@
         },
         "summary" : "Registra uma avaliação online (autoaferida) do cliente autenticado",
         "tags" : [ "Avaliações" ]
+      }
+    },
+    "/clients/me/assessments/{assessmentId}/photos" : {
+      "get" : {
+        "operationId" : "mine_7",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "assessmentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Photo"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "Fotos com URLs temporárias de leitura."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Avaliação não encontrada (ou de outra pessoa)."
+          }
+        },
+        "summary" : "Fotos de uma avaliação do cliente autenticado",
+        "tags" : [ "Fotos" ]
+      }
+    },
+    "/clients/me/assessments/{assessmentId}/photos/{pose}" : {
+      "delete" : {
+        "operationId" : "delete_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "assessmentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "pose",
+          "required" : true,
+          "schema" : {
+            "enum" : [ "FRONT", "SIDE", "BACK" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Foto excluída (ou não havia)."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Avaliação não encontrada (ou de outra pessoa)."
+          }
+        },
+        "summary" : "Exclui a foto da pose; o arquivo sai do bucket",
+        "tags" : [ "Fotos" ]
+      }
+    },
+    "/clients/me/assessments/{assessmentId}/photos/{pose}/confirm" : {
+      "post" : {
+        "operationId" : "confirm",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "assessmentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "pose",
+          "required" : true,
+          "schema" : {
+            "enum" : [ "FRONT", "SIDE", "BACK" ],
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PhotoConfirmRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Photo"
+                }
+              }
+            },
+            "description" : "Foto confirmada, com a URL temporária de leitura."
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Arquivo ausente, de outro tipo ou acima de 10 MB."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Avaliação não encontrada (ou de outra pessoa)."
+          }
+        },
+        "summary" : "Confirma o envio da foto da pose (substitui a anterior)",
+        "tags" : [ "Fotos" ]
+      }
+    },
+    "/clients/me/assessments/{assessmentId}/photos/{pose}/upload-url" : {
+      "post" : {
+        "operationId" : "uploadUrl",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "assessmentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "pose",
+          "required" : true,
+          "schema" : {
+            "enum" : [ "FRONT", "SIDE", "BACK" ],
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PhotoUploadRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PhotoUpload"
+                }
+              }
+            },
+            "description" : "URL e id do envio."
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Tipo de arquivo não aceito."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Avaliação não encontrada (ou de outra pessoa)."
+          }
+        },
+        "summary" : "URL pré-assinada para enviar a foto da pose (5 minutos)",
+        "tags" : [ "Fotos" ]
       }
     },
     "/clients/me/assessments/{id}" : {
@@ -1448,6 +1756,75 @@
         "tags" : [ "Avaliações" ]
       }
     },
+    "/professionals/me/clients/{clientId}/assessments/{assessmentId}/photos" : {
+      "get" : {
+        "operationId" : "forClient_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "assessmentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Photo"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "Fotos com URLs temporárias de leitura."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é profissional."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem vínculo ativo, ou avaliação de outro cliente."
+          }
+        },
+        "summary" : "Fotos de uma avaliação de cliente com vínculo ativo",
+        "tags" : [ "Fotos" ]
+      }
+    },
     "/professionals/me/clients/{clientId}/health" : {
       "get" : {
         "operationId" : "health",
@@ -1674,6 +2051,9 @@
   }, {
     "description" : "Vínculos entre cliente e profissional",
     "name" : "Vínculos"
+  }, {
+    "description" : "Fotos de evolução das avaliações",
+    "name" : "Fotos"
   }, {
     "description" : "Perfil de saúde do cliente da conta autenticada",
     "name" : "Perfil de saúde"

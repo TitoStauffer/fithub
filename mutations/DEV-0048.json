@@ -1,0 +1,125 @@
+{
+    "issue": "DEV-0048",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Arquivo acima de 10 MB passa a ser confirmado",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManagePhotos.java",
+            "find": "stored.sizeBytes() > Photo.MAX_BYTES",
+            "replace": "false",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=PhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Tipo de arquivo fora de JPEG/PNG passa a ganhar URL de envio",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManagePhotos.java",
+            "find": "String type = Photo.requireContentType(contentType);",
+            "replace": "String type = contentType;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=PhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Profissional sem vínculo passa a ver as fotos",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManagePhotos.java",
+            "find": "if (!links.hasActiveLink(UUID.fromString(professionalAccount), clientId)) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=PhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Cliente passa a enviar foto para avaliação de outra pessoa",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManagePhotos.java",
+            "find": "        return assessments\n                .findById(assessmentId)\n                .filter(found -> found.clientId().equals(clientId))",
+            "replace": "        return assessments\n                .findById(assessmentId)\n                .filter(found -> true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=PhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Foto substituída deixa de ter o arquivo anterior apagado",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManagePhotos.java",
+            "find": ".ifPresent(previous -> storage.delete(previous.objectKey()));",
+            "replace": ".ifPresent(previous -> {});",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=PhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Foto excluída continua com o arquivo no bucket",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManagePhotos.java",
+            "find": "            storage.delete(photo.objectKey());\n            photos.delete(assessmentId, pose);",
+            "replace": "            photos.delete(assessmentId, pose);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=PhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}
