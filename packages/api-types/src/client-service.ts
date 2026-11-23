@@ -285,6 +285,8 @@ export interface components {
             weightKg?: number;
         };
         AssessmentRequest: {
+            /** @description % de gordura de uma bioimpedância, de 3 a 70. */
+            bioimpedanceBodyFatPercent?: number | null;
             circumferences?: components["schemas"]["Circumferences"];
             /** Format: date */
             measuredOn?: string;
@@ -299,7 +301,7 @@ export interface components {
         };
         BodyFatEstimate: {
             /** @enum {string} */
-            origin?: "POLLOCK_3" | "POLLOCK_7" | "NAVY";
+            origin?: "POLLOCK_3" | "POLLOCK_7" | "NAVY" | "BIOIMPEDANCE";
             percent?: number;
         };
         /** @description Circunferências em cm, todas opcionais. */

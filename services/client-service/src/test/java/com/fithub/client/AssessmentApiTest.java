@@ -208,6 +208,27 @@ class AssessmentApiTest extends ServiceIntegrationTest {
     }
 
     @Test
+    void bioimpedanciaInformadaSaiSeparadaDoCalculado() throws Exception {
+        recordOnline(
+                        client(),
+                        BODY.replace(
+                                "\"weightKg\": 72.5,", "\"weightKg\": 72.5, \"bioimpedanceBodyFatPercent\": 24.8,"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.bodyFat[?(@.origin == 'BIOIMPEDANCE')].percent")
+                        .value(24.8))
+                .andExpect(jsonPath("$.bodyFat[?(@.origin == 'NAVY')].percent").value(26.1));
+    }
+
+    @Test
+    void bioimpedanciaForaDaFaixaVoltaComOCampo() throws Exception {
+        recordOnline(
+                        client(),
+                        BODY.replace("\"weightKg\": 72.5,", "\"weightKg\": 72.5, \"bioimpedanceBodyFatPercent\": 71,"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("bioimpedanceBodyFatPercent"));
+    }
+
+    @Test
     void dobrasSoNaAvaliacaoPresencial() throws Exception {
         recordOnline(client(), """
                         {"measuredOn": "2026-11-20", "weightKg": 64.0, "skinfolds": {"triceps": 18}}

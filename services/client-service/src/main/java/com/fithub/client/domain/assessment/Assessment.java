@@ -88,6 +88,7 @@ public record Assessment(
             AuthorRole authorRole,
             Integer ageAtMeasurement,
             Integer heightCm,
+            BigDecimal bioimpedanceBodyFatPercent,
             LocalDate today,
             Instant now) {
         if (measuredOn != null && measuredOn.isAfter(today)) {
@@ -105,7 +106,8 @@ public record Assessment(
                 BodyFatFormulas.pollock7(sexForFormulas, ageAtMeasurement, folds)
                         .orElse(null),
                 navy,
-                navy == null ? null : heightCm);
+                navy == null ? null : heightCm,
+                bioimpedanceBodyFatPercent);
         return new Assessment(
                 id,
                 clientId,

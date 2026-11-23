@@ -74,6 +74,10 @@
       },
       "AssessmentRequest" : {
         "properties" : {
+          "bioimpedanceBodyFatPercent" : {
+            "description" : "% de gordura de uma bioimpedância, de 3 a 70.",
+            "type" : [ "number", "null" ]
+          },
           "circumferences" : {
             "$ref" : "#/components/schemas/Circumferences",
             "type" : "null"
@@ -101,7 +105,7 @@
       "BodyFatEstimate" : {
         "properties" : {
           "origin" : {
-            "enum" : [ "POLLOCK_3", "POLLOCK_7", "NAVY" ],
+            "enum" : [ "POLLOCK_3", "POLLOCK_7", "NAVY", "BIOIMPEDANCE" ],
             "type" : "string"
           },
           "percent" : {

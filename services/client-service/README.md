@@ -128,3 +128,5 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
 - **Marinha (DEV-0046):** na avaliação online, com `sexForFormulas`, pescoço, cintura, quadril (mulher) e a altura do
   perfil, a gravação estima o % de gordura pela fórmula da Marinha dos EUA (origem `NAVY`) e grava a altura usada.
   Medida faltando: avaliação gravada sem a estimativa (fluxo alternativo do PRD).
+- **Bioimpedância (DEV-0047):** `bioimpedanceBodyFatPercent` (3 a 70%) em qualquer avaliação, sem cálculo, devolvido com a
+  origem `BIOIMPEDANCE`, separado dos calculados.
