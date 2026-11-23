@@ -16,11 +16,14 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.BooleanSupplier;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.security.oauth2.jwt.BadJwtException;
@@ -332,6 +335,26 @@ class ClientEventsConsumerTest extends ServiceIntegrationTest {
             assertThat(count("client", "client_id", client)).as(description).isZero();
             assertThat(processed(eventId)).as(description).isFalse();
         });
+    }
+
+    /**
+     * O payload rejeitado leva dado pessoal (nome, nascimento, gênero). Nem o serviço nem o Spring AMQP, ao
+     * esgotar as tentativas e mandar a mensagem para a fila de mensagens mortas, podem escrevê-lo no log.
+     */
+    @Test
+    @ExtendWith(OutputCaptureExtension.class)
+    void payloadRejeitadoNaoApareceNoLog(CapturedOutput output) {
+        UUID client = UUID.randomUUID();
+        String marker = "Nome-Marcador-" + UUID.randomUUID();
+        publish("client.client-updated.v1", UUID.randomUUID().toString(), """
+                {"clientId": "%s", "name": "%s", "birthDate": "1990-11-24", "gender": "FEMALE"}
+                """.formatted(client, marker));
+
+        awaitDead(client.toString());
+
+        // O aviso do Spring AMQP precisa ter sido capturado: sem ele, a ausência do marcador não provaria nada.
+        assertThat(output.getAll()).contains("Retries exhausted for message");
+        assertThat(output.getAll()).doesNotContain(marker).doesNotContain("1990-11-24");
     }
 
     @Test
