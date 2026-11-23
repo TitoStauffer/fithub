@@ -21,7 +21,8 @@ export class ApiProblemError extends Error {
     }
 }
 
-async function problem(response: Response): Promise<ApiProblemError> {
+/** Lê a resposta de erro em Problem Details; usado também pelo cliente do client-service. */
+export async function problem(response: Response): Promise<ApiProblemError> {
     const body = (await response.json().catch(() => ({}))) as {
         detail?: unknown;
         errors?: unknown;

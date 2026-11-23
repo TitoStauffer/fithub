@@ -17,6 +17,10 @@ import { cameBackFromLogin, markLoginRedirect, REDIRECT_WINDOW_MS } from './logi
 vi.mock('@/features/status/ServiceStatus', () => ({ ServiceStatus: () => null }));
 // O onboarding tem os testes dele (OnboardingPage.test.tsx); aqui só importa ser levado até ele.
 vi.mock('@/features/onboarding/OnboardingPage', () => ({ OnboardingPage: () => <h2>Onboarding</h2> }));
+// As telas de clientes e convites têm os testes delas (clients.test.tsx).
+vi.mock('@/features/clients/ClientsPage', () => ({ ClientsPage: () => null }));
+vi.mock('@/features/clients/InvitationsPage', () => ({ InvitationsPage: () => null }));
+vi.mock('@/features/clients/ClientDetailPage', () => ({ ClientDetailPage: () => null }));
 
 let auth: AuthState;
 function AuthProbe() {

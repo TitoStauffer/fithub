@@ -74,3 +74,13 @@ suba o Keycloak pelo compose de `infra/`). A decisão dos papéis e dos clients 
   teste fala com o Keycloak.
 - **Conta de teste local:** crie o usuário no console do Keycloak e atribua o papel `personal` pelo
   console, até o cadastro do profissional existir (DEV-0029).
+
+## Clientes e convites (DEV-0043)
+
+- **`/app`:** clientes com vínculo ativo (`GET /professionals/me/clients`); cada um leva a `/app/clientes/:clientId`,
+  com o perfil e a saúde vindos da API (DEV-0040). Quem decide o acesso é a API: com o vínculo encerrado, a
+  próxima leitura volta 404 e a tela mostra que o acesso acabou (PRD §14).
+- **Encerrar o vínculo:** pede confirmação na própria tela e volta para a lista.
+- **`/app/convites`:** convida por e-mail ou gera link e código para compartilhar (só aparecem na resposta da
+  criação); lista e cancela os convites pendentes; mostra e troca o código pessoal.
+- **Configuração:** `VITE_CLIENT_API_URL` (padrão `http://localhost:8082`); a origem entra em `apiOrigins()`.
