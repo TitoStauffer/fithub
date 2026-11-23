@@ -137,3 +137,72 @@ export async function fetchMyLinks(apiFetch: ApiFetch, baseUrl = clientApiUrl())
 export function endLink(apiFetch: ApiFetch, linkId: string, baseUrl = clientApiUrl()) {
     return post<LinkStatus>(apiFetch, `${baseUrl}/links/${encodeURIComponent(linkId)}/end`);
 }
+
+export type Assessment = Schemas['Assessment'];
+export type AssessmentRequest = Schemas['AssessmentRequest'];
+export type Photo = Schemas['Photo'];
+export type PhotoUpload = Schemas['PhotoUpload'];
+export type PhotoPose = NonNullable<Photo['pose']>;
+
+/** Avaliação online do próprio cliente (DEV-0044); a API calcula a estimativa da Marinha quando dá (DEV-0046). */
+export function recordOnlineAssessment(
+    apiFetch: ApiFetch,
+    body: AssessmentRequest,
+    baseUrl = clientApiUrl(),
+) {
+    return post<Assessment>(apiFetch, `${baseUrl}/clients/me/assessments`, body);
+}
+
+function photoPath(baseUrl: string, assessmentId: string, pose: PhotoPose) {
+    return `${baseUrl}/clients/me/assessments/${encodeURIComponent(assessmentId)}/photos/${pose}`;
+}
+
+/** Pede a URL pré-assinada de envio da foto da pose (DEV-0048). */
+export function requestPhotoUpload(
+    apiFetch: ApiFetch,
+    assessmentId: string,
+    pose: PhotoPose,
+    contentType: string,
+    baseUrl = clientApiUrl(),
+) {
+    return post<PhotoUpload>(apiFetch, `${photoPath(baseUrl, assessmentId, pose)}/upload-url`, {
+        contentType,
+    });
+}
+
+/** Confirma o envio: a API confere tipo e tamanho no objeto e troca a foto anterior da pose (DEV-0048). */
+export function confirmPhoto(
+    apiFetch: ApiFetch,
+    assessmentId: string,
+    pose: PhotoPose,
+    uploadId: string,
+    baseUrl = clientApiUrl(),
+) {
+    return post<Photo>(apiFetch, `${photoPath(baseUrl, assessmentId, pose)}/confirm`, { uploadId });
+}
+
+/**
+ * Envia o arquivo para a URL pré-assinada. Vai direto ao armazenamento, sem a sessão: a URL já carrega a
+ * autorização e o token do FitHub nunca sai para outro endereço.
+ */
+export async function putToPresignedUrl(
+    uploadUrl: string,
+    file: Blob,
+    contentType: string,
+    fetchImpl: typeof fetch = fetch,
+): Promise<void> {
+    let response: Response;
+    try {
+        response = await fetchImpl(uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': contentType },
+            body: file,
+        });
+    } catch (error) {
+        if (error instanceof TypeError) throw new OfflineError();
+        throw error;
+    }
+    if (!response.ok) {
+        throw new ApiProblemError(response.status, 'Não foi possível enviar a foto. Tente de novo.', {});
+    }
+}

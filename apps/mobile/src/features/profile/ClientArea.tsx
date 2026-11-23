@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { Linking, StyleSheet, Text, View } from 'react-native';
 
 import type { ClientProfile } from '../../lib/api';
+import { assessmentApiFrom, type AssessmentApi, type PhotoSource } from '../assessments/assessmentApi';
+import { expoPhotoSource } from '../assessments/expoPhotoSource';
+import { OnlineAssessmentScreen } from '../assessments/OnlineAssessmentScreen';
 import { useSession } from '../auth/SessionProvider';
 import { AcceptInvitationScreen } from '../links/AcceptInvitationScreen';
 import { linksApiFrom, tokenFromUrl, type LinksApi } from '../links/linksApi';
@@ -12,7 +15,7 @@ import { fromProfile } from './profileForm';
 import { ProfileFormScreen } from './ProfileFormScreen';
 import { Alert, Button } from './ui';
 
-type Screen = 'home' | 'editProfile' | 'health' | 'accept' | 'links';
+type Screen = 'home' | 'editProfile' | 'health' | 'accept' | 'links' | 'assessment';
 
 /** De onde chegam os links abertos pelo sistema (`fithub://convite/<token>`); injetável nos testes. */
 export interface LinkSource {
@@ -28,14 +31,22 @@ export function ClientArea({
     api: injected,
     linksApi: injectedLinks,
     linkSource = Linking,
+    assessmentApi: injectedAssessments,
+    photoSource = expoPhotoSource,
 }: {
     api?: ProfileApi;
     linksApi?: LinksApi;
     linkSource?: LinkSource;
+    assessmentApi?: AssessmentApi;
+    photoSource?: PhotoSource;
 }) {
     const { apiFetch } = useSession();
     const api = useMemo(() => injected ?? profileApiFrom(apiFetch), [injected, apiFetch]);
     const linksApi = useMemo(() => injectedLinks ?? linksApiFrom(apiFetch), [injectedLinks, apiFetch]);
+    const assessmentApi = useMemo(
+        () => injectedAssessments ?? assessmentApiFrom(apiFetch),
+        [injectedAssessments, apiFetch],
+    );
     // Token do convite aberto pelo link (DEV-0042): vale depois do perfil, que o aceite exige.
     const [invitationToken, setInvitationToken] = useState<string>();
     const [profile, setProfile] = useState<ClientProfile | null>();
@@ -114,6 +125,15 @@ export function ClientArea({
         );
     }
     if (screen === 'links') return <LinksScreen api={linksApi} onDone={() => setScreen('home')} />;
+    if (screen === 'assessment') {
+        return (
+            <OnlineAssessmentScreen
+                api={assessmentApi}
+                photos={photoSource}
+                onDone={() => setScreen('home')}
+            />
+        );
+    }
 
     return (
         <View style={styles.box}>
@@ -125,6 +145,7 @@ export function ClientArea({
             <Button onPress={() => setScreen('health')}>Perfil de saúde</Button>
             <Button onPress={() => setScreen('accept')}>Aceitar convite</Button>
             <Button onPress={() => setScreen('links')}>Meus vínculos</Button>
+            <Button onPress={() => setScreen('assessment')}>Avaliação online</Button>
         </View>
     );
 }

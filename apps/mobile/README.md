@@ -81,3 +81,16 @@ está no ADR-007.
   digitar o código do convite ou o código pessoal do profissional. A tela mostra o que será compartilhado e a
   versão do termo, e só aceita com a confirmação marcada. Recusar não chama a API.
 - **Vínculos:** lista ativos e encerrados; encerrar pede confirmação na própria tela.
+
+## Avaliação online e fotos (DEV-0050)
+
+- **Passo a passo:** peso e sexo para as fórmulas, depois uma tela por circunferência com a instrução de como medir
+  (`features/assessments/onlineSteps.ts`). Pescoço, cintura e quadril vêm antes porque alimentam a estimativa da
+  Marinha. Qualquer medida pode ser pulada; se faltar uma que a fórmula usa, a revisão avisa que o % estimado não
+  será calculado. A validação espelha a do client-service (10 a 300 cm, peso de 20 a 400 kg).
+- **Resultado:** o % estimado aparece marcado como online (fórmula da Marinha), ou o motivo de não ter saído.
+- **Fotos:** frente, lado e costas, pela câmera (`expo-image-picker`). Cada foto vai direto para a URL pré-assinada
+  do client-service, sem o token da sessão, e é confirmada na API. O arquivo é apagado do aparelho
+  (`expo-file-system`) logo depois da tentativa, com ou sem sucesso.
+- **Sem conexão:** o envio da avaliação avisa e mantém tudo o que foi preenchido; a foto é descartada e a tela pede
+  para tirar de novo. Medidas ficam só no estado da tela, nunca no cofre, `AsyncStorage` ou log.

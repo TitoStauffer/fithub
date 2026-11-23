@@ -186,6 +186,12 @@ importers:
       expo-crypto:
         specifier: 58.0.8
         version: 58.0.8(expo@58.0.23(@babel/core@7.29.13(supports-color@8.1.1))(react-native@0.88.1(@babel/core@7.29.13(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3))
+      expo-file-system:
+        specifier: 58.0.13
+        version: 58.0.13(expo@58.0.23(@babel/core@7.29.13(supports-color@8.1.1))(react-native@0.88.1(@babel/core@7.29.13(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3))(react-native@0.88.1(@babel/core@7.29.13(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))
+      expo-image-picker:
+        specifier: 58.0.10
+        version: 58.0.10(expo@58.0.23(@babel/core@7.29.13(supports-color@8.1.1))(react-native@0.88.1(@babel/core@7.29.13(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3))
       expo-secure-store:
         specifier: 58.0.3
         version: 58.0.3(expo@58.0.23(@babel/core@7.29.13(supports-color@8.1.1))(react-native@0.88.1(@babel/core@7.29.13(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3))
@@ -3004,6 +3010,12 @@ packages:
     peerDependencies:
       expo: '*'
 
+  expo-file-system@58.0.13:
+    resolution: {integrity: sha512-+/1aFErkawyky5UdWI06zYeO2DeHUnfaWnYHeiI8M8Z/sB6L66gI3WUxqtvUvKJoaM0Ti1CximD3x3JwteLYIg==}
+    peerDependencies:
+      expo: '*'
+      react-native: '*'
+
   expo-file-system@58.0.14:
     resolution: {integrity: sha512-VK67RQPDmWRHGbvpmPY5MeA1Ulw1LiyKs4KIN8na/q7SlkxYuPPR8biWsyX1S1/8XAHm6y2txUnYjCKh9l93lQ==}
     peerDependencies:
@@ -3016,6 +3028,16 @@ packages:
       expo: '*'
       react: '*'
       react-native: '*'
+
+  expo-image-loader@58.0.3:
+    resolution: {integrity: sha512-zlHudxC8OObyqCHmvdxJqURI7886KJ0cUJyn7R/a8FOD9fP837xKDN+u4SIt7XsSSVPNXzMd4Y7mN0pmup8NGA==}
+    peerDependencies:
+      expo: '*'
+
+  expo-image-picker@58.0.10:
+    resolution: {integrity: sha512-yqQC9UYMWSUxk6U0jaS1vE1w+b9Ru0FJmQ3KjUf9Q9oVg5xBxmg8+Ts+usazMAuPoskNIXJ++VZ+uK6br9yUGQ==}
+    peerDependencies:
+      expo: '*'
 
   expo-keep-awake@58.0.4:
     resolution: {integrity: sha512-zXJJRBwMpWl2Q2Aj9rksMe1ncz6aphOPqYnG3rTkCFALZiM22xQCqpQqBloDcQ6g4RdGTy++lRnsDX7MWpK1qw==}
@@ -8745,6 +8767,11 @@ snapshots:
     dependencies:
       expo: 58.0.23(@babel/core@7.29.13(supports-color@8.1.1))(react-native@0.88.1(@babel/core@7.29.13(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
 
+  expo-file-system@58.0.13(expo@58.0.23(@babel/core@7.29.13(supports-color@8.1.1))(react-native@0.88.1(@babel/core@7.29.13(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3))(react-native@0.88.1(@babel/core@7.29.13(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)):
+    dependencies:
+      expo: 58.0.23(@babel/core@7.29.13(supports-color@8.1.1))(react-native@0.88.1(@babel/core@7.29.13(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      react-native: 0.88.1(@babel/core@7.29.13(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)
+
   expo-file-system@58.0.14(expo@58.0.23(@babel/core@7.29.13(supports-color@8.1.1))(react-native@0.88.1(@babel/core@7.29.13(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3))(react-native@0.88.1(@babel/core@7.29.13(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)):
     dependencies:
       expo: 58.0.23(@babel/core@7.29.13(supports-color@8.1.1))(react-native@0.88.1(@babel/core@7.29.13(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
@@ -8755,6 +8782,15 @@ snapshots:
       expo: 58.0.23(@babel/core@7.29.13(supports-color@8.1.1))(react-native@0.88.1(@babel/core@7.29.13(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
       react: 19.3.0
       react-native: 0.88.1(@babel/core@7.29.13(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)
+
+  expo-image-loader@58.0.3(expo@58.0.23(@babel/core@7.29.13(supports-color@8.1.1))(react-native@0.88.1(@babel/core@7.29.13(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)):
+    dependencies:
+      expo: 58.0.23(@babel/core@7.29.13(supports-color@8.1.1))(react-native@0.88.1(@babel/core@7.29.13(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+
+  expo-image-picker@58.0.10(expo@58.0.23(@babel/core@7.29.13(supports-color@8.1.1))(react-native@0.88.1(@babel/core@7.29.13(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)):
+    dependencies:
+      expo: 58.0.23(@babel/core@7.29.13(supports-color@8.1.1))(react-native@0.88.1(@babel/core@7.29.13(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
+      expo-image-loader: 58.0.3(expo@58.0.23(@babel/core@7.29.13(supports-color@8.1.1))(react-native@0.88.1(@babel/core@7.29.13(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3))
 
   expo-keep-awake@58.0.4(expo@58.0.23(@babel/core@7.29.13(supports-color@8.1.1))(react-native@0.88.1(@babel/core@7.29.13(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3))(react@19.3.0):
     dependencies:

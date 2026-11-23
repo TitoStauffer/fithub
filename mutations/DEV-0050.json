@@ -1,0 +1,65 @@
+{
+    "issue": "DEV-0050",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Foto fica no aparelho depois da tentativa de envio",
+            "area": "apps",
+            "file": "apps/mobile/src/features/assessments/OnlineAssessmentScreen.tsx",
+            "find": "            await photos.discard(shot.uri).catch(() => undefined);",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Medida pulada deixa de avisar que a estimativa não sai",
+            "area": "apps",
+            "file": "apps/mobile/src/features/assessments/onlineSteps.ts",
+            "find": "    const missing = navyMeasures(form.sex).filter((key) => form.skipped.includes(key));",
+            "replace": "    const missing: Measure[] = [];",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Medida abaixo de 10 cm passa a ser aceita",
+            "area": "apps",
+            "file": "apps/mobile/src/features/assessments/onlineSteps.ts",
+            "find": "value < 10 || value > 300",
+            "replace": "value > 300",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Falha de envio apaga o que foi preenchido",
+            "area": "apps",
+            "file": "apps/mobile/src/features/assessments/OnlineAssessmentScreen.tsx",
+            "find": "            setFormError(messageOf(failure));",
+            "replace": "            setFormError(messageOf(failure));\n            setForm(EMPTY_ONLINE_FORM);",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}
