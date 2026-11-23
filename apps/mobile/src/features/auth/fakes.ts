@@ -16,6 +16,9 @@ export interface FakeStore extends TokenStore {
     saved: string[];
     clears: number;
     failLoad: boolean;
+    failSave: boolean;
+    /** Quantas chamadas de `clear` ainda falham (cofre com defeito). */
+    failClears: number;
 }
 
 export function fakeStore(initial?: string): FakeStore {
@@ -24,19 +27,26 @@ export function fakeStore(initial?: string): FakeStore {
         saved: [],
         clears: 0,
         failLoad: false,
+        failSave: false,
+        failClears: 0,
         load() {
             return store.failLoad
                 ? Promise.reject(new Error('cofre ilegível'))
                 : Promise.resolve(store.value);
         },
         save(refreshToken) {
+            if (store.failSave) return Promise.reject(new Error('cofre cheio'));
             store.value = refreshToken;
             store.saved.push(refreshToken);
             return Promise.resolve();
         },
         clear() {
-            store.value = undefined;
             store.clears += 1;
+            if (store.failClears > 0) {
+                store.failClears -= 1;
+                return Promise.reject(new Error('cofre travado'));
+            }
+            store.value = undefined;
             return Promise.resolve();
         },
     };
@@ -50,27 +60,40 @@ export interface FakeGateway extends AuthGateway {
     refreshMode: RefreshMode;
     signInResult: Tokens | undefined | Error;
     signOutFails: boolean;
+    /** A próxima renovação fica pendente até a função devolvida ser chamada (Keycloak lento). */
+    holdNextRefresh(): () => void;
 }
 
 export function fakeGateway(): FakeGateway {
     let renewals = 0;
+    let gate: Promise<void> | undefined;
     const gateway: FakeGateway = {
         calls: [],
         refreshMode: 'ok',
         signInResult: tokens('login'),
         signOutFails: false,
+        holdNextRefresh() {
+            let release!: () => void;
+            gate = new Promise<void>((resolve) => {
+                release = resolve;
+            });
+            return release;
+        },
         signIn() {
             gateway.calls.push('signIn');
             return gateway.signInResult instanceof Error
                 ? Promise.reject(gateway.signInResult)
                 : Promise.resolve(gateway.signInResult);
         },
-        refresh(refreshToken) {
+        async refresh(refreshToken) {
             gateway.calls.push(`refresh:${refreshToken}`);
-            if (gateway.refreshMode === 'invalid') return Promise.reject(new InvalidSessionError());
-            if (gateway.refreshMode === 'offline') return Promise.reject(new Error('sem rede'));
+            const pending = gate;
+            gate = undefined;
+            await pending;
+            if (gateway.refreshMode === 'invalid') throw new InvalidSessionError();
+            if (gateway.refreshMode === 'offline') throw new Error('sem rede');
             renewals += 1;
-            return Promise.resolve(tokens(`renewed-${renewals}`));
+            return tokens(`renewed-${renewals}`);
         },
         signOut(refreshToken) {
             gateway.calls.push(`signOut:${refreshToken}`);

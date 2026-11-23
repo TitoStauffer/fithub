@@ -54,8 +54,9 @@ está no ADR-007.
 
 - **Login:** "Entrar" abre o login do Keycloak no navegador do sistema, com Authorization Code + PKCE
   (S256), e volta para o app pelo esquema `fithub://auth` (`scheme` no `app.json`).
-- **O que fica guardado:** só o refresh token, no cofre do sistema (`expo-secure-store`), restrito a
-  este aparelho e com ele desbloqueado. O access token fica só em memória. Nada de token em
+- **O que fica guardado:** só o refresh token, no cofre do sistema (`expo-secure-store`). No iOS, ele
+  fica no Keychain, restrito a este aparelho e acessível só com ele desbloqueado. No Android, é cifrado
+  com uma chave do Keystore do aparelho; a opção de acesso do iOS não tem efeito ali. O access token fica só em memória. Nada de token em
   `AsyncStorage`, log ou mensagem de erro.
 - **Reabrir o app:** a sessão é retomada pelo refresh token (escopo `offline_access`). Refresh token
   recusado pelo Keycloak apaga o cofre e leva à tela de entrada. Sem conexão, a sessão guardada é

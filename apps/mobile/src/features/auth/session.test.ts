@@ -198,6 +198,117 @@ describe('access token para as chamadas', () => {
     });
 });
 
+// Code Review do PR #196 (MEDIUM): uma renovação que começou antes do encerramento da sessão não pode
+// regravar o token em memória nem o refresh token no cofre quando o Keycloak finalmente responde.
+describe('renovação em andamento quando a sessão é encerrada', () => {
+    it('logout durante a renovação descarta o resultado: cofre vazio e nenhum token em memória', async () => {
+        const { session, gateway, store } = setup();
+        await session.signIn();
+        const release = gateway.holdNextRefresh();
+        const pending = session.getAccessToken({ force: true });
+
+        await session.signOut();
+        release();
+
+        await expect(pending).rejects.toBeInstanceOf(InvalidSessionError);
+        expect(store.value).toBeUndefined();
+        expect(store.saved).toEqual(['refresh-login']);
+        expect(session.status()).toBe('signedOut');
+        await expect(session.getAccessToken()).rejects.toBeInstanceOf(InvalidSessionError);
+    });
+
+    it('reject durante a renovação também descarta o resultado', async () => {
+        const { session, gateway, store } = setup();
+        await session.signIn();
+        const release = gateway.holdNextRefresh();
+        const pending = session.getAccessToken({ force: true });
+
+        await session.reject();
+        release();
+
+        await expect(pending).rejects.toBeInstanceOf(InvalidSessionError);
+        expect(store.value).toBeUndefined();
+        expect(session.status()).toBe('signedOut');
+    });
+
+    it('logout enquanto o app ainda retoma a sessão termina sem sessão', async () => {
+        const { session, gateway, store } = setup('refresh-guardado');
+        const release = gateway.holdNextRefresh();
+        const restoring = session.restore();
+        // Deixa a retomada ler o cofre e chegar ao Keycloak antes do logout.
+        await Promise.resolve();
+        await Promise.resolve();
+
+        await session.signOut();
+        release();
+        await restoring;
+
+        expect(session.status()).toBe('signedOut');
+        expect(store.value).toBeUndefined();
+    });
+
+    it('depois de um encerramento, um login novo renova normalmente', async () => {
+        const { session, gateway, store } = setup();
+        await session.signIn();
+        const release = gateway.holdNextRefresh();
+        const pending = session.getAccessToken({ force: true }).catch(() => undefined);
+        await session.signOut();
+        release();
+        await pending;
+
+        await session.signIn();
+        await expect(session.getAccessToken({ force: true })).resolves.toMatch(/^access-renewed-/);
+        expect(store.value).toMatch(/^refresh-renewed-/);
+    });
+});
+
+// Code Review do PR #196 (LOW): falha do cofre não pode prender o app num estado errado.
+describe('cofre com defeito', () => {
+    it('falha ao apagar não impede o logout: tenta de novo, encerra a sessão e revoga no Keycloak', async () => {
+        const { session, gateway, store } = setup();
+        await session.signIn();
+        store.failClears = 1;
+
+        await expect(session.signOut()).resolves.toBeUndefined();
+
+        expect(session.status()).toBe('signedOut');
+        expect(store.clears).toBe(2);
+        expect(store.value).toBeUndefined();
+        expect(gateway.calls).toContain('signOut:refresh-login');
+    });
+
+    it('cofre que não apaga de jeito nenhum ainda encerra a sessão e revoga no Keycloak', async () => {
+        const { session, gateway, store } = setup();
+        await session.signIn();
+        store.failClears = 5;
+
+        await expect(session.signOut()).resolves.toBeUndefined();
+
+        expect(session.status()).toBe('signedOut');
+        expect(gateway.calls).toContain('signOut:refresh-login');
+        await expect(session.getAccessToken()).rejects.toBeInstanceOf(InvalidSessionError);
+    });
+
+    it('refresh recusado ao abrir o app com cofre travado não deixa a tela presa em carregando', async () => {
+        const { session, gateway, store } = setup('refresh-revogado');
+        gateway.refreshMode = 'invalid';
+        store.failClears = 5;
+
+        await expect(session.restore()).resolves.toBeUndefined();
+        expect(session.status()).toBe('signedOut');
+    });
+
+    it('falha ao guardar no login não abre sessão nem deixa token em memória', async () => {
+        const { session, store } = setup();
+        await session.restore();
+        store.failSave = true;
+
+        await expect(session.signIn()).rejects.toThrow('cofre cheio');
+        expect(session.status()).toBe('signedOut');
+        await expect(session.getAccessToken()).rejects.toBeInstanceOf(InvalidSessionError);
+    });
+});
+
 it('tokens() dos testes vence em 5 minutos, como o access token do realm', () => {
     expect(tokens('x').expiresAt - NOW).toBe(300_000);
 });

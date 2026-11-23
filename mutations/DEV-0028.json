@@ -156,8 +156,8 @@
             "description": "Renovações simultâneas deixam de ser uma só",
             "area": "apps",
             "file": "apps/mobile/src/features/auth/session.ts",
-            "find": "renewal ??= gateway",
-            "replace": "renewal = gateway",
+            "find": "        if (renewal) return renewal;\n",
+            "replace": "",
             "command": [
                 "pnpm",
                 "--filter",
@@ -218,6 +218,51 @@
             "file": "apps/mobile/src/features/auth/authConfig.ts",
             "find": "return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.origin : '';",
             "replace": "return parsed.origin;",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M16",
+            "description": "Renovação que começou antes do logout volta a gravar o token",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/session.ts",
+            "find": "if (generation !== startedIn) throw new InvalidSessionError();",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M17",
+            "description": "Cofre que falha ao apagar prende o app com a sessão aberta",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/session.ts",
+            "find": "await store.clear().catch(() => undefined);",
+            "replace": "throw new Error('cofre travado');",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M18",
+            "description": "Falha ao guardar no login deixa token em memória",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/session.ts",
+            "find": "            await store.save(fresh.refreshToken);\n            tokens = fresh;\n            setStatus",
+            "replace": "            tokens = fresh;\n            await store.save(fresh.refreshToken);\n            setStatus",
             "command": [
                 "pnpm",
                 "--filter",

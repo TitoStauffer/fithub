@@ -79,24 +79,41 @@ export function createSession(
         listeners.forEach((listener) => listener(next));
     };
 
+    // Muda a cada encerramento de sessão. Uma renovação que começou antes não pode gravar nada depois
+    // (Code Review do PR #196): senão o logout deixaria o refresh token de volta no cofre.
+    let generation = 0;
+
     const forget = async () => {
+        generation += 1;
         tokens = undefined;
-        await store.clear();
-        setStatus('signedOut');
+        renewal = undefined;
+        try {
+            await store.clear();
+        } catch {
+            // Cofre com defeito não pode prender o app com a sessão aberta: tenta mais uma vez e segue.
+            await store.clear().catch(() => undefined);
+        } finally {
+            setStatus('signedOut');
+        }
     };
 
     const renew = (refreshToken: string): Promise<Tokens> => {
-        renewal ??= gateway
+        if (renewal) return renewal;
+        const startedIn = generation;
+        const current: Promise<Tokens> = gateway
             .refresh(refreshToken)
             .then(async (fresh) => {
-                tokens = fresh;
+                // A sessão foi encerrada enquanto o Keycloak respondia: o resultado é descartado.
+                if (generation !== startedIn) throw new InvalidSessionError();
                 await store.save(fresh.refreshToken);
+                tokens = fresh;
                 return fresh;
             })
             .finally(() => {
-                renewal = undefined;
+                if (renewal === current) renewal = undefined;
             });
-        return renewal;
+        renewal = current;
+        return current;
     };
 
     return {
@@ -129,8 +146,9 @@ export function createSession(
         async signIn() {
             const fresh = await gateway.signIn();
             if (!fresh) return;
-            tokens = fresh;
+            // Guarda antes de abrir a sessão: se o cofre falhar, não sobra token em memória sem sessão.
             await store.save(fresh.refreshToken);
+            tokens = fresh;
             setStatus('signedIn');
         },
         async signOut() {
