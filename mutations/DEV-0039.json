@@ -66,7 +66,7 @@
             "description": "training: endpoint com clientId deixa de exigir vínculo ativo",
             "area": "java",
             "file": "services/training-service/src/main/java/com/fithub/training/application/ClientAccess.java",
-            "find": "if (!links.hasActiveLink(UUID.fromString(professionalAccount), clientId)) {",
+            "find": "if (!links.hasActiveLink(accountId(professionalAccount), clientId)) {",
             "replace": "if (false) {",
             "command": [
                 "mvn",
@@ -108,6 +108,66 @@
             "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcClientDirectory.java",
             "find": "                        where client.updated_at < excluded.updated_at\n",
             "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Tipo de profissional fora do contrato é descartado em silêncio como processado",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/messaging/ClientEventsListener.java",
+            "find": "                || !(\"personal_trainer\".equals(event.professionalType())\n                        || \"nutritionist\".equals(event.professionalType()))\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "ClienteAtualizado com nome em branco passa a ser projetado",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/messaging/ClientEventsListener.java",
+            "find": "event.name() == null || event.name().isBlank() ||",
+            "replace": "event.name() == null ||",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "Conta com sub fora do formato vira erro em vez de sem acesso",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ClientAccess.java",
+            "find": "        } catch (IllegalArgumentException notAnId) {\n            throw new ClientNotFoundException();",
+            "replace": "        } catch (IllegalArgumentException notAnId) {\n            throw notAnId;",
             "command": [
                 "mvn",
                 "-B",

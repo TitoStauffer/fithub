@@ -24,7 +24,9 @@ acesso (`VinculoEncerrado` antes de `VinculoAtivado` deixaria o acesso aberto).
 **Regra:** toda validação de entrada da mensageria (exchange, routing key, consumidor, id do evento,
 `messageId` da mensagem) tem teste que falha sem ela. Mensagem malformada é rejeitada **sem
 reentrega** (`AmqpRejectAndDontRequeueException`); se virar uma exceção comum, volta para a fila sem
-fim (mensagem venenosa).
+fim (mensagem venenosa). O teste precisa **chegar à guarda**: payload que quebra antes, no
+desserializador, não prova nada sobre as checagens que vêm depois. Use JSON válido que só a guarda
+recusa (campo faltando, valor fora do enum, texto em branco) e declare o mutante que a remove.
 
 ### Ocorrências
 
@@ -32,6 +34,13 @@ fim (mensagem venenosa).
   - **Impacto:** as guardas existiam, mas nenhum teste as derrubava; uma regressão passaria despercebida.
   - **Correção:** `MessagingGuardsTest` cobre cada guarda sem banco nem broker.
   - **Prevenção:** mutações N5 a N9 no PR, uma por guarda.
+- **Revisão:** Code Review do PR #206 em 23/11/2026 (MEDIUM) — DEV-0039 (#31) · **PR:** #206
+  - **Impacto:** o único teste de payload inválido usava um `clientId` que não era UUID e parava no Jackson; as
+    guardas de `parseLink` e `parseClient` (tipo de profissional, nome em branco, campos nulos) ficaram sem
+    teste. Sem a de tipo, um evento desconhecido seria marcado como processado e perdido em silêncio.
+  - **Correção:** casos com JSON válido fora do contrato em `ClientEventsConsumerTest`, conferindo a `.dlq`, a
+    projeção intacta e que a mensagem não conta como processada.
+  - **Prevenção:** mutantes M7 e M8 em `mutations/DEV-0039.json`.
 
 ## dado-de-evento-tem-retencao
 

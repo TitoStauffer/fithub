@@ -95,13 +95,34 @@ class ClientEventsConsumerTest extends ServiceIntegrationTest {
         publish("client.link-ended.v1", eventId, payload);
     }
 
-    private void clientUpdated(UUID client, String name, String occurredAt) {
+    private String clientUpdated(UUID client, String name, String occurredAt) {
         String payload = """
                 {"clientId": "%s", "name": "%s", "birthDate": "1990-11-24", "gender": "FEMALE", "occurredAt": "%s"}
                 """.formatted(client, name, occurredAt);
         assertThat(EventContracts.validate(EventContract.CLIENT_UPDATED_V1, payload))
                 .isEmpty();
-        publish("client.client-updated.v1", UUID.randomUUID().toString(), payload);
+        String eventId = UUID.randomUUID().toString();
+        publish("client.client-updated.v1", eventId, payload);
+        return eventId;
+    }
+
+    /** Espera a mensagem com o marcador chegar à fila de mensagens mortas. */
+    private void awaitDead(String marker) {
+        long deadline = System.nanoTime() + Duration.ofSeconds(20).toNanos();
+        while (System.nanoTime() < deadline) {
+            Message received = rabbit.receive("training.client-events.dlq", 500);
+            if (received != null && new String(received.getBody(), StandardCharsets.UTF_8).contains(marker)) {
+                return;
+            }
+        }
+        throw new AssertionError("mensagem não chegou à fila de mensagens mortas: " + marker);
+    }
+
+    private int count(String table, String column, UUID id) {
+        return jdbc.sql("select count(*) from " + table + " where " + column + " = :id")
+                .param("id", id)
+                .query(Integer.class)
+                .single();
     }
 
     private boolean processed(String eventId) {
@@ -245,8 +266,8 @@ class ClientEventsConsumerTest extends ServiceIntegrationTest {
 
         clientUpdated(client, "Nome Novo", "2026-11-23T11:00:00Z");
         await(() -> view(personal, client) == 200, "cliente projetado");
-        clientUpdated(client, "Nome Antigo", "2026-11-23T09:00:00Z");
-        Thread.sleep(1_500);
+        // Só confere o nome depois de o evento atrasado ter sido consumido de fato.
+        awaitProcessed(clientUpdated(client, "Nome Antigo", "2026-11-23T09:00:00Z"));
 
         mvc.perform(get("/clients/" + client).header("Authorization", "Bearer personal-" + personal))
                 .andExpect(jsonPath("$.name").value("Nome Novo"));
@@ -259,19 +280,63 @@ class ClientEventsConsumerTest extends ServiceIntegrationTest {
                 {"linkId": "%s", "clientId": "nao-e-uuid", "professionalType": "personal_trainer"}
                 """.formatted(link));
 
-        Message dead = null;
-        long deadline = System.nanoTime() + Duration.ofSeconds(20).toNanos();
-        while (dead == null && System.nanoTime() < deadline) {
-            Message received = rabbit.receive("training.client-events.dlq", 500);
-            if (received != null && new String(received.getBody(), StandardCharsets.UTF_8).contains(link.toString())) {
-                dead = received;
-            }
-        }
-        assertThat(dead).as("mensagem na fila de mensagens mortas").isNotNull();
-        assertThat(jdbc.sql("select count(*) from client_link where link_id = :id")
-                        .param("id", link)
-                        .query(Integer.class)
-                        .single())
-                .isZero();
+        awaitDead(link.toString());
+        assertThat(count("client_link", "link_id", link)).isZero();
+    }
+
+    /** JSON válido que passa do Jackson e só é barrado pelas guardas do consumidor (aprendizado de mensageria). */
+    @Test
+    void eventoDeVinculoComJsonValidoMasForaDoContratoVaiParaAFilaDeMensagensMortas() {
+        UUID client = UUID.randomUUID();
+        UUID personal = UUID.randomUUID();
+        Map<String, String> invalid =
+                Map.of("tipo de profissional desconhecido", """
+                {"linkId": "%s", "clientId": "%s", "professionalId": "%s", "professionalType": "outro",
+                 "occurredAt": "2026-11-23T12:00:00Z"}
+                """, "sem professionalId", """
+                {"linkId": "%s", "clientId": "%s", "professionalType": "personal_trainer",
+                 "occurredAt": "2026-11-23T12:00:00Z", "ignorado": "%s"}
+                """, "sem occurredAt", """
+                {"linkId": "%s", "clientId": "%s", "professionalId": "%s", "professionalType": "personal_trainer"}
+                """);
+
+        invalid.forEach((description, template) -> {
+            UUID link = UUID.randomUUID();
+            String eventId = UUID.randomUUID().toString();
+            publish("client.link-activated.v1", eventId, template.formatted(link, client, personal));
+
+            awaitDead(link.toString());
+            assertThat(count("client_link", "link_id", link)).as(description).isZero();
+            // Mensagem rejeitada não conta como processada: descartar em silêncio seria perder o evento.
+            assertThat(processed(eventId)).as(description).isFalse();
+        });
+    }
+
+    @Test
+    void clienteAtualizadoComJsonValidoMasForaDoContratoVaiParaAFilaDeMensagensMortas() {
+        Map<String, String> invalid = Map.of("nome em branco", """
+                {"clientId": "%s", "name": "  ", "birthDate": null, "gender": null,
+                 "occurredAt": "2026-11-23T12:00:00Z"}
+                """, "sem nome", """
+                {"clientId": "%s", "birthDate": null, "gender": null, "occurredAt": "2026-11-23T12:00:00Z"}
+                """, "sem occurredAt", """
+                {"clientId": "%s", "name": "Ana Cliente", "birthDate": null, "gender": null}
+                """);
+
+        invalid.forEach((description, template) -> {
+            UUID client = UUID.randomUUID();
+            String eventId = UUID.randomUUID().toString();
+            publish("client.client-updated.v1", eventId, template.formatted(client));
+
+            awaitDead(client.toString());
+            assertThat(count("client", "client_id", client)).as(description).isZero();
+            assertThat(processed(eventId)).as(description).isFalse();
+        });
+    }
+
+    @Test
+    void contaComSubForaDoFormatoNaoTemAcessoENaoViraErro() throws Exception {
+        mvc.perform(get("/clients/" + UUID.randomUUID()).header("Authorization", "Bearer personal-nao-e-uuid"))
+                .andExpect(status().isNotFound());
     }
 }
