@@ -3,7 +3,7 @@ import { SessionExpiredError } from '@/features/auth/authContext';
 export interface ApiFetchOptions {
     /** Token de acesso válido; `force` pede um token novo (depois de um 401). */
     getAccessToken: (options?: { force?: boolean }) => Promise<string>;
-    /** A API recusou até o token renovado: a sessão local é encerrada. */
+    /** A API recusou até o token renovado: a sessão vai para o estado `rejected` (sem redirecionar ao login). */
     onSessionRejected: () => void;
     /** Origens das APIs do FitHub: as únicas que recebem o token. */
     allowedOrigins: readonly string[];
@@ -23,7 +23,7 @@ function parseUrl(url: string): URL | undefined {
 
 /**
  * `fetch` autenticado para as APIs do FitHub (DEV-0027): manda o Bearer token e, num 401, renova o
- * token e tenta mais uma vez. Se a API recusar de novo, encerra a sessão e lança
+ * token e tenta mais uma vez. Se a API recusar de novo, marca a sessão como recusada e lança
  * {@link SessionExpiredError}. O token nunca vai para uma origem fora de `allowedOrigins`.
  */
 export function createApiFetch(options: ApiFetchOptions): ApiFetch {

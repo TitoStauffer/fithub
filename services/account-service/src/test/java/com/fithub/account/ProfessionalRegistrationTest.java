@@ -1,6 +1,7 @@
 package com.fithub.account;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -241,7 +242,11 @@ class ProfessionalRegistrationTest extends ServiceIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.registration.number").value("012345"));
         mvc.perform(get("/professionals/me").header("Authorization", "Bearer conta-" + newAccount()))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                // Code Review do PR #202: o 404 é Problem Details, como o contrato declara.
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.detail").value("Esta conta ainda não tem cadastro de profissional."));
     }
 
     @Test
@@ -397,13 +402,15 @@ class ProfessionalRegistrationTest extends ServiceIntegrationTest {
     }
 
     @Test
-    void cadastroGravaOEventoNoOutboxPeloContratoSemRegistroNemConta() throws Exception {
+    void cadastroGravaOEventoNoOutboxPeloContratoComOIdDaContaESemRegistro() throws Exception {
         String account = newAccount();
         register(account, PERSONAL_BODY)
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Ana Profissional"));
 
-        List<String> payloads = outboxPayloads(professionalId(account));
+        // ADR-009: o id do profissional é o sub da conta, o mesmo que os outros serviços veem no token.
+        assertThat(professionalId(account)).isEqualTo(account);
+        List<String> payloads = outboxPayloads(account);
 
         assertThat(payloads).hasSize(1);
         String payload = payloads.getFirst();
@@ -412,8 +419,20 @@ class ProfessionalRegistrationTest extends ServiceIntegrationTest {
         assertThat(payload)
                 .contains("\"professionalType\": \"personal_trainer\"")
                 .contains("\"name\": \"Ana Profissional\"")
-                .doesNotContain("012345")
-                .doesNotContain(account);
+                .contains("\"professionalId\": \"%s\"".formatted(account))
+                .doesNotContain("012345");
+    }
+
+    @Test
+    void bancoRecusaProfissionalComIdDiferenteDaConta() throws Exception {
+        String account = newAccount();
+        register(account, PERSONAL_BODY).andExpect(status().isCreated());
+
+        assertThatThrownBy(() -> jdbc.sql("update professional set id = :other where account_id = :account")
+                        .param("other", UUID.randomUUID())
+                        .param("account", account)
+                        .update())
+                .hasMessageContaining("ck_professional_id_is_account");
     }
 
     @Test
@@ -537,7 +556,7 @@ class ProfessionalRegistrationTest extends ServiceIntegrationTest {
                 .param("owner", account)
                 .update();
 
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> jdbc.sql("""
+        assertThatThrownBy(() -> jdbc.sql("""
                                 insert into professional (id, account_id, name, type, council, registration_number,
                                     registration_category, registration_state, situation, organization_id, role_status,
                                     created_at)

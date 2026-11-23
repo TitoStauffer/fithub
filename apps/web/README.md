@@ -56,7 +56,12 @@ O app usa o client `fithub-web` do realm `fithub` (`VITE_KEYCLOAK_URL`, padrão 
 suba o Keycloak pelo compose de `infra/`). A decisão dos papéis e dos clients está no ADR-007.
 
 - **Rotas:** `/` é pública; `/app` exige sessão e o papel `personal` ou `nutritionist`. Sem sessão, a
-  rota leva ao login e volta para a página pedida. Sem o papel, mostra acesso negado.
+  rota leva ao login e volta para a página pedida. Sem o papel, leva ao `/onboarding` (DEV-0031).
+- **Onboarding (DEV-0031):** `/onboarding` exige só a sessão. Sem cadastro de profissional, mostra o
+  formulário (tipo e registro CREF/CRN com UF), com a validação da API repetida no navegador; depois
+  do cadastro, `reloadSession()` pede um token novo para trazer o papel e a pessoa entra em `/app`. Com
+  o cadastro feito e o papel ainda pendente no Keycloak, a tela oferece "Entrar na área do
+  profissional" para tentar de novo.
 - **Falhas de sessão (DEV-0146):** só a recusa do Keycloak encerra a sessão. Sem rede, a sessão
   continua e o token atual é usado enquanto valer; sem token válido, `getAccessToken` lança
   `SessionUnavailableError` (mostre "sem conexão" e deixe tentar de novo). Se a API recusar até o

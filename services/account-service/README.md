@@ -12,6 +12,8 @@ Esqueleto da DEV-0015 (estrutura, execução e testes em [services/README.md](..
 | `GET /professionals/me` | Qualquer conta autenticada | 200 com o cadastro da própria conta; 404 se não houver |
 
 - A conta é sempre o `sub` do token. Não existe leitura do cadastro de outra pessoa.
+- O id do profissional é o próprio `sub` da conta (DEV-0149, [ADR-009](../../docs/00-oficial/adr/ADR-009-identidade-comum-entre-servicos.md)):
+  os outros serviços reconhecem o profissional pelo token. Domínio e CHECK no banco (V4) garantem.
 - Corpo do `POST`: `type` (`PERSONAL` ou `NUTRITIONIST`), `registrationNumber` (1 a 6 dígitos),
   `registrationState` (UF) e, só no CREF, `registrationCategory` (`G` ou `P`).
 - O nome do profissional vem do perfil do Keycloak (claim `name`, ou nome e sobrenome); sem ele, 400 com o

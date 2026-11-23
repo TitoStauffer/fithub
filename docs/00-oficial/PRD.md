@@ -653,7 +653,9 @@ Então um novo recorde de supino é registrado
 - **QUESTÃO-04** — Por quanto tempo o cliente pode corrigir um registro de
   execução?
 - **QUESTÃO-05** — Clientes menores de idade: permitidos? Se sim, exigem
-  consentimento do responsável (LGPD, art. 14).
+  consentimento do responsável (LGPD, art. 14). **Enquanto aberta:** o perfil
+  do cliente exige 18 anos ou mais (decisão do Agent na ausência do Tito, para
+  revisão; DEV-0032).
 - **QUESTÃO-06** — Política de retenção após exclusão de conta, e o que
   acontece com as prescrições guardadas pelo profissional.
 - **QUESTÃO-07** — Licença, custo e termos da base de exercícios externa

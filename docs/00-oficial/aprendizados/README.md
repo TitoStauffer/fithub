@@ -8,6 +8,8 @@ que fazemos para não repeti-los.
 | Workflows, runner e bots | [automacao-github.md](automacao-github.md) |
 | Outbox, consumidores e eventos | [mensageria.md](mensageria.md) |
 | Keycloak, realm, clients e login | [identidade.md](identidade.md) |
+| Migrations, CHECKs e unicidade | [migrations.md](migrations.md) |
+| Contratos de API (OpenAPI) | [contratos-api.md](contratos-api.md) |
 
 Regras de registro: [AGENTS.md](../../../AGENTS.md), seção **Aprendizados**.
 

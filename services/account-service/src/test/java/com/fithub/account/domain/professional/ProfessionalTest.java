@@ -15,6 +15,9 @@ class ProfessionalTest {
 
     private static final Instant NOW = Instant.parse("2026-11-22T12:00:00Z");
 
+    /** sub de uma conta do Keycloak. */
+    private static final String ACCOUNT = "0193a1b2-0000-7000-8000-000000000001";
+
     @Test
     void registroDoCrefNormalizaOQueFoiDigitadoEExibeComoOConselho() {
         Registration registration = Registration.of(Registration.Council.CREF, " 012345 ", "g", "sp");
@@ -75,8 +78,8 @@ class ProfessionalTest {
             Professional.Type type, Registration.Council council, String category) {
         Registration registration = Registration.of(council, "123", category, "SP");
 
-        assertThatThrownBy(() -> Professional.register(
-                        UUID.randomUUID(), "conta", "Ana Teste", type, registration, UUID.randomUUID(), NOW))
+        assertThatThrownBy(
+                        () -> Professional.register(ACCOUNT, "Ana Teste", type, registration, UUID.randomUUID(), NOW))
                 .isInstanceOf(InvalidRegistrationException.class);
     }
 
@@ -112,13 +115,7 @@ class ProfessionalTest {
         Registration registration = Registration.of(Registration.Council.CREF, "1", "G", "SP");
 
         assertThatThrownBy(() -> Professional.register(
-                        UUID.randomUUID(),
-                        accountId,
-                        "Ana Teste",
-                        Professional.Type.PERSONAL,
-                        registration,
-                        UUID.randomUUID(),
-                        NOW))
+                        accountId, "Ana Teste", Professional.Type.PERSONAL, registration, UUID.randomUUID(), NOW))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -134,13 +131,7 @@ class ProfessionalTest {
         Registration registration = Registration.of(Registration.Council.CREF, "1", "G", "SP");
 
         assertThatThrownBy(() -> Professional.register(
-                        UUID.randomUUID(),
-                        "conta",
-                        name,
-                        Professional.Type.PERSONAL,
-                        registration,
-                        UUID.randomUUID(),
-                        NOW))
+                        ACCOUNT, name, Professional.Type.PERSONAL, registration, UUID.randomUUID(), NOW))
                 .isInstanceOf(InvalidRegistrationException.class)
                 .extracting("field")
                 .isEqualTo("name");
@@ -152,30 +143,51 @@ class ProfessionalTest {
         String atLimit = "a".repeat(Professional.MAX_NAME);
 
         assertThat(Professional.register(
-                                UUID.randomUUID(),
-                                "conta",
-                                atLimit,
-                                Professional.Type.PERSONAL,
-                                registration,
-                                UUID.randomUUID(),
-                                NOW)
+                                ACCOUNT, atLimit, Professional.Type.PERSONAL, registration, UUID.randomUUID(), NOW)
                         .name())
                 .hasSize(Professional.MAX_NAME);
         assertThatThrownBy(() -> Professional.register(
-                        UUID.randomUUID(),
-                        "conta",
-                        atLimit + "a",
-                        Professional.Type.PERSONAL,
-                        registration,
-                        UUID.randomUUID(),
-                        NOW))
+                        ACCOUNT, atLimit + "a", Professional.Type.PERSONAL, registration, UUID.randomUUID(), NOW))
                 .isInstanceOf(InvalidRegistrationException.class);
+    }
+
+    @Test
+    void idDoProfissionalEOSubDaConta() {
+        // ADR-009: o mesmo id em todos os serviços, reconhecido pelo token.
+        assertThat(personal("1", "G", "SP").id()).isEqualTo(UUID.fromString(ACCOUNT));
+    }
+
+    @Test
+    void contaForaDoFormatoUuidERecusada() {
+        Registration registration = Registration.of(Registration.Council.CREF, "1", "G", "SP");
+
+        assertThatThrownBy(() -> Professional.register(
+                        "conta-sem-uuid", "Ana", Professional.Type.PERSONAL, registration, UUID.randomUUID(), NOW))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("UUID");
+    }
+
+    @Test
+    void profissionalComIdDiferenteDaContaERecusado() {
+        Professional professional = personal("1", "G", "SP");
+
+        assertThatThrownBy(() -> new Professional(
+                        UUID.randomUUID(),
+                        professional.accountId(),
+                        professional.name(),
+                        professional.type(),
+                        professional.registration(),
+                        professional.situation(),
+                        professional.organizationId(),
+                        professional.roleStatus(),
+                        professional.createdAt()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("ADR-009");
     }
 
     private static Professional personal(String number, String category, String state) {
         return Professional.register(
-                UUID.randomUUID(),
-                "conta-1",
+                ACCOUNT,
                 "  Ana Teste  ",
                 Professional.Type.PERSONAL,
                 Registration.of(Registration.Council.CREF, number, category, state),

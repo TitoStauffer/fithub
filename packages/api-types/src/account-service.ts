@@ -29,6 +29,26 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Erro no formato Problem Details (RFC 9457). */
+        Problem: {
+            /** @description Mensagem para a pessoa, em português. */
+            detail?: string;
+            /** @description Campos inválidos; presente só nas respostas 400. */
+            errors?: components["schemas"]["ProblemFieldError"][] | null;
+            instance?: string | null;
+            /** Format: int32 */
+            status?: number;
+            title?: string;
+            /**
+             * @description URI do tipo do erro.
+             * @example about:blank
+             */
+            type?: string;
+        };
+        ProblemFieldError: {
+            field?: string;
+            message?: string;
+        };
         Professional: {
             /** Format: date-time */
             createdAt?: string;
@@ -82,13 +102,31 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Cadastro da conta autenticada. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["Professional"];
+                    "application/json": components["schemas"]["Professional"];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta ainda não tem cadastro de profissional. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -106,13 +144,49 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
+            /** @description O mesmo cadastro já existia. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["Professional"];
+                    "application/json": components["schemas"]["Professional"];
+                };
+            };
+            /** @description Cadastro criado. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Professional"];
+                };
+            };
+            /** @description Campo inválido; errors[] traz o campo e a mensagem. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta já tem um cadastro com outros dados. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };

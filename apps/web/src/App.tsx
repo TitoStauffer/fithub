@@ -1,14 +1,18 @@
-import { Link, Route, Routes } from 'react-router';
+import { Link, Navigate, Route, Routes } from 'react-router';
 
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/features/auth/authContext';
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute';
+import { OnboardingPage } from '@/features/onboarding/OnboardingPage';
 import { ServiceStatus } from '@/features/status/ServiceStatus';
 
 /** Papéis que entram na área do profissional (ADR-007). */
 const PROFESSIONAL_ROLES = ['personal', 'nutritionist'] as const;
 
-/** App do profissional: página inicial pública e a área protegida por papel (DEV-0027). */
+/**
+ * App do profissional: página inicial pública, a área protegida por papel (DEV-0027) e o onboarding de
+ * quem ainda não tem cadastro de profissional (DEV-0031).
+ */
 export function App() {
     return (
         <div className="min-h-screen bg-background text-foreground">
@@ -19,8 +23,19 @@ export function App() {
                     <Route
                         path="/app/*"
                         element={
-                            <ProtectedRoute roles={PROFESSIONAL_ROLES}>
+                            <ProtectedRoute
+                                roles={PROFESSIONAL_ROLES}
+                                onMissingRole={<Navigate to="/onboarding" replace />}
+                            >
                                 <ProfessionalArea />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/onboarding"
+                        element={
+                            <ProtectedRoute>
+                                <OnboardingPage />
                             </ProtectedRoute>
                         }
                     />
