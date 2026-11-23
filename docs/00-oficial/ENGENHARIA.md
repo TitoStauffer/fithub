@@ -169,6 +169,10 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
   - As chamadas usam `createApiFetch` (`src/lib/apiFetch.ts`), com as
     mesmas regras da web: Bearer token, uma nova tentativa no 401 e token só
     para as origens das APIs do FitHub.
+- **Perfil do cliente** (DEV-0032): `PUT` e `GET /clients/me/profile` no
+  client-service, com a conta vinda do `sub` do token. Idade calculada a
+  partir da data de nascimento e mínimo de 18 anos enquanto a QUESTÃO-05
+  estiver aberta.
 - **Cadastro do profissional** (DEV-0029, [ADR-008](adr/ADR-008-atribuicao-de-papel-pelo-account-service.md)):
   `POST` e `GET /professionals/me` no account-service. A conta vem do `sub` do
   token; o cadastro e a organização de uma pessoa são gravados juntos e, depois
