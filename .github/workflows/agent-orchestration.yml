@@ -27,10 +27,16 @@ concurrency:
 jobs:
   code-review:
     name: Agent Code Review
+    # DEV-0152: o runner self-hosted (assinatura do dono) só atende PR de branch do próprio repositório,
+    # com o CI disparado pelo dono. PR de fork ou de outra pessoa nunca chega ao modelo; todo outro job
+    # no runner depende deste.
     if: >-
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master' &&
+      github.triggering_actor == github.repository_owner) ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.name == 'CI' &&
-      github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success')
+      github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.actor.login == github.repository_owner)
     runs-on: [self-hosted, Windows, X64, fithub-agents]
     defaults:
       run:
