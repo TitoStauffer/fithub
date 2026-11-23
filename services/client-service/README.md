@@ -41,3 +41,24 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   O payload leva o estado completo desses campos, `clientId` (a conta do Keycloak) e `occurredAt`.
 - A gravação trava o perfil (`select ... for update`) para comparar o antes e o depois. Sem o antes, o evento
   sai: um a mais é inofensivo para o consumidor, que substitui a cópia local.
+
+## Convites (DEV-0035)
+
+| Rota | Quem | Resposta |
+|---|---|---|
+| `POST /invitations` | `personal` ou `nutritionist` | 201 com link, código e `emailSent`; 400 e-mail inválido; 403 sem o papel; 409 se o `ProfissionalCadastrado` ainda não chegou |
+| `GET /invitations` | idem | Convites do profissional, com a situação (`PENDING`, `EXPIRED`, `ACCEPTED`, `CANCELLED`) |
+| `DELETE /invitations/{id}` | idem | 204 (repetir também é 204); 404 se não for dele; 409 se já aceito |
+| `POST /invitations/lookup` | qualquer conta | `{"token"}` ou `{"code"}`: nome e tipo do profissional e o que será compartilhado; 404 desconhecido; 410 vencido, usado ou cancelado |
+| `GET` e `POST /professionals/me/invite-code` | `personal` ou `nutritionist` | Consulta ou troca o código pessoal (o antigo deixa de valer) |
+
+- Token (256 bits, base64url) e código (8 caracteres sem 0/O e 1/I) saem de `SecureRandom` e só existem em
+  claro na resposta da criação e no e-mail; o banco guarda o hash SHA-256. Nada disso vai para log, e a consulta
+  usa `POST` para o segredo não aparecer em URL.
+- Convite vale 7 dias e é de uso único (o aceite é a DEV-0036). O link é `fithub.invitations.link-base` +
+  token (padrão `fithub://convite/`, aberto pelo app mobile).
+- E-mail pelo SMTP (`spring.mail.*`; padrão o Mailpit do compose em `localhost:1025`). Falha de envio não
+  desfaz o convite: `emailSent` volta `false` e o profissional compartilha o link. O health não depende do SMTP.
+- Projeção de profissionais: consumidor do `ProfissionalCadastrado` na fila `client.professional-registered`
+  (idempotente pela `java-commons`; 3 tentativas e depois `client.professional-registered.dlq`). O id é o
+  `sub` do profissional (ADR-009), então o token identifica quem convida.

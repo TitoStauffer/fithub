@@ -23,20 +23,26 @@ class ClientApiFakes {
         return Clock.fixed(Instant.parse("2026-11-23T12:00:00Z"), ZoneOffset.UTC);
     }
 
-    /** Token de teste: {@code Bearer conta-<uuid>} vira um JWT com esse {@code sub}; o resto é recusado. */
+    /**
+     * Tokens de teste: {@code Bearer conta-<uuid>} vira um JWT de cliente com esse {@code sub};
+     * {@code personal-<uuid>} e {@code nutri-<uuid>} trazem também o papel de profissional. O resto é recusado.
+     */
     @Bean
     JwtDecoder jwtDecoder() {
-        return token -> {
-            if (!token.startsWith("conta-")) {
-                throw new BadJwtException("token inválido");
-            }
-            return Jwt.withTokenValue(token)
-                    .header("alg", "none")
-                    .subject(token.substring("conta-".length()))
-                    .claim("realm_access", Map.of("roles", List.of("client")))
-                    .issuedAt(Instant.now())
-                    .expiresAt(Instant.now().plusSeconds(300))
-                    .build();
-        };
+        Map<String, List<String>> rolesByPrefix = Map.of(
+                "conta-", List.of("client"),
+                "personal-", List.of("client", "personal"),
+                "nutri-", List.of("client", "nutritionist"));
+        return token -> rolesByPrefix.entrySet().stream()
+                .filter(entry -> token.startsWith(entry.getKey()))
+                .findFirst()
+                .map(entry -> Jwt.withTokenValue(token)
+                        .header("alg", "none")
+                        .subject(token.substring(entry.getKey().length()))
+                        .claim("realm_access", Map.of("roles", entry.getValue()))
+                        .issuedAt(Instant.now())
+                        .expiresAt(Instant.now().plusSeconds(300))
+                        .build())
+                .orElseThrow(() -> new BadJwtException("token inválido"));
     }
 }
