@@ -23,7 +23,19 @@ public class ClientAccess {
 
     /** Exige vínculo ativo entre o profissional (o {@code sub} do token, ADR-009) e o cliente. */
     public void requireActiveLink(String professionalAccount, UUID clientId) {
-        if (!links.hasActiveLink(UUID.fromString(professionalAccount), clientId)) {
+        if (!links.hasActiveLink(accountId(professionalAccount), clientId)) {
+            throw new ClientNotFoundException();
+        }
+    }
+
+    /** Conta sem {@code sub} em UUID não tem vínculo com ninguém: é tratada como sem acesso, não como erro. */
+    private static UUID accountId(String account) {
+        if (account == null) {
+            throw new ClientNotFoundException();
+        }
+        try {
+            return UUID.fromString(account);
+        } catch (IllegalArgumentException notAnId) {
             throw new ClientNotFoundException();
         }
     }
