@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 
-import type { AuthClient, AuthUser } from './authClient';
-import { AuthContext, SessionExpiredError, type AuthState, type AuthStatus } from './authContext';
+import { RefreshRejectedError, type AuthClient, type AuthUser } from './authClient';
+import {
+    AuthContext,
+    SessionExpiredError,
+    SessionUnavailableError,
+    type AuthState,
+    type AuthStatus,
+} from './authContext';
 import { cameBackFromLogin, clearLoginRedirect, markLoginRedirect } from './loginRedirect';
 
 /** Renova o token quando faltar menos que isto para vencer (o access token do realm dura 5 minutos). */
@@ -25,11 +31,24 @@ export function AuthProvider({ client, children }: { client: AuthClient; childre
         setSession({ status: 'anonymous', user: undefined });
     }, [client]);
 
+    const rejectSession = useCallback(() => {
+        client.clear();
+        setSession({ status: 'rejected', user: undefined });
+    }, [client]);
+
+    // Só a recusa do Keycloak encerra a sessão; rede fora por instantes não tira a pessoa da tela (DEV-0146).
+    const onRefreshFailure = useCallback(
+        (error: unknown) => {
+            if (error instanceof RefreshRejectedError) endSession();
+        },
+        [endSession],
+    );
+
     useEffect(() => {
         let active = true;
         client.onTokenExpired(() => {
-            client.refresh(MIN_VALIDITY_SECONDS).catch(() => {
-                if (active) endSession();
+            client.refresh(MIN_VALIDITY_SECONDS).catch((error: unknown) => {
+                if (active) onRefreshFailure(error);
             });
         });
         client
@@ -51,7 +70,7 @@ export function AuthProvider({ client, children }: { client: AuthClient; childre
         return () => {
             active = false;
         };
-    }, [client, endSession]);
+    }, [client, onRefreshFailure]);
 
     // Com sessão, confere de tempos em tempos e renova antes de o token vencer.
     useEffect(() => {
@@ -63,10 +82,10 @@ export function AuthProvider({ client, children }: { client: AuthClient; childre
                     const user = client.user();
                     if (user) setSession({ status: 'authenticated', user });
                 })
-                .catch(endSession);
+                .catch(onRefreshFailure);
         }, REFRESH_CHECK_MS);
         return () => window.clearInterval(timer);
-    }, [client, endSession, session.status]);
+    }, [client, onRefreshFailure, session.status]);
 
     const state = useMemo<AuthState>(
         () => ({
@@ -83,9 +102,13 @@ export function AuthProvider({ client, children }: { client: AuthClient; childre
             async getAccessToken(options) {
                 try {
                     await client.refresh(options?.force ? -1 : MIN_VALIDITY_SECONDS);
-                } catch {
-                    endSession();
-                    throw new SessionExpiredError();
+                } catch (error) {
+                    if (error instanceof RefreshRejectedError) {
+                        endSession();
+                        throw new SessionExpiredError();
+                    }
+                    // Falha passageira: o token atual ainda serve, se estiver na validade.
+                    if (!client.hasValidToken()) throw new SessionUnavailableError();
                 }
                 const token = client.accessToken();
                 if (!token) {
@@ -95,8 +118,9 @@ export function AuthProvider({ client, children }: { client: AuthClient; childre
                 return token;
             },
             endSession,
+            rejectSession,
         }),
-        [client, endSession, session],
+        [client, endSession, rejectSession, session],
     );
 
     return <AuthContext value={state}>{children}</AuthContext>;

@@ -138,9 +138,13 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
   - Ao recarregar a página, a sessão é retomada pelo Keycloak (iframe
     escondido, `silent-check-sso.html`). Se o navegador bloquear, a rota
     protegida leva ao login, que volta direto enquanto houver sessão.
-  - O token é renovado antes de vencer. Falha na renovação encerra a sessão
-    local e leva ao login uma vez; quem volta do login sem sessão vê um erro,
-    sem novo redirecionamento.
+  - O token é renovado antes de vencer. Só a recusa do Keycloak (refresh
+    token inválido) encerra a sessão local e leva ao login uma vez; rede fora
+    por instantes mantém a sessão e o token atual enquanto ele valer (DEV-0146).
+    Quem volta do login sem sessão vê um erro, sem novo redirecionamento.
+  - Se a API recusar até o token renovado, a sessão local é apagada e a tela
+    mostra "Sair e entrar de novo", sem redirecionar: sair encerra a sessão no
+    Keycloak, o que impede o laço de login (DEV-0146).
   - Rota de profissional exige `personal` ou `nutritionist`; sem o papel, a
     tela mostra acesso negado. A proteção de verdade é sempre da API.
   - As chamadas às APIs usam `createApiFetch` (`src/lib/http.ts`): Bearer

@@ -57,6 +57,10 @@ suba o Keycloak pelo compose de `infra/`). A decisão dos papéis e dos clients 
 
 - **Rotas:** `/` é pública; `/app` exige sessão e o papel `personal` ou `nutritionist`. Sem sessão, a
   rota leva ao login e volta para a página pedida. Sem o papel, mostra acesso negado.
+- **Falhas de sessão (DEV-0146):** só a recusa do Keycloak encerra a sessão. Sem rede, a sessão
+  continua e o token atual é usado enquanto valer; sem token válido, `getAccessToken` lança
+  `SessionUnavailableError` (mostre "sem conexão" e deixe tentar de novo). Se a API recusar até o
+  token renovado, a rota protegida mostra "Sair e entrar de novo" em vez de redirecionar.
 - **Tokens só em memória:** nada de token em `localStorage` ou `sessionStorage`. Para chamar uma API,
   use `useApiFetch()`: ele manda o Bearer token, renova num 401 e só aceita as origens de `apiOrigins()`.
 - **Nova API do FitHub:** acrescente a origem em `apiOrigins()` (`lib/config.ts`); sem isso a chamada

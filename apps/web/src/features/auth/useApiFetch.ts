@@ -7,9 +7,14 @@ import { useAuth } from './authContext';
 
 /** `fetch` autenticado para as APIs do FitHub, ligado à sessão atual. */
 export function useApiFetch(): ApiFetch {
-    const { getAccessToken, endSession } = useAuth();
+    const { getAccessToken, rejectSession } = useAuth();
     return useMemo(
-        () => createApiFetch({ getAccessToken, onSessionRejected: endSession, allowedOrigins: apiOrigins() }),
-        [getAccessToken, endSession],
+        () =>
+            createApiFetch({
+                getAccessToken,
+                onSessionRejected: rejectSession,
+                allowedOrigins: apiOrigins(),
+            }),
+        [getAccessToken, rejectSession],
     );
 }
