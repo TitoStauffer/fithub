@@ -9,6 +9,11 @@ import test from 'node:test';
 const realm = JSON.parse(readFileSync(new URL('./realm-fithub.json', import.meta.url), 'utf8'));
 const client = (clientId) => realm.clients.find((candidate) => candidate.clientId === clientId);
 const APP_CLIENTS = ['fithub-web', 'fithub-mobile'];
+// Client confidencial do account-service, só para atribuir o papel de profissional (DEV-0029, ADR-008).
+const SERVICE_CLIENT = 'fithub-account-service';
+const SERVICE_ACCOUNT = `service-account-${SERVICE_CLIENT}`;
+// Papéis de administração mínimos para atribuir papel de realm, conferidos no Keycloak 26.8.
+const SERVICE_ADMIN_ROLES = ['manage-users', 'view-realm'];
 const REALM_ROLES = ['client', 'personal', 'nutritionist', 'admin'];
 
 test('o realm se chama fithub e está habilitado', () => {
@@ -16,8 +21,41 @@ test('o realm se chama fithub e está habilitado', () => {
   assert.equal(realm.enabled, true);
 });
 
-test('só os clients do web e do mobile são declarados', () => {
-  assert.deepEqual(realm.clients.map(({ clientId }) => clientId).sort(), [...APP_CLIENTS].sort());
+test('só os clients do web, do mobile e do account-service são declarados', () => {
+  assert.deepEqual(realm.clients.map(({ clientId }) => clientId).sort(), [...APP_CLIENTS, SERVICE_CLIENT].sort());
+});
+
+test(`${SERVICE_CLIENT}: confidencial, só client credentials, secret por variável de ambiente`, () => {
+  const candidate = client(SERVICE_CLIENT);
+  assert.equal(candidate.enabled, true);
+  assert.equal(candidate.publicClient, false);
+  assert.equal(candidate.serviceAccountsEnabled, true);
+  assert.equal(candidate.standardFlowEnabled, false, 'o client não faz login de pessoa');
+  assert.equal(candidate.implicitFlowEnabled, false);
+  assert.equal(candidate.directAccessGrantsEnabled, false);
+  assert.deepEqual(candidate.redirectUris, []);
+  assert.deepEqual(candidate.webOrigins, []);
+  // O valor real fica fora do repositório: o import do Keycloak troca o marcador pela variável.
+  assert.equal(candidate.secret, '${FITHUB_ACCOUNT_SERVICE_SECRET}');
+  // Sem full scope, o token só leva os papéis mapeados abaixo; kc-admin-api é exigido pela API de admin.
+  assert.equal(candidate.fullScopeAllowed, false);
+  assert.deepEqual(candidate.defaultClientScopes, ['kc-admin-api']);
+});
+
+test(`a conta de serviço do ${SERVICE_CLIENT} tem só ${SERVICE_ADMIN_ROLES.join(' e ')}`, () => {
+  assert.deepEqual(realm.users, [
+    {
+      username: SERVICE_ACCOUNT,
+      enabled: true,
+      serviceAccountClientId: SERVICE_CLIENT,
+      realmRoles: [],
+      clientRoles: { 'realm-management': SERVICE_ADMIN_ROLES },
+    },
+  ]);
+  assert.deepEqual(realm.clientScopeMappings, {
+    'realm-management': [{ client: SERVICE_CLIENT, roles: SERVICE_ADMIN_ROLES }],
+  });
+  assert.equal(realm.scopeMappings, undefined, 'nenhum papel de realm entra no token do client');
 });
 
 for (const clientId of APP_CLIENTS) {
@@ -158,8 +196,12 @@ test('token de acesso curto e TLS exigido fora da máquina local', () => {
   assert.notEqual(realm.sslRequired, 'none');
 });
 
-test('o arquivo não traz usuário, credencial, secret nem senha de SMTP', () => {
-  assert.equal(realm.users, undefined, 'usuário versionado no realm');
+test('o arquivo não traz usuário de pessoa, credencial, secret nem senha de SMTP', () => {
+  // O único usuário é a conta de serviço do account-service, sem credencial (teste acima).
+  for (const user of realm.users) {
+    assert.equal(user.username, SERVICE_ACCOUNT, `usuário versionado no realm: ${user.username}`);
+    assert.equal(user.credentials, undefined);
+  }
   assert.equal(realm.identityProviders, undefined, 'provedor de identidade entra com a DEV-0025');
   assert.equal(realm.smtpServer.host, 'mailpit');
   assert.equal(realm.smtpServer.auth, 'false');
@@ -171,7 +213,10 @@ test('o arquivo não traz usuário, credencial, secret nem senha de SMTP', () =>
     if (Array.isArray(value)) value.forEach((item, index) => visit(item, `${path}[${index}]`));
     else if (value && typeof value === 'object') {
       for (const [key, inner] of Object.entries(value)) {
-        if (/secret|password$|credentials|privateKey/i.test(key) && key !== 'passwordPolicy') secretKeys.push(`${path}.${key}`);
+        const placeholder = typeof inner === 'string' && /^\$\{[A-Z0-9_]+\}$/.test(inner);
+        if (/secret|password$|credentials|privateKey/i.test(key) && key !== 'passwordPolicy' && !placeholder) {
+          secretKeys.push(`${path}.${key}`);
+        }
         visit(inner, `${path}.${key}`);
       }
     }

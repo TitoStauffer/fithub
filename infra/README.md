@@ -50,6 +50,10 @@ e-mail pelo Mailpit ([ADR-007](../docs/00-oficial/adr/ADR-007-papeis-e-clients-d
   script, página `.ftl` de login nem recurso de outro domínio; o teste das guardas recusa.
 - **Cadastro:** a tela pede e-mail e nome. Depois de confirmar o e-mail (a mensagem chega no
   Mailpit), a pessoa define a senha.
+- **Client do account-service:** `fithub-account-service`, confidencial, só para atribuir o papel
+  de profissional (ADR-008). O secret vem de `FITHUB_ACCOUNT_SERVICE_SECRET` (o import do realm troca
+  o marcador `${FITHUB_ACCOUNT_SERVICE_SECRET}` pelo valor); no compose local o padrão é
+  `fithub-dev-account-service`, só de desenvolvimento.
 - **Conferir o realm de pé:** `node infra/keycloak/check-live-realm.mjs http://localhost:8080`.
 - Mudança feita só pelo console não vai para o repositório: leve para o JSON o que precisar ficar.
 - Nunca coloque usuário, senha ou secret no arquivo; o teste das guardas recusa.

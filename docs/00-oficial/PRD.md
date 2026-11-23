@@ -228,10 +228,12 @@ Cliente mantém todo o histórico
 - **FR-01** — Cadastro e login por e-mail e senha, e login com Google.
 - **FR-02** — Recuperação de senha por e-mail.
 - **FR-03** — O usuário tem um tipo de conta: profissional (personal ou
-  nutricionista) ou cliente. Uma mesma pessoa pode ter as duas
-  (QUESTÃO-02).
+  nutricionista) ou cliente. Uma mesma pessoa pode ter as duas, com a mesma
+  conta (QUESTÃO-02, decidida).
 - **FR-04** — O profissional informa seu número de registro (CREF ou CRN) no
-  cadastro.
+  cadastro. No MVP o registro é só declarado: o formato é validado e a
+  existência no conselho não (QUESTÃO-08, decidida). Formato aceito: número
+  de 1 a 6 dígitos e UF de emissão; no CREF, também a categoria (G ou P).
 
 ### 9.2 Assinatura do profissional
 - **FR-05** — O profissional assina um plano mensal para usar o lado
@@ -644,8 +646,8 @@ Então um novo recorde de supino é registrado
 - **QUESTÃO-01** — Assinatura: preço, planos (limite de clientes por plano?),
   teste grátis, meio de pagamento (Stripe, Asaas, Mercado Pago…) e se o
   primeiro lançamento já cobra ou começa com cobrança manual/beta gratuito.
-- **QUESTÃO-02** — Um personal pode ser também cliente de uma nutricionista
-  com a mesma conta?
+- ~~**QUESTÃO-02**~~ — **Decidida pelo Tito em 22/11/2026:** sim, a mesma
+  conta pode ser profissional e cliente.
 - **QUESTÃO-03** — Quando o cliente tem ficha própria e passa a ter personal, a
   ficha própria fica arquivada, coexiste ou é visível ao personal?
 - **QUESTÃO-04** — Por quanto tempo o cliente pode corrigir um registro de
@@ -656,8 +658,11 @@ Então um novo recorde de supino é registrado
   acontece com as prescrições guardadas pelo profissional.
 - **QUESTÃO-07** — Licença, custo e termos da base de exercícios externa
   (vídeos/animações podem ser exibidos em app comercial?).
-- **QUESTÃO-08** — O registro CREF/CRN será verificado (manual ou
-  automaticamente) ou apenas declarado?
+- ~~**QUESTÃO-08**~~ — **Decidida pelo Tito em 22/11/2026:** só declarado
+  no MVP, com o formato validado e uma situação (`DECLARED`) gravada para
+  permitir verificação futura. O formato exato (número de 1 a 6 dígitos, UF e,
+  no CREF, categoria G ou P) foi decisão do Agent na ausência do Tito, para
+  revisão (DEV-0029).
 - **QUESTÃO-09** — O cliente vê as restrições que o profissional registrou
   sobre ele? (premissa atual: sim)
 - **QUESTÃO-10** — Qual o período padrão de "inatividade" para sinalizar um

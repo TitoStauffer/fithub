@@ -4,7 +4,9 @@
 //
 //   node infra/keycloak/check-live-realm.mjs [http://localhost:8080]
 //
-// Só lê endpoints públicos do realm: não usa credencial de admin nem cria nada.
+// Não usa credencial de admin nem cria nada. A única credencial é a do client do account-service
+// (FITHUB_ACCOUNT_SERVICE_SECRET, com o padrão de desenvolvimento do compose), para conferir que ele
+// faz só o que precisa (DEV-0029, ADR-008).
 const base = (process.argv[2] ?? 'http://localhost:8080').replace(/\/$/, '');
 const realm = `${base}/realms/fithub`;
 const CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
@@ -66,6 +68,29 @@ for (const { clientId, redirectUri } of CLIENTS) {
   });
   const body = await password.json().catch(() => ({}));
   check(password.status >= 400 && body.error === 'unauthorized_client', `${clientId}: login por senha direta é recusado`);
+}
+
+// Client do account-service (DEV-0029): consegue o token e ler o papel que atribui, mas não enxerga
+// os clients nem altera o realm.
+const serviceToken = await fetch(`${realm}/protocol/openid-connect/token`, {
+  method: 'POST',
+  body: new URLSearchParams({
+    grant_type: 'client_credentials',
+    client_id: 'fithub-account-service',
+    client_secret: process.env.FITHUB_ACCOUNT_SERVICE_SECRET ?? 'fithub-dev-account-service',
+  }),
+});
+const { access_token: serviceAccess } = await serviceToken.json().catch(() => ({}));
+check(serviceToken.status === 200 && Boolean(serviceAccess), 'fithub-account-service obtém token por client credentials');
+if (serviceAccess) {
+  const admin = (path, init = {}) =>
+    fetch(`${base}/admin/realms/fithub${path}`, { ...init, headers: { Authorization: `Bearer ${serviceAccess}`, 'Content-Type': 'application/json' } });
+  const role = await admin('/roles/personal');
+  check(role.status === 200, 'fithub-account-service lê o papel personal');
+  const clients = await admin('/clients');
+  check(clients.status === 403, `fithub-account-service não lista os clients (${clients.status})`);
+  const realmChange = await admin('', { method: 'PUT', body: JSON.stringify({ registrationAllowed: false }) });
+  check(realmChange.status === 403, `fithub-account-service não altera o realm (${realmChange.status})`);
 }
 
 if (failures.length > 0) {
