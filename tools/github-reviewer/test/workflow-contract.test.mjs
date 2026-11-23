@@ -135,7 +135,7 @@ test('pins orchestration runtime and isolates deterministic consolidation from C
   assert.match(coordinator, /runs-on: ubuntu-24.04/);
   assert.doesNotMatch(coordinator, /self-hosted|secrets\./);
   assert.match(orchestrationWorkflow, /retry_inconclusive:[\s\S]*?default: false/);
-  assert.equal([...orchestrationWorkflow.matchAll(/cache-dependency-path:\s*tools\/github-reviewer\/package-lock\.json/g)].length, 6);
+  assert.equal([...orchestrationWorkflow.matchAll(/cache-dependency-path:\s*tools\/github-reviewer\/package-lock\.json/g)].length, 4);
   assert.match(orchestrationWorkflow, /Fail when Code Review produced no structured result/);
   assert.match(orchestrationWorkflow, /Fail when QA produced no structured result/);
   assert.match(orchestrationWorkflow, /Fail when Quality Gate produced no structured result/);
@@ -164,5 +164,25 @@ test('keeps the self-hosted model stages to pull requests from this repository a
   for (const job of jobs.filter((candidate) => /runs-on: \[self-hosted/.test(candidate) && !candidate.startsWith('  code-review:\n'))) {
     const name = job.match(/^ {2}([a-z-]+):/)?.[1];
     assert.match(job, /^ {4}needs: (\[[^\]]*\bcode-review\b[^\]]*\]|code-review)$/m, `job ${name} roda no self-hosted sem depender do code-review`);
+  }
+});
+
+// DEV-0154: no runner self-hosted o cache do npm da action custa mais do que economiza. O runner é
+// persistente, e a action salvava o diretório global do npm da máquina (1,5 GB), levando 16 minutos
+// para restaurar em cada job, contra 3 a 4 do modelo.
+test('keeps the npm cache off the self-hosted jobs and on the hosted ones', () => {
+  const jobs = orchestrationWorkflow.replace(/\r\n/g, '\n').split('\njobs:\n')[1].split(/\n(?=  [a-z-]+:\n)/);
+  const withNode = jobs.filter((job) => /uses: actions\/setup-node@/.test(job));
+  const selfHosted = withNode.filter((job) => /runs-on: \[self-hosted/.test(job));
+  const hosted = withNode.filter((job) => !/runs-on: \[self-hosted/.test(job));
+  assert.equal(selfHosted.length, 2);
+  assert.equal(hosted.length, 4);
+  for (const job of selfHosted) {
+    const name = job.match(/^ {2}([a-z-]+):/)?.[1];
+    assert.doesNotMatch(job, /^\s+cache:/m, `job ${name} restaura cache do npm no runner self-hosted`);
+    assert.match(job, /^\s+package-manager-cache: false$/m, `job ${name} sem package-manager-cache: false`);
+  }
+  for (const job of hosted) {
+    assert.match(job, /^\s+cache: npm$/m);
   }
 });
