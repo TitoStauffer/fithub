@@ -6,6 +6,7 @@ import com.fithub.client.domain.invitation.InvitationRepository;
 import com.fithub.client.domain.invitation.InviteSecrets;
 import com.fithub.client.domain.link.ConsentTerms;
 import com.fithub.client.domain.link.Link;
+import com.fithub.client.domain.link.LinkEvents;
 import com.fithub.client.domain.link.LinkRepository;
 import com.fithub.client.domain.link.LinkRuleException;
 import com.fithub.client.domain.professional.Professional;
@@ -33,6 +34,7 @@ public class AcceptInvitation {
     private final ProfessionalDirectory professionals;
     private final ClientProfileRepository profiles;
     private final LinkRepository links;
+    private final LinkEvents events;
     private final TransactionOperations transaction;
     private final Clock clock;
 
@@ -41,12 +43,14 @@ public class AcceptInvitation {
             ProfessionalDirectory professionals,
             ClientProfileRepository profiles,
             LinkRepository links,
+            LinkEvents events,
             TransactionOperations transaction,
             Clock clock) {
         this.invitations = invitations;
         this.professionals = professionals;
         this.profiles = profiles;
         this.links = links;
+        this.events = events;
         this.transaction = transaction;
         this.clock = clock;
     }
@@ -97,6 +101,8 @@ public class AcceptInvitation {
             }
             try {
                 links.saveWithConsent(link, ConsentTerms.SCOPE, ConsentTerms.CURRENT_VERSION, now);
+                // VinculoAtivado no outbox, na mesma transação do vínculo (DEV-0038).
+                events.activated(link, ConsentTerms.SCOPE);
             } catch (LinkRepository.ActiveLinkConflict raced) {
                 // Outro aceite do mesmo tipo ganhou a corrida; a transação inteira (inclusive o convite) volta.
                 throw activeLinkRule(false, professional.type());

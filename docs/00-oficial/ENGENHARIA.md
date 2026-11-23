@@ -178,6 +178,9 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
   - As chamadas usam `createApiFetch` (`src/lib/apiFetch.ts`), com as
     mesmas regras da web: Bearer token, uma nova tentativa no 401 e token só
     para as origens das APIs do FitHub.
+- **Eventos de vínculo** (DEV-0038): `VinculoAtivado` no aceite e
+  `VinculoEncerrado` no encerramento, no outbox da mesma transação; só o
+  encerramento que o banco gravou publica (repetir não publica de novo).
 - **Encerramento do vínculo** (DEV-0037): `POST /links/{id}/end` pela parte
   que a conta é (cliente ou profissional; quem não é parte recebe 404), imediato
   e definitivo, com data e autor; repetir não muda nada (vale o primeiro). O
