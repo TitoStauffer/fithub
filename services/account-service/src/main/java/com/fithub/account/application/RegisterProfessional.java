@@ -67,13 +67,7 @@ public class RegisterProfessional {
         var now = clock.instant();
         var organization = new Organization(UuidV7.next(clock), command.accountId(), now);
         var professional = Professional.register(
-                UuidV7.next(clock),
-                command.accountId(),
-                command.name(),
-                command.type(),
-                registration,
-                organization.id(),
-                now);
+                command.accountId(), command.name(), command.type(), registration, organization.id(), now);
         try {
             // O evento vai para o outbox na mesma transação do cadastro (DEV-0030, ADR-003).
             transaction.executeWithoutResult(status -> {
