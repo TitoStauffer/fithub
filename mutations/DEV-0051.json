@@ -1,0 +1,50 @@
+{
+    "issue": "DEV-0051",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Web: foto com URL vencida não pede URL nova",
+            "area": "apps",
+            "file": "apps/web/src/features/assessments/PhotoComparison.tsx",
+            "find": "                        void photos.refetch();",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Web: falha repetida pede URL nova sem parar",
+            "area": "apps",
+            "file": "apps/web/src/features/assessments/PhotoComparison.tsx",
+            "find": "                        if (retried) {",
+            "replace": "                        if (false) {",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "App: falha repetida nunca avisa e a foto some",
+            "area": "apps",
+            "file": "apps/mobile/src/features/assessments/PhotoComparisonScreen.tsx",
+            "find": "                        if (attempt > 0) setBroken(true);",
+            "replace": "                        if (false) setBroken(true);",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}

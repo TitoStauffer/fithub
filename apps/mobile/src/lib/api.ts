@@ -206,3 +206,25 @@ export async function putToPresignedUrl(
         throw new ApiProblemError(response.status, 'Não foi possível enviar a foto. Tente de novo.', {});
     }
 }
+
+/** Histórico de avaliações do próprio cliente, da mais recente para a mais antiga (DEV-0044). */
+export async function fetchMyAssessments(
+    apiFetch: ApiFetch,
+    baseUrl = clientApiUrl(),
+): Promise<Assessment[]> {
+    return (await read<Assessment[]>(apiFetch, `${baseUrl}/clients/me/assessments`)) ?? [];
+}
+
+/** Fotos da avaliação com URL de leitura de 5 minutos, pedida na hora de mostrar (DEV-0048, DEV-0051). */
+export async function fetchMyPhotos(
+    apiFetch: ApiFetch,
+    assessmentId: string,
+    baseUrl = clientApiUrl(),
+): Promise<Photo[]> {
+    return (
+        (await read<Photo[]>(
+            apiFetch,
+            `${baseUrl}/clients/me/assessments/${encodeURIComponent(assessmentId)}/photos`,
+        )) ?? []
+    );
+}

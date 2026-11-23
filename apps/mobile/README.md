@@ -94,3 +94,8 @@ está no ADR-007.
   (`expo-file-system`) logo depois da tentativa, com ou sem sucesso.
 - **Sem conexão:** o envio da avaliação avisa e mantém tudo o que foi preenchido; a foto é descartada e a tela pede
   para tirar de novo. Medidas ficam só no estado da tela, nunca no cofre, `AsyncStorage` ou log.
+
+## Comparativo de fotos (DEV-0051)
+
+- "Comparar fotos" na tela inicial: o cliente escolhe duas datas e a pose e vê as próprias fotos lado a lado. A URL de
+  cada foto é pedida na hora de mostrar e pedida de novo uma vez se a imagem não carregar (URL vencida).

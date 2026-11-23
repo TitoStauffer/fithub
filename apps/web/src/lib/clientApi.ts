@@ -12,6 +12,7 @@ export type ClientProfile = Schemas['ClientProfile'];
 export type HealthProfile = Schemas['HealthProfile'];
 export type Assessment = Schemas['Assessment'];
 export type AssessmentRequest = Schemas['AssessmentRequest'];
+export type Photo = Schemas['Photo'];
 
 /**
  * O profissional não tem (mais) vínculo ativo com o cliente: a API responde 404 sem revelar o motivo (BR-02). A
@@ -99,6 +100,14 @@ export function clientApi(apiFetch: ApiFetch, baseUrl: string) {
         async clientAssessments(clientId: string): Promise<Assessment[]> {
             return readLinked<Assessment[]>(
                 url(`/professionals/me/clients/${encodeURIComponent(clientId)}/assessments`),
+            );
+        },
+        /** Fotos da avaliação do cliente vinculado, com URL de leitura de 5 minutos (DEV-0048). */
+        async clientAssessmentPhotos(clientId: string, assessmentId: string): Promise<Photo[]> {
+            return readLinked<Photo[]>(
+                url(
+                    `/professionals/me/clients/${encodeURIComponent(clientId)}/assessments/${encodeURIComponent(assessmentId)}/photos`,
+                ),
             );
         },
         /** Registra a avaliação presencial do cliente vinculado (DEV-0044 a 0047). */
