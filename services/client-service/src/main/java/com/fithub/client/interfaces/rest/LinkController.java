@@ -2,9 +2,11 @@ package com.fithub.client.interfaces.rest;
 
 import com.fithub.client.application.AcceptInvitation;
 import com.fithub.client.application.ManageInvitations;
+import com.fithub.client.application.ManageLinks;
 import com.fithub.client.domain.invitation.InvalidInvitationException;
 import com.fithub.client.domain.invitation.SharedData;
 import com.fithub.client.domain.link.ConsentTerms;
+import com.fithub.client.domain.link.Link;
 import com.fithub.client.domain.link.LinkRuleException;
 import com.fithub.client.domain.professional.ProfessionalType;
 import com.fithub.client.domain.profile.ProfileRequiredException;
@@ -26,6 +28,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -42,9 +46,11 @@ import org.springframework.web.bind.annotation.RestController;
 class LinkController {
 
     private final AcceptInvitation acceptInvitation;
+    private final ManageLinks manageLinks;
 
-    LinkController(AcceptInvitation acceptInvitation) {
+    LinkController(AcceptInvitation acceptInvitation, ManageLinks manageLinks) {
         this.acceptInvitation = acceptInvitation;
+        this.manageLinks = manageLinks;
     }
 
     @Schema(name = "AcceptInvitationRequest", description = "Informe o token do link ou o código.")
@@ -125,6 +131,90 @@ class LinkController {
                         result.professional().type(),
                         ConsentTerms.SCOPE,
                         result.link().startedAt()));
+    }
+
+    @Schema(name = "ClientLink", description = "Vínculo visto pelo cliente.")
+    record ClientLinkResponse(
+            UUID id,
+            UUID professionalId,
+            String professionalName,
+            ProfessionalType professionalType,
+            Link.Status status,
+            Instant startedAt,
+            @Schema(nullable = true) Instant endedAt,
+            @Schema(nullable = true) Link.Party endedBy) {
+
+        static ClientLinkResponse of(Link link, String professionalName) {
+            return new ClientLinkResponse(
+                    link.id(),
+                    link.professionalId(),
+                    professionalName,
+                    link.type(),
+                    link.status(),
+                    link.startedAt(),
+                    link.endedAt(),
+                    link.endedBy());
+        }
+    }
+
+    @Schema(name = "LinkStatus", description = "Situação do vínculo depois do encerramento.")
+    record EndedResponse(
+            UUID id,
+            Link.Status status,
+            @Schema(nullable = true) Instant endedAt,
+            @Schema(nullable = true) Link.Party endedBy) {}
+
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            summary = "Vínculos do cliente autenticado, ativos e encerrados",
+            responses = {
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "Vínculos do cliente, do mais novo para o mais antigo."),
+                @ApiResponse(
+                        responseCode = "401",
+                        description = "Sem token válido.",
+                        content =
+                                @Content(
+                                        mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                                        schema = @Schema(implementation = ApiProblem.class)))
+            })
+    List<ClientLinkResponse> mine(@AuthenticationPrincipal Jwt jwt) {
+        return manageLinks.listMine(jwt.getSubject()).stream()
+                .map(view -> ClientLinkResponse.of(view.link(), view.professionalName()))
+                .toList();
+    }
+
+    @PostMapping(path = "/{id}/end", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            summary = "Encerra o vínculo (pelo cliente ou pelo profissional que é parte dele)",
+            responses = {
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "Vínculo encerrado (ou já estava; vale o primeiro encerramento)."),
+                @ApiResponse(
+                        responseCode = "401",
+                        description = "Sem token válido.",
+                        content =
+                                @Content(
+                                        mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                                        schema = @Schema(implementation = ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "404",
+                        description = "Vínculo não encontrado, ou a conta não é parte dele.",
+                        content =
+                                @Content(
+                                        mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                                        schema = @Schema(implementation = ApiProblem.class)))
+            })
+    EndedResponse end(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
+        Link link = manageLinks.end(jwt.getSubject(), id);
+        return new EndedResponse(link.id(), link.status(), link.endedAt(), link.endedBy());
+    }
+
+    @ExceptionHandler(ManageLinks.NotFoundException.class)
+    ProblemDetail linkNotFound(ManageLinks.NotFoundException exception) {
+        return InvitationController.problem(HttpStatus.NOT_FOUND, "Vínculo não encontrado", exception.getMessage());
     }
 
     @ExceptionHandler(InvalidInvitationException.class)

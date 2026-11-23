@@ -1,0 +1,105 @@
+{
+    "issue": "DEV-0037",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Qualquer conta passa a encerrar o vínculo como cliente",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/link/Link.java",
+            "find": "if (clientId.equals(account)) {",
+            "replace": "if (true) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkEndingTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Qualquer conta passa a encerrar o vínculo como profissional",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/link/Link.java",
+            "find": "if (professionalId.equals(account)) {",
+            "replace": "if (true) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkEndingTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Encerrar de novo passa a trocar a data e o autor do encerramento",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/link/Link.java",
+            "find": "if (status == Status.ENDED) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Banco passa a regravar o encerramento de um vínculo já encerrado",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcLinkRepository.java",
+            "find": " where id = :id and status = 'ACTIVE'",
+            "replace": " where id = :id",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkEndingTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Lista do profissional passa a mostrar vínculos encerrados",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcLinkRepository.java",
+            "find": "where l.professional_id = :professionalId and l.status = 'ACTIVE'",
+            "replace": "where l.professional_id = :professionalId",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkEndingTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

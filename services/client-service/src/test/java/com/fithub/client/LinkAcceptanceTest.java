@@ -359,7 +359,7 @@ class LinkAcceptanceTest extends ServiceIntegrationTest {
                         .param("invitation", null)
                         .update())
                 .hasMessageContaining("ux_client_link_active_type");
-        assertThatThrownBy(() -> jdbc.sql(insert.replace("'ACTIVE'", "'ENDED'"))
+        assertThatThrownBy(() -> jdbc.sql(insert)
                         .param("id", UUID.randomUUID())
                         .param("client", UUID.fromString(client()))
                         .param("professional", UUID.fromString(personal))
