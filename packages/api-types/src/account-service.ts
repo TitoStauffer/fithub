@@ -29,18 +29,25 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        ProblemDetail: {
+        /** @description Erro no formato Problem Details (RFC 9457). */
+        Problem: {
+            /** @description Mensagem para a pessoa, em português. */
             detail?: string;
-            /** Format: uri */
-            instance?: string;
-            properties?: {
-                [key: string]: unknown;
-            };
+            /** @description Campos inválidos; presente só nas respostas 400. */
+            errors?: components["schemas"]["ProblemFieldError"][] | null;
+            instance?: string | null;
             /** Format: int32 */
             status?: number;
             title?: string;
-            /** Format: uri */
+            /**
+             * @description URI do tipo do erro.
+             * @example about:blank
+             */
             type?: string;
+        };
+        ProblemFieldError: {
+            field?: string;
+            message?: string;
         };
         Professional: {
             /** Format: date-time */
@@ -110,7 +117,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description A conta ainda não tem cadastro de profissional. */
@@ -119,7 +126,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Professional"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };
@@ -161,7 +168,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description Sem token válido. */
@@ -170,7 +177,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description A conta já tem um cadastro com outros dados. */
@@ -179,7 +186,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/problem+json": components["schemas"]["ProblemDetail"];
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
         };

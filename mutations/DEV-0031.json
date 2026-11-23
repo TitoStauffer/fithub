@@ -140,6 +140,41 @@
                 "-Dtest=AccountServiceSkeletonTest",
                 "-Dsurefire.failIfNoSpecifiedTests=false"
             ]
+        },
+        {
+            "id": "M10",
+            "description": "Erro da API num campo que o formulário não mostra some da tela",
+            "area": "apps",
+            "file": "apps/web/src/features/onboarding/OnboardingPage.tsx",
+            "find": "if (hidden.length > 0) setFormError(hidden.join(' '));",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "404 do GET /professionals/me volta sem a mensagem em Problem Details",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/interfaces/rest/ProfessionalController.java",
+            "find": "return new ErrorResponseException(HttpStatus.NOT_FOUND, problem, null);",
+            "replace": "return new ErrorResponseException(HttpStatus.NOT_FOUND);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalRegistrationTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
         }
     ]
 }

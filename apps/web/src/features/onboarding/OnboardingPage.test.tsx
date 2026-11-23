@@ -181,6 +181,27 @@ describe('onboarding do profissional', () => {
         expect(screen.getByLabelText('UF do registro')).toHaveValue('SP');
     });
 
+    // Code Review do PR #202 (LOW): o account-service recusa com o campo `name` quando o perfil do
+    // Keycloak não tem nome, e o formulário não mostra esse campo.
+    it('erro da API num campo que o formulário não mostra aparece na mensagem geral', async () => {
+        const user = userEvent.setup();
+        replies.POST = [
+            {
+                status: 400,
+                body: {
+                    detail: 'Um ou mais campos são inválidos.',
+                    errors: [{ field: 'name', message: 'Seu perfil precisa ter um nome.' }],
+                },
+            },
+        ];
+        renderOnboarding(fakeAuthClient({ user: userWith('client') }));
+
+        await fillPersonal(user);
+        await user.click(screen.getByRole('button', { name: 'Concluir cadastro' }));
+
+        expect(await screen.findByRole('alert')).toHaveTextContent('Seu perfil precisa ter um nome.');
+    });
+
     it('conta com outro cadastro mostra a mensagem da API no formulário', async () => {
         const user = userEvent.setup();
         replies.POST = [

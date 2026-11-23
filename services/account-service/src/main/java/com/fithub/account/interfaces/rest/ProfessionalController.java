@@ -23,6 +23,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.ErrorResponseException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -121,21 +122,21 @@ class ProfessionalController {
                         content =
                                 @Content(
                                         mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
-                                        schema = @Schema(implementation = ProblemDetail.class))),
+                                        schema = @Schema(implementation = ApiProblem.class))),
                 @ApiResponse(
                         responseCode = "401",
                         description = "Sem token válido.",
                         content =
                                 @Content(
                                         mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
-                                        schema = @Schema(implementation = ProblemDetail.class))),
+                                        schema = @Schema(implementation = ApiProblem.class))),
                 @ApiResponse(
                         responseCode = "409",
                         description = "A conta já tem um cadastro com outros dados.",
                         content =
                                 @Content(
                                         mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
-                                        schema = @Schema(implementation = ProblemDetail.class)))
+                                        schema = @Schema(implementation = ApiProblem.class)))
             })
     ResponseEntity<ProfessionalResponse> register(
             @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody RegistrationRequest request) {
@@ -164,20 +165,34 @@ class ProfessionalController {
                                 @Content(
                                         mediaType = MediaType.APPLICATION_JSON_VALUE,
                                         schema = @Schema(implementation = ProfessionalResponse.class))),
-                @ApiResponse(responseCode = "404", description = "A conta ainda não tem cadastro de profissional."),
+                @ApiResponse(
+                        responseCode = "404",
+                        description = "A conta ainda não tem cadastro de profissional.",
+                        content =
+                                @Content(
+                                        mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                                        schema = @Schema(implementation = ApiProblem.class))),
                 @ApiResponse(
                         responseCode = "401",
                         description = "Sem token válido.",
                         content =
                                 @Content(
                                         mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
-                                        schema = @Schema(implementation = ProblemDetail.class)))
+                                        schema = @Schema(implementation = ApiProblem.class)))
             })
     ResponseEntity<ProfessionalResponse> mine(@AuthenticationPrincipal Jwt jwt) {
         return registerProfessional
                 .findMine(jwt.getSubject())
                 .map(professional -> ResponseEntity.ok(ProfessionalResponse.of(professional)))
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(ProfessionalController::notRegistered);
+    }
+
+    /** 404 em Problem Details, como os outros erros (Code Review do PR #202). */
+    private static ErrorResponseException notRegistered() {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.NOT_FOUND, "Esta conta ainda não tem cadastro de profissional.");
+        problem.setTitle("Cadastro não encontrado");
+        return new ErrorResponseException(HttpStatus.NOT_FOUND, problem, null);
     }
 
     /**

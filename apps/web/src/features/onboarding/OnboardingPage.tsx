@@ -58,6 +58,12 @@ export function OnboardingPage() {
         onError: (error) => {
             if (error instanceof ApiProblemError && Object.keys(error.fieldErrors).length > 0) {
                 setErrors(error.fieldErrors);
+                // Campo que o formulário não mostra (o nome vem do perfil do Keycloak, por exemplo): a
+                // mensagem vai para o aviso geral, senão a pessoa não sabe o que corrigir.
+                const hidden = Object.entries(error.fieldErrors)
+                    .filter(([field]) => !(field in EMPTY_FORM))
+                    .map(([, message]) => message);
+                if (hidden.length > 0) setFormError(hidden.join(' '));
                 return;
             }
             setFormError(messageOf(error));

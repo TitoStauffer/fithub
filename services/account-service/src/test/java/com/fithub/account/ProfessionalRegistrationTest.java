@@ -241,7 +241,11 @@ class ProfessionalRegistrationTest extends ServiceIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.registration.number").value("012345"));
         mvc.perform(get("/professionals/me").header("Authorization", "Bearer conta-" + newAccount()))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                // Code Review do PR #202: o 404 é Problem Details, como o contrato declara.
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.detail").value("Esta conta ainda não tem cadastro de profissional."));
     }
 
     @Test
