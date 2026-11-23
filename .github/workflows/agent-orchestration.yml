@@ -65,8 +65,9 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24.22.0"
-          cache: npm
-          cache-dependency-path: tools/github-reviewer/package-lock.json
+          # DEV-0154: sem cache do npm no runner self-hosted. Ele é persistente e o cache já está no disco;
+          # a action salvava o diretório global do npm (1,5 GB) e levava 16 min para restaurar a cada job.
+          package-manager-cache: false
 
       - name: Install trusted orchestration dependencies
         working-directory: tools/github-reviewer
@@ -192,8 +193,9 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24.22.0"
-          cache: npm
-          cache-dependency-path: tools/github-reviewer/package-lock.json
+          # DEV-0154: sem cache do npm no runner self-hosted. Ele é persistente e o cache já está no disco;
+          # a action salvava o diretório global do npm (1,5 GB) e levava 16 min para restaurar a cada job.
+          package-manager-cache: false
 
       - name: Install trusted orchestration dependencies
         working-directory: tools/github-reviewer
