@@ -22,7 +22,7 @@
 - **Reviewer** em `tools/github-reviewer`, portado do CashIn e adaptado: sem SonarQube, sem
   proteção de branch, checks do FitHub (`src/repository-policy.ts`), vault nesta pasta. Resume
   `package-lock.json` e `pnpm-lock.yaml` em vez de mandá-los crus ao modelo (DEV-0142).
-- **Runner self-hosted** `fithub-agents-windows` na máquina do Tito (`tools/github-runner`).
+- **Runner self-hosted** `fithub-agents-windows` na máquina do Tito (`tools/github-runner`). Só atende PR de branch do próprio repositório com o CI disparado pelo dono, e disparo manual só pelo dono (DEV-0152), preparando o repositório para ficar público.
 - **Código da primeira versão** em `legacy/` (monólito modular), só como referência.
 - **Documentação da primeira versão** removida da árvore (DEV-0010); recuperável pelo histórico do git
   conforme [docs/HISTORICO.md](../HISTORICO.md). O CI roda [tools/repo-checks/check-docs.mjs](../../tools/repo-checks/check-docs.mjs): caminhos versionados até 200 caracteres, links relativos dos `.md` (fora de `legacy/`) e os caminhos do `HISTORICO.md` presentes no commit citado e ausentes do HEAD.
