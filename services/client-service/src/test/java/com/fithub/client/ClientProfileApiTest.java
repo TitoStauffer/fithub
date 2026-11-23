@@ -8,30 +8,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fithub.testing.service.ServiceIntegrationTest;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.security.oauth2.jwt.BadJwtException;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 /** Perfil do cliente ponta a ponta (DEV-0032): HTTP, validação e Postgres real, com o relógio fixo. */
+@Import(ClientApiFakes.class)
 class ClientProfileApiTest extends ServiceIntegrationTest {
 
     private static final String BODY = """
@@ -44,34 +36,6 @@ class ClientProfileApiTest extends ServiceIntegrationTest {
 
     @Autowired
     JdbcClient jdbc;
-
-    @TestConfiguration
-    static class Fakes {
-
-        /** Hoje, no teste, é 23/11/2026. */
-        @Bean
-        @Primary
-        Clock fixedClock() {
-            return Clock.fixed(Instant.parse("2026-11-23T12:00:00Z"), ZoneOffset.UTC);
-        }
-
-        /** Token de teste: {@code Bearer conta-<uuid>} vira um JWT com esse {@code sub}; o resto é recusado. */
-        @Bean
-        JwtDecoder jwtDecoder() {
-            return token -> {
-                if (!token.startsWith("conta-")) {
-                    throw new BadJwtException("token inválido");
-                }
-                return Jwt.withTokenValue(token)
-                        .header("alg", "none")
-                        .subject(token.substring("conta-".length()))
-                        .claim("realm_access", Map.of("roles", List.of("client")))
-                        .issuedAt(Instant.now())
-                        .expiresAt(Instant.now().plusSeconds(300))
-                        .build();
-            };
-        }
-    }
 
     private static String newAccount() {
         return UUID.randomUUID().toString();

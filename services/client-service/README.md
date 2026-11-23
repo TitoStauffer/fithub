@@ -19,3 +19,16 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   `ClientProfile.MINIMUM_AGE`.
 - A idade é calculada na leitura, nunca gravada (FR-09). Criar e atualizar são um upsert: pedidos
   simultâneos da mesma conta terminam com um perfil, e só um deles responde 201.
+
+## Perfil de saúde (DEV-0033)
+
+| Rota | Resposta |
+|---|---|
+| `PUT /clients/me/health` | 200 grava (substitui o anterior); 400 com o campo inválido; 409 sem o perfil do cliente |
+| `GET /clients/me/health` | 200 com as condições e o texto livre; 404 se ainda não houver |
+
+- Dado sensível (LGPD, art. 11): nunca vai para log, mensagem de erro ou evento. O teste
+  `HealthProfileApiTest.oDadoDeSaudeNuncaApareceNoLog` confere a saída do serviço.
+- Condições como conjunto (`DIABETES`, `HYPERTENSION`, `PREGNANCY`, `RECENT_SURGERY`, `OTHER`): repetidas
+  contam uma vez, lista vazia é nenhuma. Texto livre opcional de até 1000 caracteres.
+- Exige o perfil do cliente já criado (409 com Problem Details); a chave estrangeira garante o mesmo no banco.
