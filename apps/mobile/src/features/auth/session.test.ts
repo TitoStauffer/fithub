@@ -262,6 +262,80 @@ describe('renovação em andamento quando a sessão é encerrada', () => {
     });
 });
 
+// Code Review do PR #196, 2ª rodada (LOW): a conferência vale também depois do cofre, e uma resposta
+// atrasada só encerra a sessão em que nasceu.
+describe('respostas atrasadas e cofre lento', () => {
+    it('logout enquanto o cofre grava a renovação não devolve o token à memória nem ao cofre', async () => {
+        const { session, store } = setup();
+        await session.signIn();
+        const release = store.holdNextSave();
+        const pending = session.getAccessToken({ force: true });
+        // Deixa a renovação chegar à gravação no cofre.
+        await new Promise((resolve) => setImmediate(resolve));
+
+        const leaving = session.signOut();
+        release();
+        await leaving;
+
+        await expect(pending).rejects.toBeInstanceOf(InvalidSessionError);
+        expect(store.value).toBeUndefined();
+        expect(session.status()).toBe('signedOut');
+        await expect(session.getAccessToken()).rejects.toBeInstanceOf(InvalidSessionError);
+    });
+
+    it('resposta atrasada de uma sessão antiga não derruba o login feito depois', async () => {
+        const { session, gateway, store } = setup();
+        await session.signIn();
+        const release = gateway.holdNextRefresh();
+        const stale = session.getAccessToken({ force: true });
+
+        await session.signOut();
+        gateway.signInResult = tokens('segundo-login');
+        await session.signIn();
+        // Só agora o Keycloak responde à renovação da sessão antiga.
+        release();
+
+        await expect(stale).rejects.toBeInstanceOf(InvalidSessionError);
+        expect(session.status()).toBe('signedIn');
+        expect(store.value).toBe('refresh-segundo-login');
+        await expect(session.getAccessToken()).resolves.toBe('access-segundo-login');
+    });
+
+    it('renovação recusada de uma sessão antiga não derruba o login feito depois', async () => {
+        const { session, gateway, store } = setup();
+        await session.signIn();
+        const release = gateway.holdNextRefresh();
+        const stale = session.getAccessToken({ force: true });
+
+        await session.signOut();
+        gateway.signInResult = tokens('segundo-login');
+        await session.signIn();
+        // O logout revogou a sessão antiga: a renovação dela volta recusada.
+        gateway.refreshMode = 'invalid';
+        release();
+
+        await expect(stale).rejects.toBeInstanceOf(InvalidSessionError);
+        expect(session.status()).toBe('signedIn');
+        expect(store.value).toBe('refresh-segundo-login');
+    });
+
+    it('gravações e apagamentos no cofre acontecem na ordem em que foram pedidos', async () => {
+        const { session, store } = setup();
+        const release = store.holdNextSave();
+        const entering = session.signIn();
+        await new Promise((resolve) => setImmediate(resolve));
+
+        // Sai enquanto o login ainda grava: o apagamento espera a gravação e vence.
+        const leaving = session.reject();
+        release();
+        await leaving;
+
+        await expect(entering).rejects.toBeInstanceOf(InvalidSessionError);
+        expect(store.value).toBeUndefined();
+        expect(session.status()).toBe('signedOut');
+    });
+});
+
 // Code Review do PR #196 (LOW): falha do cofre não pode prender o app num estado errado.
 describe('cofre com defeito', () => {
     it('falha ao apagar não impede o logout: tenta de novo, encerra a sessão e revoga no Keycloak', async () => {

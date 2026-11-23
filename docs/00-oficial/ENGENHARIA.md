@@ -153,8 +153,10 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
     (`expo-secure-store`): Keychain no iOS, restrito ao aparelho e acessível
     só com ele desbloqueado; no Android, cifrado com chave do Keystore. O
     access token fica em memória. Nada de token em `AsyncStorage` ou log.
-  - Uma renovação que começou antes do logout não grava nada depois dele,
-    e falha do cofre não prende o app com a sessão aberta.
+  - Uma renovação que começou antes do logout não grava nada depois dele
+    (nem em memória nem no cofre) e não derruba um login feito depois. As
+    operações no cofre rodam em fila, e falha do cofre não prende o app com
+    a sessão aberta.
   - O escopo `offline_access` mantém a sessão entre aberturas do app, até o
     logout ou a revogação. Refresh token recusado apaga o cofre e leva à
     tela de entrada; falha de rede mantém a sessão guardada.

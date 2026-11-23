@@ -63,7 +63,7 @@
         },
         {
             "id": "M5",
-            "description": "Refresh token deixa de ficar restrito a este aparelho desbloqueado",
+            "description": "Refresh token deixa de ficar restrito a este aparelho desbloqueado (iOS)",
             "area": "apps",
             "file": "apps/mobile/src/features/auth/secureTokenStore.ts",
             "find": "keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,",
@@ -111,8 +111,8 @@
             "description": "Refresh token recusado na renovação não encerra a sessão",
             "area": "apps",
             "file": "apps/mobile/src/features/auth/session.ts",
-            "find": "                if (error instanceof InvalidSessionError) await forget();\n                throw error;",
-            "replace": "                throw error;",
+            "find": "                if (error instanceof InvalidSessionError) await forgetIfCurrent(startedIn);\n",
+            "replace": "",
             "command": [
                 "pnpm",
                 "--filter",
@@ -228,11 +228,11 @@
         },
         {
             "id": "M16",
-            "description": "Renovação que começou antes do logout volta a gravar o token",
+            "description": "Renovação que começou antes do logout volta a gravar o refresh token no cofre",
             "area": "apps",
             "file": "apps/mobile/src/features/auth/session.ts",
-            "find": "if (generation !== startedIn) throw new InvalidSessionError();",
-            "replace": "",
+            "find": "            if (generation !== startedIn) throw new InvalidSessionError();\n            await store.save(refreshToken);",
+            "replace": "            await store.save(refreshToken);",
             "command": [
                 "pnpm",
                 "--filter",
@@ -246,7 +246,7 @@
             "description": "Cofre que falha ao apagar prende o app com a sessão aberta",
             "area": "apps",
             "file": "apps/mobile/src/features/auth/session.ts",
-            "find": "await store.clear().catch(() => undefined);",
+            "find": "await inVault(() => store.clear()).catch(() => undefined);",
             "replace": "throw new Error('cofre travado');",
             "command": [
                 "pnpm",
@@ -261,8 +261,53 @@
             "description": "Falha ao guardar no login deixa token em memória",
             "area": "apps",
             "file": "apps/mobile/src/features/auth/session.ts",
-            "find": "            await store.save(fresh.refreshToken);\n            tokens = fresh;\n            setStatus",
-            "replace": "            tokens = fresh;\n            await store.save(fresh.refreshToken);\n            setStatus",
+            "find": "            await saveIfCurrent(fresh.refreshToken, startedIn);\n            if (generation !== startedIn) throw new InvalidSessionError();\n            tokens = fresh;\n            setStatus('signedIn');",
+            "replace": "            tokens = fresh;\n            await saveIfCurrent(fresh.refreshToken, startedIn);\n            setStatus('signedIn');",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M19",
+            "description": "Logout durante a gravação no cofre devolve o token à memória",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/session.ts",
+            "find": "                // O cofre pode ter demorado: confere de novo antes de pôr o token em memória.\n                if (generation !== startedIn) throw new InvalidSessionError();\n",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M20",
+            "description": "Resposta atrasada de uma sessão antiga derruba o login feito depois",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/session.ts",
+            "find": "if (generation === startedIn) await forget();",
+            "replace": "await forget();",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M21",
+            "description": "Operações no cofre deixam de rodar em ordem",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/session.ts",
+            "find": "const result = vault.then(operation, operation);",
+            "replace": "const result = operation();",
             "command": [
                 "pnpm",
                 "--filter",

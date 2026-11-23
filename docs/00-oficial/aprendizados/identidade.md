@@ -20,7 +20,9 @@ aceita qualquer valor bem formado, inclusive o de um terceiro.
 **Regra:** quando uma operação assíncrona (renovar token, buscar dado) pode terminar depois de a sessão
 ter sido encerrada, o resultado é conferido contra o estado atual antes de gravar qualquer coisa.
 Encerrar a sessão invalida o que estava em andamento (contador de geração ou cancelamento); sem isso,
-a resposta atrasada devolve ao aparelho o que o logout acabou de apagar.
+a resposta atrasada devolve ao aparelho o que o logout acabou de apagar. A conferência vale em **cada**
+ponto depois de um `await` (inclusive depois de gravar no cofre) e também no tratamento de erro: uma
+operação antiga que falha só encerra a sessão em que nasceu, nunca uma aberta depois.
 
 ### Ocorrências
 
@@ -28,3 +30,7 @@ a resposta atrasada devolve ao aparelho o que o logout acabou de apagar.
   - **Impacto:** com uma renovação pendente, `signOut()` ou `reject()` limpavam a memória e o cofre, mas a resposta do Keycloak regravava o token em memória e o refresh token no cofre. O app ficava "sem sessão" com credencial guardada e voltaria a entrar sozinho na reabertura. Não era alcançável pelas telas daquele commit; seria com as telas do E2.
   - **Correção:** `forget()` incrementa uma geração e descarta a renovação pendente; `renew` confere a geração antes de gravar e lança `InvalidSessionError` se ela mudou. No mesmo PR: falha do cofre ao apagar não impede o encerramento, e o login só abre sessão depois de guardar o refresh token.
   - **Prevenção:** testes de logout, `reject` e retomada com renovação pendente, e mutantes M16, M17 e M18 de `mutations/DEV-0028.json`. Ao escrever qualquer `then` que grave estado de sessão, pergunte o que acontece se a sessão acabar antes de ele rodar.
+- **Revisão:** Code Review do PR #196, no SHA `142a0d8` (2 LOW: conferência só antes do cofre; erro de operação antiga derrubava sessão nova) — DEV-0028 (#20) · **PR:** #196
+  - **Impacto:** a primeira correção conferia a geração só antes de gravar no cofre. Um logout durante a gravação ainda devolvia o token à memória, e a renovação recusada de uma sessão antiga chamava o encerramento sem conferir a geração, apagando um login feito depois.
+  - **Correção:** as operações no cofre passaram a rodar em fila, na ordem pedida; a geração é conferida dentro da fila e de novo antes de gravar em memória; o tratamento de erro só encerra a sessão se a geração ainda for a do início da operação.
+  - **Prevenção:** testes com cofre lento e com a ordem logout, novo login e resposta atrasada; mutantes M19, M20 e M21. Corrigir um ponto de uma corrida não basta: liste todos os `await` da operação e confira o estado depois de cada um.

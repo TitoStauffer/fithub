@@ -19,10 +19,20 @@ export interface FakeStore extends TokenStore {
     failSave: boolean;
     /** Quantas chamadas de `clear` ainda falham (cofre com defeito). */
     failClears: number;
+    /** A próxima gravação fica pendente até a função devolvida ser chamada (cofre lento). */
+    holdNextSave(): () => void;
 }
 
 export function fakeStore(initial?: string): FakeStore {
+    let saveGate: Promise<void> | undefined;
     const store: FakeStore = {
+        holdNextSave() {
+            let release!: () => void;
+            saveGate = new Promise<void>((resolve) => {
+                release = resolve;
+            });
+            return release;
+        },
         value: initial,
         saved: [],
         clears: 0,
@@ -34,11 +44,13 @@ export function fakeStore(initial?: string): FakeStore {
                 ? Promise.reject(new Error('cofre ilegível'))
                 : Promise.resolve(store.value);
         },
-        save(refreshToken) {
-            if (store.failSave) return Promise.reject(new Error('cofre cheio'));
+        async save(refreshToken) {
+            const pending = saveGate;
+            saveGate = undefined;
+            await pending;
+            if (store.failSave) throw new Error('cofre cheio');
             store.value = refreshToken;
             store.saved.push(refreshToken);
-            return Promise.resolve();
         },
         clear() {
             store.clears += 1;

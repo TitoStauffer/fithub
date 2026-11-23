@@ -79,22 +79,44 @@ export function createSession(
         listeners.forEach((listener) => listener(next));
     };
 
-    // Muda a cada encerramento de sessão. Uma renovação que começou antes não pode gravar nada depois
-    // (Code Review do PR #196): senão o logout deixaria o refresh token de volta no cofre.
+    // Muda a cada encerramento de sessão. Tudo o que é assíncrono guarda a geração em que começou e a
+    // confere antes de gravar em memória, no cofre ou no estado (Code Review do PR #196): uma resposta
+    // atrasada não devolve ao aparelho o que o logout apagou, nem derruba uma sessão aberta depois.
     let generation = 0;
+
+    // As operações no cofre rodam uma de cada vez, na ordem em que foram pedidas. Assim uma gravação
+    // nunca termina depois do apagamento que foi pedido depois dela.
+    let vault: Promise<unknown> = Promise.resolve();
+    const inVault = <T>(operation: () => Promise<T>): Promise<T> => {
+        const result = vault.then(operation, operation);
+        vault = result.catch(() => undefined);
+        return result;
+    };
+
+    /** Guarda o refresh token, a menos que a sessão tenha sido encerrada desde `startedIn`. */
+    const saveIfCurrent = (refreshToken: string, startedIn: number) =>
+        inVault(async () => {
+            if (generation !== startedIn) throw new InvalidSessionError();
+            await store.save(refreshToken);
+        });
 
     const forget = async () => {
         generation += 1;
         tokens = undefined;
         renewal = undefined;
         try {
-            await store.clear();
+            await inVault(() => store.clear());
         } catch {
             // Cofre com defeito não pode prender o app com a sessão aberta: tenta mais uma vez e segue.
-            await store.clear().catch(() => undefined);
+            await inVault(() => store.clear()).catch(() => undefined);
         } finally {
             setStatus('signedOut');
         }
+    };
+
+    /** Encerra a sessão por causa de uma operação antiga, só se a sessão ainda for a daquela operação. */
+    const forgetIfCurrent = async (startedIn: number) => {
+        if (generation === startedIn) await forget();
     };
 
     const renew = (refreshToken: string): Promise<Tokens> => {
@@ -103,9 +125,9 @@ export function createSession(
         const current: Promise<Tokens> = gateway
             .refresh(refreshToken)
             .then(async (fresh) => {
-                // A sessão foi encerrada enquanto o Keycloak respondia: o resultado é descartado.
+                await saveIfCurrent(fresh.refreshToken, startedIn);
+                // O cofre pode ter demorado: confere de novo antes de pôr o token em memória.
                 if (generation !== startedIn) throw new InvalidSessionError();
-                await store.save(fresh.refreshToken);
                 tokens = fresh;
                 return fresh;
             })
@@ -123,22 +145,25 @@ export function createSession(
             return () => listeners.delete(listener);
         },
         async restore() {
+            const startedIn = generation;
             setStatus('loading');
             let refreshToken: string | undefined;
             try {
-                refreshToken = tokens?.refreshToken ?? (await store.load());
+                refreshToken = tokens?.refreshToken ?? (await inVault(() => store.load()));
             } catch {
                 // Cofre ilegível (aparelho restaurado, chave perdida): trata como sem sessão.
                 refreshToken = undefined;
             }
+            if (generation !== startedIn) return;
             if (!refreshToken) {
                 setStatus('signedOut');
                 return;
             }
             try {
                 await renew(refreshToken);
-                setStatus('signedIn');
+                if (generation === startedIn) setStatus('signedIn');
             } catch (error) {
+                if (generation !== startedIn) return;
                 if (error instanceof InvalidSessionError) await forget();
                 else setStatus('unavailable');
             }
@@ -146,8 +171,10 @@ export function createSession(
         async signIn() {
             const fresh = await gateway.signIn();
             if (!fresh) return;
+            const startedIn = generation;
             // Guarda antes de abrir a sessão: se o cofre falhar, não sobra token em memória sem sessão.
-            await store.save(fresh.refreshToken);
+            await saveIfCurrent(fresh.refreshToken, startedIn);
+            if (generation !== startedIn) throw new InvalidSessionError();
             tokens = fresh;
             setStatus('signedIn');
         },
@@ -160,10 +187,12 @@ export function createSession(
         async getAccessToken(options) {
             if (!tokens) throw new InvalidSessionError();
             if (!options?.force && tokens.expiresAt - now() > MIN_VALIDITY_MS) return tokens.accessToken;
+            const startedIn = generation;
             try {
                 return (await renew(tokens.refreshToken)).accessToken;
             } catch (error) {
-                if (error instanceof InvalidSessionError) await forget();
+                // Só encerra a sessão em que o pedido nasceu: resposta atrasada não derruba um login novo.
+                if (error instanceof InvalidSessionError) await forgetIfCurrent(startedIn);
                 throw error;
             }
         },
