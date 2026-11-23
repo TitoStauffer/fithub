@@ -1,21 +1,27 @@
 package com.fithub.client.application;
 
 import com.fithub.client.domain.link.Link;
+import com.fithub.client.domain.link.LinkEvents;
 import com.fithub.client.domain.link.LinkRepository;
 import java.time.Clock;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionOperations;
 
 /** Vínculos depois do aceite (DEV-0037, FR-12): listar e encerrar, pelo cliente ou pelo profissional. */
 @Service
 public class ManageLinks {
 
     private final LinkRepository links;
+    private final LinkEvents events;
+    private final TransactionOperations transaction;
     private final Clock clock;
 
-    public ManageLinks(LinkRepository links, Clock clock) {
+    public ManageLinks(LinkRepository links, LinkEvents events, TransactionOperations transaction, Clock clock) {
         this.links = links;
+        this.events = events;
+        this.transaction = transaction;
         this.clock = clock;
     }
 
@@ -46,7 +52,14 @@ public class ManageLinks {
         if (ended == link) {
             return link;
         }
-        // Dois encerramentos ao mesmo tempo: vale o que o banco gravou primeiro.
-        return links.end(ended) ? ended : links.findById(linkId).orElseThrow(NotFoundException::new);
+        return transaction.execute(status -> {
+            // Dois encerramentos ao mesmo tempo: vale o que o banco gravou primeiro, e só ele publica o
+            // VinculoEncerrado (DEV-0038), na mesma transação.
+            if (links.end(ended)) {
+                events.ended(ended);
+                return ended;
+            }
+            return links.findById(linkId).orElseThrow(NotFoundException::new);
+        });
     }
 }

@@ -1,0 +1,125 @@
+{
+    "issue": "DEV-0038",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Aceite deixa de gravar o VinculoAtivado",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/AcceptInvitation.java",
+            "find": "events.activated(link, ConsentTerms.SCOPE);",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkEventsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Vínculo e VinculoAtivado gravados fora de uma transação",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/AcceptInvitation.java",
+            "find": "transaction.executeWithoutResult(status -> {",
+            "replace": "TransactionOperations.withoutTransaction().executeWithoutResult(status -> {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkEventsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Encerramento deixa de gravar o VinculoEncerrado",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManageLinks.java",
+            "find": "events.ended(ended);",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkEventsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Encerramento e VinculoEncerrado gravados fora de uma transação",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManageLinks.java",
+            "find": "return transaction.execute(status -> {",
+            "replace": "return TransactionOperations.withoutTransaction().execute(status -> {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkEventsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Encerramento que perdeu a corrida também publica o VinculoEncerrado",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManageLinks.java",
+            "find": "if (links.end(ended)) {",
+            "replace": "if (links.end(ended) || true) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkEventsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Escopo de saúde sai fora do contrato do VinculoAtivado",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/messaging/OutboxLinkEvents.java",
+            "find": "case HEALTH -> \"health_profile\";",
+            "replace": "case HEALTH -> \"health\";",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkEventsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

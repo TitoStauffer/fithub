@@ -22,8 +22,8 @@ identificador (AGENTS.md). A exchange é a `topic` do serviço de origem, `fithu
 
 | Evento (ENGENHARIA.md §3) | Routing key | Campos | Consumidores |
 |---|---|---|---|
-| VinculoAtivado | `client.link-activated.v1` | `linkId`, `clientId`, `professionalId`, `professionalType`, `consentScope`, `occurredAt` | training, nutrition |
-| VinculoEncerrado | `client.link-ended.v1` | `linkId`, `clientId`, `professionalId`, `professionalType`, `endedBy`, `occurredAt` | training, nutrition |
+| VinculoAtivado | `client.link-activated.v1` | `linkId`, `clientId`, `professionalId`, `professionalType`, `consentScope`, `occurredAt` | training, nutrition (publicado pelo client-service desde a DEV-0038) |
+| VinculoEncerrado | `client.link-ended.v1` | `linkId`, `clientId`, `professionalId`, `professionalType`, `endedBy`, `occurredAt` | training, nutrition (publicado pelo client-service desde a DEV-0038) |
 | ClienteAtualizado | `client.client-updated.v1` | `clientId`, `name`, `birthDate` (ou `null`), `gender` (ou `null`), `occurredAt` | training, nutrition (publicado pelo client-service desde a DEV-0034) |
 | ContaExcluida | `client.account-deleted.v1` | `clientId`, `occurredAt` | todos |
 | ProfissionalCadastrado | `account.professional-registered.v1` | `professionalId`, `professionalType`, `name`, `occurredAt` | training, nutrition, client (publicado pelo account-service desde a DEV-0030; consumido pelo client-service desde a DEV-0035) |

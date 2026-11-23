@@ -87,3 +87,11 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
 - O encerramento é imediato e definitivo (BR-05): o vínculo encerrado não volta, e o cliente pode aceitar outro
   profissional do mesmo tipo (BR-07). `ck_client_link_ended` exige data e autor no encerrado.
 - Dois encerramentos ao mesmo tempo: vale o que o banco gravou primeiro (`update ... where status = 'ACTIVE'`).
+
+## Eventos de vínculo (DEV-0038)
+
+- `VinculoAtivado` (`client.link-activated.v1`) no aceite e `VinculoEncerrado` (`client.link-ended.v1`) no
+  encerramento, gravados no outbox na mesma transação (exchange `fithub.client`). Operação desfeita não publica.
+- Os payloads levam só ids (os `sub` das contas, ADR-009), o tipo, o escopo do consentimento (`profile`,
+  `health_profile`, `body_assessments`, `photos`), quem encerrou e as datas; nenhum dado do perfil ou da saúde.
+- Encerrar de novo, ou perder a corrida de um encerramento simultâneo, não publica outro `VinculoEncerrado`.
