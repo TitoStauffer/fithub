@@ -12,8 +12,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
@@ -170,10 +168,6 @@ class ClientProfileController {
 
     @ExceptionHandler(InvalidProfileException.class)
     ProblemDetail invalidProfile(InvalidProfileException exception) {
-        ProblemDetail problem =
-                ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Um ou mais campos são inválidos.");
-        problem.setTitle("Dados inválidos");
-        problem.setProperty("errors", List.of(Map.of("field", exception.field(), "message", exception.getMessage())));
-        return problem;
+        return ProfileProblems.invalid(exception);
     }
 }

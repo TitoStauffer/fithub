@@ -1,0 +1,85 @@
+{
+    "issue": "DEV-0033",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Texto livre acima de 1000 caracteres passa a ser aceito",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/profile/HealthProfile.java",
+            "find": "if (notes != null && notes.length() > MAX_NOTES) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=HealthProfileTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Condição vazia na lista passa a ser aceita",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/profile/HealthProfile.java",
+            "find": "if (condition == null) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=HealthProfileTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Perfil de saúde passa a ser gravado sem o perfil do cliente",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManageHealthProfile.java",
+            "find": "if (profiles.findByAccountId(command.accountId()).isEmpty()) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=HealthProfileApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "404 do GET /clients/me/health volta sem a mensagem em Problem Details",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/interfaces/rest/HealthProfileController.java",
+            "find": "return new ErrorResponseException(HttpStatus.NOT_FOUND, problem, null);",
+            "replace": "return new ErrorResponseException(HttpStatus.NOT_FOUND);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=HealthProfileApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}
