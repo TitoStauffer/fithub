@@ -101,6 +101,10 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
   exchange de origem. O listener tenta 3 vezes; depois, a mensagem vai para a
   fila de mensagens mortas `<fila>.dlq`, em vez de voltar à fila sem fim.
   Payload fora do contrato vai direto para a `.dlq`.
+- **Verificação de acesso por vínculo** (DEV-0039): o training projeta os
+  vínculos do próprio tipo (`VinculoAtivado`/`VinculoEncerrado`) e
+  os dados básicos dos clientes (`ClienteAtualizado`). `ClientAccess` exige
+  vínculo ativo em todo endpoint com `clientId` e responde 404 sem ele.
 - **Projeções locais:** cada serviço mantém uma cópia mínima do que precisa
   dos outros. Exemplo: `training` mantém uma tabela de vínculos ativos para
   decidir se o personal pode ver um aluno, sem perguntar ao `client-service` a
