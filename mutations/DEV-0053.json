@@ -1,0 +1,85 @@
+{
+    "issue": "DEV-0053",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Exercício próprio passa a ser visível para qualquer personal",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/exercise/Exercise.java",
+            "find": "return kind == Kind.CATALOG || ownerId.equals(personalId);",
+            "replace": "return true;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=Exercise*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Mídia passa a aceitar endereço que não é https",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/exercise/Exercise.java",
+            "find": "\"https\".equalsIgnoreCase(uri.getScheme()) && uri.getHost() != null",
+            "replace": "uri.getHost() != null",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=Exercise*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Mídia passa a aceitar endereço com usuário e senha",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/exercise/Exercise.java",
+            "find": "uri.getHost() != null && uri.getUserInfo() == null",
+            "replace": "uri.getHost() != null",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=Exercise*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Exercício passa a ser aceito sem grupo muscular",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/exercise/Exercise.java",
+            "find": "if (muscleGroups == null || muscleGroups.isEmpty()) {",
+            "replace": "if (muscleGroups == null) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=Exercise*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

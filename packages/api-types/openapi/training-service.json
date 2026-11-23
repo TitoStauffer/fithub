@@ -1,6 +1,62 @@
 {
   "components" : {
     "schemas" : {
+      "Exercise" : {
+        "description" : "Exercício do catálogo ou próprio do personal.",
+        "properties" : {
+          "attribution" : {
+            "$ref" : "#/components/schemas/ExerciseAttribution",
+            "description" : "Presente só em exercício importado; a tela mostra o crédito.",
+            "type" : "null"
+          },
+          "equipment" : {
+            "enum" : [ "BARBELL", "DUMBBELL", "KETTLEBELL", "MACHINE", "CABLE", "BAND", "BODYWEIGHT", "OTHER" ],
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "instructions" : {
+            "type" : [ "string", "null" ]
+          },
+          "kind" : {
+            "enum" : [ "CATALOG", "OWN" ],
+            "type" : "string"
+          },
+          "mediaUrl" : {
+            "description" : "Vídeo ou imagem da execução, sempre https.",
+            "type" : [ "string", "null" ]
+          },
+          "muscleGroups" : {
+            "description" : "Grupos musculares, em ordem alfabética.",
+            "items" : {
+              "enum" : [ "CHEST", "BACK", "LOWER_BACK", "SHOULDERS", "BICEPS", "TRICEPS", "FOREARMS", "ABS", "GLUTES", "QUADRICEPS", "HAMSTRINGS", "ADDUCTORS", "CALVES", "NECK", "FULL_BODY" ],
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ExerciseAttribution" : {
+        "description" : "Origem e licença do exercício importado (ADR-010).",
+        "properties" : {
+          "author" : {
+            "type" : "string"
+          },
+          "license" : {
+            "type" : "string"
+          },
+          "source" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "LinkedClient" : {
         "description" : "Dados básicos do cliente vinculado.",
         "properties" : {
@@ -116,6 +172,64 @@
         "summary" : "Dados básicos de um cliente com vínculo ativo",
         "tags" : [ "Clientes" ]
       }
+    },
+    "/exercises/{exerciseId}" : {
+      "get" : {
+        "operationId" : "exercise",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "exerciseId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Exercise"
+                }
+              }
+            },
+            "description" : "Exercício."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é personal."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O exercício não existe ou é próprio de outro personal."
+          }
+        },
+        "summary" : "Um exercício do catálogo ou próprio do personal",
+        "tags" : [ "Exercícios" ]
+      }
     }
   },
   "security" : [ {
@@ -128,5 +242,8 @@
   "tags" : [ {
     "description" : "Clientes vinculados ao personal",
     "name" : "Clientes"
+  }, {
+    "description" : "Catálogo de exercícios e exercícios próprios do personal",
+    "name" : "Exercícios"
   } ]
 }
