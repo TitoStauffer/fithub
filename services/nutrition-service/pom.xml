@@ -39,6 +39,12 @@
       <artifactId>java-testing</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- Teste de consumidor (DEV-0039): os payloads publicados no teste cumprem os contratos. -->
+    <dependency>
+      <groupId>com.fithub</groupId>
+      <artifactId>event-contracts</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>

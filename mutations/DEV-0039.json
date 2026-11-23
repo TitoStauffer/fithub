@@ -1,0 +1,185 @@
+{
+    "issue": "DEV-0039",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "training: reentrega deixa de passar pelo consumo idempotente",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/messaging/ClientEventsListener.java",
+            "find": "processedEvents.processOnce(QUEUE, message, handler);",
+            "replace": "handler.run();",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "training: vínculo de nutricionista passa a liberar acesso no training",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ProjectClientEvents.java",
+            "find": "    public void linkActivated(UUID linkId, UUID clientId, UUID professionalId, String type, Instant occurredAt) {\n        if (LINK_TYPE.equals(type)) {",
+            "replace": "    public void linkActivated(UUID linkId, UUID clientId, UUID professionalId, String type, Instant occurredAt) {\n        if (true) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "training: ativação atrasada passa a reativar vínculo encerrado",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcLinkProjection.java",
+            "find": "on conflict (link_id) do nothing",
+            "replace": "on conflict (link_id) do update set status = 'ACTIVE', ended_at = null",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "training: endpoint com clientId deixa de exigir vínculo ativo",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ClientAccess.java",
+            "find": "if (!links.hasActiveLink(UUID.fromString(professionalAccount), clientId)) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "training: vínculo encerrado continua dando acesso",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcLinkProjection.java",
+            "find": "\n                                          and status = 'ACTIVE')",
+            "replace": ")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "training: ClienteAtualizado atrasado passa a desfazer o mais recente",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcClientDirectory.java",
+            "find": "                        where client.updated_at < excluded.updated_at\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "nutrition: vínculo de personal passa a liberar acesso no nutrition",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ProjectClientEvents.java",
+            "find": "    public void linkActivated(UUID linkId, UUID clientId, UUID professionalId, String type, Instant occurredAt) {\n        if (LINK_TYPE.equals(type)) {",
+            "replace": "    public void linkActivated(UUID linkId, UUID clientId, UUID professionalId, String type, Instant occurredAt) {\n        if (true) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "nutrition: endpoint com clientId deixa de exigir vínculo ativo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ClientAccess.java",
+            "find": "if (!links.hasActiveLink(UUID.fromString(professionalAccount), clientId)) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "nutrition: reentrega deixa de passar pelo consumo idempotente",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/messaging/ClientEventsListener.java",
+            "find": "processedEvents.processOnce(QUEUE, message, handler);",
+            "replace": "handler.run();",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

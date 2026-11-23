@@ -96,6 +96,10 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
   pelo **outbox transacional**: o evento é gravado na mesma transação do dado e
   um publicador envia ao broker. Consumidores são **idempotentes** (tabela de
   eventos processados).
+- **Verificação de acesso por vínculo** (DEV-0039): training e nutrition
+  projetam os vínculos do próprio tipo (`VinculoAtivado`/`VinculoEncerrado`) e
+  os dados básicos dos clientes (`ClienteAtualizado`). `ClientAccess` exige
+  vínculo ativo em todo endpoint com `clientId` e responde 404 sem ele.
 - **Projeções locais:** cada serviço mantém uma cópia mínima do que precisa
   dos outros. Exemplo: `training` mantém uma tabela de vínculos ativos para
   decidir se o personal pode ver um aluno, sem perguntar ao `client-service` a
