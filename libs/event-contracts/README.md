@@ -26,7 +26,7 @@ identificador (AGENTS.md). A exchange é a `topic` do serviço de origem, `fithu
 | VinculoEncerrado | `client.link-ended.v1` | `linkId`, `clientId`, `professionalId`, `professionalType`, `endedBy`, `occurredAt` | training, nutrition |
 | ClienteAtualizado | `client.client-updated.v1` | `clientId`, `name`, `birthDate` (ou `null`), `gender` (ou `null`), `occurredAt` | training, nutrition (publicado pelo client-service desde a DEV-0034) |
 | ContaExcluida | `client.account-deleted.v1` | `clientId`, `occurredAt` | todos |
-| ProfissionalCadastrado | `account.professional-registered.v1` | `professionalId`, `professionalType`, `name`, `occurredAt` | training, nutrition, client (publicado pelo account-service desde a DEV-0030) |
+| ProfissionalCadastrado | `account.professional-registered.v1` | `professionalId`, `professionalType`, `name`, `occurredAt` | training, nutrition, client (publicado pelo account-service desde a DEV-0030; consumido pelo client-service desde a DEV-0035) |
 | AssinaturaAlterada | `account.subscription-changed.v1` | `professionalId`, `active`, `occurredAt` | training, nutrition, client |
 
 Os schemas ficam em [src/main/resources/fithub/event-contracts](src/main/resources/fithub/event-contracts),

@@ -1,6 +1,28 @@
 {
   "components" : {
     "schemas" : {
+      "AcceptInvitationRequest" : {
+        "description" : "Informe o token do link ou o código.",
+        "properties" : {
+          "code" : {
+            "description" : "Código do convite ou código pessoal do profissional.",
+            "type" : [ "string", "null" ]
+          },
+          "consent" : {
+            "description" : "Consentimento explícito; precisa ser true.",
+            "type" : "boolean"
+          },
+          "termsVersion" : {
+            "description" : "Versão do termo que a tela mostrou.",
+            "example" : "v1",
+            "type" : "string"
+          },
+          "token" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "type" : "object"
+      },
       "ClientProfile" : {
         "properties" : {
           "age" : {
@@ -185,6 +207,14 @@
             },
             "type" : "array",
             "uniqueItems" : true
+          },
+          "termsText" : {
+            "description" : "Texto do termo de consentimento.",
+            "type" : "string"
+          },
+          "termsVersion" : {
+            "description" : "Versão do termo mostrado; o aceite repete esta versão.",
+            "type" : "string"
           }
         },
         "type" : "object"
@@ -205,6 +235,38 @@
         "properties" : {
           "code" : {
             "description" : "Código pessoal de 8 caracteres.",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "Link" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "professionalId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "professionalName" : {
+            "type" : "string"
+          },
+          "professionalType" : {
+            "enum" : [ "PERSONAL_TRAINER", "NUTRITIONIST" ],
+            "type" : "string"
+          },
+          "sharedData" : {
+            "items" : {
+              "enum" : [ "PROFILE", "HEALTH", "ASSESSMENTS", "PHOTOS" ],
+              "type" : "string"
+            },
+            "type" : "array",
+            "uniqueItems" : true
+          },
+          "startedAt" : {
+            "format" : "date-time",
             "type" : "string"
           }
         },
@@ -700,6 +762,85 @@
         "tags" : [ "Convites" ]
       }
     },
+    "/links" : {
+      "post" : {
+        "operationId" : "accept",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AcceptInvitationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Link"
+                }
+              }
+            },
+            "description" : "Vínculo criado e consentimento registrado."
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem o consentimento explícito."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Convite ou código não encontrado."
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Já há vínculo ativo do mesmo tipo, vínculo consigo mesmo, termo desatualizado ou perfil ainda não criado."
+          },
+          "410" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Convite vencido, já usado ou cancelado."
+          }
+        },
+        "summary" : "Aceita um convite (ou o código pessoal do profissional) com consentimento",
+        "tags" : [ "Vínculos" ]
+      }
+    },
     "/professionals/me/invite-code" : {
       "get" : {
         "operationId" : "mine_2",
@@ -805,6 +946,9 @@
     "url" : "http://localhost"
   } ],
   "tags" : [ {
+    "description" : "Vínculos entre cliente e profissional",
+    "name" : "Vínculos"
+  }, {
     "description" : "Perfil de saúde do cliente da conta autenticada",
     "name" : "Perfil de saúde"
   }, {

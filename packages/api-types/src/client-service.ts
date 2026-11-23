@@ -89,6 +89,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Aceita um convite (ou o código pessoal do profissional) com consentimento */
+        post: operations["accept"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/professionals/me/invite-code": {
         parameters: {
             query?: never;
@@ -111,6 +128,19 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Informe o token do link ou o código. */
+        AcceptInvitationRequest: {
+            /** @description Código do convite ou código pessoal do profissional. */
+            code?: string | null;
+            /** @description Consentimento explícito; precisa ser true. */
+            consent?: boolean;
+            /**
+             * @description Versão do termo que a tela mostrou.
+             * @example v1
+             */
+            termsVersion?: string;
+            token?: string | null;
+        };
         ClientProfile: {
             /**
              * Format: int32
@@ -191,6 +221,10 @@ export interface components {
             /** @enum {string} */
             professionalType?: "PERSONAL_TRAINER" | "NUTRITIONIST";
             sharedData?: ("PROFILE" | "HEALTH" | "ASSESSMENTS" | "PHOTOS")[];
+            /** @description Texto do termo de consentimento. */
+            termsText?: string;
+            /** @description Versão do termo mostrado; o aceite repete esta versão. */
+            termsVersion?: string;
         };
         InvitationRequest: {
             /**
@@ -202,6 +236,18 @@ export interface components {
         InviteCode: {
             /** @description Código pessoal de 8 caracteres. */
             code?: string;
+        };
+        Link: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            professionalId?: string;
+            professionalName?: string;
+            /** @enum {string} */
+            professionalType?: "PERSONAL_TRAINER" | "NUTRITIONIST";
+            sharedData?: ("PROFILE" | "HEALTH" | "ASSESSMENTS" | "PHOTOS")[];
+            /** Format: date-time */
+            startedAt?: string;
         };
         /** @description Erro no formato Problem Details (RFC 9457). */
         Problem: {
@@ -615,6 +661,75 @@ export interface operations {
             };
             /** @description Convite já aceito. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    accept: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcceptInvitationRequest"];
+            };
+        };
+        responses: {
+            /** @description Vínculo criado e consentimento registrado. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Link"];
+                };
+            };
+            /** @description Sem o consentimento explícito. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Convite ou código não encontrado. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Já há vínculo ativo do mesmo tipo, vínculo consigo mesmo, termo desatualizado ou perfil ainda não criado. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Convite vencido, já usado ou cancelado. */
+            410: {
                 headers: {
                     [name: string]: unknown;
                 };

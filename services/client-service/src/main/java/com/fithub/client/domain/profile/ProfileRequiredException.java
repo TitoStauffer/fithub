@@ -4,6 +4,11 @@ package com.fithub.client.domain.profile;
 public final class ProfileRequiredException extends RuntimeException {
 
     public ProfileRequiredException() {
-        super("Crie seu perfil antes de informar os dados de saúde.");
+        this("Crie seu perfil antes de informar os dados de saúde.");
+    }
+
+    /** Mesmo motivo, com a mensagem da ação que pediu o perfil. */
+    public ProfileRequiredException(String message) {
+        super(message);
     }
 }

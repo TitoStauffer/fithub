@@ -22,6 +22,12 @@ public interface InvitationRepository {
     /** Convites do profissional, do mais novo para o mais antigo. */
     List<Invitation> listByProfessional(UUID professionalId);
 
+    /**
+     * Marca o convite como aceito se ele ainda estiver pendente e dentro da validade, numa instrução só: de dois
+     * aceites simultâneos, só um consegue (uso único). Devolve {@code false} se o convite já não valia.
+     */
+    boolean markAccepted(UUID id, java.time.Instant now);
+
     /** Grava a mudança de situação (cancelamento). */
     void updateStatus(Invitation invitation);
 }
