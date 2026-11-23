@@ -106,3 +106,18 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
 - Vínculo encerrado corta o acesso na hora (BR-05). Personal e nutricionista vinculados leem os dois (BR-04).
 - Cada leitura da saúde grava `health_access_log` (profissional, cliente, data) antes de o dado sair; a tabela não
   tem coluna para o conteúdo lido (NFR-03).
+
+## Avaliação corporal (DEV-0044)
+
+| Rota | Quem | Resposta |
+|---|---|---|
+| `POST /clients/me/assessments` | cliente | 201, avaliação `ONLINE` com o cliente como autor; 400 com o campo |
+| `GET /clients/me/assessments` | cliente | Histórico, da medição mais recente para a mais antiga |
+| `DELETE /clients/me/assessments/{id}` | cliente | 204; 404 se não for dele |
+| `POST /professionals/me/clients/{clientId}/assessments` | profissional com vínculo ativo | 201, avaliação `PRESENTIAL` com o profissional como autor; 404 sem vínculo |
+| `GET /professionals/me/clients/{clientId}/assessments` | idem | Histórico do cliente |
+
+- Peso de 20 a 400 kg; circunferências (pescoço, tórax, cintura, abdômen, quadril, braço, antebraço, coxa e
+  panturrilha) de 10 a 300 cm, opcionais; até 1 casa decimal; medição não pode estar no futuro.
+- `sexForFormulas` (`FEMALE` ou `MALE`) é opcional e só serve aos cálculos de % de gordura (DEV-0045 e 0046).
+- Imutável: corrige-se registrando outra; só o cliente, dono dos dados, exclui.

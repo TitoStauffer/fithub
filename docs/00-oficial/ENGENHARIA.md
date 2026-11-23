@@ -178,6 +178,10 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
   - As chamadas usam `createApiFetch` (`src/lib/apiFetch.ts`), com as
     mesmas regras da web: Bearer token, uma nova tentativa no 401 e token só
     para as origens das APIs do FitHub.
+- **Avaliação corporal** (DEV-0044): o cliente registra a online em
+  `/clients/me/assessments`; o profissional vinculado, a presencial em
+  `/professionals/me/clients/{clientId}/assessments`. O tipo vem da rota, e o
+  autor, do token. Imutável; só o cliente exclui.
 - **Leitura pelo profissional vinculado** (DEV-0040): `GET
   /professionals/me/clients/{clientId}/profile` e `/health` exigem vínculo
   ativo (404 sem ele, ou com ele encerrado). Cada leitura da saúde é registrada

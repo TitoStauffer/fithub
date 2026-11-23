@@ -1,6 +1,41 @@
 // Gerado por scripts/generate.mjs a partir de openapi/client-service.json (DEV-0022). Não edite à mão.
 
 export interface paths {
+    "/clients/me/assessments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Histórico de avaliações do cliente autenticado */
+        get: operations["mine_5"];
+        put?: never;
+        /** Registra uma avaliação online (autoaferida) do cliente autenticado */
+        post: operations["recordOnline"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clients/me/assessments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Exclui uma avaliação do cliente autenticado */
+        delete: operations["delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/clients/me/health": {
         parameters: {
             query?: never;
@@ -132,9 +167,27 @@ export interface paths {
             cookie?: never;
         };
         /** Clientes com vínculo ativo do profissional autenticado */
-        get: operations["mine_5"];
+        get: operations["mine_6"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/professionals/me/clients/{clientId}/assessments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Histórico de avaliações de um cliente com vínculo ativo */
+        get: operations["forClient"];
+        put?: never;
+        /** Registra uma avaliação presencial de um cliente com vínculo ativo */
+        post: operations["recordPresential"];
         delete?: never;
         options?: never;
         head?: never;
@@ -209,6 +262,48 @@ export interface components {
              */
             termsVersion?: string;
             token?: string | null;
+        };
+        Assessment: {
+            /** Format: uuid */
+            authorId?: string;
+            /** @enum {string} */
+            authorRole?: "CLIENT" | "PROFESSIONAL";
+            circumferences?: components["schemas"]["Circumferences"];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: uuid */
+            id?: string;
+            /** Format: date */
+            measuredOn?: string;
+            /** @enum {string|null} */
+            sexForFormulas?: "FEMALE" | "MALE" | null;
+            /** @enum {string} */
+            type?: "PRESENTIAL" | "ONLINE";
+            weightKg?: number;
+        };
+        AssessmentRequest: {
+            circumferences?: components["schemas"]["Circumferences"];
+            /** Format: date */
+            measuredOn?: string;
+            /**
+             * @description Sexo usado só nos cálculos de % de gordura.
+             * @enum {string|null}
+             */
+            sexForFormulas?: "FEMALE" | "MALE" | null;
+            /** @description Peso em kg, de 20 a 400. */
+            weightKg?: number;
+        };
+        /** @description Circunferências em cm, todas opcionais. */
+        Circumferences: {
+            abdomen?: number | null;
+            arm?: number | null;
+            calf?: number | null;
+            chest?: number | null;
+            forearm?: number | null;
+            hip?: number | null;
+            neck?: number | null;
+            thigh?: number | null;
+            waist?: number | null;
         };
         /** @description Vínculo visto pelo cliente. */
         ClientLink: {
@@ -385,6 +480,115 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    mine_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Da medição mais recente para a mais antiga. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Assessment"][];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    recordOnline: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssessmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Avaliação registrada. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Assessment"];
+                };
+            };
+            /** @description Campo inválido. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Avaliação excluída. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Avaliação não encontrada (ou de outra pessoa). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     mine_1: {
         parameters: {
             query?: never;
@@ -915,7 +1119,7 @@ export interface operations {
             };
         };
     };
-    mine_5: {
+    mine_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -944,6 +1148,117 @@ export interface operations {
             };
             /** @description A conta não é profissional. */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    forClient: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Da medição mais recente para a mais antiga. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Assessment"][];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é profissional. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem vínculo ativo com o cliente. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    recordPresential: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssessmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Avaliação registrada. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Assessment"];
+                };
+            };
+            /** @description Campo inválido. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é profissional. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem vínculo ativo com o cliente. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
