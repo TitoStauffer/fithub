@@ -5,13 +5,13 @@ import com.fithub.client.domain.invitation.InvitationMailer;
 import com.fithub.client.domain.invitation.InvitationRepository;
 import com.fithub.client.domain.invitation.InviteSecrets;
 import com.fithub.client.domain.invitation.SharedData;
+import com.fithub.client.domain.link.ConsentTerms;
 import com.fithub.client.domain.professional.Professional;
 import com.fithub.client.domain.professional.ProfessionalDirectory;
 import com.fithub.client.domain.professional.ProfessionalType;
 import com.fithub.commons.ids.UuidV7;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -140,11 +140,7 @@ public class ManageInvitations {
         }
         Professional professional = professionals.findByInviteCode(code).orElseThrow(NotFoundException::new);
         return new Preview(
-                Preview.Kind.PROFESSIONAL_CODE,
-                professional.name(),
-                professional.type(),
-                EnumSet.allOf(SharedData.class),
-                null);
+                Preview.Kind.PROFESSIONAL_CODE, professional.name(), professional.type(), ConsentTerms.SCOPE, null);
     }
 
     private Preview previewOf(Invitation invitation) {
@@ -157,7 +153,7 @@ public class ManageInvitations {
                 Preview.Kind.INVITATION,
                 professional.name(),
                 professional.type(),
-                EnumSet.allOf(SharedData.class),
+                ConsentTerms.SCOPE,
                 invitation.expiresAt());
     }
 

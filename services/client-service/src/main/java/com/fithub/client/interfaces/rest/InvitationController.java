@@ -6,6 +6,7 @@ import com.fithub.client.domain.invitation.InvalidInvitationException;
 import com.fithub.client.domain.invitation.Invitation;
 import com.fithub.client.domain.invitation.InvitationStateException;
 import com.fithub.client.domain.invitation.SharedData;
+import com.fithub.client.domain.link.ConsentTerms;
 import com.fithub.client.domain.professional.ProfessionalType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -111,7 +112,13 @@ class InvitationController {
             Set<SharedData> sharedData,
 
             @Schema(nullable = true, description = "Vazio para o código pessoal do profissional, que não vence.")
-            Instant expiresAt) {}
+            Instant expiresAt,
+
+            @Schema(description = "Versão do termo mostrado; o aceite repete esta versão.")
+            String termsVersion,
+
+            @Schema(description = "Texto do termo de consentimento.")
+            String termsText) {}
 
     @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize(PROFESSIONAL)
@@ -282,7 +289,9 @@ class InvitationController {
                 preview.professionalName(),
                 preview.professionalType(),
                 preview.sharedData(),
-                preview.expiresAt());
+                preview.expiresAt(),
+                ConsentTerms.CURRENT_VERSION,
+                ConsentTerms.CURRENT_TEXT);
     }
 
     @ExceptionHandler(ManageInvitations.NotFoundException.class)

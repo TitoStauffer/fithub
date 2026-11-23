@@ -1,0 +1,125 @@
+{
+    "issue": "DEV-0036",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Aceite sem consentimento explícito passa a criar o vínculo",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/AcceptInvitation.java",
+            "find": "if (!Boolean.TRUE.equals(command.consent())) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkAcceptanceTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Aceite com versão do termo diferente da atual passa a valer",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/AcceptInvitation.java",
+            "find": "if (!ConsentTerms.isCurrent(command.termsVersion())) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkAcceptanceTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Aceite deixa de marcar o convite como usado (uso único)",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/AcceptInvitation.java",
+            "find": "            if (target.invitation().isPresent()\n                    && !invitations.markAccepted(target.invitation().get().id(), now)) {",
+            "replace": "            if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkAcceptanceTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Banco passa a aceitar dois vínculos ativos do mesmo tipo",
+            "area": "java",
+            "file": "services/client-service/src/main/resources/db/migration/V5__vinculos_e_consentimento.sql",
+            "find": "create unique index ux_client_link_active_type",
+            "replace": "create index ux_client_link_active_type",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkAcceptanceTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Profissional passa a se vincular a si mesmo",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/link/Link.java",
+            "find": "if (clientId.equals(professionalId)) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkAcceptanceTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Aceite deixa de conferir o vínculo ativo do mesmo tipo antes de gravar",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/AcceptInvitation.java",
+            "find": "links.findActive(clientId, professional.type()).ifPresent(active -> {",
+            "replace": "java.util.Optional.<com.fithub.client.domain.link.Link>empty().ifPresent(active -> {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkAcceptanceTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

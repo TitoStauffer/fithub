@@ -72,6 +72,14 @@ class JdbcInvitationRepository implements InvitationRepository {
     }
 
     @Override
+    public boolean markAccepted(UUID id, java.time.Instant now) {
+        return jdbc.sql("""
+                                update invitation set status = 'ACCEPTED', accepted_at = :now
+                                 where id = :id and status = 'PENDING' and expires_at > :now
+                                """).param("now", Timestamp.from(now)).param("id", id).update() == 1;
+    }
+
+    @Override
     public void updateStatus(Invitation invitation) {
         jdbc.sql("update invitation set status = :status, cancelled_at = :cancelledAt where id = :id")
                 .param("status", invitation.status().name())

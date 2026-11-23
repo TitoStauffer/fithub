@@ -178,6 +178,12 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
   - As chamadas usam `createApiFetch` (`src/lib/apiFetch.ts`), com as
     mesmas regras da web: Bearer token, uma nova tentativa no 401 e token só
     para as origens das APIs do FitHub.
+- **Aceite e consentimento** (DEV-0036): `POST /links` com o token, o código
+  do convite ou o código pessoal do profissional, `consent: true` e a versão
+  do termo mostrada (`v1`). Vínculo, consentimento (data, escopo e versão) e a
+  baixa do convite numa transação; no máximo 1 vínculo ativo de cada tipo
+  (índice parcial único), um convite vira no máximo um vínculo e ninguém se
+  vincula a si mesmo (CHECKs).
 - **Convites** (DEV-0035): `POST`, `GET` e `DELETE /invitations` (só
   `personal` ou `nutritionist`) e `POST /invitations/lookup` para a tela de
   aceite; código pessoal em `/professionals/me/invite-code`. Token e código

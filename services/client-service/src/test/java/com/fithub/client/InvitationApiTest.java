@@ -236,7 +236,7 @@ class InvitationApiTest extends ServiceIntegrationTest {
                                expires_at = timestamptz '2026-11-08T12:00:00Z'
                          where id = :id
                         """).param("id", UUID.fromString(expired.get("id").asString())).update();
-        jdbc.sql("update invitation set status = 'ACCEPTED' where id = :id")
+        jdbc.sql("update invitation set status = 'ACCEPTED', accepted_at = now() where id = :id")
                 .param("id", UUID.fromString(accepted.get("id").asString()))
                 .update();
 
@@ -278,7 +278,7 @@ class InvitationApiTest extends ServiceIntegrationTest {
     void conviteAceitoNaoSeCancela() throws Exception {
         String account = personal("Paula Personal");
         JsonNode invitation = created(account, "{}");
-        jdbc.sql("update invitation set status = 'ACCEPTED' where id = :id")
+        jdbc.sql("update invitation set status = 'ACCEPTED', accepted_at = now() where id = :id")
                 .param("id", UUID.fromString(invitation.get("id").asString()))
                 .update();
 

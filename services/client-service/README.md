@@ -62,3 +62,16 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
 - Projeção de profissionais: consumidor do `ProfissionalCadastrado` na fila `client.professional-registered`
   (idempotente pela `java-commons`; 3 tentativas e depois `client.professional-registered.dlq`). O id é o
   `sub` do profissional (ADR-009), então o token identifica quem convida.
+
+## Aceite e consentimento (DEV-0036)
+
+| Rota | Quem | Resposta |
+|---|---|---|
+| `POST /links` | cliente (perfil já criado) | `{"token"}` ou `{"code"}` (convite ou código pessoal), `"consent": true`, `"termsVersion": "v1"`: 201 com o vínculo; 400 sem consentimento; 404 desconhecido; 409 vínculo ativo do mesmo tipo, consigo mesmo, termo desatualizado ou sem perfil; 410 convite sem validade |
+
+- O termo (`ConsentTerms`, versão `v1`) e o escopo vêm na consulta do convite (`termsVersion`, `termsText`,
+  `sharedData`); o aceite repete a versão mostrada. Mudar o texto exige uma versão nova.
+- Vínculo, consentimento (data, escopo e versão; sem IP nem aparelho) e a baixa do convite numa transação.
+- Garantias no banco: `ux_client_link_active_type` (1 ativo de cada tipo por cliente, BR-07),
+  `uq_client_link_invitation` (um convite, um vínculo) e `ck_client_link_not_self`.
+- Recusar é não aceitar: sem `consent: true`, nada é gravado e o convite continua pendente.
