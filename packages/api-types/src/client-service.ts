@@ -37,6 +37,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Convites do profissional autenticado, do mais novo para o mais antigo */
+        get: operations["mine_3"];
+        put?: never;
+        /** Cria um convite (por e-mail ou para compartilhar) */
+        post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invitations/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Consulta um convite pelo token do link ou pelo código, para a tela de aceite */
+        post: operations["lookup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invitations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Cancela um convite do profissional autenticado */
+        delete: operations["cancel"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/professionals/me/invite-code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Código pessoal do profissional autenticado */
+        get: operations["mine_2"];
+        put?: never;
+        /** Troca o código pessoal; o antigo deixa de valer */
+        post: operations["rotate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -68,6 +138,19 @@ export interface components {
             heightCm: number;
             name: string;
         };
+        CreatedInvitation: {
+            /** @description Código de 8 caracteres; só aparece nesta resposta. */
+            code?: string;
+            email?: string | null;
+            /** @description Se o e-mail saiu; false sem e-mail ou se o envio falhou. */
+            emailSent?: boolean;
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: uuid */
+            id?: string;
+            /** @description Link do convite; só aparece nesta resposta. */
+            link?: string;
+        };
         HealthProfile: {
             conditions?: ("DIABETES" | "HYPERTENSION" | "PREGNANCY" | "RECENT_SURGERY" | "OTHER")[];
             notes?: string | null;
@@ -79,6 +162,46 @@ export interface components {
             conditions: ("DIABETES" | "HYPERTENSION" | "PREGNANCY" | "RECENT_SURGERY" | "OTHER")[];
             /** @description Texto livre opcional, até 1000 caracteres. */
             notes?: string;
+        };
+        Invitation: {
+            /** Format: date-time */
+            createdAt?: string;
+            email?: string | null;
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            state?: "PENDING" | "EXPIRED" | "ACCEPTED" | "CANCELLED";
+        };
+        /** @description Informe o token do link ou o código. */
+        InvitationLookupRequest: {
+            code?: string | null;
+            token?: string | null;
+        };
+        InvitationPreview: {
+            /**
+             * Format: date-time
+             * @description Vazio para o código pessoal do profissional, que não vence.
+             */
+            expiresAt?: string | null;
+            /** @enum {string} */
+            kind?: "INVITATION" | "PROFESSIONAL_CODE";
+            professionalName?: string;
+            /** @enum {string} */
+            professionalType?: "PERSONAL_TRAINER" | "NUTRITIONIST";
+            sharedData?: ("PROFILE" | "HEALTH" | "ASSESSMENTS" | "PHOTOS")[];
+        };
+        InvitationRequest: {
+            /**
+             * Format: email
+             * @description E-mail do cliente; sem ele, o convite volta para o profissional compartilhar.
+             */
+            email?: string;
+        };
+        InviteCode: {
+            /** @description Código pessoal de 8 caracteres. */
+            code?: string;
         };
         /** @description Erro no formato Problem Details (RFC 9457). */
         Problem: {
@@ -278,6 +401,314 @@ export interface operations {
             };
             /** @description Sem token válido. */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    mine_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Convites do profissional. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invitation"][];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é profissional. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O cadastro de profissional ainda está sendo processado. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvitationRequest"];
+            };
+        };
+        responses: {
+            /** @description Convite criado. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedInvitation"];
+                };
+            };
+            /** @description E-mail inválido. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é profissional. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O cadastro de profissional ainda está sendo processado. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    lookup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvitationLookupRequest"];
+            };
+        };
+        responses: {
+            /** @description Quem convida e o que será compartilhado. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationPreview"];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Convite ou código não encontrado. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Convite vencido, já usado ou cancelado. */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Convite cancelado (ou já estava). */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é profissional. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Convite não encontrado (ou de outro profissional). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Convite já aceito. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    mine_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Código pessoal. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteCode"];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é profissional. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O cadastro de profissional ainda está sendo processado. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    rotate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Código novo. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteCode"];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é profissional. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O cadastro de profissional ainda está sendo processado. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

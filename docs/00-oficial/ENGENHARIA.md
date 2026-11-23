@@ -96,6 +96,11 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
   pelo **outbox transacional**: o evento é gravado na mesma transação do dado e
   um publicador envia ao broker. Consumidores são **idempotentes** (tabela de
   eventos processados).
+- **Fila de cada consumidor** (DEV-0035): durável, com o nome
+  `<serviço>.<evento>` (ex.: `client.professional-registered`), ligada à
+  exchange de origem. O listener tenta 3 vezes; depois, a mensagem vai para a
+  fila de mensagens mortas `<fila>.dlq`, em vez de voltar à fila sem fim.
+  Payload fora do contrato vai direto para a `.dlq`.
 - **Projeções locais:** cada serviço mantém uma cópia mínima do que precisa
   dos outros. Exemplo: `training` mantém uma tabela de vínculos ativos para
   decidir se o personal pode ver um aluno, sem perguntar ao `client-service` a
@@ -169,6 +174,13 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
   - As chamadas usam `createApiFetch` (`src/lib/apiFetch.ts`), com as
     mesmas regras da web: Bearer token, uma nova tentativa no 401 e token só
     para as origens das APIs do FitHub.
+- **Convites** (DEV-0035): `POST`, `GET` e `DELETE /invitations` (só
+  `personal` ou `nutritionist`) e `POST /invitations/lookup` para a tela de
+  aceite; código pessoal em `/professionals/me/invite-code`. Token e código
+  gerados com `SecureRandom`, guardados só como hash SHA-256, valem 7 dias e
+  são de uso único. O e-mail sai pelo SMTP (Mailpit no compose). O
+  client-service conhece o profissional pela projeção do
+  `ProfissionalCadastrado`.
 - **Perfil de saúde** (DEV-0033): `PUT` e `GET /clients/me/health`, que exige o
   perfil do cliente (409 sem ele). Dado sensível: nunca em log, mensagem de
   erro ou evento.

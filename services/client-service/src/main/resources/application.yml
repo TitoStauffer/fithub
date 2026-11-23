@@ -15,11 +15,24 @@ spring:
     hibernate:
       # O esquema é só das migrations (Flyway); o Hibernate apenas confere.
       ddl-auto: validate
+  mail:
+    # SMTP do convite por e-mail (DEV-0035): o Mailpit do compose por padrão.
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USER:fithub}
     password: ${RABBITMQ_PASSWORD:fithub}
+    listener:
+      simple:
+        # Consumidores (DEV-0035): 3 tentativas; depois, a mensagem vai para a fila de mensagens mortas
+        # da fila (<fila>.dlq) em vez de voltar para a fila sem fim.
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1s
   security:
     oauth2:
       resourceserver:
@@ -30,6 +43,10 @@ server:
   port: ${SERVER_PORT:8082}
 
 management:
+  health:
+    mail:
+      # O SMTP fora do ar não tira o serviço do ar: o convite vale sem o e-mail (DEV-0035).
+      enabled: false
   endpoints:
     web:
       exposure:
@@ -43,3 +60,8 @@ fithub:
   messaging:
     # Exchange topic de origem dos eventos deste serviço (ADR-003).
     exchange: fithub.client
+  invitations:
+    # Início do link do convite; o token vai no fim. O app mobile abre o esquema fithub:// (DEV-0042).
+    link-base: ${FITHUB_INVITATION_LINK_BASE:fithub://convite/}
+  mail:
+    from: ${FITHUB_MAIL_FROM:FitHub <nao-responda@fithub.local>}

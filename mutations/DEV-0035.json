@@ -1,0 +1,205 @@
+{
+    "issue": "DEV-0035",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Conta sem papel de profissional passa a criar e listar convites",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/interfaces/rest/InvitationController.java",
+            "find": "private static final String PROFESSIONAL = \"hasAnyRole('PERSONAL', 'NUTRITIONIST')\";",
+            "replace": "private static final String PROFESSIONAL = \"isAuthenticated()\";",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=InvitationApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Convite deixa de vencer em 7 dias",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/invitation/Invitation.java",
+            "find": "case PENDING -> now.isBefore(expiresAt) ? State.PENDING : State.EXPIRED;",
+            "replace": "case PENDING -> State.PENDING;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=InvitationTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Convite aceito volta a valer (uso único quebrado)",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/invitation/Invitation.java",
+            "find": "case ACCEPTED -> State.ACCEPTED;",
+            "replace": "case ACCEPTED -> State.PENDING;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=InvitationTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Profissional passa a cancelar convite de outro profissional",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManageInvitations.java",
+            "find": ".filter(found -> found.professionalId().equals(professionalId))",
+            "replace": ".filter(found -> true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=InvitationApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Consulta deixa de recusar convite vencido, usado ou cancelado",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManageInvitations.java",
+            "find": "if (!invitation.usableAt(clock.instant())) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=InvitationApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Banco passa a guardar o token em claro",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManageInvitations.java",
+            "find": "InviteSecrets.hash(token),",
+            "replace": "token,",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=InvitationApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Troca do código pessoal deixa de gravar o código novo",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcProfessionalDirectory.java",
+            "find": "update professional set invite_code = :code, updated_at = :now where id = :id",
+            "replace": "update professional set updated_at = :now where id = :id",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=InvitationApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "Reentrega do ProfissionalCadastrado passa a rodar o handler de novo",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/messaging/ProfessionalRegisteredListener.java",
+            "find": "                QUEUE,\n                message,\n",
+            "replace": "                QUEUE,\n                java.util.UUID.randomUUID(),\n",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalRegisteredConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "SMTP fora do ar volta a derrubar o health do serviço",
+            "area": "java",
+            "file": "services/client-service/src/main/resources/application.yml",
+            "find": "      enabled: false\n",
+            "replace": "      enabled: true\n",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ClientServiceSkeletonTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "ProfissionalCadastrado com nome em branco passa a ser projetado",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/messaging/ProfessionalRegisteredListener.java",
+            "find": "                    || event.name().isBlank()\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalRegisteredConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}
