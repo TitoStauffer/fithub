@@ -1,0 +1,80 @@
+{
+    "issue": "DEV-0041",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Menor de 18 anos deixa de ser recusado no aparelho",
+            "area": "apps",
+            "file": "apps/mobile/src/features/profile/profileForm.ts",
+            "find": "ageOn(birthDate, today) < MINIMUM_AGE",
+            "replace": "false",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Observações acima de 1000 caracteres deixam de ser recusadas",
+            "area": "apps",
+            "file": "apps/mobile/src/features/profile/profileForm.ts",
+            "find": "form.notes.trim().length > MAX_NOTES",
+            "replace": "false",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Erro de campo da API passa a sair só no aviso geral",
+            "area": "apps",
+            "file": "apps/mobile/src/features/profile/profileApi.ts",
+            "find": "if ((fields as readonly string[]).includes(field)) fieldErrors[field as K] = message;",
+            "replace": "if (false) fieldErrors[field as K] = message;",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Falha de rede deixa de virar o aviso de sem conexão",
+            "area": "apps",
+            "file": "apps/mobile/src/lib/api.ts",
+            "find": "if (error instanceof TypeError) throw new OfflineError();",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Cliente sem perfil deixa de ir para o cadastro",
+            "area": "apps",
+            "file": "apps/mobile/src/features/profile/ClientArea.tsx",
+            "find": "if (profile === null) return <ProfileFormScreen api={api} onSaved={saved} />;",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}

@@ -6,12 +6,13 @@ import { secureTokenStore } from './src/features/auth/secureTokenStore';
 import { createSession, type Session } from './src/features/auth/session';
 import { SessionProvider, useSession } from './src/features/auth/SessionProvider';
 import { SignInScreen } from './src/features/auth/SignInScreen';
+import { ClientArea } from './src/features/profile/ClientArea';
 import { ServiceStatus } from './src/features/status/ServiceStatus';
 
 // Uma sessão por app: é ela que guarda o access token em memória.
 const appSession = createSession(createExpoAuthGateway(), secureTokenStore);
 
-/** App do cliente: tela de entrada sem sessão e a área do cliente com sessão (DEV-0028). */
+/** App do cliente: tela de entrada sem sessão e a área do cliente com sessão (DEV-0028, DEV-0041). */
 export default function App({ session = appSession }: { session?: Session }) {
     return (
         <SessionProvider session={session}>
@@ -52,7 +53,7 @@ function Content() {
 
     return (
         <View style={styles.box}>
-            <Text style={styles.subtitle}>Seus treinos, refeições e avaliações, em construção.</Text>
+            <ClientArea />
             <ServiceStatus />
             <Pressable
                 accessibilityRole="button"
@@ -74,7 +75,7 @@ const styles = StyleSheet.create({
         padding: 24,
         backgroundColor: '#fff',
     },
-    box: { alignItems: 'center', gap: 12 },
+    box: { alignItems: 'center', gap: 12, alignSelf: 'stretch' },
     title: { fontSize: 24, fontWeight: '600' },
     subtitle: { color: '#555', textAlign: 'center' },
     button: {

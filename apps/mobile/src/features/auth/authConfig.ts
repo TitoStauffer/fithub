@@ -22,9 +22,14 @@ export const authConfig = {
     },
 } as const;
 
+/** Endereço do client-service; no emulador Android, aponte para o IP da máquina. */
+export function clientApiUrl(): string {
+    return setting(process.env.EXPO_PUBLIC_CLIENT_API_URL, DEFAULT_CLIENT_API_URL);
+}
+
 /** Origens que podem receber o access token: só as APIs do FitHub. */
 export function apiOrigins(): string[] {
-    return [originOf(setting(process.env.EXPO_PUBLIC_CLIENT_API_URL, DEFAULT_CLIENT_API_URL))];
+    return [originOf(clientApiUrl())];
 }
 
 /**
