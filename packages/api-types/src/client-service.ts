@@ -299,7 +299,7 @@ export interface components {
         };
         BodyFatEstimate: {
             /** @enum {string} */
-            origin?: "POLLOCK_3" | "POLLOCK_7";
+            origin?: "POLLOCK_3" | "POLLOCK_7" | "NAVY";
             percent?: number;
         };
         /** @description Circunferências em cm, todas opcionais. */

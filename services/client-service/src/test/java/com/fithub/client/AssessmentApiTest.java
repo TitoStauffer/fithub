@@ -187,6 +187,27 @@ class AssessmentApiTest extends ServiceIntegrationTest {
     }
 
     @Test
+    void avaliacaoOnlineCompletaEstimaPelaMarinhaComAAlturaDoPerfil() throws Exception {
+        // Perfil com 165 cm; mulher com pescoço 33, cintura 70,5 e quadril 98: 26,1% (conferido à parte).
+        recordOnline(client(), BODY)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.bodyFat.length()").value(1))
+                .andExpect(jsonPath("$.bodyFat[0].origin").value("NAVY"))
+                .andExpect(jsonPath("$.bodyFat[0].percent").value(26.1));
+    }
+
+    @Test
+    void medidasIncompletasOuAvaliacaoPresencialNaoTemEstimativaDaMarinha() throws Exception {
+        String client = client();
+        recordOnline(client, BODY.replace(", \"hip\": 98.0", ""))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.bodyFat.length()").value(0));
+        recordPresential("personal-" + linkedPersonal(client), client, BODY)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.bodyFat.length()").value(0));
+    }
+
+    @Test
     void dobrasSoNaAvaliacaoPresencial() throws Exception {
         recordOnline(client(), """
                         {"measuredOn": "2026-11-20", "weightKg": 64.0, "skinfolds": {"triceps": 18}}

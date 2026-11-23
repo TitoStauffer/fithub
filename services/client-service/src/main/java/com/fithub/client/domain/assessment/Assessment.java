@@ -87,6 +87,7 @@ public record Assessment(
             UUID authorId,
             AuthorRole authorRole,
             Integer ageAtMeasurement,
+            Integer heightCm,
             LocalDate today,
             Instant now) {
         if (measuredOn != null && measuredOn.isAfter(today)) {
@@ -94,11 +95,17 @@ public record Assessment(
         }
         Skinfolds folds = skinfolds == null ? Skinfolds.NONE : skinfolds;
         // % de gordura calculado uma vez, na gravação (FR-16); sem os dados do protocolo, fica vazio.
+        // A Marinha é a estimativa da avaliação online (FR-17); grava a altura do perfil usada na conta.
+        BigDecimal navy = type == Type.ONLINE && circumferences != null
+                ? BodyFatFormulas.navy(sexForFormulas, heightCm, circumferences).orElse(null)
+                : null;
         BodyFat bodyFat = new BodyFat(
                 BodyFatFormulas.pollock3(sexForFormulas, ageAtMeasurement, folds)
                         .orElse(null),
                 BodyFatFormulas.pollock7(sexForFormulas, ageAtMeasurement, folds)
-                        .orElse(null));
+                        .orElse(null),
+                navy,
+                navy == null ? null : heightCm);
         return new Assessment(
                 id,
                 clientId,

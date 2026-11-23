@@ -101,7 +101,7 @@
       "BodyFatEstimate" : {
         "properties" : {
           "origin" : {
-            "enum" : [ "POLLOCK_3", "POLLOCK_7" ],
+            "enum" : [ "POLLOCK_3", "POLLOCK_7", "NAVY" ],
             "type" : "string"
           },
           "percent" : {

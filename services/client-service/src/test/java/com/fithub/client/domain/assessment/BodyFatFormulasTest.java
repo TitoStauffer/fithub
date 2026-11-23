@@ -73,4 +73,37 @@ class BodyFatFormulasTest {
         assertThat(BodyFatFormulas.pollock3(Assessment.Sex.MALE, 18, minimum)).isEmpty();
         assertThat(BodyFatFormulas.pollock7(Assessment.Sex.MALE, 18, minimum)).isEmpty();
     }
+
+    private static Circumferences girths(String neck, String waist, String hip) {
+        return new Circumferences(
+                new BigDecimal(neck),
+                null,
+                new BigDecimal(waist),
+                null,
+                hip == null ? null : new BigDecimal(hip),
+                null,
+                null,
+                null,
+                null);
+    }
+
+    @Test
+    void marinhaDoHomemEDaMulher() {
+        assertThat(BodyFatFormulas.navy(Assessment.Sex.MALE, 178, girths("38", "85", null)))
+                .contains(new BigDecimal("16.4"));
+        assertThat(BodyFatFormulas.navy(Assessment.Sex.FEMALE, 165, girths("33", "70", "98")))
+                .contains(new BigDecimal("25.9"));
+    }
+
+    @Test
+    void marinhaSemMedidaNecessariaNaoTemResultado() {
+        // Mulher sem quadril, cintura menor que o pescoço, sem altura ou sem sexo: avaliação gravada sem a estimativa.
+        assertThat(BodyFatFormulas.navy(Assessment.Sex.FEMALE, 165, girths("33", "70", null)))
+                .isEmpty();
+        assertThat(BodyFatFormulas.navy(Assessment.Sex.MALE, 178, girths("40", "38", null)))
+                .isEmpty();
+        assertThat(BodyFatFormulas.navy(Assessment.Sex.MALE, null, girths("38", "85", null)))
+                .isEmpty();
+        assertThat(BodyFatFormulas.navy(null, 178, girths("38", "85", null))).isEmpty();
+    }
 }

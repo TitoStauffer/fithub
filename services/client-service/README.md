@@ -125,3 +125,6 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   abdominal, suprailíaca e coxa. Com `sexForFormulas` e o nascimento do perfil, a gravação calcula o % de gordura por
   Jackson & Pollock de 3 e 7 dobras (equação de Siri), devolvido em `bodyFat` com a origem (`POLLOCK_3`, `POLLOCK_7`).
   Sem os dados do protocolo, a avaliação é gravada sem o valor.
+- **Marinha (DEV-0046):** na avaliação online, com `sexForFormulas`, pescoço, cintura, quadril (mulher) e a altura do
+  perfil, a gravação estima o % de gordura pela fórmula da Marinha dos EUA (origem `NAVY`) e grava a altura usada.
+  Medida faltando: avaliação gravada sem a estimativa (fluxo alternativo do PRD).
