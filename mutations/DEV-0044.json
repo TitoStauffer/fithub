@@ -1,0 +1,105 @@
+{
+    "issue": "DEV-0044",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Profissional sem vínculo passa a registrar e ver avaliações",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManageAssessments.java",
+            "find": "if (!links.hasActiveLink(professionalId, clientId)) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AssessmentApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Cliente passa a excluir avaliação de outra pessoa",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManageAssessments.java",
+            "find": ".filter(found -> found.clientId().equals(clientId))",
+            "replace": ".filter(found -> true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AssessmentApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Medição no futuro passa a ser aceita",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/assessment/Assessment.java",
+            "find": "if (measuredOn != null && measuredOn.isAfter(today)) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AssessmentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Medida com mais de uma casa decimal passa a ser aceita",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/assessment/Measures.java",
+            "find": "value.stripTrailingZeros().scale() <= 1 && ",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AssessmentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Avaliação presencial passa a aceitar autor cliente",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/assessment/Assessment.java",
+            "find": "if ((type == Type.PRESENTIAL) != (authorRole == AuthorRole.PROFESSIONAL)) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AssessmentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}
