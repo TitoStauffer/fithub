@@ -180,6 +180,26 @@
                 "-Dtest=ClientServiceSkeletonTest",
                 "-Dsurefire.failIfNoSpecifiedTests=false"
             ]
+        },
+        {
+            "id": "M10",
+            "description": "ProfissionalCadastrado com nome em branco passa a ser projetado",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/messaging/ProfessionalRegisteredListener.java",
+            "find": "                    || event.name().isBlank()\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalRegisteredConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
         }
     ]
 }

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fithub.testing.service.ServiceIntegrationTest;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 import java.util.function.BooleanSupplier;
 import org.junit.jupiter.api.Test;
@@ -127,5 +128,31 @@ class ProfessionalRegisteredConsumerTest extends ServiceIntegrationTest {
         }
         assertThat(dead).as("mensagem na fila de mensagens mortas").isNotNull();
         assertThat(professionals(UUID.fromString(marker))).isZero();
+    }
+
+    /** JSON válido que só as guardas do consumidor recusam (aprendizado de mensageria). */
+    @Test
+    void eventoComNomeEmBrancoOuSemDataVaiParaAFilaDeMensagensMortas() {
+        for (String template : List.of("""
+                {"professionalId": "%s", "professionalType": "personal_trainer", "name": "  ",
+                 "occurredAt": "2026-11-23T10:00:00Z"}
+                """, """
+                {"professionalId": "%s", "professionalType": "personal_trainer", "name": "Paula Personal"}
+                """)) {
+            UUID professional = UUID.randomUUID();
+            publish(UUID.randomUUID().toString(), template.formatted(professional));
+
+            Message dead = null;
+            long deadline = System.nanoTime() + Duration.ofSeconds(20).toNanos();
+            while (dead == null && System.nanoTime() < deadline) {
+                Message received = rabbit.receive("client.professional-registered.dlq", 500);
+                if (received != null
+                        && new String(received.getBody(), StandardCharsets.UTF_8).contains(professional.toString())) {
+                    dead = received;
+                }
+            }
+            assertThat(dead).as("mensagem na fila de mensagens mortas").isNotNull();
+            assertThat(professionals(professional)).isZero();
+        }
     }
 }
