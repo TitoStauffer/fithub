@@ -95,3 +95,14 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
 - Os payloads levam só ids (os `sub` das contas, ADR-009), o tipo, o escopo do consentimento (`profile`,
   `health_profile`, `body_assessments`, `photos`), quem encerrou e as datas; nenhum dado do perfil ou da saúde.
 - Encerrar de novo, ou perder a corrida de um encerramento simultâneo, não publica outro `VinculoEncerrado`.
+
+## Leitura pelo profissional vinculado (DEV-0040)
+
+| Rota | Quem | Resposta |
+|---|---|---|
+| `GET /professionals/me/clients/{clientId}/profile` | `personal` ou `nutritionist` com vínculo ativo | 200 com o perfil e a idade; 404 sem vínculo ativo |
+| `GET /professionals/me/clients/{clientId}/health` | idem | 200 com a saúde; 404 sem vínculo ativo ou sem saúde informada |
+
+- Vínculo encerrado corta o acesso na hora (BR-05). Personal e nutricionista vinculados leem os dois (BR-04).
+- Cada leitura da saúde grava `health_access_log` (profissional, cliente, data) antes de o dado sair; a tabela não
+  tem coluna para o conteúdo lido (NFR-03).

@@ -1040,6 +1040,122 @@
         "tags" : [ "Vínculos" ]
       }
     },
+    "/professionals/me/clients/{clientId}/health" : {
+      "get" : {
+        "operationId" : "health",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HealthProfile"
+                }
+              }
+            },
+            "description" : "Perfil de saúde do cliente."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é profissional."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem vínculo ativo, ou o cliente ainda não informou a saúde."
+          }
+        },
+        "summary" : "Perfil de saúde de um cliente com vínculo ativo (cada leitura fica registrada)",
+        "tags" : [ "Vínculos" ]
+      }
+    },
+    "/professionals/me/clients/{clientId}/profile" : {
+      "get" : {
+        "operationId" : "profile",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ClientProfile"
+                }
+              }
+            },
+            "description" : "Perfil do cliente."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é profissional."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem vínculo ativo com o cliente (ou ele não existe)."
+          }
+        },
+        "summary" : "Perfil de um cliente com vínculo ativo",
+        "tags" : [ "Vínculos" ]
+      }
+    },
     "/professionals/me/invite-code" : {
       "get" : {
         "operationId" : "mine_2",
