@@ -14,5 +14,6 @@ superado ganha status "substituído por ADR-NNN" em vez de ser apagado.
 | [ADR-007](ADR-007-papeis-e-clients-do-realm.md) | Papéis e clients do realm `fithub` | aceito |
 | [ADR-008](ADR-008-atribuicao-de-papel-pelo-account-service.md) | Atribuição do papel de profissional pelo account-service | aceito |
 | [ADR-009](ADR-009-identidade-comum-entre-servicos.md) | O `sub` do Keycloak é o id da pessoa em todos os serviços | aceito |
+| [ADR-010](ADR-010-base-de-exercicios.md) | Base de exercícios inicial: dados do wger, mídia só com licença explícita | aceito |
 
 Formato: contexto, decisão, alternativas consideradas e consequências.
