@@ -1,0 +1,65 @@
+{
+    "issue": "DEV-0149",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Id do profissional volta a ser gerado, diferente da conta",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/domain/professional/Professional.java",
+            "find": "                idOf(accountId),\n                accountId,\n                name == null ? null : name.strip(),",
+            "replace": "                UUID.randomUUID(),\n                accountId,\n                name == null ? null : name.strip(),",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Domínio deixa de recusar profissional com id diferente da conta",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/domain/professional/Professional.java",
+            "find": "if (!id.equals(idOf(accountId))) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Banco deixa de recusar profissional com id diferente da conta",
+            "area": "java",
+            "file": "services/account-service/src/main/resources/db/migration/V4__id_profissional_e_a_conta.sql",
+            "find": "check (id = account_id::uuid);",
+            "replace": "check (true);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalRegistrationTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

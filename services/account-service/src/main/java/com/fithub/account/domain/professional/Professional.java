@@ -13,6 +13,7 @@ import java.util.UUID;
  * atribuição do papel no Keycloak acontece depois do cadastro; até ela terminar, {@link #roleStatus()}
  * fica {@link RoleStatus#PENDING}.
  *
+ * @param id o mesmo valor da conta: o {@code sub} do Keycloak é o id da pessoa em todos os serviços (ADR-009)
  * @param accountId {@code sub} do token: o id da conta no Keycloak
  * @param name nome de exibição, vindo do perfil do Keycloak no cadastro (DEV-0030)
  */
@@ -62,8 +63,8 @@ public record Professional(
         Objects.requireNonNull(organizationId, "organizationId");
         Objects.requireNonNull(roleStatus, "roleStatus");
         Objects.requireNonNull(createdAt, "createdAt");
-        if (accountId == null || accountId.isBlank()) {
-            throw new IllegalArgumentException("Profissional sem conta.");
+        if (!id.equals(idOf(accountId))) {
+            throw new IllegalArgumentException("O id do profissional é o id da conta (ADR-009).");
         }
         if (name == null || name.isBlank() || name.length() > MAX_NAME) {
             throw new InvalidRegistrationException("name", "Complete seu nome no perfil (até 200 caracteres).");
@@ -79,15 +80,9 @@ public record Professional(
 
     /** Cadastro novo: registro declarado e papel ainda por atribuir. O nome chega sem espaços nas pontas. */
     public static Professional register(
-            UUID id,
-            String accountId,
-            String name,
-            Type type,
-            Registration registration,
-            UUID organizationId,
-            Instant now) {
+            String accountId, String name, Type type, Registration registration, UUID organizationId, Instant now) {
         return new Professional(
-                id,
+                idOf(accountId),
                 accountId,
                 name == null ? null : name.strip(),
                 type,
@@ -96,6 +91,21 @@ public record Professional(
                 organizationId,
                 RoleStatus.PENDING,
                 now);
+    }
+
+    /**
+     * Id do profissional da conta: o próprio {@code sub} do Keycloak (ADR-009). Assim training, nutrition e
+     * client reconhecem o profissional pelo token, sem projeção da conta.
+     */
+    public static UUID idOf(String accountId) {
+        if (accountId == null || accountId.isBlank()) {
+            throw new IllegalArgumentException("Profissional sem conta.");
+        }
+        try {
+            return UUID.fromString(accountId);
+        } catch (IllegalArgumentException notUuid) {
+            throw new IllegalArgumentException("Conta fora do formato do Keycloak (UUID).", notUuid);
+        }
     }
 
     /** O pedido repete o cadastro que já existe (mesmo tipo e mesmo registro). */

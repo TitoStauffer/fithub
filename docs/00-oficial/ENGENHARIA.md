@@ -188,7 +188,9 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
   transação do cadastro, só na primeira vez (pedido repetido não grava de
   novo). Payload pelo contrato `account.professional-registered.v1`: id,
   tipo (`personal_trainer` ou `nutritionist`), nome do perfil do Keycloak e
-  data. O registro CREF/CRN e a conta do Keycloak não saem do account-service.
+  data. O id do profissional é o `sub` da conta (DEV-0149,
+  [ADR-009](adr/ADR-009-identidade-comum-entre-servicos.md)), o mesmo que os
+  outros serviços veem no token; o registro CREF/CRN não sai do account-service.
 - **Realm `fithub` versionado** em `infra/keycloak/realm-fithub.json`
   (DEV-0024, [ADR-007](adr/ADR-007-papeis-e-clients-do-realm.md)):
   - Papéis de realm: `client`, `personal`, `nutritionist` e `admin`. Conta

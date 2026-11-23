@@ -11,7 +11,8 @@ import org.springframework.stereotype.Component;
  * Grava o {@code ProfissionalCadastrado} no outbox (DEV-0030): routing key
  * {@code account.professional-registered.v1}, na exchange do serviço ({@code fithub.account}). O payload
  * segue o contrato de {@code libs/event-contracts} e leva só o necessário para a projeção dos outros
- * serviços: o registro no conselho (CREF/CRN) e a conta do Keycloak não saem do account-service.
+ * serviços. O id do profissional é o {@code sub} da conta (ADR-009); o registro no conselho (CREF/CRN) não sai
+ * do account-service.
  */
 @Component
 class OutboxProfessionalEvents implements ProfessionalEvents {
