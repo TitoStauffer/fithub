@@ -1,0 +1,65 @@
+{
+    "issue": "DEV-0151",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "nutrition: vínculo de personal passa a liberar acesso no nutrition",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ProjectClientEvents.java",
+            "find": "    public void linkActivated(UUID linkId, UUID clientId, UUID professionalId, String type, Instant occurredAt) {\n        if (LINK_TYPE.equals(type)) {",
+            "replace": "    public void linkActivated(UUID linkId, UUID clientId, UUID professionalId, String type, Instant occurredAt) {\n        if (true) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "nutrition: endpoint com clientId deixa de exigir vínculo ativo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ClientAccess.java",
+            "find": "if (!links.hasActiveLink(UUID.fromString(professionalAccount), clientId)) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "nutrition: reentrega deixa de passar pelo consumo idempotente",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/messaging/ClientEventsListener.java",
+            "find": "processedEvents.processOnce(QUEUE, message, handler);",
+            "replace": "handler.run();",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

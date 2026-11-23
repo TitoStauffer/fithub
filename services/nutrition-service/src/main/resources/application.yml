@@ -20,6 +20,15 @@ spring:
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USER:fithub}
     password: ${RABBITMQ_PASSWORD:fithub}
+    listener:
+      simple:
+        # Consumidores (DEV-0151): 3 tentativas; depois, a mensagem vai para a fila de mensagens mortas
+        # da fila (<fila>.dlq) em vez de voltar para a fila sem fim.
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1s
   security:
     oauth2:
       resourceserver:
