@@ -658,8 +658,11 @@ Então um novo recorde de supino é registrado
   revisão; DEV-0032).
 - **QUESTÃO-06** — Política de retenção após exclusão de conta, e o que
   acontece com as prescrições guardadas pelo profissional.
-- **QUESTÃO-07** — Licença, custo e termos da base de exercícios externa
-  (vídeos/animações podem ser exibidos em app comercial?).
+- ~~**QUESTÃO-07**~~ — **Decidida pelo Agent na ausência do Tito, para revisão
+  (DEV-0052, [ADR-010](adr/ADR-010-base-de-exercicios.md)):** base inicial do
+  wger (gratuita, Creative Commons por exercício, com atribuição), mídia só com
+  licença explícita e vídeo principalmente pela URL do personal. Fontes pagas com
+  vídeo ficam para decisão de custo do Tito.
 - ~~**QUESTÃO-08**~~ — **Decidida pelo Tito em 22/11/2026:** só declarado
   no MVP, com o formato validado e uma situação (`DECLARED`) gravada para
   permitir verificação futura. O formato exato (número de 1 a 6 dígitos, UF e,
