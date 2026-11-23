@@ -120,6 +120,126 @@
                 "-Dtest=AssessmentApiTest",
                 "-Dsurefire.failIfNoSpecifiedTests=false"
             ]
+        },
+        {
+            "id": "M7",
+            "description": "Dobra da coxa deixa de ter a faixa conferida",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/assessment/Skinfolds.java",
+            "find": "        check(\"skinfolds.thigh\", thigh);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AssessmentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "Dobra abaixo de 1 mm passa a ser aceita",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/assessment/Skinfolds.java",
+            "find": "MIN = new BigDecimal(\"1\");",
+            "replace": "MIN = new BigDecimal(\"0\");",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AssessmentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "Banco passa a aceitar dobra abaixo de 1 mm",
+            "area": "java",
+            "file": "services/client-service/src/main/resources/db/migration/V9__dobras_e_pollock.sql",
+            "find": "coalesce(skinfold_chest_mm, 1) between 1 and 80",
+            "replace": "coalesce(skinfold_chest_mm, 1) between 0 and 80",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AssessmentApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "Banco passa a aceitar dobra na avaliação online",
+            "area": "java",
+            "file": "services/client-service/src/main/resources/db/migration/V9__dobras_e_pollock.sql",
+            "find": "        assessment_type = 'PRESENTIAL'\n        or (",
+            "replace": "        true\n        or (",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AssessmentApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "Pollock passa a calcular para menores de 18 anos",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/assessment/BodyFatFormulas.java",
+            "find": "age != null && age >= MIN_AGE",
+            "replace": "age != null",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=BodyFatFormulasTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "Resultado fora da faixa plausível passa a ser gravado",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/assessment/BodyFatFormulas.java",
+            "find": "percent.compareTo(MIN_PERCENT) < 0 || percent.compareTo(MAX_PERCENT) > 0",
+            "replace": "false",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=BodyFatFormulasTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
         }
     ]
 }

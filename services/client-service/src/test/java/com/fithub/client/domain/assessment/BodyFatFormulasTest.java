@@ -58,4 +58,19 @@ class BodyFatFormulasTest {
         assertThat(BodyFatFormulas.pollock7(Assessment.Sex.MALE, 50, MAN))
                 .isNotEqualTo(BodyFatFormulas.pollock7(Assessment.Sex.MALE, 30, MAN));
     }
+
+    @Test
+    void menorDe18OuIdadeNegativaNaoTemResultado() {
+        assertThat(BodyFatFormulas.pollock3(Assessment.Sex.MALE, 17, MAN)).isEmpty();
+        assertThat(BodyFatFormulas.pollock7(Assessment.Sex.FEMALE, -1, WOMAN)).isEmpty();
+        assertThat(BodyFatFormulas.pollock3(Assessment.Sex.MALE, 18, MAN)).isPresent();
+    }
+
+    /** Dobras no mínimo da faixa: a equação de Siri daria cerca de −0,9% para um homem de 18 anos. */
+    @Test
+    void resultadoForaDaFaixaPlausivelEDescartado() {
+        Skinfolds minimum = folds("1", "1", "1", "1", "1", "1", "1");
+        assertThat(BodyFatFormulas.pollock3(Assessment.Sex.MALE, 18, minimum)).isEmpty();
+        assertThat(BodyFatFormulas.pollock7(Assessment.Sex.MALE, 18, minimum)).isEmpty();
+    }
 }

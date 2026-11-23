@@ -1,5 +1,6 @@
 package com.fithub.client;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -15,6 +16,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.MockMvc;
@@ -210,5 +212,49 @@ class AssessmentApiTest extends ServiceIntegrationTest {
                 .andExpect(status().isNoContent());
         mvc.perform(get("/clients/me/assessments").header("Authorization", "Bearer conta-" + client))
                 .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void dobraForaDaFaixaVolta400ComOCampo() throws Exception {
+        String client = client();
+        String personal = linkedPersonal(client);
+
+        recordPresential("personal-" + personal, client, """
+                        {"measuredOn": "2026-11-20", "weightKg": 64.0, "skinfolds": {"triceps": 0.5}}
+                        """)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("skinfolds.triceps"));
+    }
+
+    /** As CHECKs da V9 recusam mesmo sem passar pelo domínio (aprendizado check-com-in-em-coluna-anulavel). */
+    @Test
+    void bancoRecusaDobraForaDaFaixaEDobraNaOnlineMesmoPorEscritaDireta() {
+        String insert = """
+                insert into body_assessment (id, client_id, assessment_type, measured_on, weight_kg, author_id,
+                    author_role, created_at, skinfold_chest_mm)
+                values (:id, :client, :type, date '2026-11-20', 64.0, :author, :role, now(), :chest)
+                """;
+        UUID client = UUID.randomUUID();
+
+        assertThatThrownBy(() -> jdbc.sql(insert)
+                        .param("id", UUID.randomUUID())
+                        .param("client", client)
+                        .param("type", "PRESENTIAL")
+                        .param("author", UUID.randomUUID())
+                        .param("role", "PROFESSIONAL")
+                        .param("chest", new java.math.BigDecimal("0.5"))
+                        .update())
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("ck_body_assessment_skinfolds");
+        assertThatThrownBy(() -> jdbc.sql(insert)
+                        .param("id", UUID.randomUUID())
+                        .param("client", client)
+                        .param("type", "ONLINE")
+                        .param("author", client)
+                        .param("role", "CLIENT")
+                        .param("chest", new java.math.BigDecimal("10"))
+                        .update())
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("ck_body_assessment_skinfolds_presential");
     }
 }
