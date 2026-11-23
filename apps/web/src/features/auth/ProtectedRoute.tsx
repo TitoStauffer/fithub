@@ -32,6 +32,20 @@ export function ProtectedRoute({ roles, children }: { roles: readonly Role[]; ch
         );
     }
 
+    if (status === 'rejected') {
+        // Sair encerra a sessão no Keycloak; sem isso, o login devolveria a mesma sessão e o laço voltaria.
+        return (
+            <section role="alert" className="space-y-3">
+                <h2 className="text-lg font-semibold">Sua sessão não foi aceita</h2>
+                <p className="text-muted-foreground">
+                    O FitHub recusou o acesso desta sessão. Saia e entre de novo; se continuar, fale com o
+                    suporte.
+                </p>
+                <Button onClick={() => void logout()}>Sair e entrar de novo</Button>
+            </section>
+        );
+    }
+
     if (status !== 'authenticated' || !user) return <p role="status">Redirecionando para o login…</p>;
 
     if (!roles.some((role) => user.roles.includes(role))) {

@@ -69,6 +69,7 @@ describe('createApiFetch', () => {
         'http://localhost:9999/x',
         '//evil.example/x',
         'http://localhost:8081.evil.example/x',
+        'http://[::1',
     ])('não manda o token para fora das APIs do FitHub (%s)', async (url) => {
         const { apiFetch, sent, getAccessToken } = setup([200]);
 

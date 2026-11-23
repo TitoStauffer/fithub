@@ -1,12 +1,16 @@
-import type { AuthClient, AuthUser, Role } from './authClient';
+import { RefreshRejectedError, type AuthClient, type AuthUser, type Role } from './authClient';
 
 /** Sessão falsa para os testes: registra as chamadas e deixa controlar o resultado de cada passo. */
 export interface FakeAuthClient extends AuthClient {
     calls: string[];
     /** Dispara o aviso de token vencido, como o keycloak-js faria. */
     expireToken(): void;
-    /** A partir daqui a renovação falha (sessão encerrada no Keycloak). */
-    failRefresh(): void;
+    /**
+     * A partir daqui a renovação falha: `rejected` (padrão) é o Keycloak recusando, `offline` é rede fora.
+     */
+    failRefresh(kind?: 'rejected' | 'offline'): void;
+    /** O token de acesso atual passa a estar vencido. */
+    expireAccessToken(): void;
 }
 
 export function userWith(...roles: Role[]): AuthUser {
@@ -16,7 +20,8 @@ export function userWith(...roles: Role[]): AuthUser {
 export function fakeAuthClient(options: { user?: AuthUser; initError?: boolean } = {}): FakeAuthClient {
     let user = options.user;
     let token = user ? 'token-1' : undefined;
-    let refreshFails = false;
+    let refreshFailure: 'rejected' | 'offline' | undefined;
+    let tokenValid = true;
     let renewals = 0;
     let expiredListener: (() => void) | undefined;
     const calls: string[] = [];
@@ -41,14 +46,17 @@ export function fakeAuthClient(options: { user?: AuthUser; initError?: boolean }
         },
         refresh(minValiditySeconds) {
             calls.push(`refresh:${minValiditySeconds}`);
-            if (refreshFails || !user) return Promise.reject(new Error('sessão encerrada'));
+            if (refreshFailure === 'offline') return Promise.reject(new TypeError('Failed to fetch'));
+            if (refreshFailure === 'rejected' || !user) return Promise.reject(new RefreshRejectedError());
             if (minValiditySeconds < 0) {
                 renewals += 1;
                 token = `token-${renewals + 1}`;
+                tokenValid = true;
             }
             return Promise.resolve();
         },
         accessToken: () => token,
+        hasValidToken: () => Boolean(token) && tokenValid,
         user: () => user,
         clear() {
             calls.push('clear');
@@ -59,8 +67,11 @@ export function fakeAuthClient(options: { user?: AuthUser; initError?: boolean }
             expiredListener = listener;
         },
         expireToken: () => expiredListener?.(),
-        failRefresh() {
-            refreshFails = true;
+        failRefresh(kind = 'rejected') {
+            refreshFailure = kind;
+        },
+        expireAccessToken() {
+            tokenValid = false;
         },
     };
 }

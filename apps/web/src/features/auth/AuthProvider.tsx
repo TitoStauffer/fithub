@@ -1,7 +1,13 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
-import type { AuthClient, AuthUser } from './authClient';
-import { AuthContext, SessionExpiredError, type AuthState, type AuthStatus } from './authContext';
+import { RefreshRejectedError, type AuthClient, type AuthUser } from './authClient';
+import {
+    AuthContext,
+    SessionExpiredError,
+    SessionUnavailableError,
+    type AuthState,
+    type AuthStatus,
+} from './authContext';
 import { cameBackFromLogin, clearLoginRedirect, markLoginRedirect } from './loginRedirect';
 
 /** Renova o token quando faltar menos que isto para vencer (o access token do realm dura 5 minutos). */
@@ -20,16 +26,35 @@ interface Session {
 export function AuthProvider({ client, children }: { client: AuthClient; children: ReactNode }) {
     const [session, setSession] = useState<Session>({ status: 'loading', user: undefined });
 
+    // A recusa da API é final até a pessoa sair (Code Review do PR #200): uma segunda chamada que
+    // termina depois não pode trocar `rejected` por `anonymous`, senão a rota protegida manda ao login
+    // e o laço volta. Fica numa ref porque as chamadas concorrentes não esperam o próximo render.
+    const rejected = useRef(false);
+
     const endSession = useCallback(() => {
         client.clear();
-        setSession({ status: 'anonymous', user: undefined });
+        if (!rejected.current) setSession({ status: 'anonymous', user: undefined });
     }, [client]);
+
+    const rejectSession = useCallback(() => {
+        rejected.current = true;
+        client.clear();
+        setSession({ status: 'rejected', user: undefined });
+    }, [client]);
+
+    // Só a recusa do Keycloak encerra a sessão; rede fora por instantes não tira a pessoa da tela (DEV-0146).
+    const onRefreshFailure = useCallback(
+        (error: unknown) => {
+            if (error instanceof RefreshRejectedError) endSession();
+        },
+        [endSession],
+    );
 
     useEffect(() => {
         let active = true;
         client.onTokenExpired(() => {
-            client.refresh(MIN_VALIDITY_SECONDS).catch(() => {
-                if (active) endSession();
+            client.refresh(MIN_VALIDITY_SECONDS).catch((error: unknown) => {
+                if (active) onRefreshFailure(error);
             });
         });
         client
@@ -51,7 +76,7 @@ export function AuthProvider({ client, children }: { client: AuthClient; childre
         return () => {
             active = false;
         };
-    }, [client, endSession]);
+    }, [client, onRefreshFailure]);
 
     // Com sessão, confere de tempos em tempos e renova antes de o token vencer.
     useEffect(() => {
@@ -63,10 +88,10 @@ export function AuthProvider({ client, children }: { client: AuthClient; childre
                     const user = client.user();
                     if (user) setSession({ status: 'authenticated', user });
                 })
-                .catch(endSession);
+                .catch(onRefreshFailure);
         }, REFRESH_CHECK_MS);
         return () => window.clearInterval(timer);
-    }, [client, endSession, session.status]);
+    }, [client, onRefreshFailure, session.status]);
 
     const state = useMemo<AuthState>(
         () => ({
@@ -81,11 +106,17 @@ export function AuthProvider({ client, children }: { client: AuthClient; childre
                 return client.logout(`${window.location.origin}/`);
             },
             async getAccessToken(options) {
+                if (rejected.current) throw new SessionExpiredError();
                 try {
                     await client.refresh(options?.force ? -1 : MIN_VALIDITY_SECONDS);
-                } catch {
-                    endSession();
-                    throw new SessionExpiredError();
+                } catch (error) {
+                    if (error instanceof RefreshRejectedError) {
+                        endSession();
+                        throw new SessionExpiredError();
+                    }
+                    // Falha passageira. Com `force` (depois de um 401) o token atual é justamente o que a
+                    // API recusou: devolvê-lo levaria a tela de sessão recusada por uma queda de rede.
+                    if (options?.force || !client.hasValidToken()) throw new SessionUnavailableError();
                 }
                 const token = client.accessToken();
                 if (!token) {
@@ -95,8 +126,9 @@ export function AuthProvider({ client, children }: { client: AuthClient; childre
                 return token;
             },
             endSession,
+            rejectSession,
         }),
-        [client, endSession, session],
+        [client, endSession, rejectSession, session],
     );
 
     return <AuthContext value={state}>{children}</AuthContext>;

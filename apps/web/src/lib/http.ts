@@ -12,6 +12,15 @@ export interface ApiFetchOptions {
 
 export type ApiFetch = (url: string, init?: RequestInit) => Promise<Response>;
 
+/** URL absoluta ou relativa à página; `undefined` se não for válida. Sem `URL.parse`, que é de 2024. */
+function parseUrl(url: string): URL | undefined {
+    try {
+        return new URL(url, window.location.origin);
+    } catch {
+        return undefined;
+    }
+}
+
 /**
  * `fetch` autenticado para as APIs do FitHub (DEV-0027): manda o Bearer token e, num 401, renova o
  * token e tenta mais uma vez. Se a API recusar de novo, encerra a sessão e lança
@@ -22,7 +31,7 @@ export function createApiFetch(options: ApiFetchOptions): ApiFetch {
 
     return async (url, init) => {
         // URL que nem é válida também é recusada antes de qualquer token ser pedido.
-        const target = URL.parse(url, window.location.origin);
+        const target = parseUrl(url);
         if (!target || !options.allowedOrigins.includes(target.origin)) {
             throw new Error(`Chamada autenticada fora das APIs do FitHub: ${target?.origin ?? url}`);
         }

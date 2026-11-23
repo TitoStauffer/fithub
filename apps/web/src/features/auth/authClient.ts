@@ -6,6 +6,17 @@ import { config } from '@/lib/config';
 export type Role = 'client' | 'personal' | 'nutritionist' | 'admin';
 const ROLES: readonly string[] = ['client', 'personal', 'nutritionist', 'admin'];
 
+/**
+ * O Keycloak recusou a renovação (refresh token vencido, revogado, sessão encerrada): só resta entrar
+ * de novo. Qualquer outra falha de `refresh` é passageira (rede, servidor) e não encerra a sessão.
+ */
+export class RefreshRejectedError extends Error {
+    constructor() {
+        super('O Keycloak recusou a renovação da sessão.');
+        this.name = 'RefreshRejectedError';
+    }
+}
+
 /** O que o app usa do token: nada além disso sai do adaptador. */
 export interface AuthUser {
     subject: string;
@@ -25,8 +36,13 @@ export interface AuthClient {
     login(returnTo: string): Promise<void>;
     /** Encerra a sessão no Keycloak e volta para `returnTo`. */
     logout(returnTo: string): Promise<void>;
-    /** Renova o token se ele vence em menos de `minValiditySeconds` (-1 força). Lança se não conseguir. */
+    /**
+     * Renova o token se ele vence em menos de `minValiditySeconds` (-1 força). Lança
+     * {@link RefreshRejectedError} se o Keycloak recusar; outra exceção é falha passageira.
+     */
     refresh(minValiditySeconds: number): Promise<void>;
+    /** Há um token de acesso ainda dentro da validade (serve enquanto a renovação não volta). */
+    hasValidToken(): boolean;
     /** Token de acesso atual, só para o cabeçalho Authorization das APIs do FitHub. */
     accessToken(): string | undefined;
     user(): AuthUser | undefined;
@@ -76,8 +92,18 @@ export function createKeycloakClient(): AuthClient {
         login: (returnTo) => keycloak.login({ redirectUri: returnTo }),
         logout: (returnTo) => keycloak.logout({ redirectUri: returnTo }),
         async refresh(minValiditySeconds) {
-            await keycloak.updateToken(minValiditySeconds);
+            try {
+                await keycloak.updateToken(minValiditySeconds);
+            } catch (error) {
+                // O keycloak-js lança um NetworkError com a resposta; 400 do endpoint de token é
+                // invalid_grant (e ele já apagou os tokens). Sem resposta (rede) ou 5xx é passageiro.
+                const status = (error as { response?: { status?: unknown } } | null)?.response?.status;
+                if (status === 400 || status === 401 || !keycloak.refreshToken)
+                    throw new RefreshRejectedError();
+                throw error;
+            }
         },
+        hasValidToken: () => Boolean(keycloak.token) && !keycloak.isTokenExpired(0),
         accessToken: () => keycloak.token,
         user() {
             const claims = keycloak.tokenParsed;
