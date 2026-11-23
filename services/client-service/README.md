@@ -32,3 +32,12 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
 - Condições como conjunto (`DIABETES`, `HYPERTENSION`, `PREGNANCY`, `RECENT_SURGERY`, `OTHER`): repetidas
   contam uma vez, lista vazia é nenhuma. Texto livre opcional de até 1000 caracteres.
 - Exige o perfil do cliente já criado (409 com Problem Details); a chave estrangeira garante o mesmo no banco.
+
+## Evento ClienteAtualizado (DEV-0034)
+
+- Gravado no outbox (`client.client-updated.v1`, exchange `fithub.client`) na mesma transação do perfil:
+  gravação desfeita não publica.
+- Sai na criação do perfil e quando nome, nascimento ou gênero mudam; mudar só altura ou objetivo não publica.
+  O payload leva o estado completo desses campos, `clientId` (a conta do Keycloak) e `occurredAt`.
+- A gravação trava o perfil (`select ... for update`) para comparar o antes e o depois. Sem o antes, o evento
+  sai: um a mais é inofensivo para o consumidor, que substitui a cópia local.

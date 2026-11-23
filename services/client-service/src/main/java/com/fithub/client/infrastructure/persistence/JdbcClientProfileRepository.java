@@ -32,6 +32,14 @@ class JdbcClientProfileRepository implements ClientProfileRepository {
     }
 
     @Override
+    public Optional<ClientProfile> findByAccountIdForUpdate(String accountId) {
+        return jdbc.sql("select " + COLUMNS + " from client_profile where account_id = :accountId for update")
+                .param("accountId", accountId)
+                .query(JdbcClientProfileRepository::map)
+                .optional();
+    }
+
+    @Override
     public Saved save(ClientProfile profile) {
         // Upsert numa instrução só: dois pedidos simultâneos da mesma conta não criam dois perfis, e o
         // created_at do primeiro é mantido. No Postgres, xmax = 0 na linha devolvida quer dizer que ela foi

@@ -1,0 +1,105 @@
+{
+    "issue": "DEV-0034",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Gravação do perfil deixa de gravar o ClienteAtualizado",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManageClientProfile.java",
+            "find": "events.updated(saved.profile());",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ClientUpdatedEventTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Evento e perfil gravados fora de uma transação",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManageClientProfile.java",
+            "find": "return transaction.execute(status -> {",
+            "replace": "return TransactionOperations.withoutTransaction().execute(status -> {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ClientUpdatedEventTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Toda gravação publica, mesmo sem mudar nome, nascimento ou gênero",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManageClientProfile.java",
+            "find": "existing.map(before -> !before.sameSharedDataAs(saved.profile()))",
+            "replace": "java.util.Optional.of(true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ClientUpdatedEventTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Mudança de nome deixa de contar como mudança dos dados compartilhados",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/profile/ClientProfile.java",
+            "find": "return name.equals(other.name) && birthDate.equals(other.birthDate) && gender == other.gender;",
+            "replace": "return birthDate.equals(other.birthDate) && gender == other.gender;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ClientProfileTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Gênero sai do evento como null",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/messaging/OutboxClientEvents.java",
+            "find": "profile.gender().name(),",
+            "replace": "null,",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ClientUpdatedEventTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}
