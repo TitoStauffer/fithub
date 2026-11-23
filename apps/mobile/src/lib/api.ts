@@ -93,3 +93,47 @@ export function fetchMyHealth(apiFetch: ApiFetch, baseUrl = clientApiUrl()) {
 export function saveMyHealth(apiFetch: ApiFetch, body: HealthProfileRequest, baseUrl = clientApiUrl()) {
     return write<HealthProfile>(apiFetch, `${baseUrl}/clients/me/health`, body);
 }
+
+export type InvitationPreview = Schemas['InvitationPreview'];
+export type AcceptInvitationRequest = Schemas['AcceptInvitationRequest'];
+export type AcceptedLink = Schemas['Link'];
+export type ClientLink = Schemas['ClientLink'];
+export type LinkStatus = Schemas['LinkStatus'];
+
+async function post<T>(apiFetch: ApiFetch, url: string, body?: unknown): Promise<T> {
+    const response = await send(apiFetch, url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    if (!response.ok) throw await problem(response);
+    return (await response.json()) as T;
+}
+
+/** Consulta o convite pelo token do link ou pelo código (DEV-0035); o segredo vai no corpo, nunca na URL. */
+export function lookupInvitation(
+    apiFetch: ApiFetch,
+    target: { token: string } | { code: string },
+    baseUrl = clientApiUrl(),
+) {
+    return post<InvitationPreview>(apiFetch, `${baseUrl}/invitations/lookup`, target);
+}
+
+/** Aceita o convite com o consentimento explícito e a versão do termo mostrada (DEV-0036). */
+export function acceptInvitation(
+    apiFetch: ApiFetch,
+    body: AcceptInvitationRequest,
+    baseUrl = clientApiUrl(),
+) {
+    return post<AcceptedLink>(apiFetch, `${baseUrl}/links`, body);
+}
+
+/** Vínculos do cliente, ativos e encerrados (DEV-0037). */
+export async function fetchMyLinks(apiFetch: ApiFetch, baseUrl = clientApiUrl()): Promise<ClientLink[]> {
+    return (await read<ClientLink[]>(apiFetch, `${baseUrl}/links`)) ?? [];
+}
+
+/** Encerra o vínculo; encerrar de novo devolve o primeiro encerramento (DEV-0037). */
+export function endLink(apiFetch: ApiFetch, linkId: string, baseUrl = clientApiUrl()) {
+    return post<LinkStatus>(apiFetch, `${baseUrl}/links/${encodeURIComponent(linkId)}/end`);
+}
