@@ -208,7 +208,9 @@ describe('clientes', () => {
         });
         renderAt(`/app/clientes/${CLIENT}`);
 
-        expect(await screen.findByText('O cliente ainda não informou os dados de saúde.')).toBeInTheDocument();
+        expect(
+            await screen.findByText('O cliente ainda não informou os dados de saúde.'),
+        ).toBeInTheDocument();
         expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     });
 
