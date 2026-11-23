@@ -27,6 +27,8 @@ function reply(method: string, path: string, ...replies: Reply[]) {
 beforeEach(() => {
     routes = new Map();
     calls = [];
+    // Histórico de avaliações da tela do cliente (DEV-0049); os testes dele estão em assessments.test.tsx.
+    routes.set(`GET /professionals/me/clients/${CLIENT}/assessments`, [{ status: 200, body: [] }]);
     vi.stubGlobal(
         'fetch',
         vi.fn((input: RequestInfo | URL, init?: RequestInit) => {

@@ -1,0 +1,65 @@
+{
+    "issue": "DEV-0049",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Data da medição no futuro deixa de ser recusada no navegador",
+            "area": "apps",
+            "file": "apps/web/src/features/assessments/assessmentForm.ts",
+            "find": "} else if ((form.measuredOn ?? '') > today) {",
+            "replace": "} else if (false) {",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Dobra acima de 80 mm deixa de ser recusada no navegador",
+            "area": "apps",
+            "file": "apps/web/src/features/assessments/assessmentForm.ts",
+            "find": "            80,\n",
+            "replace": "            800,\n",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Histórico troca a origem do % de gordura da Marinha",
+            "area": "apps",
+            "file": "apps/web/src/features/assessments/assessmentForm.ts",
+            "find": "NAVY: 'Marinha (online)',",
+            "replace": "NAVY: 'Pollock 3 dobras',",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Vínculo encerrado ao salvar deixa de mostrar que o acesso acabou",
+            "area": "apps",
+            "file": "apps/web/src/lib/clientApi.ts",
+            "find": "            );\n            if (response.status === 404) throw new AccessEndedError();",
+            "replace": "            );",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}

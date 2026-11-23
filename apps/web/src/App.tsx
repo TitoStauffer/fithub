@@ -3,6 +3,7 @@ import { Link, Navigate, NavLink, Route, Routes } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/features/auth/authContext';
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute';
+import { AssessmentFormPage } from '@/features/assessments/AssessmentFormPage';
 import { ClientDetailPage } from '@/features/clients/ClientDetailPage';
 import { ClientsPage } from '@/features/clients/ClientsPage';
 import { InvitationsPage } from '@/features/clients/InvitationsPage';
@@ -96,6 +97,7 @@ function ProfessionalArea() {
                 <Route index element={<ClientsPage />} />
                 <Route path="convites" element={<InvitationsPage />} />
                 <Route path="clientes/:clientId" element={<ClientDetailPage />} />
+                <Route path="clientes/:clientId/avaliacoes/nova" element={<AssessmentFormPage />} />
             </Routes>
             <ServiceStatus />
         </section>
