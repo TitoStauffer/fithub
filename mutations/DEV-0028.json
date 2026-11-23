@@ -1,0 +1,320 @@
+{
+    "issue": "DEV-0028",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Login deixa de exigir PKCE S256",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/expoAuthGateway.ts",
+            "find": "codeChallengeMethod: CodeChallengeMethod.S256,",
+            "replace": "codeChallengeMethod: CodeChallengeMethod.Plain,",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Login deixa de usar PKCE",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/expoAuthGateway.ts",
+            "find": "usePKCE: true,",
+            "replace": "usePKCE: false,",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Resultado de erro do login (state diferente) é tratado como sucesso",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/expoAuthGateway.ts",
+            "find": "if (result.type !== 'success' || !result.params.code || !request.codeVerifier) {",
+            "replace": "if (!request.codeVerifier) {",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Erro passageiro na renovação é tratado como sessão inválida",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/expoAuthGateway.ts",
+            "find": "if (error instanceof TokenError && error.code === 'invalid_grant')",
+            "replace": "if (error instanceof Error)",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Refresh token deixa de ficar restrito a este aparelho desbloqueado (iOS)",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/secureTokenStore.ts",
+            "find": "keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,",
+            "replace": "keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Refresh token recusado ao abrir o app não apaga o cofre",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/session.ts",
+            "find": "                if (error instanceof InvalidSessionError) await forget();\n                else setStatus('unavailable');",
+            "replace": "                setStatus('unavailable');",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Keycloak fora do ar ao abrir o app apaga a sessão guardada",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/session.ts",
+            "find": "                else setStatus('unavailable');",
+            "replace": "                else await forget();",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "Refresh token recusado na renovação não encerra a sessão",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/session.ts",
+            "find": "                if (error instanceof InvalidSessionError) await forgetIfCurrent(startedIn);\n",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "Logout não apaga o cofre",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/session.ts",
+            "find": "            await forget();\n            if (refreshToken)",
+            "replace": "            if (refreshToken)",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "Logout não revoga a sessão no Keycloak",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/session.ts",
+            "find": "if (refreshToken) await gateway.signOut(refreshToken).catch(() => undefined);",
+            "replace": "void refreshToken;",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "Renovações simultâneas deixam de ser uma só",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/session.ts",
+            "find": "        if (renewal) return renewal;\n",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "Token perto de vencer é usado sem renovar",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/session.ts",
+            "find": "tokens.expiresAt - now() > MIN_VALIDITY_MS",
+            "replace": "tokens.expiresAt - now() > 0",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M13",
+            "description": "Access token é enviado para origem fora das APIs do FitHub",
+            "area": "apps",
+            "file": "apps/mobile/src/lib/apiFetch.ts",
+            "find": "if (origin === '' || !options.allowedOrigins.includes(origin)) {",
+            "replace": "if (origin === '') {",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M14",
+            "description": "API recusando o token renovado não encerra a sessão",
+            "area": "apps",
+            "file": "apps/mobile/src/lib/apiFetch.ts",
+            "find": "        await options.onSessionRejected();\n",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M15",
+            "description": "Esquema que não é http(s) passa a ter origem aceita",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/authConfig.ts",
+            "find": "return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.origin : '';",
+            "replace": "return parsed.origin;",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M16",
+            "description": "Renovação que começou antes do logout volta a gravar o refresh token no cofre",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/session.ts",
+            "find": "            if (generation !== startedIn) throw new InvalidSessionError();\n            await store.save(refreshToken);",
+            "replace": "            await store.save(refreshToken);",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M17",
+            "description": "Cofre que falha ao apagar prende o app com a sessão aberta",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/session.ts",
+            "find": "await inVault(() => store.clear()).catch(() => undefined);",
+            "replace": "throw new Error('cofre travado');",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M18",
+            "description": "Falha ao guardar no login deixa token em memória",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/session.ts",
+            "find": "            await saveIfCurrent(fresh.refreshToken, startedIn);\n            if (generation !== startedIn) throw new InvalidSessionError();\n            tokens = fresh;\n            setStatus('signedIn');",
+            "replace": "            tokens = fresh;\n            await saveIfCurrent(fresh.refreshToken, startedIn);\n            setStatus('signedIn');",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M19",
+            "description": "Logout durante a gravação no cofre devolve o token à memória",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/session.ts",
+            "find": "                // O cofre pode ter demorado: confere de novo antes de pôr o token em memória.\n                if (generation !== startedIn) throw new InvalidSessionError();\n",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M20",
+            "description": "Resposta atrasada de uma sessão antiga derruba o login feito depois",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/session.ts",
+            "find": "if (generation === startedIn) await forget();",
+            "replace": "await forget();",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M21",
+            "description": "Operações no cofre deixam de rodar em ordem",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/session.ts",
+            "find": "const result = vault.then(operation, operation);",
+            "replace": "const result = operation();",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}

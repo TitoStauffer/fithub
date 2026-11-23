@@ -146,6 +146,24 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
   - As chamadas às APIs usam `createApiFetch` (`src/lib/http.ts`): Bearer
     token, uma nova tentativa com token renovado num 401, e o token só vai
     para as origens das APIs do FitHub.
+- **Sessão no mobile** (DEV-0028, `apps/mobile/src/features/auth`):
+  `expo-auth-session` em Authorization Code + PKCE S256, no navegador do
+  sistema, voltando pelo esquema `fithub://auth`.
+  - Só o refresh token é guardado, no cofre do sistema
+    (`expo-secure-store`): Keychain no iOS, restrito ao aparelho e acessível
+    só com ele desbloqueado; no Android, cifrado com chave do Keystore. O
+    access token fica em memória. Nada de token em `AsyncStorage` ou log.
+  - Uma renovação que começou antes do logout não grava nada depois dele
+    (nem em memória nem no cofre) e não derruba um login feito depois. As
+    operações no cofre rodam em fila, e falha do cofre não prende o app com
+    a sessão aberta.
+  - O escopo `offline_access` mantém a sessão entre aberturas do app, até o
+    logout ou a revogação. Refresh token recusado apaga o cofre e leva à
+    tela de entrada; falha de rede mantém a sessão guardada.
+  - O logout apaga o cofre e revoga a sessão no Keycloak pelo refresh token.
+  - As chamadas usam `createApiFetch` (`src/lib/apiFetch.ts`), com as
+    mesmas regras da web: Bearer token, uma nova tentativa no 401 e token só
+    para as origens das APIs do FitHub.
 - **Realm `fithub` versionado** em `infra/keycloak/realm-fithub.json`
   (DEV-0024, [ADR-007](adr/ADR-007-papeis-e-clients-do-realm.md)):
   - Papéis de realm: `client`, `personal`, `nutritionist` e `admin`. Conta
