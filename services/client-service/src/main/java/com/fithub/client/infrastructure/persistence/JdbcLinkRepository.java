@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -22,7 +23,7 @@ import org.springframework.stereotype.Repository;
 class JdbcLinkRepository implements LinkRepository {
 
     private static final String COLUMNS =
-            "id, client_id, professional_id, professional_type, status, invitation_id, started_at";
+            "id, client_id, professional_id, professional_type, status, invitation_id, started_at, ended_at, ended_by";
 
     private final JdbcClient jdbc;
     private final Clock clock;
@@ -30,6 +31,61 @@ class JdbcLinkRepository implements LinkRepository {
     JdbcLinkRepository(JdbcClient jdbc, Clock clock) {
         this.jdbc = jdbc;
         this.clock = clock;
+    }
+
+    @Override
+    public Optional<Link> findById(UUID id) {
+        return jdbc.sql("select " + COLUMNS + " from client_link where id = :id")
+                .param("id", id)
+                .query(JdbcLinkRepository::map)
+                .optional();
+    }
+
+    @Override
+    public List<WithProfessional> listByClient(UUID clientId) {
+        return jdbc.sql("select " + prefixed("l") + ", p.name as professional_name"
+                        + " from client_link l join professional p on p.id = l.professional_id"
+                        + " where l.client_id = :clientId order by l.started_at desc, l.id desc")
+                .param("clientId", clientId)
+                .query((row, index) -> new WithProfessional(map(row, index), row.getString("professional_name")))
+                .list();
+    }
+
+    @Override
+    public List<ActiveClient> listActiveByProfessional(UUID professionalId) {
+        // O nome vem do perfil do cliente (o aceite exige o perfil); nada de saúde nesta lista.
+        return jdbc.sql("""
+                        select l.id, l.client_id, c.name, l.started_at
+                          from client_link l join client_profile c on c.account_id = l.client_id::text
+                         where l.professional_id = :professionalId and l.status = 'ACTIVE'
+                         order by l.started_at desc, l.id desc
+                        """)
+                .param("professionalId", professionalId)
+                .query((row, index) -> new ActiveClient(
+                        row.getObject("id", UUID.class),
+                        row.getObject("client_id", UUID.class),
+                        row.getString("name"),
+                        row.getTimestamp("started_at").toInstant()))
+                .list();
+    }
+
+    @Override
+    public boolean end(Link ended) {
+        return jdbc.sql("""
+                                update client_link set status = 'ENDED', ended_at = :endedAt, ended_by = :endedBy
+                                 where id = :id and status = 'ACTIVE'
+                                """)
+                        .param("endedAt", Timestamp.from(ended.endedAt()))
+                        .param("endedBy", ended.endedBy().name())
+                        .param("id", ended.id())
+                        .update()
+                == 1;
+    }
+
+    private static String prefixed(String alias) {
+        return java.util.Arrays.stream(COLUMNS.split(", "))
+                .map(column -> alias + "." + column)
+                .collect(java.util.stream.Collectors.joining(", "));
     }
 
     @Override
@@ -77,6 +133,8 @@ class JdbcLinkRepository implements LinkRepository {
     }
 
     private static Link map(ResultSet row, int index) throws SQLException {
+        Timestamp endedAt = row.getTimestamp("ended_at");
+        String endedBy = row.getString("ended_by");
         return new Link(
                 row.getObject("id", UUID.class),
                 row.getObject("client_id", UUID.class),
@@ -84,6 +142,8 @@ class JdbcLinkRepository implements LinkRepository {
                 ProfessionalType.valueOf(row.getString("professional_type")),
                 Link.Status.valueOf(row.getString("status")),
                 row.getObject("invitation_id", UUID.class),
-                row.getTimestamp("started_at").toInstant());
+                row.getTimestamp("started_at").toInstant(),
+                endedAt == null ? null : endedAt.toInstant(),
+                endedBy == null ? null : Link.Party.valueOf(endedBy));
     }
 }

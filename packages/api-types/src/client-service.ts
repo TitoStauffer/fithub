@@ -45,7 +45,7 @@ export interface paths {
             cookie?: never;
         };
         /** Convites do profissional autenticado, do mais novo para o mais antigo */
-        get: operations["mine_3"];
+        get: operations["mine_4"];
         put?: never;
         /** Cria um convite (por e-mail ou para compartilhar) */
         post: operations["create"];
@@ -96,10 +96,45 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Vínculos do cliente autenticado, ativos e encerrados */
+        get: operations["mine_3"];
         put?: never;
         /** Aceita um convite (ou o código pessoal do profissional) com consentimento */
         post: operations["accept"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/links/{id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Encerra o vínculo (pelo cliente ou pelo profissional que é parte dele) */
+        post: operations["end"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/professionals/me/clients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Clientes com vínculo ativo do profissional autenticado */
+        get: operations["mine_5"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -140,6 +175,24 @@ export interface components {
              */
             termsVersion?: string;
             token?: string | null;
+        };
+        /** @description Vínculo visto pelo cliente. */
+        ClientLink: {
+            /** Format: date-time */
+            endedAt?: string | null;
+            /** @enum {string|null} */
+            endedBy?: "CLIENT" | "PROFESSIONAL" | null;
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            professionalId?: string;
+            professionalName?: string;
+            /** @enum {string} */
+            professionalType?: "PERSONAL_TRAINER" | "NUTRITIONIST";
+            /** Format: date-time */
+            startedAt?: string;
+            /** @enum {string} */
+            status?: "ACTIVE" | "ENDED";
         };
         ClientProfile: {
             /**
@@ -249,6 +302,17 @@ export interface components {
             /** Format: date-time */
             startedAt?: string;
         };
+        /** @description Situação do vínculo depois do encerramento. */
+        LinkStatus: {
+            /** Format: date-time */
+            endedAt?: string | null;
+            /** @enum {string|null} */
+            endedBy?: "CLIENT" | "PROFESSIONAL" | null;
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            status?: "ACTIVE" | "ENDED";
+        };
         /** @description Erro no formato Problem Details (RFC 9457). */
         Problem: {
             /** @description Mensagem para a pessoa, em português. */
@@ -268,6 +332,15 @@ export interface components {
         ProblemFieldError: {
             field?: string;
             message?: string;
+        };
+        ProfessionalClient: {
+            /** Format: uuid */
+            clientId?: string;
+            clientName?: string;
+            /** Format: uuid */
+            linkId?: string;
+            /** Format: date-time */
+            startedAt?: string;
         };
     };
     responses: never;
@@ -456,7 +529,7 @@ export interface operations {
             };
         };
     };
-    mine_3: {
+    mine_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -670,6 +743,35 @@ export interface operations {
             };
         };
     };
+    mine_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Vínculos do cliente, do mais novo para o mais antigo. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientLink"][];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     accept: {
         parameters: {
             query?: never;
@@ -730,6 +832,84 @@ export interface operations {
             };
             /** @description Convite vencido, já usado ou cancelado. */
             410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    end: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Vínculo encerrado (ou já estava; vale o primeiro encerramento). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkStatus"];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Vínculo não encontrado, ou a conta não é parte dele. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    mine_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Vínculos ativos, do mais novo para o mais antigo. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfessionalClient"][];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é profissional. */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

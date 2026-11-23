@@ -178,6 +178,11 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
   - As chamadas usam `createApiFetch` (`src/lib/apiFetch.ts`), com as
     mesmas regras da web: Bearer token, uma nova tentativa no 401 e token só
     para as origens das APIs do FitHub.
+- **Encerramento do vínculo** (DEV-0037): `POST /links/{id}/end` pela parte
+  que a conta é (cliente ou profissional; quem não é parte recebe 404), imediato
+  e definitivo, com data e autor; repetir não muda nada (vale o primeiro). O
+  cliente lista os vínculos em `GET /links`; o profissional, os clientes ativos
+  em `GET /professionals/me/clients`.
 - **Aceite e consentimento** (DEV-0036): `POST /links` com o token, o código
   do convite ou o código pessoal do profissional, `consent: true` e a versão
   do termo mostrada (`v1`). Vínculo, consentimento (data, escopo e versão) e a

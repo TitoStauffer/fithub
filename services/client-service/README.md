@@ -75,3 +75,15 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
 - Garantias no banco: `ux_client_link_active_type` (1 ativo de cada tipo por cliente, BR-07),
   `uq_client_link_invitation` (um convite, um vínculo) e `ck_client_link_not_self`.
 - Recusar é não aceitar: sem `consent: true`, nada é gravado e o convite continua pendente.
+
+## Encerramento e listas de vínculos (DEV-0037)
+
+| Rota | Quem | Resposta |
+|---|---|---|
+| `POST /links/{id}/end` | cliente ou profissional que é parte | 200 com `status`, `endedAt` e `endedBy` (repetir devolve o primeiro encerramento); 404 se a conta não for parte |
+| `GET /links` | cliente | Vínculos ativos e encerrados, com o nome do profissional |
+| `GET /professionals/me/clients` | `personal` ou `nutritionist` | Clientes com vínculo ativo (só nome e data; perfil e saúde são da DEV-0040) |
+
+- O encerramento é imediato e definitivo (BR-05): o vínculo encerrado não volta, e o cliente pode aceitar outro
+  profissional do mesmo tipo (BR-07). `ck_client_link_ended` exige data e autor no encerrado.
+- Dois encerramentos ao mesmo tempo: vale o que o banco gravou primeiro (`update ... where status = 'ACTIVE'`).
