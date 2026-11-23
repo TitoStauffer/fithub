@@ -1,0 +1,125 @@
+{
+    "issue": "DEV-0032",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Menor de 18 anos passa a ser aceito",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/profile/ClientProfile.java",
+            "find": "Period.between(birthDate, today).getYears() < MINIMUM_AGE",
+            "replace": "Period.between(birthDate, today).getYears() < 0",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ClientProfileTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Data de nascimento hoje ou no futuro passa a ser aceita",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/profile/ClientProfile.java",
+            "find": "if (birthDate != null && !birthDate.isBefore(today)) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ClientProfileTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Altura fora de 100 a 250 cm passa a ser aceita",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/profile/ClientProfile.java",
+            "find": "if (heightCm < MIN_HEIGHT_CM || heightCm > MAX_HEIGHT_CM) {",
+            "replace": "if (heightCm < 0) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ClientProfileTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Nome acima de 200 caracteres passa a ser aceito",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/profile/ClientProfile.java",
+            "find": "if (name == null || name.isBlank() || name.length() > MAX_NAME) {",
+            "replace": "if (name == null || name.isBlank()) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ClientProfileTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Toda gravação passa a responder como criação",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcClientProfileRepository.java",
+            "find": "returning %s, (xmax = 0) as inserted",
+            "replace": "returning %s, true as inserted",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ClientProfileApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "404 do GET /clients/me/profile volta sem a mensagem em Problem Details",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/interfaces/rest/ClientProfileController.java",
+            "find": "return new ErrorResponseException(HttpStatus.NOT_FOUND, problem, null);",
+            "replace": "return new ErrorResponseException(HttpStatus.NOT_FOUND);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ClientProfileApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

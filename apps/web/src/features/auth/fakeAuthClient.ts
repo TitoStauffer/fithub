@@ -11,6 +11,8 @@ export interface FakeAuthClient extends AuthClient {
     failRefresh(kind?: 'rejected' | 'offline'): void;
     /** O token de acesso atual passa a estar vencido. */
     expireAccessToken(): void;
+    /** A próxima renovação traz estes papéis (o Keycloak atribuiu um papel novo). */
+    grantRoles(...roles: Role[]): void;
 }
 
 export function userWith(...roles: Role[]): AuthUser {
@@ -22,6 +24,7 @@ export function fakeAuthClient(options: { user?: AuthUser; initError?: boolean }
     let token = user ? 'token-1' : undefined;
     let refreshFailure: 'rejected' | 'offline' | undefined;
     let tokenValid = true;
+    let pendingRoles: Role[] | undefined;
     let renewals = 0;
     let expiredListener: (() => void) | undefined;
     const calls: string[] = [];
@@ -52,6 +55,10 @@ export function fakeAuthClient(options: { user?: AuthUser; initError?: boolean }
                 renewals += 1;
                 token = `token-${renewals + 1}`;
                 tokenValid = true;
+                if (pendingRoles && user) {
+                    user = { ...user, roles: pendingRoles };
+                    pendingRoles = undefined;
+                }
             }
             return Promise.resolve();
         },
@@ -72,6 +79,9 @@ export function fakeAuthClient(options: { user?: AuthUser; initError?: boolean }
         },
         expireAccessToken() {
             tokenValid = false;
+        },
+        grantRoles(...roles) {
+            pendingRoles = roles;
         },
     };
 }

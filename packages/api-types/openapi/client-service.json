@@ -1,5 +1,105 @@
 {
   "components" : {
+    "schemas" : {
+      "ClientProfile" : {
+        "properties" : {
+          "age" : {
+            "description" : "Idade em anos completos, calculada a partir da data de nascimento.",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "birthDate" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "gender" : {
+            "enum" : [ "FEMALE", "MALE", "OTHER", "PREFER_NOT_TO_SAY" ],
+            "type" : "string"
+          },
+          "goal" : {
+            "enum" : [ "WEIGHT_LOSS", "HYPERTROPHY", "CONDITIONING", "HEALTH", "OTHER" ],
+            "type" : "string"
+          },
+          "heightCm" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ClientProfileRequest" : {
+        "properties" : {
+          "birthDate" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "gender" : {
+            "enum" : [ "FEMALE", "MALE", "OTHER", "PREFER_NOT_TO_SAY" ],
+            "type" : "string"
+          },
+          "goal" : {
+            "enum" : [ "WEIGHT_LOSS", "HYPERTROPHY", "CONDITIONING", "HEALTH", "OTHER" ],
+            "type" : "string"
+          },
+          "heightCm" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "name" : {
+            "minLength" : 1,
+            "type" : "string"
+          }
+        },
+        "required" : [ "birthDate", "gender", "goal", "heightCm", "name" ],
+        "type" : "object"
+      },
+      "Problem" : {
+        "description" : "Erro no formato Problem Details (RFC 9457).",
+        "properties" : {
+          "detail" : {
+            "description" : "Mensagem para a pessoa, em português.",
+            "type" : "string"
+          },
+          "errors" : {
+            "description" : "Campos inválidos; presente só nas respostas 400.",
+            "items" : {
+              "$ref" : "#/components/schemas/ProblemFieldError"
+            },
+            "type" : [ "array", "null" ]
+          },
+          "instance" : {
+            "type" : [ "string", "null" ]
+          },
+          "status" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "type" : {
+            "description" : "URI do tipo do erro.",
+            "example" : "about:blank",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ProblemFieldError" : {
+        "properties" : {
+          "field" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      }
+    },
     "securitySchemes" : {
       "bearer" : {
         "bearerFormat" : "JWT",
@@ -14,12 +114,113 @@
     "version" : "v1"
   },
   "openapi" : "3.1.0",
-  "paths" : { },
+  "paths" : {
+    "/clients/me/profile" : {
+      "get" : {
+        "operationId" : "mine",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ClientProfile"
+                }
+              }
+            },
+            "description" : "Perfil da conta autenticada."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta ainda não tem perfil."
+          }
+        },
+        "summary" : "Perfil da conta autenticada",
+        "tags" : [ "Perfil do cliente" ]
+      },
+      "put" : {
+        "operationId" : "save",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ClientProfileRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ClientProfile"
+                }
+              }
+            },
+            "description" : "Perfil atualizado."
+          },
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ClientProfile"
+                }
+              }
+            },
+            "description" : "Perfil criado."
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Campo inválido; errors[] traz o campo e a mensagem."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          }
+        },
+        "summary" : "Cria ou atualiza o perfil da conta autenticada",
+        "tags" : [ "Perfil do cliente" ]
+      }
+    }
+  },
   "security" : [ {
     "bearer" : [ ]
   } ],
   "servers" : [ {
     "description" : "Generated server url",
     "url" : "http://localhost"
+  } ],
+  "tags" : [ {
+    "description" : "Perfil do cliente da conta autenticada",
+    "name" : "Perfil do cliente"
   } ]
 }

@@ -5,7 +5,9 @@ import com.fithub.account.domain.professional.InvalidRegistrationException;
 import com.fithub.account.domain.professional.Professional;
 import com.fithub.account.domain.professional.Registration;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -16,10 +18,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.ErrorResponseException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -92,11 +96,48 @@ class ProfessionalController {
         }
     }
 
-    @PostMapping
+    @PostMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
             summary = "Cadastra a conta autenticada como profissional",
             description = "201 quando cria; 200 quando o mesmo cadastro já existia; 409 quando a conta já tem"
-                    + " um cadastro diferente.")
+                    + " um cadastro diferente.",
+            responses = {
+                @ApiResponse(
+                        responseCode = "201",
+                        description = "Cadastro criado.",
+                        content =
+                                @Content(
+                                        mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                        schema = @Schema(implementation = ProfessionalResponse.class))),
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "O mesmo cadastro já existia.",
+                        content =
+                                @Content(
+                                        mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                        schema = @Schema(implementation = ProfessionalResponse.class))),
+                @ApiResponse(
+                        responseCode = "400",
+                        description = "Campo inválido; errors[] traz o campo e a mensagem.",
+                        content =
+                                @Content(
+                                        mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                                        schema = @Schema(implementation = ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "401",
+                        description = "Sem token válido.",
+                        content =
+                                @Content(
+                                        mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                                        schema = @Schema(implementation = ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "409",
+                        description = "A conta já tem um cadastro com outros dados.",
+                        content =
+                                @Content(
+                                        mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                                        schema = @Schema(implementation = ApiProblem.class)))
+            })
     ResponseEntity<ProfessionalResponse> register(
             @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody RegistrationRequest request) {
         var result = registerProfessional.register(new RegisterProfessional.Command(
@@ -112,13 +153,46 @@ class ProfessionalController {
                 : ResponseEntity.ok(body);
     }
 
-    @GetMapping
-    @Operation(summary = "Cadastro de profissional da conta autenticada", description = "404 se ainda não houver.")
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            summary = "Cadastro de profissional da conta autenticada",
+            description = "404 se ainda não houver.",
+            responses = {
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "Cadastro da conta autenticada.",
+                        content =
+                                @Content(
+                                        mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                        schema = @Schema(implementation = ProfessionalResponse.class))),
+                @ApiResponse(
+                        responseCode = "404",
+                        description = "A conta ainda não tem cadastro de profissional.",
+                        content =
+                                @Content(
+                                        mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                                        schema = @Schema(implementation = ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "401",
+                        description = "Sem token válido.",
+                        content =
+                                @Content(
+                                        mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                                        schema = @Schema(implementation = ApiProblem.class)))
+            })
     ResponseEntity<ProfessionalResponse> mine(@AuthenticationPrincipal Jwt jwt) {
         return registerProfessional
                 .findMine(jwt.getSubject())
                 .map(professional -> ResponseEntity.ok(ProfessionalResponse.of(professional)))
-                .orElseGet(() -> ResponseEntity.notFound().build());
+                .orElseThrow(ProfessionalController::notRegistered);
+    }
+
+    /** 404 em Problem Details, como os outros erros (Code Review do PR #202). */
+    private static ErrorResponseException notRegistered() {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.NOT_FOUND, "Esta conta ainda não tem cadastro de profissional.");
+        problem.setTitle("Cadastro não encontrado");
+        return new ErrorResponseException(HttpStatus.NOT_FOUND, problem, null);
     }
 
     /**

@@ -46,6 +46,11 @@ export interface AuthState {
     endSession: () => void;
     /** A API recusou o token mesmo depois de renovado: apaga os tokens e mostra o erro, sem redirecionar. */
     rejectSession: () => void;
+    /**
+     * Pede um token novo ao Keycloak e atualiza o usuário (papéis inclusos). Usado depois do cadastro do
+     * profissional, para o token trazer o papel novo sem sair e entrar de novo (DEV-0031).
+     */
+    reloadSession: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthState | undefined>(undefined);

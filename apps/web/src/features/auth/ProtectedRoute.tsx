@@ -10,7 +10,17 @@ import { useAuth } from './authContext';
  * login uma vez. Quando o login não se conclui (`failed`), mostra o erro e espera a pessoa pedir de
  * novo, em vez de redirecionar sozinho. A proteção de verdade é da API: aqui é só o que a tela mostra.
  */
-export function ProtectedRoute({ roles, children }: { roles: readonly Role[]; children: ReactNode }) {
+export function ProtectedRoute({
+    roles,
+    onMissingRole,
+    children,
+}: {
+    /** Papéis aceitos; sem a lista, basta ter sessão. */
+    roles?: readonly Role[];
+    /** O que mostrar a quem tem sessão mas não tem o papel (padrão: acesso negado). */
+    onMissingRole?: ReactNode;
+    children: ReactNode;
+}) {
     const { status, user, login, logout } = useAuth();
     const redirected = useRef(false);
 
@@ -48,7 +58,8 @@ export function ProtectedRoute({ roles, children }: { roles: readonly Role[]; ch
 
     if (status !== 'authenticated' || !user) return <p role="status">Redirecionando para o login…</p>;
 
-    if (!roles.some((role) => user.roles.includes(role))) {
+    if (roles && !roles.some((role) => user.roles.includes(role))) {
+        if (onMissingRole) return onMissingRole;
         return (
             <section role="alert" className="space-y-3">
                 <h2 className="text-lg font-semibold">Acesso negado</h2>
