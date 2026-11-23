@@ -75,8 +75,8 @@ class ProfessionalTest {
             Professional.Type type, Registration.Council council, String category) {
         Registration registration = Registration.of(council, "123", category, "SP");
 
-        assertThatThrownBy(() ->
-                        Professional.register(UUID.randomUUID(), "conta", type, registration, UUID.randomUUID(), NOW))
+        assertThatThrownBy(() -> Professional.register(
+                        UUID.randomUUID(), "conta", "Ana Teste", type, registration, UUID.randomUUID(), NOW))
                 .isInstanceOf(InvalidRegistrationException.class);
     }
 
@@ -112,14 +112,71 @@ class ProfessionalTest {
         Registration registration = Registration.of(Registration.Council.CREF, "1", "G", "SP");
 
         assertThatThrownBy(() -> Professional.register(
-                        UUID.randomUUID(), accountId, Professional.Type.PERSONAL, registration, UUID.randomUUID(), NOW))
+                        UUID.randomUUID(),
+                        accountId,
+                        "Ana Teste",
+                        Professional.Type.PERSONAL,
+                        registration,
+                        UUID.randomUUID(),
+                        NOW))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void nomeChegaSemEspacosNasPontas() {
+        assertThat(personal("1", "G", "SP").name()).isEqualTo("Ana Teste");
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"   "})
+    void cadastroSemNomeERecusadoComOCampo(String name) {
+        Registration registration = Registration.of(Registration.Council.CREF, "1", "G", "SP");
+
+        assertThatThrownBy(() -> Professional.register(
+                        UUID.randomUUID(),
+                        "conta",
+                        name,
+                        Professional.Type.PERSONAL,
+                        registration,
+                        UUID.randomUUID(),
+                        NOW))
+                .isInstanceOf(InvalidRegistrationException.class)
+                .extracting("field")
+                .isEqualTo("name");
+    }
+
+    @Test
+    void nomeAcimaDoLimiteDoContratoERecusado() {
+        Registration registration = Registration.of(Registration.Council.CREF, "1", "G", "SP");
+        String atLimit = "a".repeat(Professional.MAX_NAME);
+
+        assertThat(Professional.register(
+                                UUID.randomUUID(),
+                                "conta",
+                                atLimit,
+                                Professional.Type.PERSONAL,
+                                registration,
+                                UUID.randomUUID(),
+                                NOW)
+                        .name())
+                .hasSize(Professional.MAX_NAME);
+        assertThatThrownBy(() -> Professional.register(
+                        UUID.randomUUID(),
+                        "conta",
+                        atLimit + "a",
+                        Professional.Type.PERSONAL,
+                        registration,
+                        UUID.randomUUID(),
+                        NOW))
+                .isInstanceOf(InvalidRegistrationException.class);
     }
 
     private static Professional personal(String number, String category, String state) {
         return Professional.register(
                 UUID.randomUUID(),
                 "conta-1",
+                "  Ana Teste  ",
                 Professional.Type.PERSONAL,
                 Registration.of(Registration.Council.CREF, number, category, state),
                 UUID.randomUUID(),

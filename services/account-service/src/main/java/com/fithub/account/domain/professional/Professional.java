@@ -14,10 +14,12 @@ import java.util.UUID;
  * fica {@link RoleStatus#PENDING}.
  *
  * @param accountId {@code sub} do token: o id da conta no Keycloak
+ * @param name nome de exibição, vindo do perfil do Keycloak no cadastro (DEV-0030)
  */
 public record Professional(
         UUID id,
         String accountId,
+        String name,
         Type type,
         Registration registration,
         Situation situation,
@@ -63,17 +65,37 @@ public record Professional(
         if (accountId == null || accountId.isBlank()) {
             throw new IllegalArgumentException("Profissional sem conta.");
         }
+        if (name == null || name.isBlank() || name.length() > MAX_NAME) {
+            throw new InvalidRegistrationException("name", "Complete seu nome no perfil (até 200 caracteres).");
+        }
         if (registration.council() != type.council()) {
             throw new InvalidRegistrationException(
                     "registrationNumber", "%s se registra no %s.".formatted(label(type), type.council()));
         }
     }
 
-    /** Cadastro novo: registro declarado e papel ainda por atribuir. */
+    /** Tamanho máximo do nome, o mesmo do contrato do evento {@code account.professional-registered.v1}. */
+    public static final int MAX_NAME = 200;
+
+    /** Cadastro novo: registro declarado e papel ainda por atribuir. O nome chega sem espaços nas pontas. */
     public static Professional register(
-            UUID id, String accountId, Type type, Registration registration, UUID organizationId, Instant now) {
+            UUID id,
+            String accountId,
+            String name,
+            Type type,
+            Registration registration,
+            UUID organizationId,
+            Instant now) {
         return new Professional(
-                id, accountId, type, registration, Situation.DECLARED, organizationId, RoleStatus.PENDING, now);
+                id,
+                accountId,
+                name == null ? null : name.strip(),
+                type,
+                registration,
+                Situation.DECLARED,
+                organizationId,
+                RoleStatus.PENDING,
+                now);
     }
 
     /** O pedido repete o cadastro que já existe (mesmo tipo e mesmo registro). */
@@ -83,7 +105,7 @@ public record Professional(
 
     public Professional withRoleAssigned() {
         return new Professional(
-                id, accountId, type, registration, situation, organizationId, RoleStatus.ASSIGNED, createdAt);
+                id, accountId, name, type, registration, situation, organizationId, RoleStatus.ASSIGNED, createdAt);
     }
 
     private static String label(Type type) {

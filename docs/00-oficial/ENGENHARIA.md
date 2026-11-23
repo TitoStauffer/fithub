@@ -176,6 +176,11 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
   falhar, o cadastro fica com o papel `PENDING` e uma tarefa agendada tenta de
   novo a cada 30 s. Depois do cadastro, o front renova a sessão para o token
   trazer o papel novo.
+- **Evento `ProfissionalCadastrado`** (DEV-0030): gravado no outbox na mesma
+  transação do cadastro, só na primeira vez (pedido repetido não grava de
+  novo). Payload pelo contrato `account.professional-registered.v1`: id,
+  tipo (`personal_trainer` ou `nutritionist`), nome do perfil do Keycloak e
+  data. O registro CREF/CRN e a conta do Keycloak não saem do account-service.
 - **Realm `fithub` versionado** em `infra/keycloak/realm-fithub.json`
   (DEV-0024, [ADR-007](adr/ADR-007-papeis-e-clients-do-realm.md)):
   - Papéis de realm: `client`, `personal`, `nutritionist` e `admin`. Conta

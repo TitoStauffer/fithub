@@ -2,6 +2,7 @@ package com.fithub.account.application;
 
 import com.fithub.account.domain.professional.Organization;
 import com.fithub.account.domain.professional.Professional;
+import com.fithub.account.domain.professional.ProfessionalEvents;
 import com.fithub.account.domain.professional.ProfessionalRepository;
 import com.fithub.account.domain.professional.ProfessionalRoles;
 import com.fithub.account.domain.professional.Registration;
@@ -27,22 +28,26 @@ public class RegisterProfessional {
 
     private final ProfessionalRepository repository;
     private final ProfessionalRoles roles;
+    private final ProfessionalEvents events;
     private final TransactionOperations transaction;
     private final Clock clock;
 
     public RegisterProfessional(
             ProfessionalRepository repository,
             ProfessionalRoles roles,
+            ProfessionalEvents events,
             TransactionOperations transaction,
             Clock clock) {
         this.repository = repository;
         this.roles = roles;
+        this.events = events;
         this.transaction = transaction;
         this.clock = clock;
     }
 
     /** O que a pessoa pediu. {@code accountId} vem sempre do token, nunca do corpo da requisição. */
-    public record Command(String accountId, Professional.Type type, String number, String category, String state) {}
+    public record Command(
+            String accountId, String name, Professional.Type type, String number, String category, String state) {}
 
     /** Cadastro resultante e se ele foi criado agora ou já existia igual. */
     public record Result(Professional professional, boolean created) {}
@@ -62,9 +67,19 @@ public class RegisterProfessional {
         var now = clock.instant();
         var organization = new Organization(UuidV7.next(clock), command.accountId(), now);
         var professional = Professional.register(
-                UuidV7.next(clock), command.accountId(), command.type(), registration, organization.id(), now);
+                UuidV7.next(clock),
+                command.accountId(),
+                command.name(),
+                command.type(),
+                registration,
+                organization.id(),
+                now);
         try {
-            transaction.executeWithoutResult(status -> repository.saveNew(professional, organization));
+            // O evento vai para o outbox na mesma transação do cadastro (DEV-0030, ADR-003).
+            transaction.executeWithoutResult(status -> {
+                repository.saveNew(professional, organization);
+                events.registered(professional);
+            });
         } catch (ProfessionalRepository.AlreadyRegisteredException race) {
             // Outro pedido da mesma conta gravou primeiro: vale o que ficou no banco.
             Professional winner =

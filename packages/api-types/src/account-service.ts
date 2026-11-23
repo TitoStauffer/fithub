@@ -34,6 +34,7 @@ export interface components {
             createdAt?: string;
             /** Format: uuid */
             id?: string;
+            name?: string;
             /** Format: uuid */
             organizationId?: string;
             registration?: components["schemas"]["ProfessionalRegistration"];
