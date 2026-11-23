@@ -10,6 +10,9 @@ jest.mock('../auth/SessionProvider', () => ({ useSession: () => ({ apiFetch: jes
 jest.mock('expo-secure-store', () => ({ __esModule: true }));
 jest.mock('expo-auth-session', () => ({ __esModule: true }));
 
+// Telas inteiras no Jest: com os testes em paralelo, o primeiro render passa dos 5 s padrão.
+jest.setTimeout(20_000);
+
 const PROFILE: ClientProfile = {
     name: 'Ana Cliente',
     birthDate: '1990-11-24',
@@ -20,6 +23,9 @@ const PROFILE: ClientProfile = {
 };
 
 const TODAY = new Date(2026, 10, 23);
+
+/** Nenhum link aberto pelo sistema. */
+const NO_LINK = { getInitialURL: async () => null, addEventListener: () => ({ remove: () => undefined }) };
 
 function fakeApi(overrides: Partial<ProfileApi> = {}): ProfileApi & { saved: unknown[] } {
     const saved: unknown[] = [];
@@ -57,10 +63,12 @@ function renderForm(api: ProfileApi, onSaved = jest.fn()): Promise<unknown> {
 
 describe('ClientArea', () => {
     it('cliente sem perfil vai para o cadastro; com perfil, para a tela inicial com a idade', async () => {
-        await render(<ClientArea api={fakeApi()} />);
+        await render(<ClientArea api={fakeApi()} linkSource={NO_LINK} />);
         expect(await screen.findByText('Seu perfil')).toBeOnTheScreen();
 
-        await render(<ClientArea api={fakeApi({ fetchProfile: jest.fn(async () => PROFILE) })} />);
+        await render(
+            <ClientArea api={fakeApi({ fetchProfile: jest.fn(async () => PROFILE) })} linkSource={NO_LINK} />,
+        );
         expect(await screen.findByText('Olá, Ana Cliente')).toBeOnTheScreen();
         expect(screen.getByText('35 anos')).toBeOnTheScreen();
     });
@@ -68,7 +76,7 @@ describe('ClientArea', () => {
     it('cadastra o perfil e vai para a tela inicial', async () => {
         const user = userEvent.setup();
         const api = fakeApi();
-        await render(<ClientArea api={api} />);
+        await render(<ClientArea api={api} linkSource={NO_LINK} />);
         await screen.findByText('Seu perfil');
 
         await fillProfile(user);
@@ -86,7 +94,9 @@ describe('ClientArea', () => {
 
     it('edita o perfil começando pelo que já foi cadastrado', async () => {
         const user = userEvent.setup();
-        await render(<ClientArea api={fakeApi({ fetchProfile: jest.fn(async () => PROFILE) })} />);
+        await render(
+            <ClientArea api={fakeApi({ fetchProfile: jest.fn(async () => PROFILE) })} linkSource={NO_LINK} />,
+        );
 
         await user.press(await screen.findByRole('button', { name: 'Editar perfil' }));
 
@@ -101,7 +111,7 @@ describe('ClientArea', () => {
             .fn<Promise<ClientProfile | null>, []>()
             .mockRejectedValueOnce(new OfflineError())
             .mockResolvedValueOnce(PROFILE);
-        await render(<ClientArea api={fakeApi({ fetchProfile })} />);
+        await render(<ClientArea api={fakeApi({ fetchProfile })} linkSource={NO_LINK} />);
 
         expect(await screen.findByRole('alert')).toHaveTextContent(/Sem conexão com o FitHub/);
         await user.press(screen.getByRole('button', { name: 'Tentar de novo' }));
@@ -186,7 +196,7 @@ describe('HealthFormScreen', () => {
             fetchProfile: jest.fn(async () => PROFILE),
             fetchHealth: jest.fn(async () => health),
         });
-        await render(<ClientArea api={api} />);
+        await render(<ClientArea api={api} linkSource={NO_LINK} />);
 
         await user.press(await screen.findByRole('button', { name: 'Perfil de saúde' }));
         expect(await screen.findByRole('checkbox', { name: 'Diabetes' })).toBeChecked();
@@ -202,7 +212,7 @@ describe('HealthFormScreen', () => {
     it('observações acima de 1000 caracteres são recusadas antes de enviar', async () => {
         const user = userEvent.setup();
         const api = fakeApi({ fetchProfile: jest.fn(async () => PROFILE) });
-        await render(<ClientArea api={api} />);
+        await render(<ClientArea api={api} linkSource={NO_LINK} />);
         await user.press(await screen.findByRole('button', { name: 'Perfil de saúde' }));
 
         await act(async () => {

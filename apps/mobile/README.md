@@ -69,11 +69,15 @@ está no ADR-007.
 - **Rodar no aparelho:** o esquema `fithub://` e o cofre exigem um build de desenvolvimento
   (`expo run:android` ou `expo run:ios`); o Expo Go não registra o esquema do app.
 
-## Perfil e perfil de saúde (DEV-0041)
+## Perfil, saúde, convite e vínculos (DEV-0041, DEV-0042)
 
 - **Depois do login:** sem perfil, o app abre o cadastro; com perfil, a tela inicial mostra o nome e a idade
-  calculada pela API, com acesso a editar o perfil e o perfil de saúde.
+  calculada pela API, com acesso a editar o perfil, o perfil de saúde, aceitar convite e ver os vínculos.
 - **Formulários:** a validação espelha a do client-service (`features/profile/profileForm.ts`). Erro da API vai
   para o campo; campo que a tela não mostra vai para o aviso geral. Um envio por vez. Sem conexão
   (`OfflineError`), o app avisa e mantém o que foi digitado.
 - **Saúde:** fica só no estado da tela aberta; nunca vai para o cofre, `AsyncStorage` ou log.
+- **Convite:** o link `fithub://convite/<token>` abre a tela de aceite (React Native `Linking`); também dá para
+  digitar o código do convite ou o código pessoal do profissional. A tela mostra o que será compartilhado e a
+  versão do termo, e só aceita com a confirmação marcada. Recusar não chama a API.
+- **Vínculos:** lista ativos e encerrados; encerrar pede confirmação na própria tela.

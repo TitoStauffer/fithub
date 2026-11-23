@@ -1,23 +1,43 @@
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Linking, StyleSheet, Text, View } from 'react-native';
 
 import type { ClientProfile } from '../../lib/api';
 import { useSession } from '../auth/SessionProvider';
+import { AcceptInvitationScreen } from '../links/AcceptInvitationScreen';
+import { linksApiFrom, tokenFromUrl, type LinksApi } from '../links/linksApi';
+import { LinksScreen } from '../links/LinksScreen';
 import { HealthFormScreen } from './HealthFormScreen';
 import { messageOf, profileApiFrom, type ProfileApi } from './profileApi';
 import { fromProfile } from './profileForm';
 import { ProfileFormScreen } from './ProfileFormScreen';
 import { Alert, Button } from './ui';
 
-type Screen = 'home' | 'editProfile' | 'health';
+type Screen = 'home' | 'editProfile' | 'health' | 'accept' | 'links';
+
+/** De onde chegam os links abertos pelo sistema (`fithub://convite/<token>`); injetável nos testes. */
+export interface LinkSource {
+    getInitialURL(): Promise<string | null | undefined>;
+    addEventListener(type: 'url', handler: (event: { url: string }) => void): { remove(): void };
+}
 
 /**
  * Área do cliente depois do login (DEV-0041): sem perfil, vai para o cadastro; com perfil, para a tela inicial,
  * de onde edita o perfil e o perfil de saúde.
  */
-export function ClientArea({ api: injected }: { api?: ProfileApi }) {
+export function ClientArea({
+    api: injected,
+    linksApi: injectedLinks,
+    linkSource = Linking,
+}: {
+    api?: ProfileApi;
+    linksApi?: LinksApi;
+    linkSource?: LinkSource;
+}) {
     const { apiFetch } = useSession();
     const api = useMemo(() => injected ?? profileApiFrom(apiFetch), [injected, apiFetch]);
+    const linksApi = useMemo(() => injectedLinks ?? linksApiFrom(apiFetch), [injectedLinks, apiFetch]);
+    // Token do convite aberto pelo link (DEV-0042): vale depois do perfil, que o aceite exige.
+    const [invitationToken, setInvitationToken] = useState<string>();
     const [profile, setProfile] = useState<ClientProfile | null>();
     const [loadError, setLoadError] = useState<string>();
     const [screen, setScreen] = useState<Screen>('home');
@@ -33,6 +53,19 @@ export function ClientArea({ api: injected }: { api?: ProfileApi }) {
             active = false;
         };
     }, [api, attempt]);
+
+    useEffect(() => {
+        const open = (url: string | null | undefined) => {
+            const token = tokenFromUrl(url);
+            if (token) {
+                setInvitationToken(token);
+                setScreen('accept');
+            }
+        };
+        void linkSource.getInitialURL().then(open, () => undefined);
+        const subscription = linkSource.addEventListener('url', (event) => open(event.url));
+        return () => subscription.remove();
+    }, [linkSource]);
 
     if (loadError) {
         return (
@@ -68,6 +101,19 @@ export function ClientArea({ api: injected }: { api?: ProfileApi }) {
         );
     }
     if (screen === 'health') return <HealthFormScreen api={api} onDone={() => setScreen('home')} />;
+    if (screen === 'accept') {
+        return (
+            <AcceptInvitationScreen
+                api={linksApi}
+                token={invitationToken}
+                onDone={(accepted) => {
+                    setInvitationToken(undefined);
+                    setScreen(accepted ? 'links' : 'home');
+                }}
+            />
+        );
+    }
+    if (screen === 'links') return <LinksScreen api={linksApi} onDone={() => setScreen('home')} />;
 
     return (
         <View style={styles.box}>
@@ -77,6 +123,8 @@ export function ClientArea({ api: injected }: { api?: ProfileApi }) {
             <Text>{profile.age} anos</Text>
             <Button onPress={() => setScreen('editProfile')}>Editar perfil</Button>
             <Button onPress={() => setScreen('health')}>Perfil de saúde</Button>
+            <Button onPress={() => setScreen('accept')}>Aceitar convite</Button>
+            <Button onPress={() => setScreen('links')}>Meus vínculos</Button>
         </View>
     );
 }

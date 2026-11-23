@@ -1,0 +1,65 @@
+{
+    "issue": "DEV-0042",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Aceite passa a valer sem a confirmação explícita do consentimento",
+            "area": "apps",
+            "file": "apps/mobile/src/features/links/AcceptInvitationScreen.tsx",
+            "find": "disabled={!agreed || busy}",
+            "replace": "disabled={busy}",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Código desconhecido deixa de ter a mensagem de conferir o código",
+            "area": "apps",
+            "file": "apps/mobile/src/features/links/AcceptInvitationScreen.tsx",
+            "find": "error instanceof ApiProblemError && error.status === 404",
+            "replace": "false",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Encerrar o vínculo deixa de pedir confirmação",
+            "area": "apps",
+            "file": "apps/mobile/src/features/links/LinksScreen.tsx",
+            "find": "<Button onPress={() => setConfirming(link.id)}>",
+            "replace": "<Button onPress={() => void end(link.id ?? '')}>",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Link de fora do FitHub passa a abrir a tela de aceite",
+            "area": "apps",
+            "file": "apps/mobile/src/features/links/linksApi.ts",
+            "find": "if (!url || !url.startsWith(INVITATION_PREFIX)) return undefined;",
+            "replace": "if (!url) return undefined;",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}
