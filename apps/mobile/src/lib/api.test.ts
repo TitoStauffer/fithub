@@ -12,7 +12,9 @@ function json(status: number, body: unknown): Response {
 
 describe('api do client-service', () => {
     it('perfil que ainda não existe volta null', async () => {
-        await expect(fetchMyProfile(async () => new Response(null, { status: 404 }), BASE)).resolves.toBeNull();
+        await expect(
+            fetchMyProfile(async () => new Response(null, { status: 404 }), BASE),
+        ).resolves.toBeNull();
     });
 
     it('falha de rede vira OfflineError, para a tela avisar e manter o que foi digitado', async () => {
@@ -38,7 +40,9 @@ describe('api do client-service', () => {
                 errors: [{ field: 'notes', message: 'O texto livre pode ter até 1000 caracteres.' }],
             });
 
-        const error = await saveMyHealth(invalid, { conditions: [] }, BASE).catch((failure: unknown) => failure);
+        const error = await saveMyHealth(invalid, { conditions: [] }, BASE).catch(
+            (failure: unknown) => failure,
+        );
 
         expect(error).toBeInstanceOf(ApiProblemError);
         expect((error as ApiProblemError).status).toBe(400);
