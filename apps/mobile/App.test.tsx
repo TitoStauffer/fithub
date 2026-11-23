@@ -6,6 +6,8 @@ import { createSession } from './src/features/auth/session';
 
 // O status do serviço não é assunto destes testes; os módulos nativos do Expo não rodam no Jest.
 jest.mock('./src/features/status/ServiceStatus', () => ({ ServiceStatus: () => null }));
+// A área do cliente tem testes próprios (ClientArea.test.tsx).
+jest.mock('./src/features/profile/ClientArea', () => ({ ClientArea: () => null }));
 jest.mock('expo-auth-session', () => ({ __esModule: true }));
 jest.mock('expo-secure-store', () => ({ __esModule: true }));
 

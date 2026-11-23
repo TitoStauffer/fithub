@@ -68,3 +68,12 @@ está no ADR-007.
   `features/auth/fakes.ts`. Nenhum teste fala com o Keycloak nem com o cofre real.
 - **Rodar no aparelho:** o esquema `fithub://` e o cofre exigem um build de desenvolvimento
   (`expo run:android` ou `expo run:ios`); o Expo Go não registra o esquema do app.
+
+## Perfil e perfil de saúde (DEV-0041)
+
+- **Depois do login:** sem perfil, o app abre o cadastro; com perfil, a tela inicial mostra o nome e a idade
+  calculada pela API, com acesso a editar o perfil e o perfil de saúde.
+- **Formulários:** a validação espelha a do client-service (`features/profile/profileForm.ts`). Erro da API vai
+  para o campo; campo que a tela não mostra vai para o aviso geral. Um envio por vez. Sem conexão
+  (`OfflineError`), o app avisa e mantém o que foi digitado.
+- **Saúde:** fica só no estado da tela aberta; nunca vai para o cofre, `AsyncStorage` ou log.
