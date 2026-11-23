@@ -146,7 +146,8 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
     mostra "Sair e entrar de novo", sem redirecionar: sair encerra a sessão no
     Keycloak, o que impede o laço de login (DEV-0146).
   - Rota de profissional exige `personal` ou `nutritionist`; sem o papel, a
-    tela mostra acesso negado. A proteção de verdade é sempre da API.
+    pessoa vai para o onboarding (DEV-0031), que cadastra o profissional e
+    renova o token para trazer o papel. A proteção de verdade é sempre da API.
   - As chamadas às APIs usam `createApiFetch` (`src/lib/http.ts`): Bearer
     token, uma nova tentativa com token renovado num 401, e o token só vai
     para as origens das APIs do FitHub.
