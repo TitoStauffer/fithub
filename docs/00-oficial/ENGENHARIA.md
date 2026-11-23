@@ -181,7 +181,9 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
 - **Avaliação corporal** (DEV-0044): o cliente registra a online em
   `/clients/me/assessments`; o profissional vinculado, a presencial em
   `/professionals/me/clients/{clientId}/assessments`. O tipo vem da rota, e o
-  autor, do token. Imutável; só o cliente exclui.
+  autor, do token. Imutável; só o cliente exclui. Dobras cutâneas só na
+  presencial, com % de gordura por Pollock 3 e 7 (DEV-0045) calculado na
+  gravação, cada valor marcado pela origem (FR-19).
 - **Leitura pelo profissional vinculado** (DEV-0040): `GET
   /professionals/me/clients/{clientId}/profile` e `/health` exigem vínculo
   ativo (404 sem ele, ou com ele encerrado). Cada leitura da saúde é registrada

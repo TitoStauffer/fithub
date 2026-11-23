@@ -121,3 +121,7 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   panturrilha) de 10 a 300 cm, opcionais; até 1 casa decimal; medição não pode estar no futuro.
 - `sexForFormulas` (`FEMALE` ou `MALE`) é opcional e só serve aos cálculos de % de gordura (DEV-0045 e 0046).
 - Imutável: corrige-se registrando outra; só o cliente, dono dos dados, exclui.
+- **Dobras e Pollock (DEV-0045):** só na presencial, em mm (1 a 80): peitoral, axilar média, tríceps, subescapular,
+  abdominal, suprailíaca e coxa. Com `sexForFormulas` e o nascimento do perfil, a gravação calcula o % de gordura por
+  Jackson & Pollock de 3 e 7 dobras (equação de Siri), devolvido em `bodyFat` com a origem (`POLLOCK_3`, `POLLOCK_7`).
+  Sem os dados do protocolo, a avaliação é gravada sem o valor.

@@ -153,6 +153,47 @@ class AssessmentApiTest extends ServiceIntegrationTest {
     }
 
     @Test
+    void presencialComDobrasCalculaPollock3E7ComAIdadeDoPerfil() throws Exception {
+        String client = client();
+        String personal = linkedPersonal(client);
+
+        // Nascida em 24/11/1990, medida em 20/11/2026: 35 anos. Valores conferidos no BodyFatFormulasTest.
+        recordPresential("personal-" + personal, client, """
+                        {"measuredOn": "2026-11-20", "weightKg": 64.0, "sexForFormulas": "FEMALE",
+                         "skinfolds": {"chest": 9, "midaxillary": 11, "triceps": 18, "subscapular": 15, "abdomen": 22,
+                                       "suprailiac": 16, "thigh": 26}}
+                        """)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.skinfolds.triceps").value(18))
+                .andExpect(jsonPath("$.bodyFat[?(@.origin == 'POLLOCK_3')].percent")
+                        .value(24.4))
+                .andExpect(jsonPath("$.bodyFat[?(@.origin == 'POLLOCK_7')].percent")
+                        .value(23.6));
+    }
+
+    @Test
+    void semOSexoParaAsFormulasAAvaliacaoEGravadaSemOPercentual() throws Exception {
+        String client = client();
+        String personal = linkedPersonal(client);
+
+        recordPresential("personal-" + personal, client, """
+                        {"measuredOn": "2026-11-20", "weightKg": 64.0,
+                         "skinfolds": {"triceps": 18, "suprailiac": 16, "thigh": 26}}
+                        """)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.bodyFat.length()").value(0));
+    }
+
+    @Test
+    void dobrasSoNaAvaliacaoPresencial() throws Exception {
+        recordOnline(client(), """
+                        {"measuredOn": "2026-11-20", "weightKg": 64.0, "skinfolds": {"triceps": 18}}
+                        """)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("skinfolds"));
+    }
+
+    @Test
     void soOClienteExcluiAsProprias() throws Exception {
         String client = client();
         String id = json.readTree(recordOnline(client, BODY)

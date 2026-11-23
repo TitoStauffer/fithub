@@ -26,8 +26,10 @@ class AssessmentTest {
                 weight == null ? null : new BigDecimal(weight),
                 circumferences,
                 null,
+                null,
                 CLIENT,
                 Assessment.AuthorRole.CLIENT,
+                null,
                 TODAY,
                 NOW);
     }
@@ -85,6 +87,8 @@ class AssessmentTest {
                         Assessment.Type.PRESENTIAL,
                         TODAY,
                         new BigDecimal("70"),
+                        null,
+                        null,
                         null,
                         null,
                         CLIENT,

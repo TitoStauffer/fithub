@@ -1,0 +1,125 @@
+{
+    "issue": "DEV-0045",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Constante do Pollock 3 masculino errada",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/assessment/BodyFatFormulas.java",
+            "find": "1.10938 - 0.0008267 * s",
+            "replace": "1.10938 - 0.0008 * s",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=BodyFatFormulasTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Pollock 3 feminino passa a usar as dobras do protocolo masculino",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/assessment/BodyFatFormulas.java",
+            "find": "sum(folds.triceps(), folds.suprailiac(), folds.thigh())",
+            "replace": "sum(folds.chest(), folds.abdomen(), folds.thigh())",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=BodyFatFormulasTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Pollock 7 feminino passa a usar as constantes masculinas",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/assessment/BodyFatFormulas.java",
+            "find": "1.097 - 0.00046971 * s",
+            "replace": "1.112 - 0.00043499 * s",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=BodyFatFormulasTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Densidade convertida pela equação de Brozek em vez da de Siri",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/assessment/BodyFatFormulas.java",
+            "find": "495 / bodyDensity - 450",
+            "replace": "457 / bodyDensity - 414.2",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=BodyFatFormulasTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Dobras passam a ser aceitas na avaliação online",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/assessment/Assessment.java",
+            "find": "if (type == Type.ONLINE && skinfolds.any()) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AssessmentApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Idade da fórmula deixa de vir do nascimento do perfil",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManageAssessments.java",
+            "find": ".map(profile -> Period.between(profile.birthDate(), measuredOn).getYears())",
+            "replace": ".map(profile -> 30)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AssessmentApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

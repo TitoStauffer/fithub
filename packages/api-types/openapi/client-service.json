@@ -33,6 +33,13 @@
             "enum" : [ "CLIENT", "PROFESSIONAL" ],
             "type" : "string"
           },
+          "bodyFat" : {
+            "description" : "% de gordura de cada origem; vazio quando não há dados para calcular.",
+            "items" : {
+              "$ref" : "#/components/schemas/BodyFatEstimate"
+            },
+            "type" : "array"
+          },
           "circumferences" : {
             "$ref" : "#/components/schemas/Circumferences"
           },
@@ -51,6 +58,9 @@
           "sexForFormulas" : {
             "enum" : [ "FEMALE", "MALE" ],
             "type" : [ "string", "null" ]
+          },
+          "skinfolds" : {
+            "$ref" : "#/components/schemas/Skinfolds"
           },
           "type" : {
             "enum" : [ "PRESENTIAL", "ONLINE" ],
@@ -77,8 +87,24 @@
             "enum" : [ "FEMALE", "MALE" ],
             "type" : [ "string", "null" ]
           },
+          "skinfolds" : {
+            "$ref" : "#/components/schemas/Skinfolds",
+            "type" : "null"
+          },
           "weightKg" : {
             "description" : "Peso em kg, de 20 a 400.",
+            "type" : "number"
+          }
+        },
+        "type" : "object"
+      },
+      "BodyFatEstimate" : {
+        "properties" : {
+          "origin" : {
+            "enum" : [ "POLLOCK_3", "POLLOCK_7" ],
+            "type" : "string"
+          },
+          "percent" : {
             "type" : "number"
           }
         },
@@ -484,6 +510,33 @@
           "startedAt" : {
             "format" : "date-time",
             "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "Skinfolds" : {
+        "description" : "Dobras cutâneas em mm, só na avaliação presencial.",
+        "properties" : {
+          "abdomen" : {
+            "type" : [ "number", "null" ]
+          },
+          "chest" : {
+            "type" : [ "number", "null" ]
+          },
+          "midaxillary" : {
+            "type" : [ "number", "null" ]
+          },
+          "subscapular" : {
+            "type" : [ "number", "null" ]
+          },
+          "suprailiac" : {
+            "type" : [ "number", "null" ]
+          },
+          "thigh" : {
+            "type" : [ "number", "null" ]
+          },
+          "triceps" : {
+            "type" : [ "number", "null" ]
           }
         },
         "type" : "object"

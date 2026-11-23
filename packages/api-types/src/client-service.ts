@@ -268,6 +268,8 @@ export interface components {
             authorId?: string;
             /** @enum {string} */
             authorRole?: "CLIENT" | "PROFESSIONAL";
+            /** @description % de gordura de cada origem; vazio quando não há dados para calcular. */
+            bodyFat?: components["schemas"]["BodyFatEstimate"][];
             circumferences?: components["schemas"]["Circumferences"];
             /** Format: date-time */
             createdAt?: string;
@@ -277,6 +279,7 @@ export interface components {
             measuredOn?: string;
             /** @enum {string|null} */
             sexForFormulas?: "FEMALE" | "MALE" | null;
+            skinfolds?: components["schemas"]["Skinfolds"];
             /** @enum {string} */
             type?: "PRESENTIAL" | "ONLINE";
             weightKg?: number;
@@ -290,8 +293,14 @@ export interface components {
              * @enum {string|null}
              */
             sexForFormulas?: "FEMALE" | "MALE" | null;
+            skinfolds?: components["schemas"]["Skinfolds"];
             /** @description Peso em kg, de 20 a 400. */
             weightKg?: number;
+        };
+        BodyFatEstimate: {
+            /** @enum {string} */
+            origin?: "POLLOCK_3" | "POLLOCK_7";
+            percent?: number;
         };
         /** @description Circunferências em cm, todas opcionais. */
         Circumferences: {
@@ -470,6 +479,16 @@ export interface components {
             linkId?: string;
             /** Format: date-time */
             startedAt?: string;
+        };
+        /** @description Dobras cutâneas em mm, só na avaliação presencial. */
+        Skinfolds: {
+            abdomen?: number | null;
+            chest?: number | null;
+            midaxillary?: number | null;
+            subscapular?: number | null;
+            suprailiac?: number | null;
+            thigh?: number | null;
+            triceps?: number | null;
         };
     };
     responses: never;
