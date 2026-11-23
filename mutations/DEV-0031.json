@@ -120,6 +120,26 @@
                 "run",
                 "test"
             ]
+        },
+        {
+            "id": "M9",
+            "description": "Resposta 409 do cadastro some do contrato OpenAPI",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/interfaces/rest/ProfessionalController.java",
+            "find": "description = \"A conta já tem um cadastro com outros dados.\",",
+            "replace": "description = \"Conflito.\",",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AccountServiceSkeletonTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
         }
     ]
 }
