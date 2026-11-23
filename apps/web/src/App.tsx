@@ -1,8 +1,11 @@
-import { Link, Navigate, Route, Routes } from 'react-router';
+import { Link, Navigate, NavLink, Route, Routes } from 'react-router';
 
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/features/auth/authContext';
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute';
+import { ClientDetailPage } from '@/features/clients/ClientDetailPage';
+import { ClientsPage } from '@/features/clients/ClientsPage';
+import { InvitationsPage } from '@/features/clients/InvitationsPage';
 import { OnboardingPage } from '@/features/onboarding/OnboardingPage';
 import { ServiceStatus } from '@/features/status/ServiceStatus';
 
@@ -76,11 +79,24 @@ function HomePage() {
     );
 }
 
+/** Área do profissional (DEV-0043): clientes vinculados, detalhe do cliente e convites. */
 function ProfessionalArea() {
     return (
         <section className="space-y-4">
             <h2 className="text-lg font-semibold">Área do profissional</h2>
-            <p className="text-muted-foreground">Em construção.</p>
+            <nav aria-label="Área do profissional" className="flex gap-4">
+                <NavLink className="underline" to="/app" end>
+                    Clientes
+                </NavLink>
+                <NavLink className="underline" to="/app/convites">
+                    Convites
+                </NavLink>
+            </nav>
+            <Routes>
+                <Route index element={<ClientsPage />} />
+                <Route path="convites" element={<InvitationsPage />} />
+                <Route path="clientes/:clientId" element={<ClientDetailPage />} />
+            </Routes>
             <ServiceStatus />
         </section>
     );

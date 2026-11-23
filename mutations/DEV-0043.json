@@ -1,0 +1,80 @@
+{
+    "issue": "DEV-0043",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Vínculo encerrado deixa de mostrar que o acesso acabou",
+            "area": "apps",
+            "file": "apps/web/src/lib/clientApi.ts",
+            "find": "if (response.status === 404) throw new AccessEndedError();",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Encerrar o vínculo deixa de pedir confirmação",
+            "area": "apps",
+            "file": "apps/web/src/features/clients/ClientDetailPage.tsx",
+            "find": "onClick={() => setConfirming(true)}",
+            "replace": "onClick={() => end.mutate()}",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Convite por e-mail inválido passa a ser enviado",
+            "area": "apps",
+            "file": "apps/web/src/features/clients/InvitationsPage.tsx",
+            "find": "if (withEmail && !/^\\S+@\\S+\\.\\S+$/.test(email.trim())) {",
+            "replace": "if (false) {",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Lista de pendentes passa a mostrar convites cancelados",
+            "area": "apps",
+            "file": "apps/web/src/features/clients/InvitationsPage.tsx",
+            "find": "invitation.state === 'PENDING'",
+            "replace": "true",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Saúde ainda não informada passa a parecer acesso encerrado",
+            "area": "apps",
+            "file": "apps/web/src/lib/clientApi.ts",
+            "find": "if (error.message.startsWith('O cliente ainda não informou')) return null;",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}
