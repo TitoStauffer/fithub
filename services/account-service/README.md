@@ -14,6 +14,10 @@ Esqueleto da DEV-0015 (estrutura, execução e testes em [services/README.md](..
 - A conta é sempre o `sub` do token. Não existe leitura do cadastro de outra pessoa.
 - Corpo do `POST`: `type` (`PERSONAL` ou `NUTRITIONIST`), `registrationNumber` (1 a 6 dígitos),
   `registrationState` (UF) e, só no CREF, `registrationCategory` (`G` ou `P`).
+- O nome do profissional vem do perfil do Keycloak (claim `name`, ou nome e sobrenome); sem ele, 400 com o
+  campo `name`.
+- O cadastro grava o evento `ProfissionalCadastrado` (`account.professional-registered.v1`) no outbox, na
+  mesma transação, só na primeira vez ([libs/event-contracts](../../libs/event-contracts/README.md)).
 - Depois do cadastro, o serviço atribui o papel no Keycloak ([ADR-008](../../docs/00-oficial/adr/ADR-008-atribuicao-de-papel-pelo-account-service.md)).
   Enquanto `roleStatus` for `PENDING`, o token ainda não traz o papel: o front renova a sessão.
 - Configuração: `fithub.keycloak-admin.*` (URL do Keycloak e client) e o secret em

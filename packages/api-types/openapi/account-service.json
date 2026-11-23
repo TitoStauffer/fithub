@@ -11,6 +11,9 @@
             "format" : "uuid",
             "type" : "string"
           },
+          "name" : {
+            "type" : "string"
+          },
           "organizationId" : {
             "format" : "uuid",
             "type" : "string"

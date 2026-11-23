@@ -39,6 +39,12 @@
       <artifactId>java-testing</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- Teste de produtor dos eventos (DEV-0030): o payload gravado no outbox cumpre o contrato. -->
+    <dependency>
+      <groupId>com.fithub</groupId>
+      <artifactId>event-contracts</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>

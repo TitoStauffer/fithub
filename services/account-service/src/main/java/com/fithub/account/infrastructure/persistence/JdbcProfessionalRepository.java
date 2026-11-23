@@ -19,7 +19,7 @@ import org.springframework.stereotype.Repository;
 class JdbcProfessionalRepository implements ProfessionalRepository {
 
     private static final String SELECT = """
-            select id, account_id, type, council, registration_number, registration_category,
+            select id, account_id, name, type, council, registration_number, registration_category,
                    registration_state, situation, organization_id, role_status, created_at
               from professional
             """;
@@ -48,14 +48,15 @@ class JdbcProfessionalRepository implements ProfessionalRepository {
         Registration registration = professional.registration();
         try {
             jdbc.sql("""
-                            insert into professional (id, account_id, type, council, registration_number,
+                            insert into professional (id, account_id, name, type, council, registration_number,
                                 registration_category, registration_state, situation, organization_id, role_status,
                                 created_at)
-                            values (:id, :accountId, :type, :council, :number, :category, :state, :situation,
+                            values (:id, :accountId, :name, :type, :council, :number, :category, :state, :situation,
                                 :organizationId, :roleStatus, :createdAt)
                             """)
                     .param("id", professional.id())
                     .param("accountId", professional.accountId())
+                    .param("name", professional.name())
                     .param("type", professional.type().name())
                     .param("council", registration.council().name())
                     .param("number", registration.number())
@@ -97,6 +98,7 @@ class JdbcProfessionalRepository implements ProfessionalRepository {
         return new Professional(
                 row.getObject("id", UUID.class),
                 row.getString("account_id"),
+                row.getString("name"),
                 Professional.Type.valueOf(row.getString("type")),
                 registration,
                 Professional.Situation.valueOf(row.getString("situation")),

@@ -62,6 +62,7 @@ class ProfessionalController {
     @Schema(name = "Professional")
     record ProfessionalResponse(
             UUID id,
+            String name,
             Professional.Type type,
             RegistrationView registration,
             Professional.Situation situation,
@@ -76,6 +77,7 @@ class ProfessionalController {
             Registration registration = professional.registration();
             return new ProfessionalResponse(
                     professional.id(),
+                    professional.name(),
                     professional.type(),
                     new RegistrationView(
                             registration.council(),
@@ -99,6 +101,7 @@ class ProfessionalController {
             @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody RegistrationRequest request) {
         var result = registerProfessional.register(new RegisterProfessional.Command(
                 jwt.getSubject(),
+                displayName(jwt),
                 request.type(),
                 request.registrationNumber(),
                 request.registrationCategory(),
@@ -116,6 +119,20 @@ class ProfessionalController {
                 .findMine(jwt.getSubject())
                 .map(professional -> ResponseEntity.ok(ProfessionalResponse.of(professional)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Nome do perfil do Keycloak: a claim {@code name} ou, sem ela, nome e sobrenome. O cadastro do
+     * Keycloak exige os dois, então a falta só acontece com conta criada fora do fluxo normal.
+     */
+    static String displayName(Jwt jwt) {
+        String name = jwt.getClaimAsString("name");
+        if (name != null && !name.isBlank()) {
+            return name;
+        }
+        String given = jwt.getClaimAsString("given_name");
+        String family = jwt.getClaimAsString("family_name");
+        return ((given == null ? "" : given) + " " + (family == null ? "" : family)).strip();
     }
 
     @ExceptionHandler(InvalidRegistrationException.class)

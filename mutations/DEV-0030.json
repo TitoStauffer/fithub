@@ -1,0 +1,105 @@
+{
+    "issue": "DEV-0030",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Cadastro deixa de gravar o evento ProfissionalCadastrado",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/RegisterProfessional.java",
+            "find": "                events.registered(professional);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalRegistrationTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Evento gravado fora da transação do cadastro",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/RegisterProfessional.java",
+            "find": "                repository.saveNew(professional, organization);\n                events.registered(professional);\n            });",
+            "replace": "                repository.saveNew(professional, organization);\n            });\n            events.registered(professional);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalRegistrationTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Tipo personal sai fora do contrato do evento",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/messaging/OutboxProfessionalEvents.java",
+            "find": "case PERSONAL -> \"personal_trainer\";",
+            "replace": "case PERSONAL -> \"personal\";",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalRegistrationTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Cadastro sem nome passa a ser aceito",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/domain/professional/Professional.java",
+            "find": "if (name == null || name.isBlank() || name.length() > MAX_NAME) {",
+            "replace": "if (name == null) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Banco volta a aceitar PERSONAL sem categoria",
+            "area": "java",
+            "file": "services/account-service/src/main/resources/db/migration/V3__profissional_nome.sql",
+            "find": "(type = 'PERSONAL' and council = 'CREF' and registration_category is not null\n        and registration_category in ('G', 'P'))",
+            "replace": "(type = 'PERSONAL' and council = 'CREF' and registration_category in ('G', 'P'))",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalRegistrationTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}
