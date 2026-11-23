@@ -56,6 +56,34 @@
         "required" : [ "birthDate", "gender", "goal", "heightCm", "name" ],
         "type" : "object"
       },
+      "CreatedInvitation" : {
+        "properties" : {
+          "code" : {
+            "description" : "Código de 8 caracteres; só aparece nesta resposta.",
+            "type" : "string"
+          },
+          "email" : {
+            "type" : [ "string", "null" ]
+          },
+          "emailSent" : {
+            "description" : "Se o e-mail saiu; false sem e-mail ou se o envio falhou.",
+            "type" : "boolean"
+          },
+          "expiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "link" : {
+            "description" : "Link do convite; só aparece nesta resposta.",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "HealthProfile" : {
         "properties" : {
           "conditions" : {
@@ -94,6 +122,92 @@
           }
         },
         "required" : [ "conditions" ],
+        "type" : "object"
+      },
+      "Invitation" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "email" : {
+            "type" : [ "string", "null" ]
+          },
+          "expiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "state" : {
+            "enum" : [ "PENDING", "EXPIRED", "ACCEPTED", "CANCELLED" ],
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "InvitationLookupRequest" : {
+        "description" : "Informe o token do link ou o código.",
+        "properties" : {
+          "code" : {
+            "type" : [ "string", "null" ]
+          },
+          "token" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "type" : "object"
+      },
+      "InvitationPreview" : {
+        "properties" : {
+          "expiresAt" : {
+            "description" : "Vazio para o código pessoal do profissional, que não vence.",
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "kind" : {
+            "enum" : [ "INVITATION", "PROFESSIONAL_CODE" ],
+            "type" : "string"
+          },
+          "professionalName" : {
+            "type" : "string"
+          },
+          "professionalType" : {
+            "enum" : [ "PERSONAL_TRAINER", "NUTRITIONIST" ],
+            "type" : "string"
+          },
+          "sharedData" : {
+            "items" : {
+              "enum" : [ "PROFILE", "HEALTH", "ASSESSMENTS", "PHOTOS" ],
+              "type" : "string"
+            },
+            "type" : "array",
+            "uniqueItems" : true
+          }
+        },
+        "type" : "object"
+      },
+      "InvitationRequest" : {
+        "properties" : {
+          "email" : {
+            "description" : "E-mail do cliente; sem ele, o convite volta para o profissional compartilhar.",
+            "format" : "email",
+            "maxLength" : 254,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "InviteCode" : {
+        "properties" : {
+          "code" : {
+            "description" : "Código pessoal de 8 caracteres.",
+            "type" : "string"
+          }
+        },
         "type" : "object"
       },
       "Problem" : {
@@ -346,6 +460,341 @@
         "summary" : "Cria ou atualiza o perfil da conta autenticada",
         "tags" : [ "Perfil do cliente" ]
       }
+    },
+    "/invitations" : {
+      "get" : {
+        "operationId" : "mine_3",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Invitation"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "Convites do profissional."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é profissional."
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O cadastro de profissional ainda está sendo processado."
+          }
+        },
+        "summary" : "Convites do profissional autenticado, do mais novo para o mais antigo",
+        "tags" : [ "Convites" ]
+      },
+      "post" : {
+        "operationId" : "create",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/InvitationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CreatedInvitation"
+                }
+              }
+            },
+            "description" : "Convite criado."
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "E-mail inválido."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é profissional."
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O cadastro de profissional ainda está sendo processado."
+          }
+        },
+        "summary" : "Cria um convite (por e-mail ou para compartilhar)",
+        "tags" : [ "Convites" ]
+      }
+    },
+    "/invitations/lookup" : {
+      "post" : {
+        "operationId" : "lookup",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/InvitationLookupRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InvitationPreview"
+                }
+              }
+            },
+            "description" : "Quem convida e o que será compartilhado."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Convite ou código não encontrado."
+          },
+          "410" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Convite vencido, já usado ou cancelado."
+          }
+        },
+        "summary" : "Consulta um convite pelo token do link ou pelo código, para a tela de aceite",
+        "tags" : [ "Convites" ]
+      }
+    },
+    "/invitations/{id}" : {
+      "delete" : {
+        "operationId" : "cancel",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Convite cancelado (ou já estava)."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é profissional."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Convite não encontrado (ou de outro profissional)."
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Convite já aceito."
+          }
+        },
+        "summary" : "Cancela um convite do profissional autenticado",
+        "tags" : [ "Convites" ]
+      }
+    },
+    "/professionals/me/invite-code" : {
+      "get" : {
+        "operationId" : "mine_2",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InviteCode"
+                }
+              }
+            },
+            "description" : "Código pessoal."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é profissional."
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O cadastro de profissional ainda está sendo processado."
+          }
+        },
+        "summary" : "Código pessoal do profissional autenticado",
+        "tags" : [ "Convites" ]
+      },
+      "post" : {
+        "operationId" : "rotate",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InviteCode"
+                }
+              }
+            },
+            "description" : "Código novo."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é profissional."
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O cadastro de profissional ainda está sendo processado."
+          }
+        },
+        "summary" : "Troca o código pessoal; o antigo deixa de valer",
+        "tags" : [ "Convites" ]
+      }
     }
   },
   "security" : [ {
@@ -358,6 +807,9 @@
   "tags" : [ {
     "description" : "Perfil de saúde do cliente da conta autenticada",
     "name" : "Perfil de saúde"
+  }, {
+    "description" : "Convites do profissional ao cliente",
+    "name" : "Convites"
   }, {
     "description" : "Perfil do cliente da conta autenticada",
     "name" : "Perfil do cliente"
