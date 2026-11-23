@@ -305,7 +305,7 @@ real, não só se ela passou.
 
 ### Ocorrências
 
-- **Validação:** execução 45171542100 da orquestração, em 23/11/2026 — DEV-0154 (#216) · **PR:** o da DEV-0154
+- **Validação:** execução 45171542100 da orquestração, em 23/11/2026 — DEV-0154 (#216) · **PR:** o desta correção (DEV-0154)
   - **Impacto:** o `Setup Node.js` levava cerca de 16 minutos em cada etapa com modelo (Code Review e QA),
     restaurando um cache de 1,5 GB, contra 3 a 4 minutos do modelo. Eram cerca de 32 minutos por PR, numa
     fila serial.
