@@ -145,6 +145,94 @@ describe('falha passageira de rede na renovação', () => {
     });
 });
 
+/** Duas chamadas ao montar; a segunda só recebe o primeiro 401 quando o teste mandar. */
+function CallsApiTwice({ fetch }: { fetch: typeof window.fetch }) {
+    const { getAccessToken, rejectSession } = useAuth();
+    useEffect(() => {
+        const apiFetch = createApiFetch({
+            getAccessToken,
+            onSessionRejected: rejectSession,
+            allowedOrigins: [API],
+            fetch,
+        });
+        void apiFetch(`${API}/professionals/me?chamada=1`).catch(() => undefined);
+        void apiFetch(`${API}/professionals/me?chamada=2`).catch(() => undefined);
+    }, [fetch, getAccessToken, rejectSession]);
+    return null;
+}
+
+// Code Review do PR #200 (HIGH e MEDIUM).
+describe('recusa concorrente e renovação forçada sem rede', () => {
+    it('a segunda chamada que recebe o 401 depois da recusa não troca o erro pelo login', async () => {
+        let releaseSecond!: () => void;
+        const secondArrives = new Promise<void>((resolve) => {
+            releaseSecond = resolve;
+        });
+        let secondCalls = 0;
+        // O createApiFetch sempre chama com URL já validada.
+        const fetch = vi.fn(async (input: RequestInfo | URL) => {
+            const url = input instanceof URL ? input.href : typeof input === 'string' ? input : input.url;
+            if (url.endsWith('?chamada=2') && secondCalls++ === 0) await secondArrives;
+            return new Response(null, { status: 401 });
+        });
+        const client = fakeAuthClient({ user: userWith('personal') });
+        render(
+            <AuthProvider client={client}>
+                <MemoryRouter initialEntries={['/app']}>
+                    <Routes>
+                        <Route
+                            path="/app"
+                            element={
+                                <ProtectedRoute roles={['personal']}>
+                                    <CallsApiTwice fetch={fetch} />
+                                </ProtectedRoute>
+                            }
+                        />
+                    </Routes>
+                </MemoryRouter>
+            </AuthProvider>,
+        );
+
+        // A primeira chamada esgota a nova tentativa e recusa a sessão.
+        expect(await screen.findByRole('alert')).toHaveTextContent('Sua sessão não foi aceita');
+        // Só agora a segunda recebe o primeiro 401 e pede um token novo.
+        releaseSecond();
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
+        expect(screen.getByRole('alert')).toHaveTextContent('Sua sessão não foi aceita');
+        expect(logins(client)).toEqual([]);
+    });
+
+    it('depois da recusa, nada renova a sessão nem a troca pelo login', async () => {
+        const client = fakeAuthClient({ user: userWith('personal') });
+        renderArea(client, respondWith(401));
+        expect(await screen.findByRole('alert')).toHaveTextContent('Sua sessão não foi aceita');
+        const before = client.calls.length;
+
+        // Um pedido de token depois da recusa não vai ao Keycloak.
+        await expect(auth.getAccessToken({ force: true })).rejects.toThrow();
+        expect(client.calls.slice(before).filter((call) => call.startsWith('refresh:'))).toEqual([]);
+
+        // O aviso de token vencido, com a renovação recusada, não troca o erro pelo login.
+        client.failRefresh('rejected');
+        act(() => client.expireToken());
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        expect(screen.getByRole('alert')).toHaveTextContent('Sua sessão não foi aceita');
+        expect(logins(client)).toEqual([]);
+    });
+
+    it('401 seguido de renovação sem rede mantém a sessão e não mostra a recusa', async () => {
+        const client = fakeAuthClient({ user: userWith('personal') });
+        client.failRefresh('offline');
+        renderArea(client, respondWith(401, 200));
+
+        expect(await screen.findByText('SessionUnavailableError')).toBeInTheDocument();
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+        expect(auth.status).toBe('authenticated');
+        expect(client.calls).not.toContain('clear');
+    });
+});
+
 describe('API que recusa até o token renovado', () => {
     it('mostra o erro com a saída, sem redirecionar ao login nem repetir a chamada', async () => {
         const client = fakeAuthClient({ user: userWith('personal') });

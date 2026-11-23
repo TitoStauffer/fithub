@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import { RefreshRejectedError, type AuthClient, type AuthUser } from './authClient';
 import {
@@ -26,12 +26,18 @@ interface Session {
 export function AuthProvider({ client, children }: { client: AuthClient; children: ReactNode }) {
     const [session, setSession] = useState<Session>({ status: 'loading', user: undefined });
 
+    // A recusa da API é final até a pessoa sair (Code Review do PR #200): uma segunda chamada que
+    // termina depois não pode trocar `rejected` por `anonymous`, senão a rota protegida manda ao login
+    // e o laço volta. Fica numa ref porque as chamadas concorrentes não esperam o próximo render.
+    const rejected = useRef(false);
+
     const endSession = useCallback(() => {
         client.clear();
-        setSession({ status: 'anonymous', user: undefined });
+        if (!rejected.current) setSession({ status: 'anonymous', user: undefined });
     }, [client]);
 
     const rejectSession = useCallback(() => {
+        rejected.current = true;
         client.clear();
         setSession({ status: 'rejected', user: undefined });
     }, [client]);
@@ -100,6 +106,7 @@ export function AuthProvider({ client, children }: { client: AuthClient; childre
                 return client.logout(`${window.location.origin}/`);
             },
             async getAccessToken(options) {
+                if (rejected.current) throw new SessionExpiredError();
                 try {
                     await client.refresh(options?.force ? -1 : MIN_VALIDITY_SECONDS);
                 } catch (error) {
@@ -107,8 +114,9 @@ export function AuthProvider({ client, children }: { client: AuthClient; childre
                         endSession();
                         throw new SessionExpiredError();
                     }
-                    // Falha passageira: o token atual ainda serve, se estiver na validade.
-                    if (!client.hasValidToken()) throw new SessionUnavailableError();
+                    // Falha passageira. Com `force` (depois de um 401) o token atual é justamente o que a
+                    // API recusou: devolvê-lo levaria a tela de sessão recusada por uma queda de rede.
+                    if (options?.force || !client.hasValidToken()) throw new SessionUnavailableError();
                 }
                 const token = client.accessToken();
                 if (!token) {

@@ -36,8 +36,8 @@
             "description": "Sem rede e com o token vencido, a chamada segue com o token vencido",
             "area": "apps",
             "file": "apps/web/src/features/auth/AuthProvider.tsx",
-            "find": "if (!client.hasValidToken()) throw new SessionUnavailableError();",
-            "replace": "void client;",
+            "find": "if (options?.force || !client.hasValidToken()) throw new SessionUnavailableError();",
+            "replace": "if (options?.force) throw new SessionUnavailableError();",
             "command": [
                 "pnpm",
                 "--filter",
@@ -83,6 +83,51 @@
             "file": "apps/web/src/features/auth/authClient.ts",
             "find": "if (status === 400 || status === 401 || !keycloak.refreshToken)",
             "replace": "if (false)",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Segunda chamada depois da recusa troca o erro pelo login (laço)",
+            "area": "apps",
+            "file": "apps/web/src/features/auth/AuthProvider.tsx",
+            "find": "        if (!rejected.current) setSession({ status: 'anonymous', user: undefined });",
+            "replace": "        setSession({ status: 'anonymous', user: undefined });",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "Pedido de token depois da recusa volta a renovar a sessão",
+            "area": "apps",
+            "file": "apps/web/src/features/auth/AuthProvider.tsx",
+            "find": "                if (rejected.current) throw new SessionExpiredError();\n",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "Renovação forçada sem rede devolve o token que a API recusou",
+            "area": "apps",
+            "file": "apps/web/src/features/auth/AuthProvider.tsx",
+            "find": "if (options?.force || !client.hasValidToken())",
+            "replace": "if (!client.hasValidToken())",
             "command": [
                 "pnpm",
                 "--filter",
