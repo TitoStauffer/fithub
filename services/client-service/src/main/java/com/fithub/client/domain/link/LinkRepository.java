@@ -13,6 +13,9 @@ public interface LinkRepository {
 
     Optional<Link> findById(UUID id);
 
+    /** Se o profissional tem vínculo ativo com o cliente (BR-02). */
+    boolean hasActiveLink(UUID professionalId, UUID clientId);
+
     /** Vínculo com o nome do profissional, para a lista do cliente. */
     record WithProfessional(Link link, String professionalName) {}
 

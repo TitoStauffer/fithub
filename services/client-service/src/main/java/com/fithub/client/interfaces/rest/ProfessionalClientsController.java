@@ -1,6 +1,7 @@
 package com.fithub.client.interfaces.rest;
 
 import com.fithub.client.application.ManageLinks;
+import com.fithub.client.application.ReadClientAsProfessional;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -9,11 +10,15 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -28,9 +33,78 @@ import org.springframework.web.bind.annotation.RestController;
 class ProfessionalClientsController {
 
     private final ManageLinks manageLinks;
+    private final ReadClientAsProfessional readClient;
 
-    ProfessionalClientsController(ManageLinks manageLinks) {
+    ProfessionalClientsController(ManageLinks manageLinks, ReadClientAsProfessional readClient) {
         this.manageLinks = manageLinks;
+        this.readClient = readClient;
+    }
+
+    @GetMapping(path = "/{clientId}/profile", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            summary = "Perfil de um cliente com vínculo ativo",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "Perfil do cliente."),
+                @ApiResponse(
+                        responseCode = "401",
+                        description = "Sem token válido.",
+                        content =
+                                @Content(
+                                        mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                                        schema = @Schema(implementation = ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "403",
+                        description = "A conta não é profissional.",
+                        content =
+                                @Content(
+                                        mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                                        schema = @Schema(implementation = ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "404",
+                        description = "Sem vínculo ativo com o cliente (ou ele não existe).",
+                        content =
+                                @Content(
+                                        mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                                        schema = @Schema(implementation = ApiProblem.class)))
+            })
+    ClientProfileController.ProfileResponse profile(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID clientId) {
+        return ClientProfileController.ProfileResponse.of(readClient.profile(jwt.getSubject(), clientId));
+    }
+
+    @GetMapping(path = "/{clientId}/health", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            summary = "Perfil de saúde de um cliente com vínculo ativo (cada leitura fica registrada)",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "Perfil de saúde do cliente."),
+                @ApiResponse(
+                        responseCode = "401",
+                        description = "Sem token válido.",
+                        content =
+                                @Content(
+                                        mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                                        schema = @Schema(implementation = ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "403",
+                        description = "A conta não é profissional.",
+                        content =
+                                @Content(
+                                        mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                                        schema = @Schema(implementation = ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "404",
+                        description = "Sem vínculo ativo, ou o cliente ainda não informou a saúde.",
+                        content =
+                                @Content(
+                                        mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                                        schema = @Schema(implementation = ApiProblem.class)))
+            })
+    HealthProfileController.HealthResponse health(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID clientId) {
+        return HealthProfileController.HealthResponse.of(readClient.health(jwt.getSubject(), clientId));
+    }
+
+    @ExceptionHandler(ReadClientAsProfessional.NotFoundException.class)
+    ProblemDetail notFound(ReadClientAsProfessional.NotFoundException exception) {
+        return InvitationController.problem(HttpStatus.NOT_FOUND, "Não encontrado", exception.getMessage());
     }
 
     @Schema(name = "ProfessionalClient")

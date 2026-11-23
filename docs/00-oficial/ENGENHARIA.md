@@ -178,6 +178,10 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
   - As chamadas usam `createApiFetch` (`src/lib/apiFetch.ts`), com as
     mesmas regras da web: Bearer token, uma nova tentativa no 401 e token só
     para as origens das APIs do FitHub.
+- **Leitura pelo profissional vinculado** (DEV-0040): `GET
+  /professionals/me/clients/{clientId}/profile` e `/health` exigem vínculo
+  ativo (404 sem ele, ou com ele encerrado). Cada leitura da saúde é registrada
+  em `health_access_log` (quem, de quem, quando), sem o dado lido (NFR-03).
 - **Eventos de vínculo** (DEV-0038): `VinculoAtivado` no aceite e
   `VinculoEncerrado` no encerramento, no outbox da mesma transação; só o
   encerramento que o banco gravou publica (repetir não publica de novo).

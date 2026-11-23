@@ -1,0 +1,85 @@
+{
+    "issue": "DEV-0040",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Leitura pelo profissional deixa de exigir vínculo ativo",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ReadClientAsProfessional.java",
+            "find": "if (!links.hasActiveLink(professionalId, clientId)) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalReadTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Leitura do perfil deixa de conferir o vínculo",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ReadClientAsProfessional.java",
+            "find": "        requireActiveLink(professionalAccount, clientId);\n",
+            "replace": "        UUID.fromString(professionalAccount);\n",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalReadTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Leitura da saúde deixa de ser registrada para auditoria",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ReadClientAsProfessional.java",
+            "find": "audit.record(professionalId, clientId, clock.instant());",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalReadTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Vínculo encerrado continua dando acesso ao perfil e à saúde",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcLinkRepository.java",
+            "find": "\n                                          and status = 'ACTIVE')",
+            "replace": ")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalReadTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

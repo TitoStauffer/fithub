@@ -42,6 +42,19 @@ class JdbcLinkRepository implements LinkRepository {
     }
 
     @Override
+    public boolean hasActiveLink(UUID professionalId, UUID clientId) {
+        return jdbc.sql("""
+                        select exists (select 1 from client_link
+                                        where professional_id = :professionalId and client_id = :clientId
+                                          and status = 'ACTIVE')
+                        """)
+                .param("professionalId", professionalId)
+                .param("clientId", clientId)
+                .query(Boolean.class)
+                .single();
+    }
+
+    @Override
     public List<WithProfessional> listByClient(UUID clientId) {
         return jdbc.sql("select " + prefixed("l") + ", p.name as professional_name"
                         + " from client_link l join professional p on p.id = l.professional_id"
