@@ -1,0 +1,44 @@
+{
+    "issue": "DEV-0152",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "PR de fork chega ao runner self-hosted",
+            "area": "tools",
+            "file": ".github/workflows/agent-orchestration.yml",
+            "find": "      github.event.workflow_run.head_repository.full_name == github.repository &&",
+            "replace": "      true &&",
+            "command": [
+                "node",
+                "--test",
+                "tools/github-reviewer/test/workflow-contract.test.mjs"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "CI disparado por outra pessoa chega ao runner self-hosted",
+            "area": "tools",
+            "file": ".github/workflows/agent-orchestration.yml",
+            "find": "      github.event.workflow_run.actor.login == github.repository_owner)",
+            "replace": "      true)",
+            "command": [
+                "node",
+                "--test",
+                "tools/github-reviewer/test/workflow-contract.test.mjs"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Disparo manual por qualquer pessoa com escrita",
+            "area": "tools",
+            "file": ".github/workflows/agent-orchestration.yml",
+            "find": "      github.triggering_actor == github.repository_owner) ||",
+            "replace": "      true) ||",
+            "command": [
+                "node",
+                "--test",
+                "tools/github-reviewer/test/workflow-contract.test.mjs"
+            ]
+        }
+    ]
+}

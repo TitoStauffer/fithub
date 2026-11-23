@@ -141,3 +141,28 @@ test('pins orchestration runtime and isolates deterministic consolidation from C
   assert.match(orchestrationWorkflow, /Fail when Quality Gate produced no structured result/);
   assert.equal([...orchestrationWorkflow.matchAll(/steps\.stage\.outcome == 'failure'[\s\S]*?steps\.stage\.outputs\.decision == ''/g)].length, 3);
 });
+
+// DEV-0152: com o repositório público, qualquer pessoa abre PR por fork. Os estágios com modelo rodam no
+// runner self-hosted, com a assinatura do dono, e só podem atender PR de branch do próprio repositório
+// cujo CI o dono disparou.
+test('keeps the self-hosted model stages to pull requests from this repository and its owner', () => {
+  const normalized = orchestrationWorkflow.replace(/\r\n/g, '\n');
+  const jobs = normalized.split('\njobs:\n')[1].split(/\n(?=  [a-z-]+:\n)/);
+  const codeReview = jobs.find((job) => job.startsWith('  code-review:\n')) ?? '';
+  const condition = codeReview.match(/^ {4}if: >-\n([\s\S]*?)^ {4}runs-on:/m)?.[1].replace(/\s+/g, ' ') ?? '';
+  assert.ok(condition.trim().length > 0, 'condição do job code-review não foi localizada no workflow');
+
+  const [dispatch, workflowRun] = condition.split(' || ');
+  assert.match(dispatch, /github\.event_name == 'workflow_dispatch'/);
+  assert.match(dispatch, /github\.triggering_actor == github\.repository_owner/);
+  assert.match(workflowRun, /github\.event_name == 'workflow_run'/);
+  assert.match(workflowRun, /github\.event\.workflow_run\.head_repository\.full_name == github\.repository/);
+  assert.match(workflowRun, /github\.event\.workflow_run\.actor\.login == github\.repository_owner/);
+  assert.equal(condition.split(' || ').length, 2, 'nenhum caminho extra pode pular a trava');
+
+  // Todo outro job no runner self-hosted depende do code-review, então herda a trava.
+  for (const job of jobs.filter((candidate) => /runs-on: \[self-hosted/.test(candidate) && !candidate.startsWith('  code-review:\n'))) {
+    const name = job.match(/^ {2}([a-z-]+):/)?.[1];
+    assert.match(job, /^ {4}needs: (\[[^\]]*\bcode-review\b[^\]]*\]|code-review)$/m, `job ${name} roda no self-hosted sem depender do code-review`);
+  }
+});
