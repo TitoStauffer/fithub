@@ -4,6 +4,7 @@ import com.fithub.nutrition.domain.plan.Meal;
 import com.fithub.nutrition.domain.plan.MealItem;
 import com.fithub.nutrition.domain.plan.MealPlan;
 import com.fithub.nutrition.domain.plan.MealPlanRepository;
+import com.fithub.nutrition.domain.plan.MealPlanStateException;
 import com.fithub.nutrition.domain.plan.MealPlanVersion;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -43,11 +44,10 @@ class JdbcMealPlanRepository implements MealPlanRepository {
 
     @Override
     @Transactional
-    public void save(MealPlan plan) {
+    public void add(MealPlan plan) {
         jdbc.sql("""
                         insert into meal_plan (id, client_id, nutritionist_id, status, created_at, updated_at)
                         values (:id, :clientId, :nutritionistId, :status, :createdAt, :updatedAt)
-                        on conflict (id) do update set status = excluded.status, updated_at = excluded.updated_at
                         """)
                 .param("id", plan.id())
                 .param("clientId", plan.clientId())
@@ -61,11 +61,6 @@ class JdbcMealPlanRepository implements MealPlanRepository {
                         insert into meal_plan_version
                             (id, plan_id, number, name, starts_on, note, published_at, created_at)
                         values (:id, :planId, :number, :name, :startsOn, :note, :publishedAt, :createdAt)
-                        on conflict (id) do update set
-                            name = excluded.name,
-                            starts_on = excluded.starts_on,
-                            note = excluded.note,
-                            published_at = excluded.published_at
                         """)
                 .param("id", version.id())
                 .param("planId", plan.id())
@@ -73,8 +68,39 @@ class JdbcMealPlanRepository implements MealPlanRepository {
                 .param("name", version.name())
                 .param("startsOn", version.startsOn())
                 .param("note", version.note())
-                .param("publishedAt", version.publishedAt() == null ? null : Timestamp.from(version.publishedAt()))
+                .param("publishedAt", timestamp(version.publishedAt()))
                 .param("createdAt", Timestamp.from(version.createdAt()))
+                .update();
+        for (Meal meal : version.meals()) {
+            insertMeal(version.id(), meal);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void saveDraft(MealPlan plan, Instant readUpdatedAt) {
+        // O updated_at lido é a guarda: só grava se o plano ainda é o rascunho lido. Publicar ou outra edição no meio
+        // do caminho já trocou o updated_at, e o conteúdo publicado nunca é regravado (BR-09).
+        int changed = jdbc.sql("""
+                        update meal_plan set updated_at = :updatedAt
+                        where id = :id and updated_at = :readUpdatedAt
+                        """)
+                .param("id", plan.id())
+                .param("updatedAt", Timestamp.from(plan.updatedAt()))
+                .param("readUpdatedAt", Timestamp.from(readUpdatedAt))
+                .update();
+        if (changed == 0) {
+            throw changedMeanwhile();
+        }
+        MealPlanVersion version = plan.current();
+        jdbc.sql("""
+                        update meal_plan_version set name = :name, starts_on = :startsOn, note = :note
+                        where id = :id
+                        """)
+                .param("id", version.id())
+                .param("name", version.name())
+                .param("startsOn", version.startsOn())
+                .param("note", version.note())
                 .update();
         // As refeições do rascunho são regravadas inteiras; os itens vão junto pelo cascade.
         jdbc.sql("delete from meal where version_id = :versionId")
@@ -83,6 +109,36 @@ class JdbcMealPlanRepository implements MealPlanRepository {
         for (Meal meal : version.meals()) {
             insertMeal(version.id(), meal);
         }
+    }
+
+    @Override
+    @Transactional
+    public void saveStatus(MealPlan plan, Instant readUpdatedAt) {
+        // Publicar e substituir só trocam o estado e a data de publicação: as refeições ficam como estão.
+        int changed = jdbc.sql("""
+                        update meal_plan set status = :status, updated_at = :updatedAt
+                        where id = :id and updated_at = :readUpdatedAt
+                        """)
+                .param("id", plan.id())
+                .param("status", plan.status().name())
+                .param("updatedAt", Timestamp.from(plan.updatedAt()))
+                .param("readUpdatedAt", Timestamp.from(readUpdatedAt))
+                .update();
+        if (changed == 0) {
+            throw changedMeanwhile();
+        }
+        jdbc.sql("update meal_plan_version set published_at = :publishedAt where id = :id")
+                .param("id", plan.current().id())
+                .param("publishedAt", timestamp(plan.current().publishedAt()))
+                .update();
+    }
+
+    private static MealPlanStateException changedMeanwhile() {
+        return new MealPlanStateException("O plano mudou desde que foi aberto. Recarregue e tente de novo.");
+    }
+
+    private static Timestamp timestamp(Instant instant) {
+        return instant == null ? null : Timestamp.from(instant);
     }
 
     private void insertMeal(UUID versionId, Meal meal) {

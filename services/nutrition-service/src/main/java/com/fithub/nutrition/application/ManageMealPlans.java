@@ -88,7 +88,7 @@ public class ManageMealPlans {
                 draft.note(),
                 resolveMeals(draft.meals(), nutritionistId, Set.of()),
                 clock.instant());
-        plans.save(plan);
+        plans.add(plan);
         return view(plan);
     }
 
@@ -108,7 +108,8 @@ public class ManageMealPlans {
     /**
      * Edita o rascunho no lugar.
      *
-     * @throws MealPlanStateException se o plano já foi publicado (a nova versão vem na DEV-0083)
+     * @throws MealPlanStateException se o plano já foi publicado (a nova versão vem na DEV-0083) ou mudou desde a
+     *     leitura
      */
     public PlanView update(String nutritionistAccount, UUID planId, Draft draft) {
         MealPlan plan = authored(nutritionistAccount, planId);
@@ -119,7 +120,7 @@ public class ManageMealPlans {
                 draft.note(),
                 resolveMeals(draft.meals(), plan.nutritionistId(), foodsIn(plan)),
                 clock.instant());
-        plans.save(edited);
+        plans.saveDraft(edited, plan.updatedAt());
         return view(edited);
     }
 
@@ -133,9 +134,10 @@ public class ManageMealPlans {
         MealPlan plan = authored(nutritionistAccount, planId);
         clientAccess.requireActiveLink(nutritionistAccount, plan.clientId());
         MealPlan published = plan.publish(clock.instant());
-        plans.findPublished(plan.clientId()).ifPresent(active -> plans.save(active.replace(clock.instant())));
+        plans.findPublished(plan.clientId())
+                .ifPresent(active -> plans.saveStatus(active.replace(clock.instant()), active.updatedAt()));
         try {
-            plans.save(published);
+            plans.saveStatus(published, plan.updatedAt());
         } catch (DataIntegrityViolationException otherPublished) {
             // Duas publicações para o mesmo paciente ao mesmo tempo: a segunda bate no índice de um ativo por vez.
             throw new MealPlanStateException("Outro plano foi publicado ao mesmo tempo. Tente de novo.");

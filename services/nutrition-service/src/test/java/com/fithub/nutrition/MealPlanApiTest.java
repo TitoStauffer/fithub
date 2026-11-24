@@ -11,9 +11,15 @@ import com.fithub.nutrition.domain.food.Food;
 import com.fithub.nutrition.domain.food.FoodMeasure;
 import com.fithub.nutrition.domain.food.FoodMeasureRepository;
 import com.fithub.nutrition.domain.food.FoodRepository;
+import com.fithub.nutrition.domain.plan.Meal;
+import com.fithub.nutrition.domain.plan.MealItem;
+import com.fithub.nutrition.domain.plan.MealPlan;
+import com.fithub.nutrition.domain.plan.MealPlanRepository;
+import com.fithub.nutrition.domain.plan.MealPlanStateException;
 import com.fithub.testing.service.ServiceIntegrationTest;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -47,6 +53,9 @@ class MealPlanApiTest extends ServiceIntegrationTest {
 
     @Autowired
     FoodMeasureRepository measures;
+
+    @Autowired
+    MealPlanRepository plans;
 
     private UUID nutritionist;
     private UUID client;
@@ -350,6 +359,48 @@ class MealPlanApiTest extends ServiceIntegrationTest {
         List<String> tenMeals = new ArrayList<>(Collections.nCopies(10, meal("Lanche", ok)));
         tenMeals.set(0, meal("Café", Collections.nCopies(30, ok).toArray(String[]::new)));
         create(nutri(), client, plan("Plano", tenMeals.toArray(String[]::new))).andExpect(status().isCreated());
+    }
+
+    private static UUID idOf(String location) {
+        return UUID.fromString(location.substring(location.lastIndexOf('/') + 1));
+    }
+
+    @Test
+    void rascunhoLidoAntesDaPublicacaoNaoRegravaOPlanoPublicado() throws Exception {
+        String location = simplePlan();
+        MealPlan stale = plans.findById(idOf(location)).orElseThrow();
+        publish(nutri(), location).andExpect(status().isOk());
+
+        MealPlan staleEdit = stale.editDraft(
+                "Editado no meio",
+                LocalDate.of(2026, 12, 2),
+                null,
+                List.of(new Meal.Draft(
+                        "Ceia", null, null, List.of(new MealItem(beans.id(), BigDecimal.TEN, null, null)))),
+                Instant.now());
+        assertThatThrownBy(() -> plans.saveDraft(staleEdit, stale.updatedAt()))
+                .isInstanceOf(MealPlanStateException.class);
+        mvc.perform(get(location).header("Authorization", nutri()))
+                .andExpect(jsonPath("$.status").value("PUBLISHED"))
+                .andExpect(jsonPath("$.name").value("Plano simples"))
+                .andExpect(jsonPath("$.meals[0].name").value("Almoço"))
+                .andExpect(jsonPath("$.meals[0].items[0].amount").value(100.0));
+    }
+
+    @Test
+    void publicacaoLidaAntesDaEdicaoNaoPublicaOConteudoAntigo() throws Exception {
+        String location = simplePlan();
+        MealPlan stale = plans.findById(idOf(location)).orElseThrow();
+        update(nutri(), location, plan("Plano editado", meal("Almoço", item(rice.id(), "100")), meal("Jantar")))
+                .andExpect(status().isOk());
+
+        MealPlan stalePublished = stale.publish(Instant.now());
+        assertThatThrownBy(() -> plans.saveStatus(stalePublished, stale.updatedAt()))
+                .isInstanceOf(MealPlanStateException.class);
+        mvc.perform(get(location).header("Authorization", nutri()))
+                .andExpect(jsonPath("$.status").value("DRAFT"))
+                .andExpect(jsonPath("$.name").value("Plano editado"))
+                .andExpect(jsonPath("$.meals.length()").value(2));
     }
 
     @Test

@@ -106,8 +106,8 @@
             "description": "O plano publicado anterior deixa de ficar substituído",
             "area": "java",
             "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
-            "find": "plans.findPublished(plan.clientId()).ifPresent(active -> plans.save(active.replace(clock.instant())));",
-            "replace": "",
+            "find": "                .ifPresent(active -> plans.saveStatus(active.replace(clock.instant()), active.updatedAt()));",
+            "replace": ";",
             "command": [
                 "mvn",
                 "-B",
@@ -988,6 +988,86 @@
             "file": "services/nutrition-service/src/main/resources/db/migration/V8__plano_alimentar.sql",
             "find": "check (measure_count is null or measure_count between 0.1 and 100)",
             "replace": "check (measure_count is null or measure_count >= 0)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M51",
+            "description": "O rascunho lido antes da publicação passa a regravar o plano publicado",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/JdbcMealPlanRepository.java",
+            "find": "update meal_plan set updated_at = :updatedAt\n                        where id = :id and updated_at = :readUpdatedAt",
+            "replace": "update meal_plan set updated_at = :updatedAt\n                        where id = :id",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M52",
+            "description": "A publicação lida antes da edição passa a publicar o conteúdo antigo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/JdbcMealPlanRepository.java",
+            "find": "update meal_plan set status = :status, updated_at = :updatedAt\n                        where id = :id and updated_at = :readUpdatedAt",
+            "replace": "update meal_plan set status = :status, updated_at = :updatedAt\n                        where id = :id",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M53",
+            "description": "A gravação do rascunho desatualizado deixa de responder conflito e segue regravando",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/JdbcMealPlanRepository.java",
+            "find": "if (changed == 0) {\n            throw changedMeanwhile();\n        }\n        MealPlanVersion version = plan.current();",
+            "replace": "if (false) {\n            throw changedMeanwhile();\n        }\n        MealPlanVersion version = plan.current();",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M54",
+            "description": "A troca de estado desatualizada deixa de responder conflito e segue gravando a publicação",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/JdbcMealPlanRepository.java",
+            "find": "if (changed == 0) {\n            throw changedMeanwhile();\n        }\n        jdbc.sql(\"update meal_plan_version set published_at",
+            "replace": "if (false) {\n            throw changedMeanwhile();\n        }\n        jdbc.sql(\"update meal_plan_version set published_at",
             "command": [
                 "mvn",
                 "-B",
