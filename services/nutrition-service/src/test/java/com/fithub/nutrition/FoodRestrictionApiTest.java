@@ -134,6 +134,11 @@ class FoodRestrictionApiTest extends ServiceIntegrationTest {
         mvc.perform(get("/clients/" + client + "/food-restrictions").header("Authorization", stranger))
                 .andExpect(status().isNotFound());
         create(stranger, client, body("ALLERGY", "Amendoim", "[\"amendoim\"]")).andExpect(status().isNotFound());
+        mvc.perform(put(location)
+                        .header("Authorization", stranger)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("ALLERGY", "Editada sem vínculo", "[\"peixe\"]")))
+                .andExpect(status().isNotFound());
         mvc.perform(delete(location).header("Authorization", stranger)).andExpect(status().isNotFound());
         // A restrição de outro paciente pelo caminho de um paciente vinculado: não existe.
         UUID other = UUID.randomUUID();
