@@ -293,6 +293,216 @@
         },
         "type" : "object"
       },
+      "Meal" : {
+        "description" : "Refeição do plano, com os alimentos e a soma dos macros.",
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/MealItem"
+            },
+            "type" : "array"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "note" : {
+            "type" : "string"
+          },
+          "position" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "suggestedTime" : {
+            "description" : "Horário sugerido (HH:MM).",
+            "type" : "string"
+          },
+          "total" : {
+            "$ref" : "#/components/schemas/NutrientAmounts"
+          }
+        },
+        "type" : "object"
+      },
+      "MealInput" : {
+        "description" : "Nome (2 a 60), horário opcional (HH:MM), observação e até 30 alimentos.",
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/MealItemInput"
+            },
+            "type" : "array"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "note" : {
+            "type" : "string"
+          },
+          "suggestedTime" : {
+            "description" : "HH:MM",
+            "example" : "07:30",
+            "type" : "string"
+          }
+        },
+        "required" : [ "name" ],
+        "type" : "object"
+      },
+      "MealItem" : {
+        "description" : "Alimento da refeição, com a quantidade e os macros dela.",
+        "properties" : {
+          "amount" : {
+            "description" : "Quantidade na unidade base.",
+            "type" : "number"
+          },
+          "baseUnit" : {
+            "description" : "G (gramas) ou ML (mililitros).",
+            "enum" : [ "G", "ML" ],
+            "type" : "string"
+          },
+          "foodId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "foodName" : {
+            "type" : "string"
+          },
+          "measureCount" : {
+            "type" : "number"
+          },
+          "measureId" : {
+            "description" : "A medida caseira usada para exibir.",
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "measureName" : {
+            "type" : "string"
+          },
+          "nutrients" : {
+            "$ref" : "#/components/schemas/NutrientAmounts"
+          }
+        },
+        "type" : "object"
+      },
+      "MealItemInput" : {
+        "description" : "O alimento e a quantidade (0,1 a 5000), ou a medida caseira e quantas (a quantidade vem dela).",
+        "properties" : {
+          "amount" : {
+            "type" : "number"
+          },
+          "foodId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "measureCount" : {
+            "type" : "number"
+          },
+          "measureId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "foodId" ],
+        "type" : "object"
+      },
+      "MealPlan" : {
+        "description" : "Plano alimentar, com as refeições e os macros do dia.",
+        "properties" : {
+          "clientId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "day" : {
+            "$ref" : "#/components/schemas/NutrientAmounts",
+            "description" : "A soma das refeições."
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "meals" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Meal"
+            },
+            "type" : "array"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "note" : {
+            "type" : "string"
+          },
+          "publishedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "startsOn" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "status" : {
+            "description" : "DRAFT, PUBLISHED (o ativo) ou REPLACED.",
+            "enum" : [ "DRAFT", "PUBLISHED", "REPLACED" ],
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "version" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "MealPlanInput" : {
+        "description" : "Nome (2 a 80), início, observação (até 500) e de 1 a 10 refeições.",
+        "properties" : {
+          "meals" : {
+            "items" : {
+              "$ref" : "#/components/schemas/MealInput"
+            },
+            "type" : "array"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "note" : {
+            "type" : "string"
+          },
+          "startsOn" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        },
+        "required" : [ "meals", "name", "startsOn" ],
+        "type" : "object"
+      },
+      "NutrientAmounts" : {
+        "description" : "Energia e nutrientes de uma porção, com 1 casa decimal.",
+        "properties" : {
+          "carbsG" : {
+            "type" : "number"
+          },
+          "energyKcal" : {
+            "type" : "number"
+          },
+          "fatG" : {
+            "type" : "number"
+          },
+          "fiberG" : {
+            "description" : "Ausente quando algum alimento da soma não traz a fibra.",
+            "type" : "number"
+          },
+          "proteinG" : {
+            "type" : "number"
+          }
+        },
+        "type" : "object"
+      },
       "Problem" : {
         "description" : "Erro no formato Problem Details (RFC 9457).",
         "properties" : {
@@ -674,6 +884,123 @@
         },
         "summary" : "Edita a restrição alimentar do paciente",
         "tags" : [ "Restrições alimentares" ]
+      }
+    },
+    "/clients/{clientId}/meal-plans" : {
+      "get" : {
+        "operationId" : "listMealPlans",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/MealPlan"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "Planos, do mais novo para o mais antigo."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é nutricionista."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem vínculo ativo com o paciente."
+          }
+        },
+        "summary" : "Os planos alimentares que a nutricionista criou para o paciente vinculado",
+        "tags" : [ "Planos alimentares" ]
+      },
+      "post" : {
+        "operationId" : "createMealPlan",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MealPlanInput"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MealPlan"
+                }
+              }
+            },
+            "description" : "Plano criado; o endereço vem em Location."
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Campo fora das regras ou alimento indisponível; o campo vem em errors."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é nutricionista."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem vínculo ativo com o paciente."
+          }
+        },
+        "summary" : "Cria o plano alimentar do paciente vinculado, em rascunho",
+        "tags" : [ "Planos alimentares" ]
       }
     },
     "/foods" : {
@@ -1108,6 +1435,198 @@
         "summary" : "As restrições alimentares do paciente autenticado",
         "tags" : [ "Restrições alimentares" ]
       }
+    },
+    "/meal-plans/{planId}" : {
+      "get" : {
+        "operationId" : "getMealPlan",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "planId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MealPlan"
+                }
+              }
+            },
+            "description" : "Plano com as refeições e os macros."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é nutricionista."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O plano não existe ou é de outra nutricionista."
+          }
+        },
+        "summary" : "O plano alimentar, para a autora (mesmo depois do fim do vínculo)",
+        "tags" : [ "Planos alimentares" ]
+      },
+      "put" : {
+        "operationId" : "updateMealPlan",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "planId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MealPlanInput"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MealPlan"
+                }
+              }
+            },
+            "description" : "Rascunho editado."
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Campo fora das regras ou alimento indisponível; o campo vem em errors."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é nutricionista."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O plano não existe, é de outra nutricionista ou o vínculo acabou."
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O plano já foi publicado."
+          }
+        },
+        "summary" : "Edita o rascunho do plano alimentar",
+        "tags" : [ "Planos alimentares" ]
+      }
+    },
+    "/meal-plans/{planId}/publish" : {
+      "post" : {
+        "operationId" : "publishMealPlan",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "planId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MealPlan"
+                }
+              }
+            },
+            "description" : "Plano publicado."
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Alguma refeição sem alimento (BR-10); o campo vem em errors."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é nutricionista."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O plano não existe, é de outra nutricionista ou o vínculo acabou."
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O plano já foi publicado."
+          }
+        },
+        "summary" : "Publica o rascunho; o plano ativo anterior do paciente fica substituído",
+        "tags" : [ "Planos alimentares" ]
+      }
     }
   },
   "security" : [ {
@@ -1118,6 +1637,9 @@
     "url" : "http://localhost"
   } ],
   "tags" : [ {
+    "description" : "Plano alimentar do paciente, com refeições, alimentos e macros",
+    "name" : "Planos alimentares"
+  }, {
     "description" : "Alergias, intolerâncias e preferências do paciente",
     "name" : "Restrições alimentares"
   }, {

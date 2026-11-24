@@ -174,7 +174,29 @@ public record Food(
      * traz. Sem limite de 100: é o quanto há na porção.
      */
     public record Amounts(
-            BigDecimal energyKcal, BigDecimal proteinG, BigDecimal carbsG, BigDecimal fatG, BigDecimal fiberG) {}
+            BigDecimal energyKcal, BigDecimal proteinG, BigDecimal carbsG, BigDecimal fatG, BigDecimal fiberG) {
+
+        /** Nada ainda: o ponto de partida da soma (refeição sem alimento soma zero). */
+        public static final Amounts ZERO = new Amounts(
+                BigDecimal.ZERO.setScale(1),
+                BigDecimal.ZERO.setScale(1),
+                BigDecimal.ZERO.setScale(1),
+                BigDecimal.ZERO.setScale(1),
+                BigDecimal.ZERO.setScale(1));
+
+        /**
+         * A soma com outra porção (DEV-0081): a refeição soma os itens e o dia soma as refeições. A fibra falta se
+         * faltar em alguma parte, como na receita: somar só o que se sabe daria um total menor que o real.
+         */
+        public Amounts plus(Amounts other) {
+            return new Amounts(
+                    energyKcal.add(other.energyKcal),
+                    proteinG.add(other.proteinG),
+                    carbsG.add(other.carbsG),
+                    fatG.add(other.fatG),
+                    fiberG == null || other.fiberG == null ? null : fiberG.add(other.fiberG));
+        }
+    }
 
     /** Os nutrientes de {@code quantity} gramas (ou ml) do alimento (DEV-0076): o valor por 100 vezes a quantidade. */
     public Amounts nutrientsIn(BigDecimal quantity) {

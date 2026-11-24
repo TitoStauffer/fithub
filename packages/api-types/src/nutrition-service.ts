@@ -54,6 +54,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clients/{clientId}/meal-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Os planos alimentares que a nutricionista criou para o paciente vinculado */
+        get: operations["listMealPlans"];
+        put?: never;
+        /** Cria o plano alimentar do paciente vinculado, em rascunho */
+        post: operations["createMealPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/foods": {
         parameters: {
             query?: never;
@@ -155,6 +173,41 @@ export interface paths {
         get: operations["listMyFoodRestrictions"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/meal-plans/{planId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** O plano alimentar, para a autora (mesmo depois do fim do vínculo) */
+        get: operations["getMealPlan"];
+        /** Edita o rascunho do plano alimentar */
+        put: operations["updateMealPlan"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/meal-plans/{planId}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publica o rascunho; o plano ativo anterior do paciente fica substituído */
+        post: operations["publishMealPlan"];
         delete?: never;
         options?: never;
         head?: never;
@@ -301,6 +354,102 @@ export interface components {
             clientId?: string;
             gender?: string | null;
             name?: string;
+        };
+        /** @description Refeição do plano, com os alimentos e a soma dos macros. */
+        Meal: {
+            items?: components["schemas"]["MealItem"][];
+            name?: string;
+            note?: string;
+            /** Format: int32 */
+            position?: number;
+            /** @description Horário sugerido (HH:MM). */
+            suggestedTime?: string;
+            total?: components["schemas"]["NutrientAmounts"];
+        };
+        /** @description Nome (2 a 60), horário opcional (HH:MM), observação e até 30 alimentos. */
+        MealInput: {
+            items?: components["schemas"]["MealItemInput"][];
+            name: string;
+            note?: string;
+            /**
+             * @description HH:MM
+             * @example 07:30
+             */
+            suggestedTime?: string;
+        };
+        /** @description Alimento da refeição, com a quantidade e os macros dela. */
+        MealItem: {
+            /** @description Quantidade na unidade base. */
+            amount?: number;
+            /**
+             * @description G (gramas) ou ML (mililitros).
+             * @enum {string}
+             */
+            baseUnit?: "G" | "ML";
+            /** Format: uuid */
+            foodId?: string;
+            foodName?: string;
+            measureCount?: number;
+            /**
+             * Format: uuid
+             * @description A medida caseira usada para exibir.
+             */
+            measureId?: string;
+            measureName?: string;
+            nutrients?: components["schemas"]["NutrientAmounts"];
+        };
+        /** @description O alimento e a quantidade (0,1 a 5000), ou a medida caseira e quantas (a quantidade vem dela). */
+        MealItemInput: {
+            amount?: number;
+            /** Format: uuid */
+            foodId: string;
+            measureCount?: number;
+            /** Format: uuid */
+            measureId?: string;
+        };
+        /** @description Plano alimentar, com as refeições e os macros do dia. */
+        MealPlan: {
+            /** Format: uuid */
+            clientId?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** @description A soma das refeições. */
+            day?: components["schemas"]["NutrientAmounts"];
+            /** Format: uuid */
+            id?: string;
+            meals?: components["schemas"]["Meal"][];
+            name?: string;
+            note?: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            /** Format: date */
+            startsOn?: string;
+            /**
+             * @description DRAFT, PUBLISHED (o ativo) ou REPLACED.
+             * @enum {string}
+             */
+            status?: "DRAFT" | "PUBLISHED" | "REPLACED";
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: int32 */
+            version?: number;
+        };
+        /** @description Nome (2 a 80), início, observação (até 500) e de 1 a 10 refeições. */
+        MealPlanInput: {
+            meals: components["schemas"]["MealInput"][];
+            name: string;
+            note?: string;
+            /** Format: date */
+            startsOn: string;
+        };
+        /** @description Energia e nutrientes de uma porção, com 1 casa decimal. */
+        NutrientAmounts: {
+            carbsG?: number;
+            energyKcal?: number;
+            fatG?: number;
+            /** @description Ausente quando algum alimento da soma não traz a fibra. */
+            fiberG?: number;
+            proteinG?: number;
         };
         /** @description Erro no formato Problem Details (RFC 9457). */
         Problem: {
@@ -563,6 +712,99 @@ export interface operations {
                 };
             };
             /** @description Sem vínculo ativo, ou a restrição não existe ou é de outro paciente. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listMealPlans: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Planos, do mais novo para o mais antigo. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MealPlan"][];
+                };
+            };
+            /** @description A conta não é nutricionista. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem vínculo ativo com o paciente. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    createMealPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MealPlanInput"];
+            };
+        };
+        responses: {
+            /** @description Plano criado; o endereço vem em Location. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MealPlan"];
+                };
+            };
+            /** @description Campo fora das regras ou alimento indisponível; o campo vem em errors. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é nutricionista. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem vínculo ativo com o paciente. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -907,6 +1149,166 @@ export interface operations {
             };
             /** @description A conta não é de cliente. */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getMealPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Plano com as refeições e os macros. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MealPlan"];
+                };
+            };
+            /** @description A conta não é nutricionista. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O plano não existe ou é de outra nutricionista. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    updateMealPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MealPlanInput"];
+            };
+        };
+        responses: {
+            /** @description Rascunho editado. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MealPlan"];
+                };
+            };
+            /** @description Campo fora das regras ou alimento indisponível; o campo vem em errors. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é nutricionista. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O plano não existe, é de outra nutricionista ou o vínculo acabou. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O plano já foi publicado. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    publishMealPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Plano publicado. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MealPlan"];
+                };
+            };
+            /** @description Alguma refeição sem alimento (BR-10); o campo vem em errors. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é nutricionista. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O plano não existe, é de outra nutricionista ou o vínculo acabou. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O plano já foi publicado. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
