@@ -5,6 +5,7 @@ import type { ClientProfile } from '../../lib/api';
 import { assessmentApiFrom, type AssessmentApi, type PhotoSource } from '../assessments/assessmentApi';
 import { expoPhotoSource } from '../assessments/expoPhotoSource';
 import { OnlineAssessmentScreen } from '../assessments/OnlineAssessmentScreen';
+import { PhotoComparisonScreen } from '../assessments/PhotoComparisonScreen';
 import { useSession } from '../auth/SessionProvider';
 import { AcceptInvitationScreen } from '../links/AcceptInvitationScreen';
 import { linksApiFrom, tokenFromUrl, type LinksApi } from '../links/linksApi';
@@ -15,7 +16,7 @@ import { fromProfile } from './profileForm';
 import { ProfileFormScreen } from './ProfileFormScreen';
 import { Alert, Button } from './ui';
 
-type Screen = 'home' | 'editProfile' | 'health' | 'accept' | 'links' | 'assessment';
+type Screen = 'home' | 'editProfile' | 'health' | 'accept' | 'links' | 'assessment' | 'compare';
 
 /** De onde chegam os links abertos pelo sistema (`fithub://convite/<token>`); injetável nos testes. */
 export interface LinkSource {
@@ -125,6 +126,9 @@ export function ClientArea({
         );
     }
     if (screen === 'links') return <LinksScreen api={linksApi} onDone={() => setScreen('home')} />;
+    if (screen === 'compare') {
+        return <PhotoComparisonScreen api={assessmentApi} onDone={() => setScreen('home')} />;
+    }
     if (screen === 'assessment') {
         return (
             <OnlineAssessmentScreen
@@ -146,6 +150,7 @@ export function ClientArea({
             <Button onPress={() => setScreen('accept')}>Aceitar convite</Button>
             <Button onPress={() => setScreen('links')}>Meus vínculos</Button>
             <Button onPress={() => setScreen('assessment')}>Avaliação online</Button>
+            <Button onPress={() => setScreen('compare')}>Comparar fotos</Button>
         </View>
     );
 }

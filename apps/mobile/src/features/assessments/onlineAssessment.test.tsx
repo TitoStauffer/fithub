@@ -21,6 +21,8 @@ function api(overrides: Partial<AssessmentApi> = {}): AssessmentApi {
         requestUpload: jest.fn(async () => ({ uploadId: 'up-1', uploadUrl: 'https://fotos.example/put' })),
         upload: jest.fn(async () => undefined),
         confirm: jest.fn(async () => ({ pose: 'FRONT' as const })),
+        list: jest.fn(async () => []),
+        photos: jest.fn(async () => []),
         ...overrides,
     };
 }

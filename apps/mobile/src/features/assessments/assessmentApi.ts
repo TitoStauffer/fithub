@@ -1,5 +1,7 @@
 import {
     confirmPhoto,
+    fetchMyAssessments,
+    fetchMyPhotos,
     putToPresignedUrl,
     recordOnlineAssessment,
     requestPhotoUpload,
@@ -18,6 +20,8 @@ export interface AssessmentApi {
     /** Lê o arquivo local e envia para a URL pré-assinada. */
     upload(uploadUrl: string, fileUri: string, contentType: string): Promise<void>;
     confirm(assessmentId: string, pose: PhotoPose, uploadId: string): Promise<Photo>;
+    list(): Promise<Assessment[]>;
+    photos(assessmentId: string): Promise<Photo[]>;
 }
 
 export function assessmentApiFrom(apiFetch: ApiFetch, fetchImpl: typeof fetch = fetch): AssessmentApi {
@@ -31,6 +35,8 @@ export function assessmentApiFrom(apiFetch: ApiFetch, fetchImpl: typeof fetch = 
             await putToPresignedUrl(uploadUrl, file, contentType, fetchImpl);
         },
         confirm: (assessmentId, pose, uploadId) => confirmPhoto(apiFetch, assessmentId, pose, uploadId),
+        list: () => fetchMyAssessments(apiFetch),
+        photos: (assessmentId) => fetchMyPhotos(apiFetch, assessmentId),
     };
 }
 

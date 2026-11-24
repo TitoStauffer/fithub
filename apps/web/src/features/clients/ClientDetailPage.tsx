@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 
 import { Button } from '@/components/ui/button';
 import { AssessmentHistory } from '@/features/assessments/AssessmentHistory';
+import { PhotoComparison } from '@/features/assessments/PhotoComparison';
 import { AccessEndedError } from '@/lib/clientApi';
 
 import { CONDITIONS, GENDERS, GOALS, messageOf } from './messages';
@@ -96,6 +97,7 @@ export function ClientDetailPage() {
                 </div>
             ) : null}
             {profile.data ? <AssessmentHistory clientId={clientId} /> : null}
+            {profile.data ? <PhotoComparison clientId={clientId} /> : null}
             {profile.data && linkId ? (
                 <div className="space-y-2">
                     {!confirming ? (

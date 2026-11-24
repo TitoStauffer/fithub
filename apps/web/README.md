@@ -92,3 +92,10 @@ suba o Keycloak pelo compose de `infra/`). A decisão dos papéis e dos clients 
 - **`/app/clientes/:clientId/avaliacoes/nova`:** avaliação presencial com peso, circunferências, dobras, sexo para as
   fórmulas e bioimpedância, com a validação da API espelhada. O cálculo do % é da API. Vínculo encerrado ao salvar
   mostra que o acesso acabou.
+
+## Comparativo de fotos (DEV-0051)
+
+- Na tela do cliente vinculado com duas avaliações ou mais, o profissional escolhe duas datas e a pose e vê as fotos
+  lado a lado (FR-20). A URL pré-assinada de cada foto é pedida na hora de mostrar, sem cache; se a imagem não
+  carregar (URL vencida), a tela pede uma nova uma vez e, se falhar de novo, avisa. Sem vínculo, a API responde 404 e
+  a tela mostra que o acesso acabou.
