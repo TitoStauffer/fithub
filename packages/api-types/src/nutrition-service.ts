@@ -18,6 +18,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clients/{clientId}/food-restrictions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** As restrições alimentares do paciente vinculado */
+        get: operations["listFoodRestrictions"];
+        put?: never;
+        /** Registra uma restrição alimentar ou preferência do paciente */
+        post: operations["createFoodRestriction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clients/{clientId}/food-restrictions/{restrictionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Edita a restrição alimentar do paciente */
+        put: operations["updateFoodRestriction"];
+        post?: never;
+        /** Apaga a restrição alimentar do paciente */
+        delete: operations["removeFoodRestriction"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/foods": {
         parameters: {
             query?: never;
@@ -108,6 +144,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/food-restrictions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** As restrições alimentares do paciente autenticado */
+        get: operations["listMyFoodRestrictions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -190,6 +243,32 @@ export interface components {
              * @description Quantos alimentos atendem à busca, somando todas as páginas.
              */
             total?: number;
+        };
+        /** @description Restrição alimentar ou preferência do paciente. */
+        FoodRestriction: {
+            /** Format: uuid */
+            clientId?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            description?: string;
+            /** Format: uuid */
+            id?: string;
+            /**
+             * @description ALLERGY e INTOLERANCE geram alerta no plano; PREFERENCE não.
+             * @enum {string}
+             */
+            kind?: "ALLERGY" | "INTOLERANCE" | "PREFERENCE";
+            /** @description Termos procurados no nome dos alimentos. */
+            terms?: string[];
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        /** @description Tipo, descrição (2 a 200) e de 1 a 10 termos (2 a 40 cada). */
+        FoodRestrictionInput: {
+            description: string;
+            /** @enum {string} */
+            kind: "ALLERGY" | "INTOLERANCE" | "PREFERENCE";
+            terms: string[];
         };
         /** @description Origem do item importado, para o crédito. */
         FoodSource: {
@@ -298,6 +377,192 @@ export interface operations {
                 };
             };
             /** @description Sem vínculo ativo com o cliente (ou ele não existe). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listFoodRestrictions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Restrições (a lista pode ser vazia). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FoodRestriction"][];
+                };
+            };
+            /** @description A conta não é nutricionista. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem vínculo ativo com o paciente. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    createFoodRestriction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FoodRestrictionInput"];
+            };
+        };
+        responses: {
+            /** @description Restrição registrada; o endereço vem em Location. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FoodRestriction"];
+                };
+            };
+            /** @description Campo fora das regras ou mais de 30 restrições; o campo vem em errors. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é nutricionista. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem vínculo ativo com o paciente. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    updateFoodRestriction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clientId: string;
+                restrictionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FoodRestrictionInput"];
+            };
+        };
+        responses: {
+            /** @description Restrição editada. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FoodRestriction"];
+                };
+            };
+            /** @description Campo fora das regras; o campo vem em errors. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é nutricionista. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem vínculo ativo, ou a restrição não existe ou é de outro paciente. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    removeFoodRestriction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clientId: string;
+                restrictionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Restrição apagada. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A conta não é nutricionista. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem vínculo ativo, ou a restrição não existe ou é de outro paciente. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -613,6 +878,35 @@ export interface operations {
             };
             /** @description A medida não existe, é de outro alimento ou de outra nutricionista. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listMyFoodRestrictions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Restrições (a lista pode ser vazia). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FoodRestriction"][];
+                };
+            };
+            /** @description A conta não é de cliente. */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

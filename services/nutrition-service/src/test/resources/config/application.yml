@@ -1,0 +1,9 @@
+# Só nos testes (DEV-0080, como no training-service na DEV-0065): cada classe de teste de integração com configuração própria sobe um contexto do Spring,
+# e o pool padrão de 10 conexões por contexto estoura o max_connections do Postgres do Testcontainers. Com 3
+# conexões por contexto, cabem todos. Fica em config/ para somar à configuração principal, não substituí-la
+# (aprendizado testes-de-integracao.md).
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: 3
+      minimum-idle: 1

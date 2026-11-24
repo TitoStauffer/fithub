@@ -1,0 +1,165 @@
+{
+    "issue": "DEV-0080",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "A nutricionista sem vínculo passa a listar as restrições",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageFoodRestrictions.java",
+            "find": "public List<FoodRestriction> list(String nutritionistAccount, UUID clientId) {\n        clientAccess.requireActiveLink(nutritionistAccount, clientId);",
+            "replace": "public List<FoodRestriction> list(String nutritionistAccount, UUID clientId) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=FoodRestriction*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "A restrição de outro paciente passa a ser editada e apagada pelo caminho deste",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageFoodRestrictions.java",
+            "find": ".filter(restriction -> restriction.clientId().equals(clientId))",
+            "replace": ".filter(restriction -> true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=FoodRestriction*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O limite de 30 restrições por paciente deixa de valer",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageFoodRestrictions.java",
+            "find": "if (restrictions.findByClient(clientId).size() >= FoodRestriction.MAX_PER_CLIENT) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=FoodRestriction*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "A restrição passa a aceitar mais de 10 termos",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/restriction/FoodRestriction.java",
+            "find": "terms.size() > MAX_TERMS",
+            "replace": "false",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=FoodRestriction*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Termo repetido passa a ser aceito",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/restriction/FoodRestriction.java",
+            "find": ".anyMatch(other -> other.toLowerCase(Locale.ROOT).equals(folded))) {",
+            "replace": ".anyMatch(other -> false)) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=FoodRestriction*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "A preferência passa a gerar alerta",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/restriction/FoodRestriction.java",
+            "find": "return this != PREFERENCE;",
+            "replace": "return true;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=FoodRestriction*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "O banco passa a aceitar restrição sem termo ou com mais de 10",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V7__restricoes_alimentares.sql",
+            "find": "check (cardinality(terms) between 1 and 10)",
+            "replace": "check (cardinality(terms) >= 0)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=FoodRestriction*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "O personal passa a ter rota de restrição alimentar",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/interfaces/rest/FoodRestrictionController.java",
+            "find": "@PreAuthorize(\"hasRole('NUTRITIONIST')\")",
+            "replace": "@PreAuthorize(\"hasAnyRole('NUTRITIONIST', 'PERSONAL')\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=FoodRestriction*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

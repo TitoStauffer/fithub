@@ -69,3 +69,12 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   (`fold_search` da migration V6, aplicada ao nome gravado e ao texto buscado; `%` e `_` são literais).
   `vegan=true` traz só os veganos e `vegan=false` só os não veganos. Página a partir de 0, 20 por padrão e até 50.
 - Ordem pelo nome; no empate, o próprio antes da TACO. Parâmetro fora das regras responde 400 com o campo.
+
+## Restrições alimentares (DEV-0080)
+
+- `food_restriction` (migration V7): tipo (`ALLERGY`, `INTOLERANCE` ou `PREFERENCE`), descrição (2 a 200) e de 1 a 10
+  termos (2 a 40 cada, sem repetir), que o alerta do plano (DEV-0084) procura no nome dos alimentos. Até 30 por paciente.
+  Alergia e intolerância geram alerta; a preferência só aparece para a nutricionista.
+- Nutricionista com vínculo ativo (BR-02): `GET`/`POST /clients/{clientId}/food-restrictions` e
+  `PUT`/`DELETE /clients/{clientId}/food-restrictions/{restrictionId}`; sem vínculo, ou restrição de outro paciente,
+  404. O paciente lê as dele em `GET /me/food-restrictions`. O personal não tem rota (BR-03).
