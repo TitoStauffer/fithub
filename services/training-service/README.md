@@ -129,3 +129,18 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   | `LOWER_BACK`, `ABS` | `LUMBAR` |
   | `NECK` | `CERVICAL` |
   | `FULL_BODY` | todas |
+
+## Treino do aluno: fichas ativas e sessão (DEV-0065)
+
+- `GET /me/plans/active` (papel `client`): as fichas publicadas do aluno, cada uma com a versão atual, o próximo treino
+  da sequência (`nextDivision`, `nextDivisionLetter`), a marca de vencida (o aluno continua vendo e registrando) e a
+  sessão aberta, se houver. Os itens trazem nome, mídia e atribuição do exercício e das alternativas, inclusive o
+  exercício próprio do personal (BR-13): o aluno não usa as rotas de exercício do personal.
+- **Sessão** (`workout_session`, migration V10): `PUT /me/sessions/{sessionId}` com `planId` inicia o próximo treino; o id
+  é gerado pelo app, então repetir não duplica. Uma sessão aberta por ficha (outra responde 409; índice único
+  `ux_workout_session_open`). `POST /me/sessions/{sessionId}/finish` finaliza; finalizar de novo não muda nada.
+- **Próximo treino:** a divisão seguinte à da última sessão finalizada, em ordem (A→B→C→A); sem sessão, A. Se a versão
+  nova tiver menos divisões, volta ao começo pelo resto. A sessão guarda a versão da ficha (BR-09).
+- Ficha de outro aluno, rascunho ou sessão de outro aluno respondem 404.
+- Testes: o pool de conexões fica em 3 nos testes (`src/test/resources/config/application.yml`), porque cada
+  configuração de teste sobe um contexto do Spring (aprendizado `testes-de-integracao.md`).

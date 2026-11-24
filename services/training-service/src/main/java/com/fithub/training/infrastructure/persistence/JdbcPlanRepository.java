@@ -150,6 +150,15 @@ class JdbcPlanRepository implements PlanRepository {
     }
 
     @Override
+    public List<WorkoutPlan> findPublishedForClient(UUID clientId) {
+        return jdbc.sql(SELECT
+                        + "where p.client_id = :clientId and p.status = 'PUBLISHED' order by p.created_at desc, p.id")
+                .param("clientId", clientId)
+                .query(this::toPlan)
+                .list();
+    }
+
+    @Override
     public Optional<WorkoutPlan> findPublished(UUID clientId, UUID personalId) {
         return jdbc.sql(SELECT + "where p.client_id = :clientId and p.personal_id = :personalId"
                         + " and p.status = 'PUBLISHED'")
