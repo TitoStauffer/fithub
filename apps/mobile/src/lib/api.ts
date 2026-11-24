@@ -1,10 +1,17 @@
-import type { ClientServiceComponents } from '@fithub/api-types';
+import type { ClientServiceComponents, TrainingServiceComponents } from '@fithub/api-types';
 
-import { clientApiUrl } from '../features/auth/authConfig';
+import { clientApiUrl, trainingApiUrl } from '../features/auth/authConfig';
 import { InvalidSessionError } from '../features/auth/session';
 import type { ApiFetch } from './apiFetch';
 
 type Schemas = ClientServiceComponents['schemas'];
+type TrainingSchemas = TrainingServiceComponents['schemas'];
+
+/** Ficha ativa do aluno com o próximo treino (DEV-0065), como o training-service devolve. */
+export type ActivePlan = TrainingSchemas['ActivePlan'];
+export type ClientWorkoutItem = TrainingSchemas['ClientWorkoutItem'];
+export type ClientExercise = TrainingSchemas['ClientExercise'];
+export type WorkoutSession = TrainingSchemas['WorkoutSession'];
 
 /** Perfil do cliente como a API devolve (com a idade calculada). */
 export type ClientProfile = Schemas['ClientProfile'];
@@ -227,4 +234,24 @@ export async function fetchMyPhotos(
             `${baseUrl}/clients/me/assessments/${encodeURIComponent(assessmentId)}/photos`,
         )) ?? []
     );
+}
+
+/** As fichas publicadas do aluno, cada uma com o próximo treino da sequência (DEV-0065). */
+export async function fetchActivePlans(
+    apiFetch: ApiFetch,
+    baseUrl = trainingApiUrl(),
+): Promise<ActivePlan[]> {
+    return (await read<ActivePlan[]>(apiFetch, `${baseUrl}/me/plans/active`)) ?? [];
+}
+
+/** Inicia o próximo treino da ficha com o id gerado no aparelho: repetir com o mesmo id não duplica (DEV-0065). */
+export function startWorkoutSession(
+    apiFetch: ApiFetch,
+    sessionId: string,
+    planId: string,
+    baseUrl = trainingApiUrl(),
+) {
+    return write<WorkoutSession>(apiFetch, `${baseUrl}/me/sessions/${encodeURIComponent(sessionId)}`, {
+        planId,
+    });
 }

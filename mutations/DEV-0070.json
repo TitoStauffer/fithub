@@ -1,0 +1,65 @@
+{
+    "issue": "DEV-0070",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Mobile: ficha vencida deixa de mostrar o aviso",
+            "area": "apps",
+            "file": "apps/mobile/src/features/workouts/TodayWorkoutScreen.tsx",
+            "find": "{plan.expired ? (",
+            "replace": "{false ? (",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Mobile: com sessão aberta a ficha deixa de mostrar continuar",
+            "area": "apps",
+            "file": "apps/mobile/src/features/workouts/TodayWorkoutScreen.tsx",
+            "find": "{plan.openSessionId ? (",
+            "replace": "{false ? (",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Mobile: a sessão começa sem o id gerado no aparelho",
+            "area": "apps",
+            "file": "apps/mobile/src/features/workouts/TodayWorkoutScreen.tsx",
+            "find": "await api.start(planId, newId());",
+            "replace": "await api.start(planId, '');",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Mobile: o token deixa de ir para o training-service",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/authConfig.ts",
+            "find": "return [originOf(clientApiUrl()), originOf(trainingApiUrl())];",
+            "replace": "return [originOf(clientApiUrl())];",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}

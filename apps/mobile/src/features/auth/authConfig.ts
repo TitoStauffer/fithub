@@ -1,5 +1,6 @@
 const DEFAULT_KEYCLOAK_URL = 'http://localhost:8080';
 const DEFAULT_CLIENT_API_URL = 'http://localhost:8082';
+const DEFAULT_TRAINING_API_URL = 'http://localhost:8083';
 
 function setting(value: string | undefined, fallback: string): string {
     return value && value.length > 0 ? value : fallback;
@@ -27,9 +28,14 @@ export function clientApiUrl(): string {
     return setting(process.env.EXPO_PUBLIC_CLIENT_API_URL, DEFAULT_CLIENT_API_URL);
 }
 
+/** Endereço do training-service (DEV-0070); no emulador Android, aponte para o IP da máquina. */
+export function trainingApiUrl(): string {
+    return setting(process.env.EXPO_PUBLIC_TRAINING_API_URL, DEFAULT_TRAINING_API_URL);
+}
+
 /** Origens que podem receber o access token: só as APIs do FitHub. */
 export function apiOrigins(): string[] {
-    return [originOf(clientApiUrl())];
+    return [originOf(clientApiUrl()), originOf(trainingApiUrl())];
 }
 
 /**
