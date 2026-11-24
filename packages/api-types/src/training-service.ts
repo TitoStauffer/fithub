@@ -453,6 +453,8 @@ export interface components {
         };
         /** @description Ficha de treino, com o conteúdo da versão atual. */
         WorkoutPlan: {
+            /** @description Alertas de restrição de mobilidade; vazio sem vínculo ativo ou sem restrição. */
+            alerts?: components["schemas"]["WorkoutPlanAlert"][];
             /** Format: uuid */
             clientId?: string;
             /** Format: date-time */
@@ -481,6 +483,30 @@ export interface components {
             validityWeeks?: number;
             /** Format: int32 */
             version?: number;
+        };
+        /** @description Exercício da ficha que envolve uma região restrita do aluno. Alerta, não bloqueio (BR-11). */
+        WorkoutPlanAlert: {
+            /** @description Se o exercício é uma alternativa do item. */
+            alternative?: boolean;
+            /** @description Descrição da restrição, como o personal registrou. */
+            description?: string;
+            divisionLetter?: string;
+            /**
+             * Format: int32
+             * @description Posição da divisão, a partir de 0.
+             */
+            divisionPosition?: number;
+            /** Format: uuid */
+            exerciseId?: string;
+            /**
+             * Format: int32
+             * @description Posição do item na divisão, a partir de 0.
+             */
+            itemPosition?: number;
+            /** @enum {string} */
+            region?: "CERVICAL" | "SHOULDER" | "ELBOW" | "WRIST_HAND" | "THORACIC" | "LUMBAR" | "HIP" | "KNEE" | "ANKLE_FOOT";
+            /** Format: uuid */
+            restrictionId?: string;
         };
         /** @description Cabeçalho e divisões da ficha. Na ficha publicada, a edição gera a versão seguinte. */
         WorkoutPlanInput: {

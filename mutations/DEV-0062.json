@@ -1,0 +1,125 @@
+{
+    "issue": "DEV-0062",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Quadríceps deixa de envolver o joelho",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/restriction/MuscleRegions.java",
+            "find": "REGIONS.put(MuscleGroup.QUADRICEPS, EnumSet.of(BodyRegion.KNEE, BodyRegion.HIP));",
+            "replace": "REGIONS.put(MuscleGroup.QUADRICEPS, EnumSet.of(BodyRegion.HIP));",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=MuscleRegions*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Autor sem vínculo passa a ver as restrições do aluno nos alertas",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/PlanAlerts.java",
+            "find": "if (!links.hasActiveLink(plan.personalId(), plan.clientId())) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PlanAlertsApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Alternativas deixam de ser conferidas",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/PlanAlerts.java",
+            "find": "List<UUID> ids = item.exerciseIds();",
+            "replace": "List<UUID> ids = List.of(item.exerciseId());",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PlanAlertsApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Alerta de alternativa passa a sair como do exercício principal",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/PlanAlerts.java",
+            "find": "boolean alternative = position > 0;",
+            "replace": "boolean alternative = false;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PlanAlertsApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Corpo inteiro deixa de envolver todas as regiões",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/restriction/MuscleRegions.java",
+            "find": "EnumSet.allOf(BodyRegion.class)",
+            "replace": "EnumSet.noneOf(BodyRegion.class)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=MuscleRegions*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Alerta passa a ignorar a região da restrição",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/PlanAlerts.java",
+            "find": ".filter(restriction -> regions.contains(restriction.region()))",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PlanAlertsApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}
