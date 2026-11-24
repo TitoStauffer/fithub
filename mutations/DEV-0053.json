@@ -1,0 +1,205 @@
+{
+    "issue": "DEV-0053",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Exercício próprio passa a ser visível para qualquer personal",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/exercise/Exercise.java",
+            "find": "return kind == Kind.CATALOG || ownerId.equals(personalId);",
+            "replace": "return true;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=Exercise*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Mídia passa a aceitar endereço que não é https",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/exercise/Exercise.java",
+            "find": "\"https\".equals(uri.getScheme()) && uri.getHost() != null",
+            "replace": "uri.getHost() != null",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=Exercise*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Mídia passa a aceitar endereço com usuário e senha",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/exercise/Exercise.java",
+            "find": "uri.getHost() != null && uri.getUserInfo() == null",
+            "replace": "uri.getHost() != null",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=Exercise*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Exercício passa a ser aceito sem grupo muscular",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/exercise/Exercise.java",
+            "find": "if (muscleGroups == null || muscleGroups.isEmpty()) {",
+            "replace": "if (muscleGroups == null) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=Exercise*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Banco passa a aceitar tipo de exercício fora da lista",
+            "area": "java",
+            "file": "services/training-service/src/main/resources/db/migration/V3__exercicios.sql",
+            "find": "check (kind in ('CATALOG', 'OWN'))",
+            "replace": "check (true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ExerciseApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Banco passa a aceitar nome em branco",
+            "area": "java",
+            "file": "services/training-service/src/main/resources/db/migration/V3__exercicios.sql",
+            "find": "check (char_length(btrim(name)) >= 2)",
+            "replace": "check (true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ExerciseApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Banco passa a aceitar atribuição incompleta",
+            "area": "java",
+            "file": "services/training-service/src/main/resources/db/migration/V3__exercicios.sql",
+            "find": "        or (external_source is not null and external_id is not null and license is not null\n            and license_author is not null)),",
+            "replace": "        or true),",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ExerciseApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "Banco passa a aceitar grupo muscular fora da lista",
+            "area": "java",
+            "file": "services/training-service/src/main/resources/db/migration/V3__exercicios.sql",
+            "find": "            'QUADRICEPS', 'HAMSTRINGS', 'ADDUCTORS', 'CALVES', 'NECK', 'FULL_BODY'))",
+            "replace": "            'QUADRICEPS', 'HAMSTRINGS', 'ADDUCTORS', 'CALVES', 'NECK', 'FULL_BODY', 'PESCOCO'))",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ExerciseApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "Exercício sem atribuição volta a sair com attribution null",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/interfaces/rest/ExerciseController.java",
+            "find": "            @JsonInclude(JsonInclude.Include.NON_NULL)\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ExerciseApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "Mídia passa a aceitar HTTPS em maiúsculas, que o banco recusa",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/exercise/Exercise.java",
+            "find": "return \"https\".equals(uri.getScheme())",
+            "replace": "return \"https\".equalsIgnoreCase(uri.getScheme())",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=Exercise*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}
