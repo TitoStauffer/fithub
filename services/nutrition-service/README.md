@@ -16,3 +16,13 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   `clientId` passa por ela; sem vínculo ativo, 404 (não revela que o cliente existe). Conta com `sub` fora do formato
   UUID também recebe 404.
 - `GET /clients/{clientId}` (papel `nutritionist`): dados básicos do cliente vinculado (nome, nascimento, gênero).
+
+## Alimentos (DEV-0074)
+
+- `food` (migration V3): da Tabela TACO (`TACO`, para todas as nutricionistas, com a fonte e o id externo para a
+  importação ser reexecutável) ou próprio (`OWN`, com a dona; só ela vê, BR-13). Unidade base `G` ou `ML`.
+- Valores por 100 da unidade base: energia de 0 a 900 kcal; proteína, carboidrato e gordura de 0 a 100 g, somando no
+  máximo 100 g; fibra opcional (a TACO não traz para todo alimento). Etiqueta `vegan`. O domínio valida as mesmas
+  regras das CHECKs, com o campo no erro.
+- `GET /foods/{foodId}` (papel `nutritionist`): a TACO e os próprios da nutricionista; o próprio de outra responde
+  404. Personal e cliente não têm rota de alimento.

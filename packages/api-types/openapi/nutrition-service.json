@@ -1,6 +1,63 @@
 {
   "components" : {
     "schemas" : {
+      "Food" : {
+        "description" : "Alimento, com os valores por 100 da unidade base (100 g ou 100 ml).",
+        "properties" : {
+          "baseUnit" : {
+            "description" : "G (gramas) ou ML (mililitros).",
+            "enum" : [ "G", "ML" ],
+            "type" : "string"
+          },
+          "carbsG" : {
+            "type" : "number"
+          },
+          "energyKcal" : {
+            "type" : "number"
+          },
+          "fatG" : {
+            "type" : "number"
+          },
+          "fiberG" : {
+            "description" : "Ausente quando a fonte não traz.",
+            "type" : "number"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "TACO", "OWN" ],
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "proteinG" : {
+            "type" : "number"
+          },
+          "source" : {
+            "$ref" : "#/components/schemas/FoodSource",
+            "description" : "Presente só no item importado."
+          },
+          "vegan" : {
+            "type" : "boolean"
+          }
+        },
+        "type" : "object"
+      },
+      "FoodSource" : {
+        "description" : "Origem do item importado, para o crédito.",
+        "properties" : {
+          "externalId" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "LinkedClient" : {
         "description" : "Dados básicos do cliente vinculado.",
         "properties" : {
@@ -116,6 +173,54 @@
         "summary" : "Dados básicos de um cliente com vínculo ativo",
         "tags" : [ "Clientes" ]
       }
+    },
+    "/foods/{foodId}" : {
+      "get" : {
+        "operationId" : "viewFood",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "foodId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Food"
+                }
+              }
+            },
+            "description" : "Alimento."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é nutricionista."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O alimento não existe ou é próprio de outra nutricionista."
+          }
+        },
+        "summary" : "Um alimento da TACO ou próprio da nutricionista",
+        "tags" : [ "Alimentos" ]
+      }
     }
   },
   "security" : [ {
@@ -128,5 +233,8 @@
   "tags" : [ {
     "description" : "Clientes vinculados ao nutricionista",
     "name" : "Clientes"
+  }, {
+    "description" : "Base de alimentos da nutricionista: TACO e alimentos próprios",
+    "name" : "Alimentos"
   } ]
 }
