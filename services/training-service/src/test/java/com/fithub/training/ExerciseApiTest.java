@@ -233,4 +233,46 @@ class ExerciseApiTest extends ServiceIntegrationTest {
                 .isInstanceOf(DataIntegrityViolationException.class)
                 .hasMessageContaining("uq_exercise_external");
     }
+
+    /** As outras CHECKs da V3 também recusam sem passar pelo domínio (aprendizado check-com-in-em-coluna-anulavel). */
+    @Test
+    void bancoRecusaTipoNomeEquipamentoAtribuicaoIncompletaEGrupoMuscularForaDaLista() {
+        String insert = """
+                insert into exercise (id, kind, owner_id, name, equipment, external_source, external_id, license,
+                    license_author, created_at, updated_at)
+                values (:id, :kind, null, :name, :equipment, :source, :externalId, :license, null, now(), now())
+                """;
+        record Row(String kind, String name, String equipment, String source, String constraint) {}
+        for (Row row : new Row[] {
+            new Row("OUTRO", "Supino", "BARBELL", null, "ck_exercise_kind"),
+            new Row("CATALOG", " ", "BARBELL", null, "ck_exercise_name"),
+            new Row("CATALOG", "Supino", "TRAMPOLIM", null, "ck_exercise_equipment"),
+            new Row("CATALOG", "Supino", "BARBELL", "wger", "ck_exercise_attribution")
+        }) {
+            assertThatThrownBy(() -> jdbc.sql(insert)
+                            .param("id", UUID.randomUUID())
+                            .param("kind", row.kind())
+                            .param("name", row.name())
+                            .param("equipment", row.equipment())
+                            .param("source", row.source())
+                            .param(
+                                    "externalId",
+                                    row.source() == null
+                                            ? null
+                                            : UUID.randomUUID().toString())
+                            .param("license", row.source() == null ? null : "CC-BY-SA 4.0")
+                            .update())
+                    .as(row.constraint())
+                    .isInstanceOf(DataIntegrityViolationException.class)
+                    .hasMessageContaining(row.constraint());
+        }
+
+        Exercise exercise = catalog();
+        assertThatThrownBy(() -> jdbc.sql(
+                                "insert into exercise_muscle_group (exercise_id, muscle_group) values (:id, 'PESCOCO')")
+                        .param("id", exercise.id())
+                        .update())
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("ck_exercise_muscle_group");
+    }
 }
