@@ -65,3 +65,13 @@ fithub:
     link-base: ${FITHUB_INVITATION_LINK_BASE:fithub://convite/}
   mail:
     from: ${FITHUB_MAIL_FROM:FitHub <nao-responda@fithub.local>}
+  storage:
+    # Fotos de evolução (DEV-0048): SeaweedFS do compose pela API S3. As credenciais padrão são só de
+    # desenvolvimento local; fora dele, vêm de variável de ambiente.
+    endpoint: ${S3_ENDPOINT:http://localhost:8333}
+    # Endereço que o app usa nas URLs pré-assinadas (no aparelho, o IP da máquina).
+    public-endpoint: ${S3_PUBLIC_ENDPOINT:${S3_ENDPOINT:http://localhost:8333}}
+    region: ${S3_REGION:us-east-1}
+    access-key: ${S3_ACCESS_KEY:fithub-dev}
+    secret-key: ${S3_SECRET_KEY:fithub-dev-secret}
+    bucket: ${S3_PHOTOS_BUCKET:fithub-photos}

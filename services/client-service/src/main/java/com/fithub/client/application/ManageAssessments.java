@@ -25,13 +25,19 @@ public class ManageAssessments {
     private final AssessmentRepository assessments;
     private final LinkRepository links;
     private final ClientProfileRepository profiles;
+    private final ManagePhotos photos;
     private final Clock clock;
 
     public ManageAssessments(
-            AssessmentRepository assessments, LinkRepository links, ClientProfileRepository profiles, Clock clock) {
+            AssessmentRepository assessments,
+            LinkRepository links,
+            ClientProfileRepository profiles,
+            ManagePhotos photos,
+            Clock clock) {
         this.assessments = assessments;
         this.links = links;
         this.profiles = profiles;
+        this.photos = photos;
         this.clock = clock;
     }
 
@@ -78,7 +84,10 @@ public class ManageAssessments {
                 .findById(assessmentId)
                 .filter(found -> found.clientId().equals(clientId))
                 .orElseThrow(() -> new NotFoundException("Avaliação não encontrada."));
+        // A avaliação sai primeiro (as linhas das fotos saem junto, on delete cascade). Depois, tudo dela sai do
+        // bucket, inclusive envios não confirmados; se o armazenamento falhar, o expurgo apaga os objetos órfãos.
         assessments.delete(assessment.id());
+        photos.deleteFilesOf(assessment);
     }
 
     private Assessment save(

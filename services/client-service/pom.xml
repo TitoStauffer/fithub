@@ -33,6 +33,26 @@
       <groupId>org.springdoc</groupId>
       <artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
     </dependency>
+    <!-- Fotos de evolução no SeaweedFS pela API S3, com URL pré-assinada (DEV-0048). O cliente HTTP é o do
+         próprio JDK (url-connection-client), sem netty nem Apache. -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>s3</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>software.amazon.awssdk</groupId>
+          <artifactId>netty-nio-client</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>software.amazon.awssdk</groupId>
+          <artifactId>apache-client</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>url-connection-client</artifactId>
+    </dependency>
     <!-- E-mail do convite pelo SMTP (DEV-0035; Mailpit no compose). -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

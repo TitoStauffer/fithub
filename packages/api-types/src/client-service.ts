@@ -19,6 +19,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clients/me/assessments/{assessmentId}/photos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fotos de uma avaliação do cliente autenticado */
+        get: operations["mine_7"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clients/me/assessments/{assessmentId}/photos/{pose}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Exclui a foto da pose; o arquivo sai do bucket */
+        delete: operations["delete_1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clients/me/assessments/{assessmentId}/photos/{pose}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirma o envio da foto da pose (substitui a anterior) */
+        post: operations["confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clients/me/assessments/{assessmentId}/photos/{pose}/upload-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** URL pré-assinada para enviar a foto da pose (5 minutos) */
+        post: operations["uploadUrl"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/clients/me/assessments/{id}": {
         parameters: {
             query?: never;
@@ -188,6 +256,23 @@ export interface paths {
         put?: never;
         /** Registra uma avaliação presencial de um cliente com vínculo ativo */
         post: operations["recordPresential"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/professionals/me/clients/{clientId}/assessments/{assessmentId}/photos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fotos de uma avaliação de cliente com vínculo ativo */
+        get: operations["forClient_1"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -453,6 +538,34 @@ export interface components {
             /** @enum {string} */
             status?: "ACTIVE" | "ENDED";
         };
+        Photo: {
+            /** Format: date-time */
+            expiresAt?: string;
+            /** @enum {string} */
+            pose?: "FRONT" | "SIDE" | "BACK";
+            /** Format: date-time */
+            uploadedAt?: string;
+            /** Format: uri */
+            url?: string;
+        };
+        PhotoConfirmRequest: {
+            uploadId?: string;
+        };
+        PhotoUpload: {
+            /** Format: date-time */
+            expiresAt?: string;
+            /** @description Repetido na confirmação. */
+            uploadId?: string;
+            /**
+             * Format: uri
+             * @description PUT do arquivo, com o mesmo Content-Type.
+             */
+            uploadUrl?: string;
+        };
+        PhotoUploadRequest: {
+            /** @description image/jpeg ou image/png. */
+            contentType?: string;
+        };
         /** @description Erro no formato Problem Details (RFC 9457). */
         Problem: {
             /** @description Mensagem para a pessoa, em português. */
@@ -563,6 +676,193 @@ export interface operations {
             };
             /** @description Sem token válido. */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    mine_7: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assessmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Fotos com URLs temporárias de leitura. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Photo"][];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Avaliação não encontrada (ou de outra pessoa). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    delete_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assessmentId: string;
+                pose: "FRONT" | "SIDE" | "BACK";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Foto excluída (ou não havia). */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Avaliação não encontrada (ou de outra pessoa). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    confirm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assessmentId: string;
+                pose: "FRONT" | "SIDE" | "BACK";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PhotoConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description Foto confirmada, com a URL temporária de leitura. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Photo"];
+                };
+            };
+            /** @description Arquivo ausente, de outro tipo ou acima de 10 MB. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Avaliação não encontrada (ou de outra pessoa). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    uploadUrl: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assessmentId: string;
+                pose: "FRONT" | "SIDE" | "BACK";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PhotoUploadRequest"];
+            };
+        };
+        responses: {
+            /** @description URL e id do envio. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhotoUpload"];
+                };
+            };
+            /** @description Tipo de arquivo não aceito. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Avaliação não encontrada (ou de outra pessoa). */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1279,6 +1579,56 @@ export interface operations {
                 };
             };
             /** @description Sem vínculo ativo com o cliente. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    forClient_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clientId: string;
+                assessmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Fotos com URLs temporárias de leitura. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Photo"][];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é profissional. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem vínculo ativo, ou avaliação de outro cliente. */
             404: {
                 headers: {
                     [name: string]: unknown;

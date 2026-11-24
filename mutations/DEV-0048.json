@@ -1,0 +1,285 @@
+{
+    "issue": "DEV-0048",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Arquivo acima de 10 MB passa a ser confirmado",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManagePhotos.java",
+            "find": "stored.sizeBytes() > Photo.MAX_BYTES",
+            "replace": "false",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=PhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Tipo de arquivo fora de JPEG/PNG passa a ganhar URL de envio",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManagePhotos.java",
+            "find": "String type = Photo.requireContentType(contentType);",
+            "replace": "String type = contentType;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=PhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Profissional sem vínculo passa a ver as fotos",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManagePhotos.java",
+            "find": "if (!links.hasActiveLink(UUID.fromString(professionalAccount), clientId)) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=PhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Cliente passa a enviar foto para avaliação de outra pessoa",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManagePhotos.java",
+            "find": "        return assessments\n                .findById(assessmentId)\n                .filter(found -> found.clientId().equals(clientId))",
+            "replace": "        return assessments\n                .findById(assessmentId)\n                .filter(found -> true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=PhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Foto substituída deixa de ter o arquivo anterior apagado",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManagePhotos.java",
+            "find": "                .filter(other -> !other.equals(key))",
+            "replace": "                .filter(other -> false)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=PhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Foto excluída continua com o arquivo no bucket",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManagePhotos.java",
+            "find": "        storage.deleteAll(posePrefix(assessment, pose));\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=PhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Banco passa a aceitar pose fora de frente, lado e costas",
+            "area": "java",
+            "file": "services/client-service/src/main/resources/db/migration/V12__fotos_da_avaliacao.sql",
+            "find": "pose in ('FRONT', 'SIDE', 'BACK')",
+            "replace": "pose in ('FRONT', 'SIDE', 'BACK', 'TOP')",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=PhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "Excluir a avaliação deixa de apagar os arquivos do bucket",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManageAssessments.java",
+            "find": "        photos.deleteFilesOf(assessment);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=PhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "Excluir a avaliação passa a apagar só as fotos confirmadas",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManagePhotos.java",
+            "find": "        storage.deleteAll(assessmentPrefix(assessment));",
+            "replace": "        photos.listByAssessment(assessment.id()).forEach(photo -> storage.delete(photo.objectKey()));",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=PhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "Confirmação deixa de limpar os envios pendentes da pose",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManagePhotos.java",
+            "find": "        storage.list(posePrefix(assessment, pose)).stream()",
+            "replace": "        java.util.stream.Stream.<PhotoStorage.StoredKey>empty()",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=PhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "Expurgo passa a apagar também as fotos confirmadas",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManagePhotos.java",
+            "find": " && !photos.existsByObjectKey(stored.objectKey())",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=PhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "Expurgo passa a apagar envios ainda dentro da validade",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManagePhotos.java",
+            "find": "stored.lastModified().isBefore(cutoff) && ",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=PhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M13",
+            "description": "Armazenamento fora do ar passa a impedir a exclusão da avaliação",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManagePhotos.java",
+            "find": "        } catch (RuntimeException failure) {\n            // Só o tipo da falha: a mensagem do S3 pode trazer a chave do objeto.",
+            "replace": "        } catch (IllegalStateException failure) {\n            // Só o tipo da falha: a mensagem do S3 pode trazer a chave do objeto.",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AssessmentApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M14",
+            "description": "Foto confirmada volta a ficar na chave que a URL de envio alcança",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManagePhotos.java",
+            "find": "        String key = photoKey(assessment, pose);\n        if (!storage.copy(uploadKey, key)) {\n            throw new InvalidAssessmentException(\"uploadId\", \"Envie a foto antes de confirmar.\");\n        }\n        storage.delete(uploadKey);",
+            "replace": "        String key = uploadKey;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=PhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}
