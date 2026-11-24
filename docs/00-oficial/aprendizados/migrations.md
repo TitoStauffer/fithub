@@ -23,3 +23,13 @@ caso, escreva `coluna IS NOT NULL AND coluna IN (...)`, e teste a constraint com
     `bancoRecusaDobraForaDaFaixaEDobraNaOnlineMesmoPorEscritaDireta`.
   - **Prevenção:** mutantes M7 a M10 de `mutations/DEV-0045.json`. Antes de citar um teste como evidência de um
     critério, conferir que ele falha sem a guarda: CHECK nova sempre leva teste de escrita direta no banco.
+- **Revisão:** Code Review do PR #261, no SHA `682113f` (MEDIUM) — DEV-0077 (#69) · **PR:** #261
+  - **Impacto:** guardas novas sem teste nem mutante, com o PR afirmando o contrário:
+    `ck_food_recipe_ingredient_position` e a faixa do rendimento em `ck_food_recipe` (V5); os limites de
+    ingredientes, de quantidade e de rendimento e o ingrediente sem alimento (`Recipe`); a receita só em gramas
+    e o arquivamento idempotente (`Food`). Remover qualquer uma delas não derrubaria nenhum teste.
+  - **Correção:** escrita direta para a posição 30 e os rendimentos 0,5 e 20000,1; casos de domínio para cada
+    limite e para a receita em ml; o arquivamento repetido conferindo a data no banco.
+  - **Prevenção:** mutantes M8 a M18 de `mutations/DEV-0077.json`. A regra vale para toda guarda, não só para
+    CHECK: antes do PR, listar cada condição nova (CHECK, faixa, limite, regra de posse) e conferir que o
+    manifesto tem um mutante dela; a seção de banco do PR só afirma "cada CHECK tem teste" depois disso.

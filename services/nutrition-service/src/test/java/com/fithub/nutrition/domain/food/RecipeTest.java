@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -80,5 +81,34 @@ class RecipeTest {
                 .isInstanceOfSatisfying(
                         InvalidFoodException.class,
                         invalid -> assertThat(invalid.field()).isEqualTo("recipe.yieldGrams"));
+    }
+
+    @Test
+    void limitesDosIngredientesEDoRendimento() {
+        Food rice = food("2.5", null, true);
+        List<Recipe.Ingredient> thirtyOne = new ArrayList<>();
+        for (int index = 0; index < 31; index++) {
+            thirtyOne.add(use(rice, "10"));
+        }
+        assertInvalid("recipe.ingredients", () -> new Recipe(thirtyOne, BigDecimal.TEN));
+        assertThat(new Recipe(thirtyOne.subList(0, 30), BigDecimal.TEN).ingredients())
+                .hasSize(30);
+        List<Recipe.Ingredient> withNull = new ArrayList<>();
+        withNull.add(null);
+        assertInvalid("recipe.ingredients[0].foodId", () -> new Recipe(withNull, BigDecimal.TEN));
+        assertInvalid(
+                "recipe.ingredients[0].foodId",
+                () -> new Recipe(List.of(new Recipe.Ingredient(null, BigDecimal.TEN)), BigDecimal.TEN));
+        assertInvalid("recipe.ingredients[0].amount", () -> new Recipe(List.of(use(rice, "5000.1")), BigDecimal.TEN));
+        assertThat(new Recipe(List.of(use(rice, "5000")), new BigDecimal("20000")).yieldGrams())
+                .isEqualByComparingTo("20000");
+        assertInvalid("recipe.yieldGrams", () -> new Recipe(List.of(use(rice, "100")), new BigDecimal("20000.1")));
+    }
+
+    private static void assertInvalid(String field, Runnable creation) {
+        assertThatThrownBy(creation::run)
+                .isInstanceOfSatisfying(
+                        InvalidFoodException.class,
+                        invalid -> assertThat(invalid.field()).isEqualTo(field));
     }
 }

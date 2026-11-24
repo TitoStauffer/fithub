@@ -113,6 +113,14 @@ class JdbcFoodRepository implements FoodRepository {
                 .optional();
     }
 
+    @Override
+    public boolean usedAsIngredient(UUID foodId) {
+        return jdbc.sql("select exists (select 1 from food_recipe_ingredient where ingredient_id = :foodId)")
+                .param("foodId", foodId)
+                .query(Boolean.class)
+                .single();
+    }
+
     private Food toFood(ResultSet row, int index) throws SQLException {
         String source = row.getString("external_source");
         UUID id = row.getObject("id", UUID.class);

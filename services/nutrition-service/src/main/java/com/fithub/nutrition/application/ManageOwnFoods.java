@@ -1,5 +1,6 @@
 package com.fithub.nutrition.application;
 
+import com.fithub.commons.ids.UuidV7;
 import com.fithub.nutrition.domain.food.Food;
 import com.fithub.nutrition.domain.food.FoodNotFoundException;
 import com.fithub.nutrition.domain.food.FoodRepository;
@@ -50,7 +51,7 @@ public class ManageOwnFoods {
             throw new InvalidFoodException("ownerId", "A conta não tem um identificador válido.");
         }
         Instant now = clock.instant();
-        Food food = build(UUID.randomUUID(), ownerId, draft, now, now, null);
+        Food food = build(UuidV7.next(clock), ownerId, draft, now, now, null);
         foods.save(food);
         return food;
     }
@@ -58,6 +59,11 @@ public class ManageOwnFoods {
     /** Edita o próprio (inclusive a receita, que é recalculada); o de outra, ou da TACO, responde 404. */
     public Food update(String nutritionistAccount, UUID foodId, Draft draft) {
         Food current = owned(nutritionistAccount, foodId);
+        // Receita não entra como ingrediente: o alimento que já é ingrediente de uma receita não vira receita.
+        if (draft.recipe() != null && !current.isRecipe() && foods.usedAsIngredient(current.id())) {
+            throw new InvalidFoodException(
+                    "recipe", "Este alimento é ingrediente de uma receita e não pode virar receita.");
+        }
         Food food = build(
                 current.id(), current.ownerId(), draft, current.createdAt(), clock.instant(), current.archivedAt());
         foods.save(food);
