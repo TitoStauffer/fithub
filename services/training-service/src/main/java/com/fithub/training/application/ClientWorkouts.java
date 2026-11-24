@@ -27,6 +27,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class ClientWorkouts {
 
+    public static final int HISTORY_PAGE_SIZE = 20;
+
     private final PlanRepository plans;
     private final SessionRepository sessions;
     private final ExerciseRepository exercises;
@@ -127,6 +129,29 @@ public class ClientWorkouts {
             sessions.save(finished);
         }
         return finished;
+    }
+
+    /** Página do histórico de treinos. */
+    public record History(List<SessionRepository.FinishedSummary> items, long total, int page, int size) {}
+
+    /**
+     * Os treinos finalizados do aluno, do mais novo para o mais antigo, em páginas de {@value #HISTORY_PAGE_SIZE}
+     * (DEV-0072). O histórico é do aluno: continua depois que o vínculo acaba (BR-06).
+     */
+    public History history(String clientAccount, Integer page) {
+        int number = page == null ? 0 : page;
+        if (number < 0) {
+            throw new InvalidPlanException("page", "A página começa em 0.");
+        }
+        UUID clientId = ViewExercise.accountId(clientAccount);
+        if (clientId == null) {
+            return new History(List.of(), 0, number, HISTORY_PAGE_SIZE);
+        }
+        return new History(
+                sessions.finished(clientId, number * HISTORY_PAGE_SIZE, HISTORY_PAGE_SIZE),
+                sessions.countFinished(clientId),
+                number,
+                HISTORY_PAGE_SIZE);
     }
 
     private Map<UUID, Exercise> exercisesOf(WorkoutPlan plan) {

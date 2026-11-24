@@ -1,7 +1,11 @@
 import { randomUUID } from 'expo-crypto';
 
 import {
+    addManualRecord,
     fetchActivePlans,
+    fetchMyRecords,
+    fetchSessionHistory,
+    searchCatalog,
     fetchWorkoutSession,
     finishWorkoutSession,
     recordWorkoutSet,
@@ -10,9 +14,13 @@ import {
     startWorkoutSession,
     type ActivePlan,
     type ClientWorkoutItem,
+    type ExerciseRecords,
+    type ManualRecord,
+    type ManualRecordInput,
     type RecordedSet,
     type RecordedSetInput,
     type SessionFeedback,
+    type SessionHistoryPage,
     type SessionView,
     type WorkoutSession,
 } from '../../lib/api';
@@ -49,6 +57,24 @@ export function sessionApiFrom(apiFetch: ApiFetch): SessionApi {
         remove: (sessionId, setId) => removeWorkoutSet(apiFetch, sessionId, setId),
         feedback: (sessionId, body) => saveSessionFeedback(apiFetch, sessionId, body),
         finish: (sessionId) => finishWorkoutSession(apiFetch, sessionId),
+    };
+}
+
+/** O que o histórico e os recordes precisam da API; injetável nos testes (DEV-0072). */
+export interface HistoryApi {
+    history(page: number): Promise<SessionHistoryPage>;
+    records(): Promise<ExerciseRecords[]>;
+    addRecord(body: ManualRecordInput): Promise<ManualRecord>;
+    /** Exercícios do catálogo pelo nome, para escolher o do recorde manual. */
+    searchExercises(name: string): Promise<{ id?: string; name?: string }[]>;
+}
+
+export function historyApiFrom(apiFetch: ApiFetch): HistoryApi {
+    return {
+        history: (page) => fetchSessionHistory(apiFetch, page),
+        records: () => fetchMyRecords(apiFetch),
+        addRecord: (body) => addManualRecord(apiFetch, body),
+        searchExercises: (name) => searchCatalog(apiFetch, name),
     };
 }
 

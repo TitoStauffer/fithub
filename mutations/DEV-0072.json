@@ -1,0 +1,150 @@
+{
+    "issue": "DEV-0072",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O histórico passa a trazer treinos de outros alunos",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcSessionRepository.java",
+            "find": "where ws.client_id = :clientId and ws.finished_at is not null",
+            "replace": "where ws.finished_at is not null",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientWorkoutApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O histórico passa a trazer o treino ainda aberto",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcSessionRepository.java",
+            "find": "where ws.client_id = :clientId and ws.finished_at is not null",
+            "replace": "where ws.client_id = :clientId",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientWorkoutApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "A página do histórico deixa de pular as anteriores",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ClientWorkouts.java",
+            "find": "number * HISTORY_PAGE_SIZE",
+            "replace": "number",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientWorkoutApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Página negativa passa a ser aceita",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ClientWorkouts.java",
+            "find": "if (number < 0) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientWorkoutApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O total do histórico passa a contar treinos de outros alunos",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcSessionRepository.java",
+            "find": "where client_id = :clientId and finished_at is not null",
+            "replace": "where finished_at is not null",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientWorkoutApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Mobile: o histórico deixa de oferecer a próxima página",
+            "area": "apps",
+            "file": "apps/mobile/src/features/workouts/HistoryScreen.tsx",
+            "find": "items && items.length < total ?",
+            "replace": "false ?",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Mobile: o recorde manual deixa de aparecer marcado como manual",
+            "area": "apps",
+            "file": "apps/mobile/src/features/workouts/RecordsScreen.tsx",
+            "find": "MANUAL: 'lançado à mão',",
+            "replace": "MANUAL: 'registrada no treino',",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "Mobile: o erro de campo da API deixa de aparecer no campo",
+            "area": "apps",
+            "file": "apps/mobile/src/features/workouts/RecordsScreen.tsx",
+            "find": "setErrors(failure.fieldErrors);",
+            "replace": "setMessage(messageOf(failure));",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}

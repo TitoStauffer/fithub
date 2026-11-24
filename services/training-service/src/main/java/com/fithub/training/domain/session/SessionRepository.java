@@ -1,5 +1,7 @@
 package com.fithub.training.domain.session;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,4 +24,27 @@ public interface SessionRepository {
 
     /** A sessão aberta da ficha, se houver. */
     Optional<WorkoutSession> open(UUID planId);
+
+    /** As sessões finalizadas do aluno, da mais nova para a mais antiga, a partir de {@code offset} (DEV-0072). */
+    List<FinishedSummary> finished(UUID clientId, int offset, int limit);
+
+    /** Quantas sessões finalizadas o aluno tem. */
+    long countFinished(UUID clientId);
+
+    /**
+     * Resumo de um treino feito, para o histórico: a ficha e o treino na versão da sessão, e quantas séries teve.
+     *
+     * @param divisionName o nome do treino na versão da sessão; pode faltar
+     */
+    record FinishedSummary(
+            UUID id,
+            UUID planId,
+            String planName,
+            int divisionPosition,
+            String divisionLetter,
+            String divisionName,
+            Instant startedAt,
+            Instant finishedAt,
+            int setCount,
+            Integer feeling) {}
 }

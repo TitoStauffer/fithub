@@ -10,8 +10,17 @@ import { useSession } from '../auth/SessionProvider';
 import { AcceptInvitationScreen } from '../links/AcceptInvitationScreen';
 import { linksApiFrom, tokenFromUrl, type LinksApi } from '../links/linksApi';
 import { LinksScreen } from '../links/LinksScreen';
+import { HistoryScreen } from '../workouts/HistoryScreen';
+import { RecordsScreen } from '../workouts/RecordsScreen';
 import { TodayWorkoutScreen } from '../workouts/TodayWorkoutScreen';
-import { sessionApiFrom, workoutsApiFrom, type SessionApi, type WorkoutsApi } from '../workouts/workoutsApi';
+import {
+    historyApiFrom,
+    sessionApiFrom,
+    workoutsApiFrom,
+    type HistoryApi,
+    type SessionApi,
+    type WorkoutsApi,
+} from '../workouts/workoutsApi';
 import { WorkoutSessionScreen } from '../workouts/WorkoutSessionScreen';
 import { HealthFormScreen } from './HealthFormScreen';
 import { messageOf, profileApiFrom, type ProfileApi } from './profileApi';
@@ -20,7 +29,17 @@ import { ProfileFormScreen } from './ProfileFormScreen';
 import { Alert, Button } from './ui';
 
 type Screen =
-    'home' | 'editProfile' | 'health' | 'accept' | 'links' | 'assessment' | 'compare' | 'workout' | 'session';
+    | 'home'
+    | 'editProfile'
+    | 'health'
+    | 'accept'
+    | 'links'
+    | 'assessment'
+    | 'compare'
+    | 'workout'
+    | 'session'
+    | 'history'
+    | 'records';
 
 /** De onde chegam os links abertos pelo sistema (`fithub://convite/<token>`); injetável nos testes. */
 export interface LinkSource {
@@ -40,6 +59,7 @@ export function ClientArea({
     photoSource = expoPhotoSource,
     workoutsApi: injectedWorkouts,
     sessionApi: injectedSessions,
+    historyApi: injectedHistory,
 }: {
     api?: ProfileApi;
     linksApi?: LinksApi;
@@ -48,6 +68,7 @@ export function ClientArea({
     photoSource?: PhotoSource;
     workoutsApi?: WorkoutsApi;
     sessionApi?: SessionApi;
+    historyApi?: HistoryApi;
 }) {
     const { apiFetch } = useSession();
     const api = useMemo(() => injected ?? profileApiFrom(apiFetch), [injected, apiFetch]);
@@ -63,6 +84,10 @@ export function ClientArea({
     const sessionApi = useMemo(
         () => injectedSessions ?? sessionApiFrom(apiFetch),
         [injectedSessions, apiFetch],
+    );
+    const historyApi = useMemo(
+        () => injectedHistory ?? historyApiFrom(apiFetch),
+        [injectedHistory, apiFetch],
     );
     // Treino aberto no registro por série (DEV-0071).
     const [sessionId, setSessionId] = useState<string>();
@@ -167,6 +192,10 @@ export function ClientArea({
             />
         );
     }
+    if (screen === 'history') {
+        return <HistoryScreen api={historyApi} sessionApi={sessionApi} onDone={() => setScreen('home')} />;
+    }
+    if (screen === 'records') return <RecordsScreen api={historyApi} onDone={() => setScreen('home')} />;
     if (screen === 'compare') {
         return <PhotoComparisonScreen api={assessmentApi} onDone={() => setScreen('home')} />;
     }
@@ -187,6 +216,8 @@ export function ClientArea({
             </Text>
             <Text>{profile.age} anos</Text>
             <Button onPress={() => setScreen('workout')}>Treino de hoje</Button>
+            <Button onPress={() => setScreen('history')}>Histórico de treinos</Button>
+            <Button onPress={() => setScreen('records')}>Recordes</Button>
             <Button onPress={() => setScreen('editProfile')}>Editar perfil</Button>
             <Button onPress={() => setScreen('health')}>Perfil de saúde</Button>
             <Button onPress={() => setScreen('accept')}>Aceitar convite</Button>

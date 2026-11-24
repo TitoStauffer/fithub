@@ -5,6 +5,7 @@ import com.fithub.training.domain.session.WorkoutSession;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -81,6 +82,46 @@ class JdbcSessionRepository implements SessionRepository {
                 .param("planId", planId)
                 .query(JdbcSessionRepository::toSession)
                 .optional();
+    }
+
+    @Override
+    public List<FinishedSummary> finished(UUID clientId, int offset, int limit) {
+        // O nome da ficha e o do treino são os da versão em que a sessão foi feita (BR-09).
+        return jdbc.sql("""
+                        select ws.id, ws.plan_id, v.name as plan_name, ws.division_position, d.letter,
+                            d.name as division_name, ws.started_at, ws.finished_at, ws.feeling,
+                            (select count(*) from workout_set s where s.session_id = ws.id) as set_count
+                        from workout_session ws
+                        join workout_plan_version v on v.id = ws.version_id
+                        left join workout_division d on d.version_id = ws.version_id
+                            and d.position = ws.division_position
+                        where ws.client_id = :clientId and ws.finished_at is not null
+                        order by ws.started_at desc, ws.id
+                        offset :offset limit :limit
+                        """)
+                .param("clientId", clientId)
+                .param("offset", offset)
+                .param("limit", limit)
+                .query((row, index) -> new FinishedSummary(
+                        row.getObject("id", UUID.class),
+                        row.getObject("plan_id", UUID.class),
+                        row.getString("plan_name"),
+                        row.getInt("division_position"),
+                        row.getString("letter"),
+                        row.getString("division_name"),
+                        row.getTimestamp("started_at").toInstant(),
+                        row.getTimestamp("finished_at").toInstant(),
+                        row.getInt("set_count"),
+                        row.getObject("feeling", Integer.class)))
+                .list();
+    }
+
+    @Override
+    public long countFinished(UUID clientId) {
+        return jdbc.sql("select count(*) from workout_session where client_id = :clientId and finished_at is not null")
+                .param("clientId", clientId)
+                .query(Long.class)
+                .single();
     }
 
     private static WorkoutSession toSession(ResultSet row, int index) throws SQLException {

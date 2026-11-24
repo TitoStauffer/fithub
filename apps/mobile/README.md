@@ -124,3 +124,12 @@ está no ADR-007.
   treino de hoje já com o próximo.
 - No mesmo dia, a série registrada pode ser corrigida ou apagada; no dia seguinte, a tela avisa e não deixa registrar.
 - Sem conexão, avisa e mantém o que foi digitado (sem modo offline no MVP, PRD §14).
+
+## Histórico e recordes (DEV-0072)
+
+- "Histórico de treinos": os treinos finalizados, do mais novo para o mais antigo, com data, ficha, treino, séries e
+  sensação, e "Carregar mais" de 20 em 20. O detalhe mostra cada exercício com as séries (e a alternativa usada), o
+  comentário e a sensação.
+- "Recordes": por exercício, a maior carga e o 1RM estimado, com a marca, a data e a origem (registrada no treino ou
+  lançada à mão). "Lançar recorde" busca o exercício no catálogo e pede carga, repetições e data (dd/mm/aaaa, hoje
+  por padrão); o erro de campo da API aparece no campo, e o digitado fica.
