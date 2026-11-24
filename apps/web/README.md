@@ -134,3 +134,15 @@ suba o Keycloak pelo compose de `infra/`). A decisão dos papéis e dos clients 
 - **`/app/fichas-vencendo`** (link na navegação, só para o personal): as fichas publicadas dos alunos vinculados que
   vencem nos próximos 7 dias ou já venceram, com aluno, ficha e data, as vencidas marcadas; cada uma leva ao aluno.
 - A nutricionista não vê nenhuma das duas (BR-03): quem não é personal recebe "Esta área é só para o personal.".
+
+## Alimentos da nutricionista (DEV-0079)
+
+- `/app/alimentos` (só a nutricionista, com o link "Alimentos" no menu): busca por nome com o filtro vegano, em
+  páginas de 20, mostrando os valores por 100 g (ou 100 ml), a origem (TACO, próprio ou receita própria) e a etiqueta
+  vegano. O próprio tem "Editar" e "Arquivar", com confirmação; arquivado, sai da busca.
+- `/app/alimentos/novo` e `/app/alimentos/:foodId/editar`: o alimento próprio (valores por 100, unidade, vegano) ou a
+  receita (ingredientes pela busca, sem receitas, com a quantidade, e o rendimento). A receita mostra os valores por
+  100 g calculados antes de salvar, como a API calcula. Na edição, as medidas caseiras da nutricionista.
+- A validação espelha a do nutrition-service, e o erro de campo da API aparece no campo, fora do rótulo (o nome do
+  campo continua só o rótulo para o leitor de tela).
+- **Configuração:** `VITE_NUTRITION_API_URL` (padrão `http://localhost:8084`); a origem entra em `apiOrigins()`.

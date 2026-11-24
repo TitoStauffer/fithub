@@ -1,0 +1,80 @@
+{
+    "issue": "DEV-0079",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Web: arquivar o alimento deixa de pedir confirmação",
+            "area": "apps",
+            "file": "apps/web/src/features/foods/FoodsPage.tsx",
+            "find": "onClick={() => setConfirming(true)}",
+            "replace": "onClick={() => archive.mutate()}",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Web: macros somando mais de 100 g passam na validação espelhada",
+            "area": "apps",
+            "file": "apps/web/src/features/foods/foodForm.ts",
+            "find": "protein + carbs + fat > 100",
+            "replace": "false",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Web: a prévia da receita deixa de dividir pelo rendimento",
+            "area": "apps",
+            "file": "apps/web/src/features/foods/foodForm.ts",
+            "find": "Math.round((value / yieldGrams) * 10 ** digits)",
+            "replace": "Math.round((value / 100) * 10 ** digits)",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Web: o erro de campo da API deixa de aparecer no campo",
+            "area": "apps",
+            "file": "apps/web/src/features/foods/FoodFormPage.tsx",
+            "find": "setErrors(failure.fieldErrors);",
+            "replace": "setFormError(messageOf(failure));",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Web: o filtro vegano deixa de ir para a API",
+            "area": "apps",
+            "file": "apps/web/src/lib/nutritionApi.ts",
+            "find": "if (search.vegan) params.set('vegan', search.vegan);",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}

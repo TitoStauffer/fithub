@@ -10,6 +10,8 @@ import { ClientsPage } from '@/features/clients/ClientsPage';
 import { InvitationsPage } from '@/features/clients/InvitationsPage';
 import { ExerciseFormPage } from '@/features/exercises/ExerciseFormPage';
 import { ExercisesPage } from '@/features/exercises/ExercisesPage';
+import { FoodFormPage } from '@/features/foods/FoodFormPage';
+import { FoodsPage } from '@/features/foods/FoodsPage';
 import { ExpiringPlansPage } from '@/features/plans/ExpiringPlansPage';
 import { PlanEditorPage } from '@/features/plans/PlanEditorPage';
 import { OnboardingPage } from '@/features/onboarding/OnboardingPage';
@@ -89,6 +91,15 @@ function HomePage() {
 function ProfessionalArea() {
     const { user } = useAuth();
     const personal = user?.roles.includes('personal') ?? false;
+    const nutritionist = user?.roles.includes('nutritionist') ?? false;
+    const onlyNutritionist = (page: ReactNode) => (
+        <ProtectedRoute
+            roles={['nutritionist']}
+            onMissingRole={<p role="alert">Esta área é só para a nutricionista.</p>}
+        >
+            {page}
+        </ProtectedRoute>
+    );
     const onlyPersonal = (page: ReactNode) => (
         <ProtectedRoute
             roles={['personal']}
@@ -117,6 +128,11 @@ function ProfessionalArea() {
                         Fichas vencendo
                     </NavLink>
                 ) : null}
+                {nutritionist ? (
+                    <NavLink className="underline" to="/app/alimentos">
+                        Alimentos
+                    </NavLink>
+                ) : null}
             </nav>
             <Routes>
                 <Route index element={<ClientsPage />} />
@@ -129,6 +145,9 @@ function ProfessionalArea() {
                 <Route path="fichas-vencendo" element={onlyPersonal(<ExpiringPlansPage />)} />
                 <Route path="clientes/:clientId/fichas/nova" element={onlyPersonal(<PlanEditorPage />)} />
                 <Route path="clientes/:clientId/fichas/:planId" element={onlyPersonal(<PlanEditorPage />)} />
+                <Route path="alimentos" element={onlyNutritionist(<FoodsPage />)} />
+                <Route path="alimentos/novo" element={onlyNutritionist(<FoodFormPage />)} />
+                <Route path="alimentos/:foodId/editar" element={onlyNutritionist(<FoodFormPage />)} />
             </Routes>
             <ServiceStatus />
         </section>
