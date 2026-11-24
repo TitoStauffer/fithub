@@ -24,3 +24,24 @@ não a classe `ProblemDetail` do Spring. Resposta sem corpo usa `content = @Cont
   - **Prevenção:** o teste do 404 confere `application/problem+json` e o `detail`; o mutante M11 de
     `mutations/DEV-0031.json` volta o 404 sem a mensagem e é derrubado. Ao revisar um controller, conferir
     no OpenAPI gerado que cada código de resposta tem o corpo certo.
+
+## nulo-sobre-ref-no-openapi
+
+**Regra:** `@Schema(nullable = true)` num campo cujo tipo vira `$ref` (um record ou objeto) faz o springdoc 3.1
+gerar `{"$ref": ..., "type": "null"}`. No JSON Schema 2020-12 as palavras irmãs do `$ref` valem juntas, então
+nenhum valor satisfaz o schema, e o tipo TypeScript gerado fica sem `| null`. Campo de objeto que pode faltar
+é omitido do JSON (`@JsonInclude(JsonInclude.Include.NON_NULL)` no componente) e declarado só como opcional;
+o teste prova a ausência no corpo, não com `jsonPath(...).doesNotExist()`, que também passa com `null`.
+
+### Ocorrências
+
+- **Revisão:** Code Review do PR #235, no SHA `b8f5ce1` (MEDIUM: `Exercise.attribution` saía como
+  `$ref` + `type: null`, e a API devolvia `attribution: null` em exercício próprio) — DEV-0053 (#45) ·
+  **PR:** #235
+  - **Impacto:** contrato público impossível para a web (a tela do catálogo, DEV-0057, consome o endpoint):
+    um validador recusaria toda resposta, e o tipo gerado não admitia o `null` que chegava.
+  - **Correção:** sem `nullable`; o campo sai com `@JsonInclude(NON_NULL)`, o contrato traz só o `$ref` e o
+    tipo opcional diz a verdade.
+  - **Prevenção:** o teste confere que o corpo do exercício próprio não contém `attribution`; o mutante M9
+    de `mutations/DEV-0053.json` tira o `@JsonInclude` e é derrubado. Ao revisar o OpenAPI gerado, procurar
+    `"type": "null"` ao lado de `$ref`.

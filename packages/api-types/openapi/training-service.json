@@ -6,8 +6,7 @@
         "properties" : {
           "attribution" : {
             "$ref" : "#/components/schemas/ExerciseAttribution",
-            "description" : "Presente só em exercício importado; a tela mostra o crédito.",
-            "type" : "null"
+            "description" : "Presente só em exercício importado; a tela mostra o crédito."
           },
           "equipment" : {
             "enum" : [ "BARBELL", "DUMBBELL", "KETTLEBELL", "MACHINE", "CABLE", "BAND", "BODYWEIGHT", "OTHER" ],

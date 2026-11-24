@@ -72,19 +72,23 @@ class JdbcExerciseRepository implements ExerciseRepository {
 
     @Override
     public Optional<Exercise> findById(UUID id) {
-        Set<MuscleGroup> groups = EnumSet.noneOf(MuscleGroup.class);
-        jdbc.sql("select muscle_group from exercise_muscle_group where exercise_id = :id")
-                .param("id", id)
-                .query(String.class)
-                .list()
-                .forEach(group -> groups.add(MuscleGroup.valueOf(group)));
+        // Uma consulta só: o exercício e os grupos vêm da mesma fotografia do banco, mesmo com um save
+        // concorrente apagando e regravando os grupos.
         return jdbc.sql("""
-                        select id, kind, owner_id, name, equipment, instructions, media_url, external_source,
-                            external_id, license, license_author, created_at, updated_at
-                        from exercise where id = :id
+                        select e.id, e.kind, e.owner_id, e.name, e.equipment, e.instructions, e.media_url,
+                            e.external_source, e.external_id, e.license, e.license_author, e.created_at, e.updated_at,
+                            array_remove(array_agg(g.muscle_group), null) as muscle_groups
+                        from exercise e
+                        left join exercise_muscle_group g on g.exercise_id = e.id
+                        where e.id = :id
+                        group by e.id
                         """)
                 .param("id", id)
                 .query((row, index) -> {
+                    Set<MuscleGroup> groups = EnumSet.noneOf(MuscleGroup.class);
+                    for (String group : (String[]) row.getArray("muscle_groups").getArray()) {
+                        groups.add(MuscleGroup.valueOf(group));
+                    }
                     String source = row.getString("external_source");
                     return new Exercise(
                             row.getObject("id", UUID.class),

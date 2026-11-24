@@ -130,7 +130,10 @@ class ExerciseApiTest extends ServiceIntegrationTest {
         mvc.perform(get("/exercises/" + exercise.id()).header("Authorization", "Bearer personal-" + owner))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.kind").value("OWN"))
-                .andExpect(jsonPath("$.attribution").doesNotExist());
+                .andExpect(jsonPath("$.attribution").doesNotExist())
+                // Ausente, não null: o contrato declara o campo opcional e sem null.
+                .andExpect(result ->
+                        assertThat(result.getResponse().getContentAsString()).doesNotContain("attribution"));
 
         // Outro personal recebe o mesmo 404 de um id que não existe: não dá para saber que o exercício existe.
         mvc.perform(get("/exercises/" + exercise.id()).header("Authorization", "Bearer personal-" + UUID.randomUUID()))

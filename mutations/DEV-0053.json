@@ -26,7 +26,7 @@
             "description": "Mídia passa a aceitar endereço que não é https",
             "area": "java",
             "file": "services/training-service/src/main/java/com/fithub/training/domain/exercise/Exercise.java",
-            "find": "\"https\".equalsIgnoreCase(uri.getScheme()) && uri.getHost() != null",
+            "find": "\"https\".equals(uri.getScheme()) && uri.getHost() != null",
             "replace": "uri.getHost() != null",
             "command": [
                 "mvn",
@@ -158,6 +158,46 @@
                 "-am",
                 "test",
                 "-Dtest=ExerciseApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "Exercício sem atribuição volta a sair com attribution null",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/interfaces/rest/ExerciseController.java",
+            "find": "            @JsonInclude(JsonInclude.Include.NON_NULL)\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ExerciseApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "Mídia passa a aceitar HTTPS em maiúsculas, que o banco recusa",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/exercise/Exercise.java",
+            "find": "return \"https\".equals(uri.getScheme())",
+            "replace": "return \"https\".equalsIgnoreCase(uri.getScheme())",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=Exercise*Test",
                 "-Dsurefire.failIfNoSpecifiedTests=false"
             ]
         }

@@ -1,5 +1,6 @@
 package com.fithub.training.interfaces.rest;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fithub.training.application.ViewExercise;
 import com.fithub.training.domain.exercise.Attribution;
 import com.fithub.training.domain.exercise.Equipment;
@@ -63,7 +64,10 @@ class ExerciseController {
             @Schema(nullable = true, description = "Vídeo ou imagem da execução, sempre https.")
             String mediaUrl,
 
-            @Schema(nullable = true, description = "Presente só em exercício importado; a tela mostra o crédito.")
+            // Ausente (e não null) em exercício próprio: o contrato declara o campo opcional, sem null. Um
+            // `nullable` sobre o $ref geraria um schema impossível (aprendizado nulo-sobre-ref-no-openapi).
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            @Schema(description = "Presente só em exercício importado; a tela mostra o crédito.")
             AttributionResponse attribution) {
 
         static ExerciseResponse of(Exercise exercise) {

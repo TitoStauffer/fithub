@@ -81,14 +81,17 @@ public record Exercise(
         return value == null || value.isBlank() ? null : value.strip();
     }
 
-    /** Só https com host: nada de http, javascript ou data num link que a tela abre. */
+    /**
+     * Só https (em minúsculas, como a CHECK do banco) com host e sem usuário: nada de http, javascript ou data num
+     * link que a tela abre.
+     */
     private static boolean isHttpsUrl(String value) {
         if (value.length() > MAX_MEDIA_URL_LENGTH) {
             return false;
         }
         try {
             URI uri = new URI(value);
-            return "https".equalsIgnoreCase(uri.getScheme()) && uri.getHost() != null && uri.getUserInfo() == null;
+            return "https".equals(uri.getScheme()) && uri.getHost() != null && uri.getUserInfo() == null;
         } catch (URISyntaxException invalid) {
             return false;
         }

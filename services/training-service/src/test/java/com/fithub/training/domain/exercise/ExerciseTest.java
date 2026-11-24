@@ -90,6 +90,7 @@ class ExerciseTest {
     @ValueSource(
             strings = {
                 "http://videos.example/rosca",
+                "HTTPS://videos.example/rosca",
                 "javascript:alert(1)",
                 "data:text/html,<script>alert(1)</script>",
                 "https:///sem-host",
