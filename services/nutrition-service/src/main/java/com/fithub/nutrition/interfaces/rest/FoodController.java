@@ -3,14 +3,17 @@ package com.fithub.nutrition.interfaces.rest;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fithub.nutrition.application.ManageFoodMeasures;
 import com.fithub.nutrition.application.ManageOwnFoods;
+import com.fithub.nutrition.application.SearchFoods;
 import com.fithub.nutrition.application.ViewFood;
 import com.fithub.nutrition.domain.food.Food;
 import com.fithub.nutrition.domain.food.FoodMeasure;
 import com.fithub.nutrition.domain.food.FoodMeasureNotFoundException;
 import com.fithub.nutrition.domain.food.FoodNotFoundException;
+import com.fithub.nutrition.domain.food.FoodSearch;
 import com.fithub.nutrition.domain.food.InvalidFoodException;
 import com.fithub.nutrition.domain.food.Recipe;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -35,6 +38,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -52,11 +56,17 @@ class FoodController {
     private final ViewFood viewFood;
     private final ManageFoodMeasures manageMeasures;
     private final ManageOwnFoods manageOwnFoods;
+    private final SearchFoods searchFoods;
 
-    FoodController(ViewFood viewFood, ManageFoodMeasures manageMeasures, ManageOwnFoods manageOwnFoods) {
+    FoodController(
+            ViewFood viewFood,
+            ManageFoodMeasures manageMeasures,
+            ManageOwnFoods manageOwnFoods,
+            SearchFoods searchFoods) {
         this.viewFood = viewFood;
         this.manageMeasures = manageMeasures;
         this.manageOwnFoods = manageOwnFoods;
+        this.searchFoods = searchFoods;
     }
 
     @Schema(name = "FoodMeasure", description = "Medida caseira da nutricionista e quanto vale na unidade base.")
@@ -154,6 +164,49 @@ class FoodController {
         }
     }
 
+    @Schema(name = "FoodSummary", description = "Alimento no resultado da busca, com os valores por 100.")
+    record FoodSummaryResponse(
+            UUID id,
+            Food.Kind kind,
+            String name,
+            Food.BaseUnit baseUnit,
+            BigDecimal energyKcal,
+            BigDecimal proteinG,
+            BigDecimal carbsG,
+            BigDecimal fatG,
+            @JsonInclude(JsonInclude.Include.NON_NULL) BigDecimal fiberG,
+            boolean vegan,
+
+            @Schema(description = "Se é uma receita da nutricionista.")
+            boolean recipe) {
+
+        static FoodSummaryResponse of(Food food) {
+            Food.Nutrients per100 = food.per100();
+            return new FoodSummaryResponse(
+                    food.id(),
+                    food.kind(),
+                    food.name(),
+                    food.baseUnit(),
+                    per100.energyKcal(),
+                    per100.proteinG(),
+                    per100.carbsG(),
+                    per100.fatG(),
+                    per100.fiberG(),
+                    food.vegan(),
+                    food.isRecipe());
+        }
+    }
+
+    @Schema(name = "FoodPage", description = "Página da busca de alimentos.")
+    record FoodPageResponse(
+            List<FoodSummaryResponse> items,
+
+            @Schema(description = "Quantos alimentos atendem à busca, somando todas as páginas.")
+            long total,
+
+            int page,
+            int size) {}
+
     @Schema(name = "FoodMeasureInput", description = "Medida caseira nova.")
     record MeasureRequest(
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "De 2 a 40 caracteres.")
@@ -216,6 +269,75 @@ class FoodController {
                     measures.stream().map(MeasureResponse::of).toList(),
                     food.archived(),
                     food.isRecipe() ? RecipeResponse.of(food.recipe()) : null);
+        }
+    }
+
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            operationId = "searchFoods",
+            summary = "Busca na TACO e nos alimentos próprios da nutricionista",
+            description =
+                    "Filtros opcionais, combinados (E lógico). O nome busca por trecho, sem diferenciar maiúsculas"
+                            + " nem acentos. Os arquivados ficam de fora. Página a partir de 0, com 20 itens por padrão e até 50.",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "Página da busca."),
+                @ApiResponse(
+                        responseCode = "400",
+                        description =
+                                "Filtro fora das regras, página negativa ou tamanho fora de 1 a 50; o campo vem em errors.",
+                        content =
+                                @Content(
+                                        mediaType = PROBLEM,
+                                        schema = @Schema(implementation = ClientController.ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "403",
+                        description = "A conta não é nutricionista.",
+                        content =
+                                @Content(
+                                        mediaType = PROBLEM,
+                                        schema = @Schema(implementation = ClientController.ApiProblem.class)))
+            })
+    FoodPageResponse search(
+            @AuthenticationPrincipal Jwt jwt,
+            @Parameter(description = "Trecho do nome.") @RequestParam(required = false) String name,
+            @Parameter(description = "true para só os veganos; false para só os não veganos.")
+                    @RequestParam(required = false)
+                    String vegan,
+            @Parameter(description = "Página, a partir de 0.", schema = @Schema(defaultValue = "0"))
+                    @RequestParam(required = false)
+                    String page,
+            @Parameter(description = "Itens por página, de 1 a 50.", schema = @Schema(defaultValue = "20"))
+                    @RequestParam(required = false)
+                    String size) {
+        FoodSearch search = new FoodSearch(
+                name, parseBoolean(vegan), parseInt("page", page, 0), parseInt("size", size, FoodSearch.DEFAULT_SIZE));
+        FoodSearch.Page result = searchFoods.search(jwt.getSubject(), search);
+        return new FoodPageResponse(
+                result.items().stream().map(FoodSummaryResponse::of).toList(),
+                result.total(),
+                search.page(),
+                search.size());
+    }
+
+    private static Boolean parseBoolean(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return switch (value.strip()) {
+            case "true" -> Boolean.TRUE;
+            case "false" -> Boolean.FALSE;
+            default -> throw new InvalidFoodException("vegan", "Use true ou false.");
+        };
+    }
+
+    private static int parseInt(String field, String value, int fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        try {
+            return Integer.parseInt(value.strip());
+        } catch (NumberFormatException notANumber) {
+            throw new InvalidFoodException(field, "Informe um número inteiro.");
         }
     }
 

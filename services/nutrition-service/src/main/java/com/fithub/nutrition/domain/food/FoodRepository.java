@@ -11,6 +11,9 @@ public interface FoodRepository {
 
     Optional<Food> findById(UUID id);
 
+    /** Busca na TACO e nos próprios da nutricionista, sem os arquivados (DEV-0078, BR-13). */
+    FoodSearch.Page search(FoodSearch search, UUID nutritionistId);
+
     /** Se o alimento é ingrediente de alguma receita (DEV-0077). */
     boolean usedAsIngredient(UUID foodId);
 

@@ -2,6 +2,7 @@ package com.fithub.nutrition.infrastructure.persistence;
 
 import com.fithub.nutrition.domain.food.Food;
 import com.fithub.nutrition.domain.food.FoodRepository;
+import com.fithub.nutrition.domain.food.FoodSearch;
 import com.fithub.nutrition.domain.food.Recipe;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
@@ -111,6 +112,42 @@ class JdbcFoodRepository implements FoodRepository {
                 .param("externalId", externalId)
                 .query(this::toFood)
                 .optional();
+    }
+
+    @Override
+    public FoodSearch.Page search(FoodSearch search, UUID nutritionistId) {
+        // Visível para quem busca: a TACO e os próprios dela, sem os arquivados (BR-13). Filtro ausente não restringe.
+        String matching = """
+                from food f
+                where (f.kind = 'TACO' or f.owner_id = :nutritionistId)
+                    and f.archived_at is null
+                    and (cast(:name as text) is null
+                        or f.search_name like '%' || fold_search(cast(:name as text)) || '%' escape '\\')
+                    and (cast(:vegan as boolean) is null or f.vegan = cast(:vegan as boolean))
+                """;
+        String name = search.name() == null ? null : escapeLike(search.name());
+        long total = jdbc.sql("select count(*) " + matching)
+                .param("nutritionistId", nutritionistId)
+                .param("name", name)
+                .param("vegan", search.vegan())
+                .query(Long.class)
+                .single();
+        // Pelo nome; no empate, o próprio antes da TACO.
+        List<Food> items = jdbc.sql(SELECT.replace("from food", "") + matching
+                        + " order by f.search_name, (f.kind = 'TACO'), f.name, f.id limit :size offset :offset")
+                .param("nutritionistId", nutritionistId)
+                .param("name", name)
+                .param("vegan", search.vegan())
+                .param("size", search.size())
+                .param("offset", (long) search.page() * search.size())
+                .query(this::toFood)
+                .list();
+        return new FoodSearch.Page(items, total);
+    }
+
+    /** O texto buscado é literal: `%` e `_` não viram curinga. */
+    private static String escapeLike(String value) {
+        return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
     @Override
