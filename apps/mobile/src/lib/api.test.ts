@@ -1,4 +1,4 @@
-import { ApiProblemError, OfflineError, fetchMyProfile, saveMyHealth } from './api';
+import { ApiProblemError, OfflineError, fetchMyProfile, putToPresignedUrl, saveMyHealth } from './api';
 import { InvalidSessionError } from '../features/auth/session';
 
 jest.mock('expo-secure-store', () => ({ __esModule: true }));
@@ -65,5 +65,42 @@ describe('api do client-service', () => {
         expect(calls[0]?.url).toBe(`${BASE}/clients/me/health`);
         expect(calls[0]?.init?.method).toBe('PUT');
         expect(calls[0]?.init?.body).toBe('{"conditions":["DIABETES"]}');
+    });
+});
+
+describe('envio da foto para a URL pré-assinada (DEV-0050)', () => {
+    it('vai direto ao armazenamento com o tipo do arquivo, sem o token da sessão', async () => {
+        const fetchImpl = jest.fn(
+            async (_url: string, _init?: RequestInit) => new Response(null, { status: 200 }),
+        );
+        const file = new Blob(['x'], { type: 'image/jpeg' });
+
+        await putToPresignedUrl(
+            'https://fotos.example/put',
+            file,
+            'image/jpeg',
+            fetchImpl as unknown as typeof fetch,
+        );
+
+        const [url, init] = fetchImpl.mock.calls[0]!;
+        expect(url).toBe('https://fotos.example/put');
+        expect(init?.method).toBe('PUT');
+        expect(init?.headers).toEqual({ 'Content-Type': 'image/jpeg' });
+        expect(init?.body).toBe(file);
+    });
+
+    it('falha de rede vira OfflineError e recusa do armazenamento vira erro', async () => {
+        const file = new Blob(['x']);
+        const offline = (async () => {
+            throw new TypeError('Network request failed');
+        }) as unknown as typeof fetch;
+        const refused = (async () => new Response(null, { status: 403 })) as unknown as typeof fetch;
+
+        await expect(
+            putToPresignedUrl('https://fotos.example/put', file, 'image/png', offline),
+        ).rejects.toBeInstanceOf(OfflineError);
+        await expect(
+            putToPresignedUrl('https://fotos.example/put', file, 'image/png', refused),
+        ).rejects.toBeInstanceOf(ApiProblemError);
     });
 });

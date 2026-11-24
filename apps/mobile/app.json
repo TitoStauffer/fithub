@@ -10,7 +10,18 @@
             "supportsTablet": false
         },
         "android": {},
-        "plugins": ["expo-secure-store", "expo-web-browser"],
+        "plugins": [
+            "expo-secure-store",
+            "expo-web-browser",
+            [
+                "expo-image-picker",
+                {
+                    "cameraPermission": "O FitHub usa a câmera para as fotos de evolução da sua avaliação.",
+                    "photosPermission": false,
+                    "microphonePermission": false
+                }
+            ]
+        ],
         "scheme": "fithub"
     }
 }
