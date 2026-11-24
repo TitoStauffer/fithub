@@ -47,11 +47,19 @@ class ExerciseSearchApiTest extends ServiceIntegrationTest {
     @TestConfiguration
     static class Tokens {
 
-        /** {@code personal-<sub>} traz o papel de personal; {@code conta-<sub>}, só o de cliente. */
+        /**
+         * {@code personal-<sub>} traz o papel de personal; {@code conta-<sub>}, só o de cliente; {@code nutri-<sub>}, só
+         * o de nutricionista.
+         */
         @Bean
         JwtDecoder jwtDecoder() {
-            Map<String, List<String>> rolesByPrefix =
-                    Map.of("conta-", List.of("client"), "personal-", List.of("client", "personal"));
+            Map<String, List<String>> rolesByPrefix = Map.of(
+                    "conta-",
+                    List.of("client"),
+                    "personal-",
+                    List.of("client", "personal"),
+                    "nutri-",
+                    List.of("nutritionist"));
             return token -> rolesByPrefix.entrySet().stream()
                     .filter(entry -> token.startsWith(entry.getKey()))
                     .findFirst()
@@ -206,8 +214,15 @@ class ExerciseSearchApiTest extends ServiceIntegrationTest {
     }
 
     @Test
-    void soOPapelDePersonalBusca() throws Exception {
-        mvc.perform(search("conta-" + UUID.randomUUID(), "name=" + tag)).andExpect(status().isForbidden());
+    void alunoBuscaSoNoCatalogoENutricionistaNaoBusca() throws Exception {
+        catalog(tag + " Comum", MuscleGroup.CHEST, Equipment.BARBELL);
+        save(tag + " Do personal", UUID.randomUUID(), Set.of(MuscleGroup.CHEST), Equipment.BARBELL);
+
+        mvc.perform(search("conta-" + UUID.randomUUID(), "name=" + tag))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.items[0].name").value(tag + " Comum"));
+        mvc.perform(search("nutri-" + UUID.randomUUID(), "name=" + tag)).andExpect(status().isForbidden());
         mvc.perform(get("/exercises")).andExpect(status().isUnauthorized());
     }
 }

@@ -25,9 +25,9 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   token (ADR-009).
 - Exercício importado guarda fonte, id externo, licença e autor ([ADR-010](../../docs/00-oficial/adr/ADR-010-base-de-exercicios.md));
   a API devolve a atribuição para a tela mostrar o crédito.
-- `GET /exercises/{id}` (papel `personal`): exercício do catálogo ou próprio. O de outro personal e o id desconhecido
+- `GET /exercises/{id}` (papel `personal` ou `client`): exercício do catálogo ou próprio. O de outro personal e o id desconhecido
   respondem o mesmo 404.
-- `GET /exercises?name=&muscleGroup=&equipment=&page=&size=` (papel `personal`, DEV-0055): o catálogo mais os
+- `GET /exercises?name=&muscleGroup=&equipment=&page=&size=` (papel `personal` ou `client`, DEV-0055): o catálogo mais os
   exercícios próprios de quem busca, nunca os de outro personal (BR-13). O nome busca por trecho, sem diferenciar
   maiúsculas nem acentos (`fold_search` da migration V5, aplicada ao nome gravado e ao texto buscado; `%` e `_` são
   literais). Os filtros se combinam (E lógico). Resposta `{items, total, page, size}`, ordenada por nome; página a
@@ -179,3 +179,16 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   do catálogo ou de uma ficha que recebeu; migration V13).
 - `GET /clients/{clientId}/records`: o personal com vínculo ativo lê os recordes do aluno (404 sem vínculo). A
   nutricionista não tem rota (BR-03).
+
+## Ficha própria do aluno (DEV-0069)
+
+- Sem personal, ou junto com ele, o aluno monta a ficha na mesma estrutura (FR-52): rascunho, publicação, versões ao
+  editar a publicada e exercício em cada divisão para publicar. Exercício só do catálogo (o próprio é do personal).
+- `POST`/`GET /me/own-plans`, `GET`/`PUT /me/own-plans/{planId}` e `POST /me/own-plans/{planId}/publish` (papel
+  `client`). Uma própria ativa por vez; publicar outra substitui a anterior.
+- **QUESTÃO-03: coexiste.** A ficha própria convive com a do personal e é só do aluno: o personal não a vê (404 por id,
+  ausente da lista). Não tem alerta de restrição (o alerta é para o personal, FR-27).
+- Publicada, aparece em `GET /me/plans/active` e aceita sessão e séries como a do personal.
+- Migration V14: `personal_id` opcional e `author` (`PERSONAL` ou `CLIENT`), com a CHECK `ck_workout_plan_author`
+  ligando os dois, e o índice único `ux_workout_plan_own_published` (uma própria publicada por aluno).
+- O aluno também lê e busca o catálogo em `/exercises` (papel `client`); exercício próprio de personal não aparece.

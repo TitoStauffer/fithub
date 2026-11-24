@@ -31,10 +31,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Exercícios vistos pelo personal (DEV-0053, FR-22): o catálogo comum e os próprios (BR-13). */
+/**
+ * Exercícios vistos pelo personal (DEV-0053, FR-22): o catálogo comum e os próprios (BR-13). O aluno também lê e busca
+ * o catálogo, para montar a ficha própria (DEV-0069); exercício próprio de personal não aparece para ele.
+ */
 @RestController
 @RequestMapping("/exercises")
-@PreAuthorize("hasRole('PERSONAL')")
+@PreAuthorize("hasAnyRole('PERSONAL', 'CLIENT')")
 @Tag(name = "Exercícios", description = "Catálogo de exercícios e exercícios próprios do personal")
 class ExerciseController {
 
@@ -146,7 +149,7 @@ class ExerciseController {
                                         schema = @Schema(implementation = ClientController.ApiProblem.class))),
                 @ApiResponse(
                         responseCode = "403",
-                        description = "A conta não é personal.",
+                        description = "A conta não é personal nem cliente.",
                         content =
                                 @Content(
                                         mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
@@ -216,7 +219,7 @@ class ExerciseController {
                                         schema = @Schema(implementation = ClientController.ApiProblem.class))),
                 @ApiResponse(
                         responseCode = "403",
-                        description = "A conta não é personal.",
+                        description = "A conta não é personal nem cliente.",
                         content =
                                 @Content(
                                         mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,

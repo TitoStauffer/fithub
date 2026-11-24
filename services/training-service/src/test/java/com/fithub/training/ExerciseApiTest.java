@@ -50,11 +50,19 @@ class ExerciseApiTest extends ServiceIntegrationTest {
     @TestConfiguration
     static class Tokens {
 
-        /** {@code personal-<sub>} traz o papel de personal; {@code conta-<sub>}, só o de cliente. */
+        /**
+         * {@code personal-<sub>} traz o papel de personal; {@code conta-<sub>}, só o de cliente; {@code nutri-<sub>}, só
+         * o de nutricionista.
+         */
         @Bean
         JwtDecoder jwtDecoder() {
-            Map<String, List<String>> rolesByPrefix =
-                    Map.of("conta-", List.of("client"), "personal-", List.of("client", "personal"));
+            Map<String, List<String>> rolesByPrefix = Map.of(
+                    "conta-",
+                    List.of("client"),
+                    "personal-",
+                    List.of("client", "personal"),
+                    "nutri-",
+                    List.of("nutritionist"));
             return token -> rolesByPrefix.entrySet().stream()
                     .filter(entry -> token.startsWith(entry.getKey()))
                     .findFirst()
@@ -165,10 +173,16 @@ class ExerciseApiTest extends ServiceIntegrationTest {
     }
 
     @Test
-    void soOPapelDePersonalLeExercicios() throws Exception {
+    void alunoLeOCatalogoMasNaoOExercicioProprioDoPersonal() throws Exception {
         Exercise exercise = catalog();
+        Exercise own = ownOf(UUID.randomUUID());
+        String client = "Bearer conta-" + UUID.randomUUID();
 
-        mvc.perform(get("/exercises/" + exercise.id()).header("Authorization", "Bearer conta-" + UUID.randomUUID()))
+        mvc.perform(get("/exercises/" + exercise.id()).header("Authorization", client))
+                .andExpect(status().isOk());
+        mvc.perform(get("/exercises/" + own.id()).header("Authorization", client))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/exercises/" + exercise.id()).header("Authorization", "Bearer nutri-" + UUID.randomUUID()))
                 .andExpect(status().isForbidden());
         mvc.perform(get("/exercises/" + exercise.id())).andExpect(status().isUnauthorized());
     }
