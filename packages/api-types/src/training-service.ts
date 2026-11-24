@@ -18,6 +18,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clients/{clientId}/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fichas que o personal criou para o aluno vinculado, da mais nova para a mais antiga */
+        get: operations["list_1"];
+        put?: never;
+        /** Cria uma ficha em rascunho para o aluno vinculado */
+        post: operations["create_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/clients/{clientId}/restrictions": {
         parameters: {
             query?: never;
@@ -45,7 +63,7 @@ export interface paths {
         };
         get?: never;
         /** Edita uma restrição de mobilidade do aluno vinculado */
-        put: operations["update_1"];
+        put: operations["update_2"];
         post?: never;
         /** Remove uma restrição de mobilidade do aluno vinculado */
         delete: operations["remove"];
@@ -85,7 +103,7 @@ export interface paths {
         /** Um exercício do catálogo ou próprio do personal */
         get: operations["exercise"];
         /** Edita um exercício próprio do personal */
-        put: operations["update"];
+        put: operations["update_1"];
         post?: never;
         /**
          * Arquiva um exercício próprio do personal
@@ -108,6 +126,64 @@ export interface paths {
         get: operations["mine"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plans/expiring": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Fichas publicadas que vencem no período ou já venceram
+         * @description Só as do próprio personal e de alunos com vínculo ativo, pela data de vencimento.
+         */
+        get: operations["expiring"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plans/{planId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Uma ficha do personal
+         * @description O autor lê a ficha mesmo depois que o vínculo acaba (BR-05).
+         */
+        get: operations["view"];
+        /** Edita a ficha em rascunho */
+        put: operations["update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plans/{planId}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publica a ficha; a que estava ativa para o aluno fica substituída */
+        post: operations["publish"];
         delete?: never;
         options?: never;
         head?: never;
@@ -176,6 +252,18 @@ export interface components {
              */
             total?: number;
         };
+        /** @description Ficha publicada que vence no período ou já venceu. */
+        ExpiringPlan: {
+            /** Format: uuid */
+            clientId?: string;
+            /** @description Nome do aluno, quando já chegou à projeção local. */
+            clientName?: string | null;
+            /** Format: date */
+            expiresOn?: string;
+            name?: string;
+            /** Format: uuid */
+            planId?: string;
+        };
         /** @description Dados básicos do cliente vinculado. */
         LinkedClient: {
             /** Format: date */
@@ -221,6 +309,61 @@ export interface components {
         ProblemFieldError: {
             field?: string;
             message?: string;
+        };
+        /** @description Divisão da ficha, na ordem da sequência. */
+        WorkoutDivision: {
+            /** @description Letra da posição: A, B, C... */
+            letter?: string;
+            name?: string | null;
+        };
+        WorkoutDivisionInput: {
+            /** @description Até 60 caracteres. */
+            name?: string | null;
+        };
+        /** @description Ficha de treino, com o conteúdo da versão atual. */
+        WorkoutPlan: {
+            /** Format: uuid */
+            clientId?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            divisions?: components["schemas"]["WorkoutDivision"][];
+            /**
+             * Format: date
+             * @description Início mais a validade.
+             */
+            expiresOn?: string;
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            /**
+             * Format: date-time
+             * @description Quando a versão atual foi publicada; ausente no rascunho.
+             */
+            publishedAt?: string;
+            /** Format: date */
+            startsOn?: string;
+            /** @enum {string} */
+            status?: "DRAFT" | "PUBLISHED" | "REPLACED";
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: int32 */
+            validityWeeks?: number;
+            /** Format: int32 */
+            version?: number;
+        };
+        /** @description Cabeçalho e divisões da ficha em rascunho. */
+        WorkoutPlanInput: {
+            /** @description De 1 a 7 divisões, na ordem. */
+            divisions: components["schemas"]["WorkoutDivisionInput"][];
+            /** @description De 2 a 80 caracteres. */
+            name: string;
+            /** Format: date */
+            startsOn: string;
+            /**
+             * Format: int32
+             * @description De 1 a 52 semanas.
+             */
+            validityWeeks: number;
         };
     };
     responses: never;
@@ -270,6 +413,99 @@ export interface operations {
                 };
             };
             /** @description Sem vínculo ativo com o cliente (ou ele não existe). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    list_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Fichas. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutPlan"][];
+                };
+            };
+            /** @description A conta não é personal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem vínculo ativo com o aluno. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    create_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkoutPlanInput"];
+            };
+        };
+        responses: {
+            /** @description Ficha criada; o endereço vem em Location. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutPlan"];
+                };
+            };
+            /** @description Campo fora das regras; o campo vem em errors. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é personal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem vínculo ativo com o aluno. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -373,7 +609,7 @@ export interface operations {
             };
         };
     };
-    update_1: {
+    update_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -620,7 +856,7 @@ export interface operations {
             };
         };
     };
-    update: {
+    update_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -758,6 +994,198 @@ export interface operations {
             };
             /** @description A conta não é de cliente. */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    expiring: {
+        parameters: {
+            query?: {
+                /** @description Dias à frente, de 0 a 60. */
+                withinDays?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Fichas vencendo. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpiringPlan"][];
+                };
+            };
+            /** @description Período fora de 0 a 60 dias. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é personal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    view: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ficha. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutPlan"];
+                };
+            };
+            /** @description A conta não é personal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A ficha não existe ou é de outro personal. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkoutPlanInput"];
+            };
+        };
+        responses: {
+            /** @description Ficha editada. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutPlan"];
+                };
+            };
+            /** @description Campo fora das regras; o campo vem em errors. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é personal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A ficha não existe, é de outro personal ou o vínculo acabou. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A ficha não é rascunho. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    publish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ficha publicada. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutPlan"];
+                };
+            };
+            /** @description A conta não é personal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A ficha não existe, é de outro personal ou o vínculo acabou. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A ficha já foi publicada. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

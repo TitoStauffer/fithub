@@ -73,3 +73,18 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   restrição de outro aluno, 404. Região fora da lista ou descrição fora do tamanho respondem 400 com o campo.
 - **Aluno** (papel `client`): `GET /me/restrictions`, só leitura. A nutricionista nunca vê (BR-03).
 - O alerta ao incluir na ficha um exercício de região restrita é a DEV-0062.
+
+## Ficha de treino (DEV-0059)
+
+- Ficha do personal para o aluno: nome (2 a 80), início, validade de 1 a 52 semanas (vence em início + validade) e de
+  1 a 7 divisões em sequência, com a letra da posição (A a G) e nome opcional de até 60 caracteres (FR-28, FR-32).
+- Estados: `DRAFT` → `PUBLISHED` → `REPLACED`. Publicar uma ficha deixa a que estava ativa para o mesmo aluno como
+  `REPLACED`: uma ativa por vez (FR-34, índice único parcial `ux_workout_plan_published`).
+- O conteúdo fica numa versão (`workout_plan_version` → `workout_division`) desde o rascunho; editar a ficha
+  publicada criando outra versão é a DEV-0061. Os exercícios da divisão são a DEV-0060.
+- Rotas do personal (papel `personal`): `POST` e `GET /clients/{clientId}/plans`, `GET` e `PUT /plans/{planId}` (o
+  `PUT` só no rascunho; publicada responde 409), `POST /plans/{planId}/publish` e `GET /plans/expiring?withinDays=`
+  (padrão 7, de 0 a 60; fichas publicadas de alunos com vínculo ativo que vencem no período ou já venceram, com o
+  "hoje" de `America/Sao_Paulo`).
+- Criar, listar, editar e publicar exigem vínculo ativo (404 sem ele). O autor continua lendo as fichas que criou depois
+  que o vínculo acaba (BR-05); outro personal recebe 404.

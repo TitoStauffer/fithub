@@ -1,0 +1,245 @@
+{
+    "issue": "DEV-0059",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Criar ficha passa a dispensar o vínculo ativo",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ManagePlans.java",
+            "find": "clientAccess.requireActiveLink(personalAccount, clientId);\n        WorkoutPlan plan = WorkoutPlan.newDraft(",
+            "replace": "WorkoutPlan plan = WorkoutPlan.newDraft(",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Editar rascunho passa a dispensar o vínculo ativo",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ManagePlans.java",
+            "find": "clientAccess.requireActiveLink(personalAccount, plan.clientId());\n        WorkoutPlan edited",
+            "replace": "WorkoutPlan edited",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Publicar passa a dispensar o vínculo ativo",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ManagePlans.java",
+            "find": "clientAccess.requireActiveLink(personalAccount, plan.clientId());\n        WorkoutPlan published",
+            "replace": "WorkoutPlan published",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Outro personal passa a ver e alterar a ficha",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ManagePlans.java",
+            "find": ".filter(plan -> plan.authoredBy(personalId))",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Publicar deixa de substituir a ficha que estava ativa",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ManagePlans.java",
+            "find": ".ifPresent(active -> plans.save(active.replace(clock.instant())));",
+            "replace": ".ifPresent(active -> {});",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Banco passa a aceitar duas fichas publicadas para o mesmo aluno e personal",
+            "area": "java",
+            "file": "services/training-service/src/main/resources/db/migration/V8__ficha_de_treino.sql",
+            "find": "create unique index ux_workout_plan_published",
+            "replace": "create index ux_workout_plan_published",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Fichas vencendo passam a incluir aluno sem vínculo ativo",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcPlanRepository.java",
+            "find": "and l.status = 'ACTIVE')",
+            "replace": ")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "Fichas vencendo passam a incluir rascunho",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcPlanRepository.java",
+            "find": "and p.status = 'PUBLISHED'\n                            and v.starts_on",
+            "replace": "and v.starts_on",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "Validade acima de 52 semanas passa a ser aceita",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/plan/PlanVersion.java",
+            "find": "if (validityWeeks < 1 || validityWeeks > MAX_VALIDITY_WEEKS) {",
+            "replace": "if (validityWeeks < 1) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=WorkoutPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "Mais de 7 divisões passam a ser aceitas",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/plan/PlanVersion.java",
+            "find": "names.size() > MAX_DIVISIONS",
+            "replace": "false",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=WorkoutPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "Ficha publicada passa a ser editada como rascunho",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/plan/WorkoutPlan.java",
+            "find": "throw new PlanStateException(\"Só o rascunho pode ser editado assim.\");",
+            "replace": ";",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=WorkoutPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "Banco passa a aceitar letra de divisão fora da posição",
+            "area": "java",
+            "file": "services/training-service/src/main/resources/db/migration/V8__ficha_de_treino.sql",
+            "find": "check (letter = chr(65 + position))",
+            "replace": "check (true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}
