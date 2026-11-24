@@ -207,12 +207,13 @@ class PlanApiTest extends ServiceIntegrationTest {
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].name").value("Força ABCD"));
 
-        // Publicada não é editada como rascunho (a nova versão é a DEV-0061) nem publicada de novo.
+        // Editar a publicada exige a versão base (a nova versão é a DEV-0061); publicar de novo não cabe.
         mvc.perform(put("/plans/" + planId)
                         .header("Authorization", bearer(personal))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body("Outra", TODAY, 4, abc())))
-                .andExpect(status().isConflict());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("baseVersion"));
         mvc.perform(post("/plans/" + planId + "/publish").header("Authorization", bearer(personal)))
                 .andExpect(status().isConflict());
     }

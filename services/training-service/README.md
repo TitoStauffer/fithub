@@ -80,10 +80,8 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   1 a 7 divisões em sequência, com a letra da posição (A a G) e nome opcional de até 60 caracteres (FR-28, FR-32).
 - Estados: `DRAFT` → `PUBLISHED` → `REPLACED`. Publicar uma ficha deixa a que estava ativa para o mesmo aluno como
   `REPLACED`: uma ativa por vez (FR-34, índice único parcial `ux_workout_plan_published`).
-- O conteúdo fica numa versão (`workout_plan_version` → `workout_division`) desde o rascunho; editar a ficha
-  publicada criando outra versão é a DEV-0061.
-- Rotas do personal (papel `personal`): `POST` e `GET /clients/{clientId}/plans`, `GET` e `PUT /plans/{planId}` (o
-  `PUT` só no rascunho; publicada responde 409), `POST /plans/{planId}/publish` e `GET /plans/expiring?withinDays=`
+- O conteúdo fica numa versão (`workout_plan_version` → `workout_division`) desde o rascunho.
+- Rotas do personal (papel `personal`): `POST` e `GET /clients/{clientId}/plans`, `GET` e `PUT /plans/{planId}` , `POST /plans/{planId}/publish` e `GET /plans/expiring?withinDays=`
   (padrão 7, de 0 a 60; fichas publicadas de alunos com vínculo ativo que vencem no período ou já venceram, com o
   "hoje" de `America/Sao_Paulo`).
 - Criar, listar, editar e publicar exigem vínculo ativo (404 sem ele). O autor continua lendo as fichas que criou depois
@@ -100,3 +98,14 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
 - Exercício (principal ou alternativa) precisa ser do catálogo ou próprio do autor e não estar arquivado; um que foi
   arquivado depois de entrar na ficha continua nela.
 - Publicar exige ao menos um exercício em cada divisão (BR-10): senão, 400 com a divisão.
+
+## Versões da ficha (DEV-0061)
+
+- Editar a ficha publicada (`PUT /plans/{planId}` com `baseVersion`) cria a versão seguinte, já publicada; a anterior
+  nunca muda (FR-33, BR-09). O rascunho continua editado no lugar, sem gerar versão.
+- `baseVersion` é a versão em que a edição se baseou: obrigatória na publicada (400 sem ela) e, se não for a atual,
+  409 sem gravar nada (outra edição chegou antes). Duas edições da mesma base ao mesmo tempo também dão 409, pela
+  unicidade (ficha, número). Ficha substituída não aceita edição (409).
+- Leitura: `GET /plans/{planId}/versions` e `/versions/{number}` para o autor (mesmo sem vínculo, BR-05);
+  `GET /me/plans/{planId}/versions` e `/versions/{number}` para o aluno dono da ficha, só as versões publicadas (o
+  rascunho responde 404). Os registros de execução do E6 vão apontar para a versão.

@@ -121,4 +121,40 @@ class WorkoutPlanTest {
                         .status())
                 .isEqualTo(WorkoutPlan.Status.PUBLISHED);
     }
+
+    /** DEV-0061: a publicada ganha a versão seguinte; a base desatualizada e a substituída não editam. */
+    @Test
+    void editarAPublicadaCriaAVersaoSeguinte() {
+        WorkoutPlan published = WorkoutPlan.newDraft(
+                        CLIENT, PERSONAL, "Hipertrofia", START, 8, List.of(withExercise("A")), NOW)
+                .publish(NOW);
+        Instant later = NOW.plusSeconds(3600);
+
+        WorkoutPlan next = published.edit(1, "Hipertrofia v2", START, 6, List.of(withExercise("A")), later);
+        assertThat(next.current().number()).isEqualTo(2);
+        assertThat(next.current().id()).isNotEqualTo(published.current().id());
+        assertThat(next.current().publishedAt()).isEqualTo(later);
+        assertThat(next.status()).isEqualTo(WorkoutPlan.Status.PUBLISHED);
+        assertThat(published.current().name()).isEqualTo("Hipertrofia");
+
+        assertThatThrownBy(() -> next.edit(1, "Atrasada", START, 6, List.of(withExercise("A")), later))
+                .isInstanceOf(PlanConflictException.class);
+        assertInvalid("baseVersion", () -> next.edit(null, "Sem base", START, 6, List.of(withExercise("A")), later));
+        assertInvalid(
+                "divisions[1].items",
+                () -> next.edit(
+                        2, "Vazia", START, 6, List.of(withExercise("A"), PlanVersion.DivisionDraft.named("B")), later));
+        WorkoutPlan replaced = next.replace(later);
+        assertThatThrownBy(() -> replaced.edit(2, "Substituída", START, 6, List.of(withExercise("A")), later))
+                .isInstanceOf(PlanStateException.class);
+
+        // Rascunho: edita no lugar, com ou sem base.
+        WorkoutPlan draft = draft(List.of("A"));
+        assertThat(draft.edit(null, "Outro nome", START, 8, named(List.of("A")), later)
+                        .current()
+                        .number())
+                .isEqualTo(1);
+        assertThatThrownBy(() -> draft.edit(2, "Base errada", START, 8, named(List.of("A")), later))
+                .isInstanceOf(PlanConflictException.class);
+    }
 }

@@ -1,5 +1,6 @@
 package com.fithub.training.domain.plan;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +25,15 @@ public interface PlanRepository {
      * vencidas), pela data de vencimento.
      */
     List<ExpiringPlan> expiring(UUID personalId, LocalDate until);
+
+    /** As versões da ficha, da primeira para a última (DEV-0061). */
+    List<VersionSummary> findVersions(UUID planId);
+
+    /** Uma versão da ficha pelo número, com as divisões e os itens. */
+    Optional<PlanVersion> findVersion(UUID planId, int number);
+
+    /** Resumo de uma versão: número, nome e quando foi publicada ({@code null} no rascunho). */
+    record VersionSummary(int number, String name, Instant publishedAt) {}
 
     /** Ficha publicada perto do vencimento, com o nome do aluno da projeção local (pode faltar). */
     record ExpiringPlan(UUID planId, UUID clientId, String clientName, String name, LocalDate expiresOn) {}

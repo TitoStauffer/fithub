@@ -97,12 +97,7 @@ public record WorkoutPlan(
         if (status != Status.DRAFT) {
             throw new PlanStateException("A ficha já foi publicada.");
         }
-        for (int position = 0; position < current.divisions().size(); position++) {
-            if (current.divisions().get(position).items().isEmpty()) {
-                throw new InvalidPlanException(
-                        "divisions[" + position + "].items", "Cada divisão precisa de ao menos um exercício.");
-            }
-        }
+        requireExerciseInEveryDivision(current);
         PlanVersion published = new PlanVersion(
                 current.id(),
                 current.number(),
@@ -113,6 +108,56 @@ public record WorkoutPlan(
                 now,
                 current.createdAt());
         return new WorkoutPlan(id, clientId, personalId, Status.PUBLISHED, published, createdAt, now);
+    }
+
+    /** Publicar exige ao menos um exercício em cada divisão (BR-10). */
+    private static void requireExerciseInEveryDivision(PlanVersion version) {
+        for (int position = 0; position < version.divisions().size(); position++) {
+            if (version.divisions().get(position).items().isEmpty()) {
+                throw new InvalidPlanException(
+                        "divisions[" + position + "].items", "Cada divisão precisa de ao menos um exercício.");
+            }
+        }
+    }
+
+    /**
+     * Edita a ficha (DEV-0061, FR-33, BR-09). O rascunho muda no lugar; a ficha publicada ganha a versão seguinte, já
+     * publicada, e a anterior nunca é alterada.
+     *
+     * @param baseVersion a versão em que a edição se baseou; obrigatória na ficha publicada
+     * @throws PlanConflictException se outra edição chegou antes (a versão atual não é mais a da base)
+     * @throws PlanStateException se a ficha foi substituída
+     */
+    public WorkoutPlan edit(
+            Integer baseVersion,
+            String name,
+            LocalDate startsOn,
+            int validityWeeks,
+            List<PlanVersion.DivisionDraft> divisions,
+            Instant now) {
+        if (status == Status.REPLACED) {
+            throw new PlanStateException("Ficha substituída não pode ser editada.");
+        }
+        if (baseVersion != null && baseVersion != current.number()) {
+            throw new PlanConflictException();
+        }
+        if (status == Status.DRAFT) {
+            return editDraft(name, startsOn, validityWeeks, divisions, now);
+        }
+        if (baseVersion == null) {
+            throw new InvalidPlanException("baseVersion", "Informe a versão em que a edição se baseou.");
+        }
+        PlanVersion next = new PlanVersion(
+                UUID.randomUUID(),
+                current.number() + 1,
+                name,
+                startsOn,
+                validityWeeks,
+                PlanVersion.divisions(divisions),
+                now,
+                now);
+        requireExerciseInEveryDivision(next);
+        return new WorkoutPlan(id, clientId, personalId, status, next, createdAt, now);
     }
 
     /** Sai de ativa porque o personal publicou outra ficha para o mesmo aluno. */

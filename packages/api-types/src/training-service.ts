@@ -115,6 +115,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/plans/{planId}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** As versões publicadas da ficha que o aluno recebeu */
+        get: operations["versions_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/plans/{planId}/versions/{number}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Uma versão publicada da ficha que o aluno recebeu */
+        get: operations["version_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/restrictions": {
         parameters: {
             query?: never;
@@ -164,7 +198,7 @@ export interface paths {
          * @description O autor lê a ficha mesmo depois que o vínculo acaba (BR-05).
          */
         get: operations["view"];
-        /** Edita a ficha em rascunho */
+        /** Edita a ficha: o rascunho no lugar; a publicada vira a versão seguinte */
         put: operations["update"];
         post?: never;
         delete?: never;
@@ -184,6 +218,40 @@ export interface paths {
         put?: never;
         /** Publica a ficha; a que estava ativa para o aluno fica substituída */
         post: operations["publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plans/{planId}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** As versões da ficha, da primeira para a última */
+        get: operations["versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plans/{planId}/versions/{number}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Uma versão da ficha, pelo número */
+        get: operations["version"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -414,8 +482,13 @@ export interface components {
             /** Format: int32 */
             version?: number;
         };
-        /** @description Cabeçalho e divisões da ficha em rascunho. */
+        /** @description Cabeçalho e divisões da ficha. Na ficha publicada, a edição gera a versão seguinte. */
         WorkoutPlanInput: {
+            /**
+             * Format: int32
+             * @description Versão em que a edição se baseou; obrigatória ao editar a ficha publicada.
+             */
+            baseVersion?: number | null;
             /** @description De 1 a 7 divisões, na ordem. */
             divisions: components["schemas"]["WorkoutDivisionInput"][];
             /** @description De 2 a 80 caracteres. */
@@ -427,6 +500,35 @@ export interface components {
              * @description De 1 a 52 semanas.
              */
             validityWeeks: number;
+        };
+        /** @description O conteúdo de uma versão da ficha; a publicada nunca muda. */
+        WorkoutPlanVersion: {
+            divisions?: components["schemas"]["WorkoutDivision"][];
+            /** Format: date */
+            expiresOn?: string;
+            name?: string;
+            /** Format: int32 */
+            number?: number;
+            /**
+             * Format: date-time
+             * @description Quando foi publicada; ausente no rascunho.
+             */
+            publishedAt?: string;
+            /** Format: date */
+            startsOn?: string;
+            /** Format: int32 */
+            validityWeeks?: number;
+        };
+        /** @description Uma versão da ficha, sem o conteúdo. */
+        WorkoutPlanVersionSummary: {
+            name?: string;
+            /** Format: int32 */
+            number?: number;
+            /**
+             * Format: date-time
+             * @description Quando foi publicada; ausente no rascunho.
+             */
+            publishedAt?: string;
         };
     };
     responses: never;
@@ -1037,6 +1139,87 @@ export interface operations {
             };
         };
     };
+    versions_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Versões publicadas, da primeira para a última. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutPlanVersionSummary"][];
+                };
+            };
+            /** @description A conta não é de cliente. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A ficha não existe, é de outro aluno ou ainda é rascunho. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    version_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: string;
+                number: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Versão. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutPlanVersion"];
+                };
+            };
+            /** @description A conta não é de cliente. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A ficha ou a versão não existe, é de outro aluno ou não foi publicada. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     mine: {
         parameters: {
             query?: never;
@@ -1198,7 +1381,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description A ficha não é rascunho. */
+            /** @description A ficha foi substituída, ou outra edição chegou antes (versão base desatualizada). */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -1258,6 +1441,87 @@ export interface operations {
             };
             /** @description A ficha já foi publicada. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    versions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Versões. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutPlanVersionSummary"][];
+                };
+            };
+            /** @description A conta não é personal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A ficha não existe ou é de outro personal. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    version: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: string;
+                number: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Versão. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutPlanVersion"];
+                };
+            };
+            /** @description A conta não é personal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A ficha ou a versão não existe, ou a ficha é de outro personal. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
