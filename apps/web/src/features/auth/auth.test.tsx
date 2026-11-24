@@ -22,6 +22,9 @@ vi.mock('@/features/clients/ClientsPage', () => ({ ClientsPage: () => null }));
 vi.mock('@/features/clients/InvitationsPage', () => ({ InvitationsPage: () => null }));
 vi.mock('@/features/clients/ClientDetailPage', () => ({ ClientDetailPage: () => null }));
 vi.mock('@/features/assessments/AssessmentFormPage', () => ({ AssessmentFormPage: () => null }));
+// O catálogo de exercícios tem os testes dele (exercises.test.tsx); aqui só importa quem chega até ele.
+vi.mock('@/features/exercises/ExercisesPage', () => ({ ExercisesPage: () => <h3>Catálogo</h3> }));
+vi.mock('@/features/exercises/ExerciseFormPage', () => ({ ExerciseFormPage: () => null }));
 
 let auth: AuthState;
 function AuthProbe() {
@@ -231,5 +234,24 @@ describe('papéis do token', () => {
         { roles: ['admin'] },
     ])('claim ausente ou malformada (%j) não dá papel nenhum', (claims) => {
         expect(rolesFromClaims(claims)).toEqual([]);
+    });
+});
+
+describe('catálogo de exercícios', () => {
+    it('é do personal: o link aparece e a página abre', async () => {
+        renderApp(fakeAuthClient({ user: userWith('personal') }), '/app/exercicios');
+
+        expect(await screen.findByRole('heading', { name: 'Catálogo' })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Exercícios' })).toHaveAttribute('href', '/app/exercicios');
+    });
+
+    it('a nutricionista não vê o link nem a página', async () => {
+        renderApp(fakeAuthClient({ user: userWith('nutritionist') }), '/app/exercicios');
+
+        expect(await screen.findByRole('alert')).toHaveTextContent(
+            'O catálogo de exercícios é só para o personal.',
+        );
+        expect(screen.queryByRole('heading', { name: 'Catálogo' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: 'Exercícios' })).not.toBeInTheDocument();
     });
 });

@@ -99,3 +99,16 @@ suba o Keycloak pelo compose de `infra/`). A decisão dos papéis e dos clients 
   lado a lado (FR-20). A URL pré-assinada de cada foto é pedida na hora de mostrar, sem cache; se a imagem não
   carregar (URL vencida), a tela pede uma nova uma vez e, se falhar de novo, avisa. Sem vínculo, a API responde 404 e
   a tela mostra que o acesso acabou.
+
+## Catálogo de exercícios (DEV-0057)
+
+- **`/app/exercicios`** (só para o papel `personal`; a nutricionista não vê o link nem a página): busca por nome com
+  filtros de grupo muscular e equipamento, em páginas de 20 com o total (training-service, DEV-0055). Mostra
+  carregando, vazio e erro com "Tentar de novo".
+- Cada exercício mostra grupos, equipamento e instruções. A mídia é um link que abre em outra aba
+  (`rel="noopener noreferrer"`), sem player no MVP. O importado mostra a fonte, a licença e o autor do texto e,
+  quando há mídia, a licença e o autor dela (ADR-010).
+- **Exercício próprio:** `/app/exercicios/novo` e `/app/exercicios/:id/editar`, com a validação da API espelhada
+  (nome de 2 a 120, ao menos um grupo, equipamento, instruções até 4000, mídia só `https`) e o erro de campo da API
+  no campo. Arquivar pede confirmação na própria tela; o arquivado sai da busca, e editá-lo responde o aviso da API.
+- **Configuração:** `VITE_TRAINING_API_URL` (padrão `http://localhost:8083`); a origem entra em `apiOrigins()`.
