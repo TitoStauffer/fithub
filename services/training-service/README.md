@@ -27,7 +27,13 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   a API devolve a atribuição para a tela mostrar o crédito.
 - `GET /exercises/{id}` (papel `personal`): exercício do catálogo ou próprio. O de outro personal e o id desconhecido
   respondem o mesmo 404.
-- Busca (DEV-0055) e cadastro do exercício próprio (DEV-0056) vêm depois.
+- `GET /exercises?name=&muscleGroup=&equipment=&page=&size=` (papel `personal`, DEV-0055): o catálogo mais os
+  exercícios próprios de quem busca, nunca os de outro personal (BR-13). O nome busca por trecho, sem diferenciar
+  maiúsculas nem acentos (`fold_search` da migration V5, aplicada ao nome gravado e ao texto buscado; `%` e `_` são
+  literais). Os filtros se combinam (E lógico). Resposta `{items, total, page, size}`, ordenada por nome; página a
+  partir de 0, 20 itens por padrão e até 50. Filtro fora da lista, página negativa ou tamanho fora de 1 a 50 respondem
+  400 com o campo em `errors`.
+- Cadastro do exercício próprio (DEV-0056) vem depois.
 
 ## Importação da base do wger (DEV-0054)
 

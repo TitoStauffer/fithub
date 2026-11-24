@@ -4,11 +4,13 @@ import com.fithub.training.domain.exercise.Attribution;
 import com.fithub.training.domain.exercise.Equipment;
 import com.fithub.training.domain.exercise.Exercise;
 import com.fithub.training.domain.exercise.ExerciseRepository;
+import com.fithub.training.domain.exercise.ExerciseSearch;
 import com.fithub.training.domain.exercise.MuscleGroup;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -103,6 +105,51 @@ class JdbcExerciseRepository implements ExerciseRepository {
                 .param("externalId", externalId)
                 .query(JdbcExerciseRepository::toExercise)
                 .optional();
+    }
+
+    @Override
+    public ExerciseSearch.Page search(ExerciseSearch search, UUID personalId) {
+        // Visível para quem busca: o catálogo e os próprios dele (BR-13). Filtros ausentes não restringem.
+        String matching = """
+                from exercise e
+                where (e.kind = 'CATALOG' or e.owner_id = :personalId)
+                    and (cast(:name as text) is null
+                        or e.search_name like '%' || fold_search(cast(:name as text)) || '%' escape '\\')
+                    and (cast(:equipment as text) is null or e.equipment = cast(:equipment as text))
+                    and (cast(:muscleGroup as text) is null or exists (
+                        select 1 from exercise_muscle_group m
+                        where m.exercise_id = e.id and m.muscle_group = cast(:muscleGroup as text)))
+                """;
+        String name = search.name() == null ? null : escapeLike(search.name());
+        String equipment =
+                search.equipment() == null ? null : search.equipment().name();
+        String muscleGroup =
+                search.muscleGroup() == null ? null : search.muscleGroup().name();
+        long total = jdbc.sql("select count(*) " + matching)
+                .param("personalId", personalId)
+                .param("name", name)
+                .param("equipment", equipment)
+                .param("muscleGroup", muscleGroup)
+                .query(Long.class)
+                .single();
+        List<Exercise> items = jdbc.sql("with page as (select e.id " + matching
+                        + " order by e.search_name, e.name, e.id limit :size offset :offset) "
+                        + SELECT
+                        + "where e.id in (select id from page) group by e.id order by e.search_name, e.name, e.id")
+                .param("personalId", personalId)
+                .param("name", name)
+                .param("equipment", equipment)
+                .param("muscleGroup", muscleGroup)
+                .param("size", search.size())
+                .param("offset", (long) search.page() * search.size())
+                .query(JdbcExerciseRepository::toExercise)
+                .list();
+        return new ExerciseSearch.Page(items, total);
+    }
+
+    /** O texto buscado é literal: `%` e `_` não viram curinga. */
+    private static String escapeLike(String value) {
+        return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
     private static Exercise toExercise(ResultSet row, int index) throws SQLException {

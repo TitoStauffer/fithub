@@ -18,6 +18,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/exercises": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Busca no catálogo e nos exercícios próprios do personal
+         * @description Filtros opcionais, combinados (E lógico). O nome busca por trecho, sem diferenciar maiúsculas nem acentos. Página a partir de 0, com 20 itens por padrão e até 50.
+         */
+        get: operations["search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/exercises/{exerciseId}": {
         parameters: {
             query?: never;
@@ -66,6 +86,19 @@ export interface components {
             mediaLicense?: string;
             source?: string;
         };
+        /** @description Uma página da busca, ordenada por nome. */
+        ExercisePage: {
+            items?: components["schemas"]["Exercise"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /**
+             * Format: int64
+             * @description Quantos exercícios atendem à busca, somando todas as páginas.
+             */
+            total?: number;
+        };
         /** @description Dados básicos do cliente vinculado. */
         LinkedClient: {
             /** Format: date */
@@ -78,11 +111,17 @@ export interface components {
         /** @description Erro no formato Problem Details (RFC 9457). */
         Problem: {
             detail?: string;
+            /** @description Campos inválidos; presente só nas respostas 400. */
+            errors?: components["schemas"]["ProblemFieldError"][] | null;
             instance?: string | null;
             /** Format: int32 */
             status?: number;
             title?: string;
             type?: string;
+        };
+        ProblemFieldError: {
+            field?: string;
+            message?: string;
         };
     };
     responses: never;
@@ -133,6 +172,60 @@ export interface operations {
             };
             /** @description Sem vínculo ativo com o cliente (ou ele não existe). */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    search: {
+        parameters: {
+            query?: {
+                /** @description Trecho do nome. */
+                name?: string;
+                muscleGroup?: "CHEST" | "BACK" | "LOWER_BACK" | "SHOULDERS" | "BICEPS" | "TRICEPS" | "FOREARMS" | "ABS" | "GLUTES" | "QUADRICEPS" | "HAMSTRINGS" | "ADDUCTORS" | "CALVES" | "NECK" | "FULL_BODY";
+                equipment?: "BARBELL" | "DUMBBELL" | "KETTLEBELL" | "MACHINE" | "CABLE" | "BAND" | "BODYWEIGHT" | "OTHER";
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Página da busca. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExercisePage"];
+                };
+            };
+            /** @description Filtro fora da lista, página negativa ou tamanho fora de 1 a 50; o campo vem em errors. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é personal. */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

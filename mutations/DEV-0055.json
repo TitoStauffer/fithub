@@ -1,0 +1,145 @@
+{
+    "issue": "DEV-0055",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Busca passa a mostrar exercício próprio de outro personal",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcExerciseRepository.java",
+            "find": "where (e.kind = 'CATALOG' or e.owner_id = :personalId)",
+            "replace": "where (true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ExerciseSearchApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Tamanho de página acima de 50 passa a ser aceito",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/exercise/ExerciseSearch.java",
+            "find": "if (size < 1 || size > MAX_SIZE) {",
+            "replace": "if (size < 1) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ExerciseSearch*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Nome buscado deixa de ignorar maiúsculas e acentos",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcExerciseRepository.java",
+            "find": "fold_search(cast(:name as text))",
+            "replace": "cast(:name as text)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ExerciseSearchApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Sublinhado no nome buscado volta a ser curinga",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcExerciseRepository.java",
+            "find": ".replace(\"_\", \"\\\\_\")",
+            "replace": ".replace(\"_\", \"_\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ExerciseSearchApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Filtro de equipamento deixa de restringir",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcExerciseRepository.java",
+            "find": "e.equipment = cast(:equipment as text)",
+            "replace": "true",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ExerciseSearchApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Filtro de grupo muscular deixa de restringir",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcExerciseRepository.java",
+            "find": "m.muscle_group = cast(:muscleGroup as text)",
+            "replace": "true",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ExerciseSearchApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Valor fora da lista no filtro deixa de responder 400",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/interfaces/rest/ExerciseController.java",
+            "find": "throw new InvalidExerciseException(field, \"Valor fora da lista.\");",
+            "replace": "return null;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ExerciseSearchApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

@@ -30,7 +30,7 @@ public class ViewExercise {
     }
 
     /** Conta sem {@code sub} em UUID não é dona de nada: vê só o catálogo. */
-    private static UUID accountId(String account) {
+    static UUID accountId(String account) {
         if (account == null) {
             return null;
         }
