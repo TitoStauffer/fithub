@@ -32,6 +32,9 @@ public interface PlanRepository {
     /** As versões da ficha, da primeira para a última (DEV-0061). */
     List<VersionSummary> findVersions(UUID planId);
 
+    /** Uma versão pelo id, com as divisões e os itens (a sessão guarda a versão em que foi feita, DEV-0066). */
+    Optional<PlanVersion> findVersionById(UUID versionId);
+
     /** Uma versão da ficha pelo número, com as divisões e os itens. */
     Optional<PlanVersion> findVersion(UUID planId, int number);
 

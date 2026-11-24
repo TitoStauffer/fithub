@@ -285,6 +285,18 @@ class JdbcPlanRepository implements PlanRepository {
     }
 
     @Override
+    public Optional<PlanVersion> findVersionById(UUID versionId) {
+        return jdbc.sql("""
+                        select id as version_id, number, name, starts_on, validity_weeks, published_at,
+                            created_at as version_created_at
+                        from workout_plan_version where id = :id
+                        """)
+                .param("id", versionId)
+                .query((row, index) -> toVersion(row))
+                .optional();
+    }
+
+    @Override
     public Optional<PlanVersion> findVersion(UUID planId, int number) {
         return jdbc.sql("""
                         select id as version_id, number, name, starts_on, validity_weeks, published_at,

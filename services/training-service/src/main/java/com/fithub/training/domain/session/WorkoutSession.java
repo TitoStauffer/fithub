@@ -1,6 +1,7 @@
 package com.fithub.training.domain.session;
 
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -38,6 +39,14 @@ public record WorkoutSession(
 
     public boolean ownedBy(UUID client) {
         return clientId.equals(client);
+    }
+
+    /**
+     * Se os registros ainda podem ser corrigidos: até o fim do dia em que a sessão começou, no fuso informado
+     * (BR-08, QUESTÃO-04). Vale também para a sessão finalizada.
+     */
+    public boolean correctable(Instant now, ZoneId zone) {
+        return startedAt.atZone(zone).toLocalDate().equals(now.atZone(zone).toLocalDate());
     }
 
     /** Finaliza; finalizar de novo não muda nada. */
