@@ -37,3 +37,14 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
 - A etiqueta vegano é curada no CSV, item a item (a TACO não traz); na dúvida, o item fica sem ela.
 - Job desligado por padrão: `FITHUB_FOODS_IMPORT_ENABLED=true` importa uma vez na subida do serviço, em thread à
   parte. Reexecutável pelo par (fonte, número na TACO): atualiza, não duplica e não apaga.
+
+## Medidas caseiras (DEV-0076)
+
+- `food_measure` (migration V4): nome (2 a 40 caracteres) e quanto vale na unidade base do alimento (0,1 a 2000 g ou
+  ml). Cada nutricionista cadastra as dela em qualquer alimento que vê (TACO ou próprio), e só ela vê (BR-13); a TACO
+  não traz medidas caseiras. Até 10 por alimento; nome repetido no mesmo alimento (sem diferenciar maiúsculas) é
+  barrado pelo índice único e responde 400.
+- `POST /foods/{foodId}/measures` (201) e `DELETE /foods/{foodId}/measures/{measureId}` (204; a de outra, 404); o
+  `GET /foods/{foodId}` traz as medidas da nutricionista.
+- Conversão no domínio, para o plano (E8): medidas para gramas/ml (`FoodMeasure.toBaseUnit`) e os nutrientes da
+  porção (`Food.nutrientsIn`, valor por 100 vezes a quantidade, a 1 casa).

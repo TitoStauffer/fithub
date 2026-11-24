@@ -1,0 +1,145 @@
+{
+    "issue": "DEV-0076",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "A medida deixa de multiplicar pela quantidade",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/food/FoodMeasure.java",
+            "find": "return amount.multiply(quantity).setScale(1, RoundingMode.HALF_UP);",
+            "replace": "return amount.setScale(1, RoundingMode.HALF_UP);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Os nutrientes da porção deixam de dividir por 100",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/food/Food.java",
+            "find": ".divide(BigDecimal.valueOf(100), 1, RoundingMode.HALF_UP);",
+            "replace": ".divide(BigDecimal.valueOf(10), 1, RoundingMode.HALF_UP);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Outra nutricionista passa a apagar a medida",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageFoodMeasures.java",
+            "find": ".filter(found -> found.ownedBy(nutritionistId))",
+            "replace": ".filter(found -> true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "As medidas de outra nutricionista passam a aparecer",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/JdbcFoodMeasureRepository.java",
+            "find": "where food_id = :foodId and owner_id = :ownerId",
+            "replace": "where food_id = :foodId",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O limite de 10 medidas por alimento deixa de valer",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageFoodMeasures.java",
+            "find": "if (existing.size() >= FoodMeasure.MAX_PER_FOOD) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "O banco passa a aceitar nome de medida repetido",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V4__medidas_caseiras.sql",
+            "find": "create unique index ux_food_measure_name",
+            "replace": "create index ux_food_measure_name",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "O banco passa a aceitar medida fora de 0,1 a 2000",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V4__medidas_caseiras.sql",
+            "find": "check (amount between 0.1 and 2000)",
+            "replace": "check (amount >= 0)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

@@ -30,6 +30,13 @@
             "enum" : [ "TACO", "OWN" ],
             "type" : "string"
           },
+          "measures" : {
+            "description" : "As medidas caseiras da nutricionista neste alimento (só as dela).",
+            "items" : {
+              "$ref" : "#/components/schemas/FoodMeasure"
+            },
+            "type" : "array"
+          },
           "name" : {
             "type" : "string"
           },
@@ -44,6 +51,38 @@
             "type" : "boolean"
           }
         },
+        "type" : "object"
+      },
+      "FoodMeasure" : {
+        "description" : "Medida caseira da nutricionista e quanto vale na unidade base.",
+        "properties" : {
+          "amount" : {
+            "description" : "Gramas (ou ml) de uma medida.",
+            "type" : "number"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "FoodMeasureInput" : {
+        "description" : "Medida caseira nova.",
+        "properties" : {
+          "amount" : {
+            "description" : "De 0,1 a 2000 g (ou ml).",
+            "type" : "number"
+          },
+          "name" : {
+            "description" : "De 2 a 40 caracteres.",
+            "type" : "string"
+          }
+        },
+        "required" : [ "amount", "name" ],
         "type" : "object"
       },
       "FoodSource" : {
@@ -219,6 +258,123 @@
           }
         },
         "summary" : "Um alimento da TACO ou próprio da nutricionista",
+        "tags" : [ "Alimentos" ]
+      }
+    },
+    "/foods/{foodId}/measures" : {
+      "post" : {
+        "operationId" : "addFoodMeasure",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "foodId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FoodMeasureInput"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FoodMeasure"
+                }
+              }
+            },
+            "description" : "Medida cadastrada; o endereço vem em Location."
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Nome ou valor fora das regras, nome repetido ou mais de 10 medidas; o campo vem em errors."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é nutricionista."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O alimento não existe ou é próprio de outra nutricionista."
+          }
+        },
+        "summary" : "Cadastra uma medida caseira da nutricionista no alimento",
+        "tags" : [ "Alimentos" ]
+      }
+    },
+    "/foods/{foodId}/measures/{measureId}" : {
+      "delete" : {
+        "operationId" : "removeFoodMeasure",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "foodId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "measureId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Medida apagada."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é nutricionista."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A medida não existe, é de outro alimento ou de outra nutricionista."
+          }
+        },
+        "summary" : "Apaga uma medida caseira da nutricionista",
         "tags" : [ "Alimentos" ]
       }
     }

@@ -1,7 +1,9 @@
 package com.fithub.nutrition;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -19,11 +21,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.security.oauth2.jwt.BadJwtException;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 /** Alimento com Postgres real (DEV-0074): leitura pela nutricionista, visibilidade do próprio e as CHECKs. */
 class FoodApiTest extends ServiceIntegrationTest {
@@ -204,5 +208,112 @@ class FoodApiTest extends ServiceIntegrationTest {
                     .isInstanceOf(DataIntegrityViolationException.class)
                     .hasMessageContaining(row.constraint());
         }
+    }
+
+    private String measure(String name, String amount) {
+        return "{\"name\": \"" + name + "\", \"amount\": " + amount + "}";
+    }
+
+    private ResultActions addMeasure(UUID food, String token, String body) throws Exception {
+        return mvc.perform(post("/foods/" + food + "/measures")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body));
+    }
+
+    @Test
+    void medidaCaseiraESoDaNutricionistaQueCadastrou() throws Exception {
+        UUID me = UUID.randomUUID();
+        UUID other = UUID.randomUUID();
+        Food taco = taco();
+
+        String location = addMeasure(taco.id(), "nutri-" + me, measure("Colher de sopa", "25"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name").value("Colher de sopa"))
+                .andExpect(jsonPath("$.amount").value(25.0))
+                .andReturn()
+                .getResponse()
+                .getHeader("Location");
+        mvc.perform(get("/foods/" + taco.id()).header("Authorization", "Bearer nutri-" + me))
+                .andExpect(jsonPath("$.measures.length()").value(1))
+                .andExpect(jsonPath("$.measures[0].name").value("Colher de sopa"));
+        // Outra nutricionista vê o alimento da TACO, mas não a medida.
+        mvc.perform(get("/foods/" + taco.id()).header("Authorization", "Bearer nutri-" + other))
+                .andExpect(jsonPath("$.measures").isEmpty());
+        mvc.perform(delete(location).header("Authorization", "Bearer nutri-" + other))
+                .andExpect(status().isNotFound());
+        mvc.perform(delete(location).header("Authorization", "Bearer nutri-" + me))
+                .andExpect(status().isNoContent());
+        mvc.perform(get("/foods/" + taco.id()).header("Authorization", "Bearer nutri-" + me))
+                .andExpect(jsonPath("$.measures").isEmpty());
+    }
+
+    @Test
+    void medidaForaDasRegrasNomeRepetidoEMaisDeDez() throws Exception {
+        UUID me = UUID.randomUUID();
+        Food taco = taco();
+        String token = "nutri-" + me;
+
+        addMeasure(taco.id(), token, measure("Fatia", "0"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("amount"));
+        addMeasure(taco.id(), token, measure("a", "10"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("name"));
+        addMeasure(taco.id(), token, measure("Fatia", "30")).andExpect(status().isCreated());
+        addMeasure(taco.id(), token, measure("FATIA", "40"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("name"));
+        for (int index = 2; index <= 10; index++) {
+            addMeasure(taco.id(), token, measure("Medida " + index, "10")).andExpect(status().isCreated());
+        }
+        addMeasure(taco.id(), token, measure("Medida 11", "10"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("measures"));
+        // Alimento próprio de outra nutricionista: não existe para ela.
+        addMeasure(ownOf(UUID.randomUUID()).id(), token, measure("Fatia", "30")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void bancoRecusaMedidaForaDasRegrasENomeRepetido() {
+        Food taco = taco();
+        UUID owner = UUID.randomUUID();
+        String insert = """
+                insert into food_measure (id, food_id, owner_id, name, amount, created_at)
+                values (:id, :food, :owner, :name, :amount, now())
+                """;
+        record Row(String name, String amount, String constraint) {}
+        for (Row row : new Row[] {
+            new Row(" a ", "10", "ck_food_measure_name"),
+            new Row("Fatia", "0.0", "ck_food_measure_amount"),
+            new Row("Fatia", "2000.1", "ck_food_measure_amount")
+        }) {
+            assertThatThrownBy(() -> jdbc.sql(insert)
+                            .param("id", UUID.randomUUID())
+                            .param("food", taco.id())
+                            .param("owner", owner)
+                            .param("name", row.name())
+                            .param("amount", new BigDecimal(row.amount()))
+                            .update())
+                    .as(row.constraint())
+                    .isInstanceOf(DataIntegrityViolationException.class)
+                    .hasMessageContaining(row.constraint());
+        }
+        jdbc.sql(insert)
+                .param("id", UUID.randomUUID())
+                .param("food", taco.id())
+                .param("owner", owner)
+                .param("name", "Fatia")
+                .param("amount", new BigDecimal("30"))
+                .update();
+        assertThatThrownBy(() -> jdbc.sql(insert)
+                        .param("id", UUID.randomUUID())
+                        .param("food", taco.id())
+                        .param("owner", owner)
+                        .param("name", "fatia")
+                        .param("amount", new BigDecimal("30"))
+                        .update())
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("ux_food_measure_name");
     }
 }
