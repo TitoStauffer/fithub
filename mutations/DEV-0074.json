@@ -1,0 +1,125 @@
+{
+    "issue": "DEV-0074",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Proteína, carboidrato e gordura passam a somar mais de 100 g por 100 g",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/food/Food.java",
+            "find": "if (proteinG.add(carbsG).add(fatG).compareTo(MAX_GRAMS) > 0) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "A energia passa a aceitar mais de 900 kcal",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/food/Food.java",
+            "find": "MAX_ENERGY_KCAL = new BigDecimal(\"900\");",
+            "replace": "MAX_ENERGY_KCAL = new BigDecimal(\"1000\");",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O alimento próprio passa a ser visto por qualquer nutricionista",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/food/Food.java",
+            "find": "return kind == Kind.TACO || ownerId.equals(nutritionistId);",
+            "replace": "return true;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "O banco passa a aceitar macronutrientes somando mais de 100",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V3__alimentos.sql",
+            "find": "and protein_g + carbs_g + fat_g <= 100",
+            "replace": "and true",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O banco passa a aceitar alimento próprio sem dona",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V3__alimentos.sql",
+            "find": "constraint ck_food_owner check ((kind = 'OWN') = (owner_id is not null)),",
+            "replace": "constraint ck_food_owner check (true),",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "O personal passa a ler alimentos",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/interfaces/rest/FoodController.java",
+            "find": "@PreAuthorize(\"hasRole('NUTRITIONIST')\")",
+            "replace": "@PreAuthorize(\"hasAnyRole('NUTRITIONIST', 'PERSONAL')\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}
