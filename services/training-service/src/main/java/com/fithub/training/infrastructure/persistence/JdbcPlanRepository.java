@@ -1,5 +1,6 @@
 package com.fithub.training.infrastructure.persistence;
 
+import com.fithub.training.domain.plan.PlanItem;
 import com.fithub.training.domain.plan.PlanRepository;
 import com.fithub.training.domain.plan.PlanVersion;
 import com.fithub.training.domain.plan.WorkoutPlan;
@@ -7,7 +8,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -83,6 +87,47 @@ class JdbcPlanRepository implements PlanRepository {
                     .param("letter", division.letter())
                     .param("name", division.name())
                     .update();
+            saveItems(version.id(), position, division.items());
+        }
+    }
+
+    /** Itens da divisão e as alternativas de cada um, na ordem (DEV-0060). */
+    private void saveItems(UUID versionId, int divisionPosition, List<PlanItem> items) {
+        for (int position = 0; position < items.size(); position++) {
+            PlanItem item = items.get(position);
+            jdbc.sql("""
+                            insert into workout_item (version_id, division_position, position, exercise_id, sets,
+                                reps_min, reps_max, load_kg, rest_seconds, note, technique)
+                            values (:versionId, :division, :position, :exerciseId, :sets, :repsMin, :repsMax, :loadKg,
+                                :restSeconds, :note, :technique)
+                            """)
+                    .param("versionId", versionId)
+                    .param("division", divisionPosition)
+                    .param("position", position)
+                    .param("exerciseId", item.exerciseId())
+                    .param("sets", item.sets())
+                    .param("repsMin", item.repsMin())
+                    .param("repsMax", item.repsMax())
+                    .param("loadKg", item.loadKg())
+                    .param("restSeconds", item.restSeconds())
+                    .param("note", item.note())
+                    .param(
+                            "technique",
+                            item.technique() == null ? null : item.technique().name())
+                    .update();
+            for (int alternative = 0; alternative < item.alternatives().size(); alternative++) {
+                jdbc.sql("""
+                                insert into workout_item_alternative (version_id, division_position, item_position,
+                                    position, exercise_id)
+                                values (:versionId, :division, :item, :position, :exerciseId)
+                                """)
+                        .param("versionId", versionId)
+                        .param("division", divisionPosition)
+                        .param("item", position)
+                        .param("position", alternative)
+                        .param("exerciseId", item.alternatives().get(alternative))
+                        .update();
+            }
         }
     }
 
@@ -142,13 +187,52 @@ class JdbcPlanRepository implements PlanRepository {
                 .list();
     }
 
+    /** Itens da versão por posição da divisão, já com as alternativas, na ordem. */
+    private Map<Integer, List<PlanItem>> items(UUID versionId) {
+        Map<String, List<UUID>> alternatives = new HashMap<>();
+        jdbc.sql("""
+                        select division_position, item_position, exercise_id from workout_item_alternative
+                        where version_id = :id order by division_position, item_position, position
+                        """).param("id", versionId).query(row -> {
+            alternatives
+                    .computeIfAbsent(
+                            row.getInt("division_position") + ":" + row.getInt("item_position"),
+                            key -> new ArrayList<>())
+                    .add(row.getObject("exercise_id", UUID.class));
+        });
+        Map<Integer, List<PlanItem>> items = new HashMap<>();
+        jdbc.sql("""
+                        select division_position, position, exercise_id, sets, reps_min, reps_max, load_kg,
+                            rest_seconds, note, technique
+                        from workout_item where version_id = :id order by division_position, position
+                        """).param("id", versionId).query(row -> {
+            String technique = row.getString("technique");
+            int division = row.getInt("division_position");
+            items.computeIfAbsent(division, key -> new ArrayList<>())
+                    .add(new PlanItem(
+                            row.getObject("exercise_id", UUID.class),
+                            row.getInt("sets"),
+                            row.getInt("reps_min"),
+                            row.getInt("reps_max"),
+                            row.getBigDecimal("load_kg"),
+                            row.getObject("rest_seconds", Integer.class),
+                            row.getString("note"),
+                            technique == null ? null : PlanItem.Technique.valueOf(technique),
+                            alternatives.getOrDefault(division + ":" + row.getInt("position"), List.of())));
+        });
+        return items;
+    }
+
     private WorkoutPlan toPlan(ResultSet row, int index) throws SQLException {
         UUID versionId = row.getObject("version_id", UUID.class);
+        Map<Integer, List<PlanItem>> items = items(versionId);
         List<PlanVersion.Division> divisions = jdbc.sql(
-                        "select letter, name from workout_division where version_id = :id order by position")
+                        "select position, letter, name from workout_division where version_id = :id order by position")
                 .param("id", versionId)
-                .query((division, i) ->
-                        new PlanVersion.Division(division.getString("letter"), division.getString("name")))
+                .query((division, i) -> new PlanVersion.Division(
+                        division.getString("letter"),
+                        division.getString("name"),
+                        items.getOrDefault(division.getInt("position"), List.of())))
                 .list();
         Timestamp publishedAt = row.getTimestamp("published_at");
         return new WorkoutPlan(

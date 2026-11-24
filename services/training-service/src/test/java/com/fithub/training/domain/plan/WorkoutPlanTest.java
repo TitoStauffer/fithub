@@ -18,8 +18,18 @@ class WorkoutPlanTest {
     private static final UUID CLIENT = UUID.randomUUID();
     private static final UUID PERSONAL = UUID.randomUUID();
 
+    private static List<PlanVersion.DivisionDraft> named(List<String> names) {
+        return names.stream().map(PlanVersion.DivisionDraft::named).toList();
+    }
+
+    /** Divisão com um exercício: publicar exige ao menos um em cada (BR-10). */
+    private static PlanVersion.DivisionDraft withExercise(String name) {
+        return new PlanVersion.DivisionDraft(
+                name, List.of(new PlanItem.Draft(UUID.randomUUID(), 3, 10, null, null, null, null, null, null)));
+    }
+
     private static WorkoutPlan draft(List<String> divisions) {
-        return WorkoutPlan.newDraft(CLIENT, PERSONAL, "Hipertrofia", START, 8, divisions, NOW);
+        return WorkoutPlan.newDraft(CLIENT, PERSONAL, "Hipertrofia", START, 8, named(divisions), NOW);
     }
 
     private static void assertInvalid(String field, Runnable creation) {
@@ -46,7 +56,7 @@ class WorkoutPlanTest {
 
     @Test
     void limitesDoNomeDaValidadeEDasDivisoes() {
-        List<String> one = List.of("A");
+        List<PlanVersion.DivisionDraft> one = named(List.of("A"));
         assertInvalid("name", () -> WorkoutPlan.newDraft(CLIENT, PERSONAL, "a", START, 8, one, NOW));
         assertInvalid("name", () -> WorkoutPlan.newDraft(CLIENT, PERSONAL, "a".repeat(81), START, 8, one, NOW));
         assertInvalid("startsOn", () -> WorkoutPlan.newDraft(CLIENT, PERSONAL, "Ficha", null, 8, one, NOW));
@@ -67,7 +77,7 @@ class WorkoutPlanTest {
         WorkoutPlan plan = draft(List.of("A", "B"));
         Instant later = NOW.plusSeconds(60);
 
-        WorkoutPlan edited = plan.editDraft("Força", START.plusDays(1), 4, List.of("X"), later);
+        WorkoutPlan edited = plan.editDraft("Força", START.plusDays(1), 4, List.of(withExercise("X")), later);
         assertThat(edited.current().id()).isEqualTo(plan.current().id());
         assertThat(edited.current().name()).isEqualTo("Força");
         assertThat(edited.updatedAt()).isEqualTo(later);
@@ -75,7 +85,7 @@ class WorkoutPlanTest {
         WorkoutPlan published = edited.publish(later);
         assertThat(published.status()).isEqualTo(WorkoutPlan.Status.PUBLISHED);
         assertThat(published.current().publishedAt()).isEqualTo(later);
-        assertThatThrownBy(() -> published.editDraft("Outra", START, 4, List.of("A"), later))
+        assertThatThrownBy(() -> published.editDraft("Outra", START, 4, named(List.of("A")), later))
                 .isInstanceOf(PlanStateException.class);
         assertThatThrownBy(() -> published.publish(later)).isInstanceOf(PlanStateException.class);
 
@@ -92,5 +102,23 @@ class WorkoutPlanTest {
         assertThat(plan.authoredBy(PERSONAL)).isTrue();
         assertThat(plan.authoredBy(UUID.randomUUID())).isFalse();
         assertThat(plan.authoredBy(null)).isFalse();
+    }
+
+    @Test
+    void publicarExigeAoMenosUmExercicioEmCadaDivisao() {
+        WorkoutPlan plan = WorkoutPlan.newDraft(
+                CLIENT,
+                PERSONAL,
+                "Hipertrofia",
+                START,
+                8,
+                List.of(withExercise("A"), PlanVersion.DivisionDraft.named("B")),
+                NOW);
+
+        assertInvalid("divisions[1].items", () -> plan.publish(NOW));
+        assertThat(plan.editDraft("Hipertrofia", START, 8, List.of(withExercise("A"), withExercise("B")), NOW)
+                        .publish(NOW)
+                        .status())
+                .isEqualTo(WorkoutPlan.Status.PUBLISHED);
     }
 }
