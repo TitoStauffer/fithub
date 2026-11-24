@@ -2,9 +2,18 @@ import { randomUUID } from 'expo-crypto';
 
 import {
     fetchActivePlans,
+    fetchWorkoutSession,
+    finishWorkoutSession,
+    recordWorkoutSet,
+    removeWorkoutSet,
+    saveSessionFeedback,
     startWorkoutSession,
     type ActivePlan,
     type ClientWorkoutItem,
+    type RecordedSet,
+    type RecordedSetInput,
+    type SessionFeedback,
+    type SessionView,
     type WorkoutSession,
 } from '../../lib/api';
 import type { ApiFetch } from '../../lib/apiFetch';
@@ -20,6 +29,26 @@ export function workoutsApiFrom(apiFetch: ApiFetch): WorkoutsApi {
     return {
         activePlans: () => fetchActivePlans(apiFetch),
         start: (planId, sessionId) => startWorkoutSession(apiFetch, sessionId, planId),
+    };
+}
+
+/** O que o registro do treino precisa da API; injetável nos testes. */
+export interface SessionApi {
+    view(sessionId: string): Promise<SessionView>;
+    /** O id da série vem do aparelho: repetir o envio corrige, não duplica. */
+    record(sessionId: string, setId: string, body: RecordedSetInput): Promise<RecordedSet>;
+    remove(sessionId: string, setId: string): Promise<void>;
+    feedback(sessionId: string, body: SessionFeedback): Promise<SessionView>;
+    finish(sessionId: string): Promise<WorkoutSession>;
+}
+
+export function sessionApiFrom(apiFetch: ApiFetch): SessionApi {
+    return {
+        view: (sessionId) => fetchWorkoutSession(apiFetch, sessionId),
+        record: (sessionId, setId, body) => recordWorkoutSet(apiFetch, sessionId, setId, body),
+        remove: (sessionId, setId) => removeWorkoutSet(apiFetch, sessionId, setId),
+        feedback: (sessionId, body) => saveSessionFeedback(apiFetch, sessionId, body),
+        finish: (sessionId) => finishWorkoutSession(apiFetch, sessionId),
     };
 }
 

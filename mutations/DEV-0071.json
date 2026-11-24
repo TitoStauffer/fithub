@@ -1,0 +1,80 @@
+{
+    "issue": "DEV-0071",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Mobile: cada envio da série gera um id novo (reenvio duplica)",
+            "area": "apps",
+            "file": "apps/mobile/src/features/workouts/WorkoutSessionScreen.tsx",
+            "find": "newIds.current[key] ??= newId();",
+            "replace": "newIds.current[key] = newId();",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Mobile: a série sem último treino vem com o máximo da faixa",
+            "area": "apps",
+            "file": "apps/mobile/src/features/workouts/sessionForm.ts",
+            "find": "reps: String(item.repsMin ?? 0)",
+            "replace": "reps: String(item.repsMax ?? 0)",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Mobile: a série com a alternativa grava o exercício do item",
+            "area": "apps",
+            "file": "apps/mobile/src/features/workouts/WorkoutSessionScreen.tsx",
+            "find": "exerciseId: exerciseId && exerciseId !== item.exercise?.id ? exerciseId : null,",
+            "replace": "exerciseId: null,",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Mobile: o treino de outro dia continua aceitando registro",
+            "area": "apps",
+            "file": "apps/mobile/src/features/workouts/WorkoutSessionScreen.tsx",
+            "find": "const correctable = session.correctable !== false;",
+            "replace": "const correctable = true;",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Mobile: a alternativa vem preenchida com o último treino do exercício do item",
+            "area": "apps",
+            "file": "apps/mobile/src/features/workouts/sessionForm.ts",
+            "find": "if (!exerciseId || exerciseId === item.exercise?.id) return item.last ?? [];",
+            "replace": "if (exerciseId !== undefined) return item.last ?? [];",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}
