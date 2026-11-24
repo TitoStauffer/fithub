@@ -11,6 +11,9 @@ public interface FoodRepository {
 
     Optional<Food> findById(UUID id);
 
+    /** Se o alimento é ingrediente de alguma receita (DEV-0077). */
+    boolean usedAsIngredient(UUID foodId);
+
     /** O alimento importado pela fonte e pelo id nela (DEV-0075): a chave da reimportação. */
     Optional<Food> findBySource(String source, String externalId);
 }

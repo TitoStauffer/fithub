@@ -1,9 +1,12 @@
 package com.fithub.nutrition;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -11,11 +14,13 @@ import com.fithub.nutrition.domain.food.Food;
 import com.fithub.nutrition.domain.food.FoodRepository;
 import com.fithub.testing.service.ServiceIntegrationTest;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -315,5 +320,231 @@ class FoodApiTest extends ServiceIntegrationTest {
                         .update())
                 .isInstanceOf(DataIntegrityViolationException.class)
                 .hasMessageContaining("ux_food_measure_name");
+    }
+
+    private static final String GRANOLA = """
+            {"name": "Granola da casa", "baseUnit": "G", "energyKcal": 400, "proteinG": 10, "carbsG": 60,
+             "fatG": 15, "fiberG": 8, "vegan": true}
+            """;
+
+    private ResultActions createFood(String token, String body) throws Exception {
+        return mvc.perform(post("/foods")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body));
+    }
+
+    private String idOf(ResultActions created) throws Exception {
+        String location = created.andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getHeader("Location");
+        return location.substring("/foods/".length());
+    }
+
+    private Food tacoWith(String name, String protein, boolean vegan) {
+        Food food = new Food(
+                UUID.randomUUID(),
+                Food.Kind.TACO,
+                null,
+                name,
+                Food.BaseUnit.G,
+                new Food.Nutrients(
+                        new BigDecimal("100"),
+                        new BigDecimal(protein),
+                        new BigDecimal("20"),
+                        new BigDecimal("1"),
+                        null),
+                vegan,
+                new Food.Source("TACO 4ª edição", UUID.randomUUID().toString()),
+                Instant.now(),
+                Instant.now());
+        foods.save(food);
+        return food;
+    }
+
+    private static String recipe(String name, UUID first, String firstAmount, UUID second, String secondAmount) {
+        return """
+                {"name": "%s", "recipe": {"yieldGrams": 300, "ingredients": [
+                  {"foodId": "%s", "amount": %s}, {"foodId": "%s", "amount": %s}]}}
+                """.formatted(name, first, firstAmount, second, secondAmount);
+    }
+
+    @Test
+    void nutricionistaCriaEditaEArquivaOProprioEOutraRecebe404() throws Exception {
+        UUID me = UUID.randomUUID();
+        String token = "nutri-" + me;
+        String other = "nutri-" + UUID.randomUUID();
+        String id = idOf(createFood(token, GRANOLA)
+                .andExpect(jsonPath("$.kind").value("OWN"))
+                .andExpect(jsonPath("$.archived").value(false))
+                .andExpect(content().string(Matchers.not(Matchers.containsString("\"recipe\"")))));
+
+        mvc.perform(get("/foods/" + id).header("Authorization", "Bearer " + other))
+                .andExpect(status().isNotFound());
+        mvc.perform(put("/foods/" + id)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(GRANOLA.replace("Granola da casa", "Granola sem açúcar")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Granola sem açúcar"));
+        mvc.perform(put("/foods/" + id)
+                        .header("Authorization", "Bearer " + other)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(GRANOLA))
+                .andExpect(status().isNotFound());
+        mvc.perform(post("/foods/" + id + "/archive").header("Authorization", "Bearer " + other))
+                .andExpect(status().isNotFound());
+        mvc.perform(post("/foods/" + id + "/archive").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.archived").value(true));
+        // A dona continua lendo o arquivado; o da TACO não é editável por ninguém.
+        mvc.perform(get("/foods/" + id).header("Authorization", "Bearer " + token))
+                .andExpect(jsonPath("$.archived").value(true));
+        mvc.perform(put("/foods/" + taco().id())
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(GRANOLA))
+                .andExpect(status().isNotFound());
+        createFood(token, GRANOLA.replace("\"proteinG\": 10", "\"proteinG\": 50"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("per100"));
+    }
+
+    @Test
+    void receitaCalculaOsValoresPor100EEVeganaSoComTodosOsIngredientesVeganos() throws Exception {
+        String token = "nutri-" + UUID.randomUUID();
+        Food rice = tacoWith("Arroz, tipo 1, cozido", "2.5", true);
+        Food beans = tacoWith("Feijão, carioca, cozido", "4.8", true);
+        Food egg = tacoWith("Ovo, de galinha, inteiro, cozido", "13.3", false);
+
+        String id = idOf(createFood(token, recipe("Arroz com feijão", rice.id(), "200", beans.id(), "100"))
+                .andExpect(jsonPath("$.proteinG").value(3.27))
+                .andExpect(jsonPath("$.baseUnit").value("G"))
+                .andExpect(jsonPath("$.vegan").value(true))
+                .andExpect(jsonPath("$.recipe.yieldGrams").value(300.0))
+                .andExpect(jsonPath("$.recipe.ingredients.length()").value(2)));
+
+        mvc.perform(put("/foods/" + id)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(recipe("Arroz com ovo", rice.id(), "200", egg.id(), "100")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.vegan").value(false))
+                .andExpect(jsonPath("$.proteinG").value(6.1));
+    }
+
+    @Test
+    void ingredienteDeOutraNutricionistaInexistenteOuReceitaResponde400() throws Exception {
+        String token = "nutri-" + UUID.randomUUID();
+        Food rice = taco();
+        Food theirs = ownOf(UUID.randomUUID());
+
+        createFood(token, recipe("Receita", theirs.id(), "100", rice.id(), "100"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("recipe.ingredients[0].foodId"));
+        createFood(token, recipe("Receita", rice.id(), "100", UUID.randomUUID(), "100"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("recipe.ingredients[1].foodId"));
+        String mine = idOf(createFood(token, recipe("Base", rice.id(), "100", rice.id(), "100")));
+        createFood(token, recipe("Receita de receita", UUID.fromString(mine), "100", rice.id(), "100"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("recipe.ingredients[0].foodId"));
+    }
+
+    @Test
+    void bancoRecusaArquivoOuReceitaNaTacoEIngredienteForaDasRegras() {
+        Food taco = taco();
+        Food mine = ownOf(UUID.randomUUID());
+        for (String[] update : new String[][] {
+            {"update food set archived_at = now() where id = :id", "ck_food_archived"},
+            {"update food set recipe_yield_g = 100 where id = :id", "ck_food_recipe"}
+        }) {
+            assertThatThrownBy(() -> jdbc.sql(update[0]).param("id", taco.id()).update())
+                    .as(update[1])
+                    .isInstanceOf(DataIntegrityViolationException.class)
+                    .hasMessageContaining(update[1]);
+        }
+        String insert = """
+                insert into food_recipe_ingredient (recipe_id, position, ingredient_id, amount)
+                values (:recipe, 0, :ingredient, :amount)
+                """;
+        assertThatThrownBy(() -> jdbc.sql(insert)
+                        .param("recipe", mine.id())
+                        .param("ingredient", taco.id())
+                        .param("amount", new BigDecimal("5000.1"))
+                        .update())
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("ck_food_recipe_ingredient_amount");
+        assertThatThrownBy(() -> jdbc.sql(insert)
+                        .param("recipe", mine.id())
+                        .param("ingredient", mine.id())
+                        .param("amount", new BigDecimal("10"))
+                        .update())
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("ck_food_recipe_ingredient_self");
+    }
+
+    @Test
+    void receitaEmMlArquivarDeNovoEAlimentoQueJaEIngredienteNaoViraReceita() throws Exception {
+        String token = "nutri-" + UUID.randomUUID();
+        Food rice = taco();
+        createFood(token, """
+                        {"name": "Suco", "baseUnit": "ML", "recipe": {"yieldGrams": 300, "ingredients": [
+                          {"foodId": "%s", "amount": 100}]}}
+                        """.formatted(rice.id()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("recipe"));
+
+        String granola = idOf(createFood(token, GRANOLA));
+        mvc.perform(post("/foods/" + granola + "/archive").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+        Instant first = archivedAt(granola);
+        mvc.perform(post("/foods/" + granola + "/archive").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.archived").value(true));
+        assertThat(archivedAt(granola)).isEqualTo(first);
+
+        // A granola entra numa receita; depois, ela mesma não pode virar receita.
+        String base = idOf(createFood(token, GRANOLA));
+        idOf(createFood(token, recipe("Mingau", UUID.fromString(base), "100", rice.id(), "100")));
+        mvc.perform(put("/foods/" + base)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(recipe("Granola composta", rice.id(), "100", rice.id(), "100")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("recipe"));
+    }
+
+    private Instant archivedAt(String foodId) {
+        return jdbc.sql("select archived_at from food where id = :id")
+                .param("id", UUID.fromString(foodId))
+                .query(Timestamp.class)
+                .single()
+                .toInstant();
+    }
+
+    @Test
+    void bancoRecusaPosicaoDeIngredienteERendimentoForaDaFaixa() {
+        Food taco = taco();
+        Food mine = ownOf(UUID.randomUUID());
+        assertThatThrownBy(() -> jdbc.sql("""
+                                insert into food_recipe_ingredient (recipe_id, position, ingredient_id, amount)
+                                values (:recipe, 30, :ingredient, 10)
+                                """)
+                        .param("recipe", mine.id())
+                        .param("ingredient", taco.id())
+                        .update())
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("ck_food_recipe_ingredient_position");
+        for (String yield : new String[] {"0.5", "20000.1"}) {
+            assertThatThrownBy(() -> jdbc.sql("update food set recipe_yield_g = :yield where id = :id")
+                            .param("yield", new BigDecimal(yield))
+                            .param("id", mine.id())
+                            .update())
+                    .as(yield)
+                    .isInstanceOf(DataIntegrityViolationException.class)
+                    .hasMessageContaining("ck_food_recipe");
+        }
     }
 }

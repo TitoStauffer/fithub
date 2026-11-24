@@ -18,6 +18,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/foods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cadastra um alimento ou receita própria da nutricionista */
+        post: operations["createOwnFood"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/foods/{foodId}": {
         parameters: {
             query?: never;
@@ -27,8 +44,26 @@ export interface paths {
         };
         /** Um alimento da TACO ou próprio da nutricionista */
         get: operations["viewFood"];
-        put?: never;
+        /** Edita o alimento ou a receita própria (a receita é recalculada) */
+        put: operations["updateOwnFood"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/foods/{foodId}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Arquiva o alimento próprio: sai da busca, mas continua nos planos */
+        post: operations["archiveOwnFood"];
         delete?: never;
         options?: never;
         head?: never;
@@ -75,6 +110,8 @@ export interface components {
     schemas: {
         /** @description Alimento, com os valores por 100 da unidade base (100 g ou 100 ml). */
         Food: {
+            /** @description Se a dona arquivou o próprio: sai da busca, mas continua nos planos. */
+            archived?: boolean;
             /**
              * @description G (gramas) ou ML (mililitros).
              * @enum {string}
@@ -93,8 +130,33 @@ export interface components {
             measures?: components["schemas"]["FoodMeasure"][];
             name?: string;
             proteinG?: number;
+            /** @description Presente só na receita. */
+            recipe?: components["schemas"]["Recipe"];
             /** @description Presente só no item importado. */
             source?: components["schemas"]["FoodSource"];
+            vegan?: boolean;
+        };
+        /** @description Alimento próprio. Com recipe, os valores por 100 g e a etiqueta vegano saem dos ingredientes. */
+        FoodInput: {
+            /**
+             * @description G ou ML; a receita é sempre em gramas.
+             * @enum {string}
+             */
+            baseUnit?: "G" | "ML";
+            /** @description Por 100, de 0 a 100 g; ignorado na receita. */
+            carbsG?: number;
+            /** @description Por 100, de 0 a 900 kcal; ignorado na receita. */
+            energyKcal?: number;
+            /** @description Por 100, de 0 a 100 g; ignorado na receita. */
+            fatG?: number;
+            /** @description Por 100, opcional. */
+            fiberG?: number;
+            /** @description De 2 a 120 caracteres. */
+            name: string;
+            /** @description Por 100, de 0 a 100 g; ignorado na receita. */
+            proteinG?: number;
+            recipe?: components["schemas"]["RecipeInput"];
+            /** @description Ignorado na receita: vegana só se todos os ingredientes forem. */
             vegan?: boolean;
         };
         /** @description Medida caseira da nutricionista e quanto vale na unidade base. */
@@ -134,6 +196,24 @@ export interface components {
             status?: number;
             title?: string;
             type?: string;
+        };
+        /** @description Ingredientes e rendimento; os valores por 100 g saem deles. */
+        Recipe: {
+            ingredients?: components["schemas"]["RecipeIngredient"][];
+            yieldGrams?: number;
+        };
+        /** @description Ingrediente da receita: o alimento e a quantidade. */
+        RecipeIngredient: {
+            /** @description De 0,1 a 5000 g (ou ml). */
+            amount: number;
+            /** Format: uuid */
+            foodId: string;
+        };
+        /** @description Ingredientes (1 a 30) e o rendimento total. */
+        RecipeInput: {
+            ingredients: components["schemas"]["RecipeIngredient"][];
+            /** @description Em gramas, de 1 a 20000. */
+            yieldGrams: number;
         };
     };
     responses: never;
@@ -193,6 +273,48 @@ export interface operations {
             };
         };
     };
+    createOwnFood: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FoodInput"];
+            };
+        };
+        responses: {
+            /** @description Alimento cadastrado; o endereço vem em Location. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Food"];
+                };
+            };
+            /** @description Campo fora das regras ou ingrediente indisponível; o campo vem em errors. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é nutricionista. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     viewFood: {
         parameters: {
             query?: never;
@@ -223,6 +345,99 @@ export interface operations {
                 };
             };
             /** @description O alimento não existe ou é próprio de outra nutricionista. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    updateOwnFood: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                foodId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FoodInput"];
+            };
+        };
+        responses: {
+            /** @description Alimento editado. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Food"];
+                };
+            };
+            /** @description Campo fora das regras ou ingrediente indisponível; o campo vem em errors. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é nutricionista. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O alimento não existe, é da TACO ou de outra nutricionista. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    archiveOwnFood: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                foodId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Alimento arquivado (arquivar de novo não muda nada). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Food"];
+                };
+            };
+            /** @description A conta não é nutricionista. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O alimento não existe, é da TACO ou de outra nutricionista. */
             404: {
                 headers: {
                     [name: string]: unknown;

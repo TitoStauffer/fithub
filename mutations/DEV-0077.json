@@ -1,0 +1,365 @@
+{
+    "issue": "DEV-0077",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "A receita deixa de dividir pelo rendimento",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/food/Recipe.java",
+            "find": "return sumOfValueTimesAmount.divide(yieldGrams, 4, RoundingMode.HALF_UP);",
+            "replace": "return sumOfValueTimesAmount.divide(new BigDecimal(\"100\"), 4, RoundingMode.HALF_UP);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test,RecipeTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "A receita passa a ser vegana com um ingrediente vegano só",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/food/Recipe.java",
+            "find": ".allMatch(ingredient -> foods.get(ingredient.foodId()).vegan());",
+            "replace": ".anyMatch(ingredient -> foods.get(ingredient.foodId()).vegan());",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test,RecipeTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "A fibra da receita passa a ignorar ingrediente sem fibra",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/food/Recipe.java",
+            "find": "fiberKnown ? perHundredOfYield(fiber) : null",
+            "replace": "perHundredOfYield(fiber)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test,RecipeTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Ingrediente de outra nutricionista passa a entrar na receita",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageOwnFoods.java",
+            "find": ".filter(food -> food.visibleTo(ownerId))",
+            "replace": ".filter(food -> true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test,RecipeTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Receita passa a entrar como ingrediente",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageOwnFoods.java",
+            "find": ".filter(food -> !food.isRecipe() && !food.id().equals(recipeId))",
+            "replace": ".filter(food -> true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test,RecipeTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Outra nutricionista passa a editar e arquivar o próprio",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageOwnFoods.java",
+            "find": ".filter(food -> food.ownedBy(nutritionistId))",
+            "replace": ".filter(food -> true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test,RecipeTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "O banco passa a aceitar alimento da TACO arquivado",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V5__alimentos_e_receitas_proprios.sql",
+            "find": "check (archived_at is null or kind = 'OWN')",
+            "replace": "check (true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test,RecipeTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "O banco passa a aceitar ingrediente na posição 30",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V5__alimentos_e_receitas_proprios.sql",
+            "find": "check (position between 0 and 29)",
+            "replace": "check (position >= 0)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test,RecipeTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "O banco passa a aceitar rendimento fora de 1 a 20000",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V5__alimentos_e_receitas_proprios.sql",
+            "find": "(kind = 'OWN' and recipe_yield_g between 1 and 20000)",
+            "replace": "kind = 'OWN'",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test,RecipeTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "A receita passa a aceitar mais de 30 ingredientes",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/food/Recipe.java",
+            "find": " || ingredients.size() > MAX_INGREDIENTS) {",
+            "replace": ") {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test,RecipeTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "O ingrediente passa a aceitar mais de 5000",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/food/Recipe.java",
+            "find": "|| ingredient.amount().compareTo(Ingredient.MAX_AMOUNT) > 0) {",
+            "replace": ") {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test,RecipeTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "O rendimento passa a aceitar mais de 20000",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/food/Recipe.java",
+            "find": " || yieldGrams.compareTo(MAX_YIELD) > 0) {",
+            "replace": ") {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test,RecipeTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M13",
+            "description": "Ingrediente sem alimento passa a ser aceito",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/food/Recipe.java",
+            "find": "if (ingredient == null || ingredient.foodId() == null) {",
+            "replace": "if (ingredient == null) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test,RecipeTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M14",
+            "description": "A receita passa a aceitar unidade ML",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/food/Food.java",
+            "find": "if (recipe != null && (kind != Kind.OWN || baseUnit != BaseUnit.G)) {",
+            "replace": "if (recipe != null && kind != Kind.OWN) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test,RecipeTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M15",
+            "description": "A TACO passa a aceitar arquivamento no domínio",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/food/Food.java",
+            "find": "if (archivedAt != null && kind != Kind.OWN) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test,RecipeTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M16",
+            "description": "Arquivar de novo passa a mudar a data",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/food/Food.java",
+            "find": "Instant when = archivedAt == null ? now : archivedAt;",
+            "replace": "Instant when = now;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test,RecipeTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M17",
+            "description": "Alimento que já é ingrediente passa a virar receita",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageOwnFoods.java",
+            "find": "if (draft.recipe() != null && !current.isRecipe() && foods.usedAsIngredient(current.id())) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test,RecipeTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M18",
+            "description": "O alimento sem receita passa a mandar recipe nulo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/interfaces/rest/FoodController.java",
+            "find": "@JsonInclude(JsonInclude.Include.NON_NULL) @Schema(description = \"Presente só na receita.\")",
+            "replace": "@Schema(description = \"Presente só na receita.\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=Food*Test,RecipeTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

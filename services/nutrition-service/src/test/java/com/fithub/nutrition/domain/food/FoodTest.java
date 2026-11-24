@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -125,5 +126,61 @@ class FoodTest {
         assertThat(mine.visibleTo(NUTRI)).isTrue();
         assertThat(mine.visibleTo(UUID.randomUUID())).isFalse();
         assertThat(mine.visibleTo(null)).isFalse();
+    }
+
+    @Test
+    void receitaSoNoProprioEmGramasArquivoSoNoProprioEArquivarDeNovoNaoMudaAData() {
+        Food.Nutrients nutrients = per100("100", "1", "1", "1", null);
+        Recipe recipe = new Recipe(
+                List.of(new Recipe.Ingredient(UUID.randomUUID(), new BigDecimal("100"))), new BigDecimal("100"));
+        assertInvalid(
+                "recipe",
+                () -> new Food(
+                        UUID.randomUUID(),
+                        Food.Kind.OWN,
+                        NUTRI,
+                        "Suco",
+                        Food.BaseUnit.ML,
+                        nutrients,
+                        true,
+                        null,
+                        NOW,
+                        NOW,
+                        recipe,
+                        null));
+        assertInvalid(
+                "recipe",
+                () -> new Food(
+                        UUID.randomUUID(),
+                        Food.Kind.TACO,
+                        null,
+                        "Arroz",
+                        Food.BaseUnit.G,
+                        nutrients,
+                        true,
+                        new Food.Source("TACO", "1"),
+                        NOW,
+                        NOW,
+                        recipe,
+                        null));
+        assertInvalid(
+                "archivedAt",
+                () -> new Food(
+                        UUID.randomUUID(),
+                        Food.Kind.TACO,
+                        null,
+                        "Arroz",
+                        Food.BaseUnit.G,
+                        nutrients,
+                        true,
+                        new Food.Source("TACO", "1"),
+                        NOW,
+                        NOW,
+                        null,
+                        NOW));
+
+        Food archived = own("Granola", nutrients).archive(NOW);
+        assertThat(archived.archivedAt()).isEqualTo(NOW);
+        assertThat(archived.archive(NOW.plusSeconds(3600)).archivedAt()).isEqualTo(NOW);
     }
 }
