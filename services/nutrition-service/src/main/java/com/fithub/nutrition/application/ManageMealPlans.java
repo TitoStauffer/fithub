@@ -58,7 +58,7 @@ public class ManageMealPlans {
     }
 
     /** O que a nutricionista informa para o plano. */
-    public record Draft(String name, LocalDate startsOn, String note, List<MealDraft> meals) {}
+    public record Draft(Integer baseVersion, String name, LocalDate startsOn, String note, List<MealDraft> meals) {}
 
     /** Uma refeição como chega; os alimentos ainda sem a quantidade resolvida. */
     public record MealDraft(String name, LocalTime suggestedTime, String note, List<ItemDraft> items) {}
@@ -77,7 +77,7 @@ public class ManageMealPlans {
     public record AlternativeDraft(UUID foodId, BigDecimal amount) {}
 
     /** O plano com os alimentos e os macros de cada item, de cada refeição e do dia. */
-    public record PlanView(MealPlan plan, List<MealView> meals, Food.Amounts day) {}
+    public record PlanView(MealPlan plan, MealPlanVersion version, List<MealView> meals, Food.Amounts day) {}
 
     public record MealView(Meal meal, List<ItemView> items, Food.Amounts total) {}
 
@@ -127,22 +127,64 @@ public class ManageMealPlans {
     }
 
     /**
-     * Edita o rascunho no lugar.
+     * Edita o plano (DEV-0083, BR-09): o rascunho no lugar; o publicado vira a versão seguinte, já publicada.
      *
-     * @throws MealPlanStateException se o plano já foi publicado (a nova versão vem na DEV-0083) ou mudou desde a
-     *     leitura
+     * @throws MealPlanStateException se o plano foi substituído, outra edição chegou antes ou ele mudou desde a leitura
      */
     public PlanView update(String nutritionistAccount, UUID planId, Draft draft) {
         MealPlan plan = authored(nutritionistAccount, planId);
         clientAccess.requireActiveLink(nutritionistAccount, plan.clientId());
-        MealPlan edited = plan.editDraft(
+        MealPlan edited = plan.edit(
+                draft.baseVersion(),
+                UuidV7.next(clock),
                 draft.name(),
                 draft.startsOn(),
                 draft.note(),
                 resolveMeals(draft.meals(), plan.nutritionistId(), foodsIn(plan)),
                 clock.instant());
-        plans.saveDraft(edited, plan.updatedAt());
+        if (edited.current().number() == plan.current().number()) {
+            plans.saveDraft(edited, plan.updatedAt());
+        } else {
+            plans.addVersion(edited, plan.updatedAt());
+        }
         return view(edited);
+    }
+
+    /** As versões do plano, da primeira para a última, para a autora. */
+    public List<MealPlanRepository.VersionSummary> versions(String nutritionistAccount, UUID planId) {
+        return plans.findVersions(authored(nutritionistAccount, planId).id());
+    }
+
+    /** Uma versão do plano, com os macros, para a autora. */
+    public PlanView version(String nutritionistAccount, UUID planId, int number) {
+        MealPlan plan = authored(nutritionistAccount, planId);
+        return view(plan, plans.findVersion(plan.id(), number).orElseThrow(MealPlanNotFoundException::new));
+    }
+
+    /**
+     * As versões do plano que o paciente recebeu (DEV-0083). Só o plano que já foi publicado aparece, e nele toda versão
+     * é publicada: editar o publicado gera a versão nova já publicada, e o rascunho é só a versão 1 do plano em
+     * rascunho.
+     *
+     * @param clientAccount o {@code sub} do token, que é o id do paciente (ADR-009)
+     */
+    public List<MealPlanRepository.VersionSummary> clientVersions(String clientAccount, UUID planId) {
+        return plans.findVersions(received(clientAccount, planId).id());
+    }
+
+    /** Uma versão do plano que o paciente recebeu, com os macros. */
+    public PlanView clientVersion(String clientAccount, UUID planId, int number) {
+        MealPlan plan = received(clientAccount, planId);
+        return view(plan, plans.findVersion(plan.id(), number).orElseThrow(MealPlanNotFoundException::new));
+    }
+
+    /** O plano do paciente, já publicado alguma vez; o de outro paciente e o rascunho respondem como inexistentes. */
+    private MealPlan received(String clientAccount, UUID planId) {
+        UUID clientId = ViewFood.accountId(clientAccount);
+        return plans.findById(planId)
+                .filter(plan -> plan.clientId().equals(clientId))
+                .filter(plan -> plan.status() != MealPlan.Status.DRAFT)
+                .orElseThrow(MealPlanNotFoundException::new);
     }
 
     /**
@@ -253,11 +295,15 @@ public class ManageMealPlans {
 
     /** Os macros do plano: cada item pela quantidade, a refeição pela soma dos itens e o dia pela soma das refeições. */
     PlanView view(MealPlan plan) {
+        return view(plan, plan.current());
+    }
+
+    private PlanView view(MealPlan plan, MealPlanVersion version) {
         Map<UUID, Food> foodCache = new HashMap<>();
         Map<UUID, Optional<FoodMeasure>> measureCache = new HashMap<>();
         List<MealView> meals = new ArrayList<>();
         Food.Amounts day = Food.Amounts.ZERO;
-        for (Meal meal : plan.current().meals()) {
+        for (Meal meal : version.meals()) {
             List<ItemView> items = new ArrayList<>();
             Food.Amounts total = Food.Amounts.ZERO;
             for (MealItem item : meal.items()) {
@@ -284,7 +330,7 @@ public class ManageMealPlans {
             meals.add(new MealView(meal, items, total));
             day = day.plus(total);
         }
-        return new PlanView(plan, meals, day);
+        return new PlanView(plan, version, meals, day);
     }
 
     private static Set<UUID> foodsIn(MealPlan plan) {

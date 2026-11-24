@@ -93,12 +93,7 @@ public record MealPlan(
         if (status != Status.DRAFT) {
             throw new MealPlanStateException("O plano já foi publicado.");
         }
-        for (Meal meal : current.meals()) {
-            if (meal.items().isEmpty()) {
-                throw new InvalidMealPlanException(
-                        "meals[" + meal.position() + "].items", "Cada refeição precisa de ao menos um alimento.");
-            }
-        }
+        requireFoodInEveryMeal(current);
         MealPlanVersion published = new MealPlanVersion(
                 current.id(),
                 current.number(),
@@ -109,6 +104,54 @@ public record MealPlan(
                 now,
                 current.createdAt());
         return new MealPlan(id, clientId, nutritionistId, Status.PUBLISHED, published, createdAt, now);
+    }
+
+    /** Publicar exige ao menos um alimento em cada refeição (BR-10). */
+    private static void requireFoodInEveryMeal(MealPlanVersion version) {
+        for (Meal meal : version.meals()) {
+            if (meal.items().isEmpty()) {
+                throw new InvalidMealPlanException(
+                        "meals[" + meal.position() + "].items", "Cada refeição precisa de ao menos um alimento.");
+            }
+        }
+    }
+
+    /**
+     * Edita o plano (DEV-0083, FR-46, BR-09). O rascunho muda no lugar; o publicado ganha a versão seguinte, já
+     * publicada, e a anterior nunca muda.
+     *
+     * @param baseVersion a versão em que a edição se baseou; obrigatória no plano publicado
+     * @param nextVersionId o id da versão nova, usado só quando o plano já foi publicado
+     * @throws MealPlanStateException se o plano foi substituído ou outra edição chegou antes (a versão atual não é a
+     *     da base)
+     * @throws InvalidMealPlanException se falta a versão base no publicado ou alguma refeição da versão nova não tem
+     *     alimento (BR-10)
+     */
+    public MealPlan edit(
+            Integer baseVersion,
+            UUID nextVersionId,
+            String name,
+            LocalDate startsOn,
+            String note,
+            List<Meal.Draft> meals,
+            Instant now) {
+        if (status == Status.REPLACED) {
+            throw new MealPlanStateException("Plano substituído não pode ser editado.");
+        }
+        if (baseVersion != null && baseVersion != current.number()) {
+            throw new MealPlanStateException(
+                    "Outra edição chegou antes: o plano já está na versão " + current.number() + ". Recarregue.");
+        }
+        if (status == Status.DRAFT) {
+            return editDraft(name, startsOn, note, meals, now);
+        }
+        if (baseVersion == null) {
+            throw new InvalidMealPlanException("baseVersion", "Informe a versão em que a edição se baseou.");
+        }
+        MealPlanVersion next = new MealPlanVersion(
+                nextVersionId, current.number() + 1, name, startsOn, note, MealPlanVersion.meals(meals), now, now);
+        requireFoodInEveryMeal(next);
+        return new MealPlan(id, clientId, nutritionistId, status, next, createdAt, now);
     }
 
     /** Sai de ativo porque outro plano foi publicado para o mesmo paciente. */

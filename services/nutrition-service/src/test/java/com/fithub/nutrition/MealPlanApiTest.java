@@ -16,6 +16,7 @@ import com.fithub.nutrition.domain.plan.MealItem;
 import com.fithub.nutrition.domain.plan.MealPlan;
 import com.fithub.nutrition.domain.plan.MealPlanRepository;
 import com.fithub.nutrition.domain.plan.MealPlanStateException;
+import com.fithub.nutrition.domain.plan.MealPlanVersion;
 import com.fithub.testing.service.ServiceIntegrationTest;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -65,11 +66,16 @@ class MealPlanApiTest extends ServiceIntegrationTest {
     @TestConfiguration
     static class Tokens {
 
-        /** {@code nutri-<sub>}: nutricionista; {@code personal-<sub>}: personal. */
+        /** {@code nutri-<sub>}: nutricionista; {@code personal-<sub>}: personal; {@code conta-<sub>}: cliente. */
         @Bean
         JwtDecoder jwtDecoder() {
-            Map<String, List<String>> rolesByPrefix =
-                    Map.of("nutri-", List.of("client", "nutritionist"), "personal-", List.of("client", "personal"));
+            Map<String, List<String>> rolesByPrefix = Map.of(
+                    "nutri-",
+                    List.of("client", "nutritionist"),
+                    "personal-",
+                    List.of("client", "personal"),
+                    "conta-",
+                    List.of("client"));
             return token -> rolesByPrefix.entrySet().stream()
                     .filter(entry -> token.startsWith(entry.getKey()))
                     .findFirst()
@@ -239,8 +245,10 @@ class MealPlanApiTest extends ServiceIntegrationTest {
                 .andExpect(jsonPath("$.status").value("PUBLISHED"))
                 .andExpect(jsonPath("$.publishedAt").exists());
         publish(nutri(), first).andExpect(status().isConflict());
+        // Editar o publicado sem a versão base: a edição dele gera versão (DEV-0083) e precisa saber de qual partiu.
         update(nutri(), first, plan("Plano um", meal("Café", item(rice.id(), "60"))))
-                .andExpect(status().isConflict());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("baseVersion"));
 
         String second = simplePlan();
         publish(nutri(), second).andExpect(status().isOk());
@@ -542,6 +550,159 @@ class MealPlanApiTest extends ServiceIntegrationTest {
                 .param("food", beans.id())
                 .param("amount", new BigDecimal(amount))
                 .update();
+    }
+
+    private static String basedOn(int version, String planJson) {
+        return "{\"baseVersion\": " + version + ", " + planJson.substring(1);
+    }
+
+    private String publishedPlan() throws Exception {
+        String location = simplePlan();
+        publish(nutri(), location).andExpect(status().isOk());
+        return location;
+    }
+
+    @Test
+    void editarOPublicadoCriaAVersaoSeguinteEAAnteriorContinuaIgual() throws Exception {
+        String location = publishedPlan();
+        update(nutri(), location, basedOn(1, plan("Plano revisado", meal("Jantar", item(beans.id(), "80")))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.version").value(2))
+                .andExpect(jsonPath("$.status").value("PUBLISHED"))
+                .andExpect(jsonPath("$.publishedAt").exists())
+                .andExpect(jsonPath("$.meals[0].name").value("Jantar"));
+
+        mvc.perform(get(location + "/versions").header("Authorization", nutri()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].number").value(1))
+                .andExpect(jsonPath("$[0].name").value("Plano simples"))
+                .andExpect(jsonPath("$[1].name").value("Plano revisado"));
+        mvc.perform(get(location + "/versions/1").header("Authorization", nutri()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.version").value(1))
+                .andExpect(jsonPath("$.name").value("Plano simples"))
+                .andExpect(jsonPath("$.meals[0].name").value("Almoço"))
+                .andExpect(jsonPath("$.meals[0].items[0].amount").value(100.0))
+                .andExpect(jsonPath("$.day.proteinG").value(2.5));
+        mvc.perform(get(location).header("Authorization", nutri()))
+                .andExpect(jsonPath("$.version").value(2))
+                .andExpect(jsonPath("$.day.proteinG").value(3.8));
+        mvc.perform(get(location + "/versions/3").header("Authorization", nutri()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void versaoBaseDesatualizadaOuAusenteEPlanoSubstituido() throws Exception {
+        String location = publishedPlan();
+        String body = plan("Plano revisado", meal("Jantar", item(beans.id(), "80")));
+        update(nutri(), location, body)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("baseVersion"));
+        update(nutri(), location, basedOn(1, body)).andExpect(status().isOk());
+        // Outra edição feita a partir da versão 1, que já não é a atual.
+        update(nutri(), location, basedOn(1, body)).andExpect(status().isConflict());
+        // A versão nova também precisa de alimento em cada refeição (BR-10).
+        update(nutri(), location, basedOn(2, plan("Plano", meal("Jantar", item(beans.id(), "80")), meal("Ceia"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("meals[1].items"));
+
+        // No rascunho, a versão base é opcional, mas desatualizada também responde 409.
+        String draft = simplePlan();
+        update(nutri(), draft, basedOn(2, body)).andExpect(status().isConflict());
+        update(nutri(), draft, basedOn(1, body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.version").value(1))
+                .andExpect(jsonPath("$.status").value("DRAFT"));
+
+        // Publicar o rascunho substitui o plano anterior, que não pode mais ser editado.
+        publish(nutri(), draft).andExpect(status().isOk());
+        update(nutri(), location, basedOn(2, body)).andExpect(status().isConflict());
+    }
+
+    @Test
+    void pacienteLeSoAsVersoesDoPlanoPublicadoQueRecebeu() throws Exception {
+        String location = publishedPlan();
+        String planId = location.substring(location.lastIndexOf('/') + 1);
+        update(nutri(), location, basedOn(1, plan("Plano revisado", meal("Jantar", item(beans.id(), "80")))))
+                .andExpect(status().isOk());
+        String patient = "Bearer conta-" + client;
+
+        mvc.perform(get("/me/meal-plans/" + planId + "/versions").header("Authorization", patient))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[1].publishedAt").exists());
+        mvc.perform(get("/me/meal-plans/" + planId + "/versions/1").header("Authorization", patient))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Plano simples"))
+                .andExpect(jsonPath("$.meals[0].items[0].nutrients.proteinG").value(2.5));
+
+        String otherPatient = "Bearer conta-" + UUID.randomUUID();
+        mvc.perform(get("/me/meal-plans/" + planId + "/versions").header("Authorization", otherPatient))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/me/meal-plans/" + planId + "/versions/1").header("Authorization", otherPatient))
+                .andExpect(status().isNotFound());
+
+        String draft = simplePlan();
+        String draftId = draft.substring(draft.lastIndexOf('/') + 1);
+        mvc.perform(get("/me/meal-plans/" + draftId + "/versions").header("Authorization", patient))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/me/meal-plans/" + draftId + "/versions/1").header("Authorization", patient))
+                .andExpect(status().isNotFound());
+        // As versões pela rota da autora são só dela.
+        mvc.perform(get(location + "/versions").header("Authorization", "Bearer nutri-" + UUID.randomUUID()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void versaoPublicadaNuncaERegravadaNoLugar() throws Exception {
+        String location = publishedPlan();
+        MealPlan fresh = plans.findById(idOf(location)).orElseThrow();
+        MealPlanVersion current = fresh.current();
+        MealPlan forged = new MealPlan(
+                fresh.id(),
+                fresh.clientId(),
+                fresh.nutritionistId(),
+                MealPlan.Status.PUBLISHED,
+                new MealPlanVersion(
+                        current.id(),
+                        current.number(),
+                        "Reescrito no lugar",
+                        current.startsOn(),
+                        null,
+                        List.of(new Meal(
+                                0, "Ceia", null, null, List.of(new MealItem(beans.id(), BigDecimal.TEN, null, null)))),
+                        current.publishedAt(),
+                        current.createdAt()),
+                fresh.createdAt(),
+                Instant.now());
+        assertThatThrownBy(() -> plans.saveDraft(forged, fresh.updatedAt())).isInstanceOf(MealPlanStateException.class);
+        mvc.perform(get(location + "/versions/1").header("Authorization", nutri()))
+                .andExpect(jsonPath("$.name").value("Plano simples"))
+                .andExpect(jsonPath("$.meals[0].name").value("Almoço"));
+    }
+
+    @Test
+    void versaoNovaLidaAntesDeOutraEdicaoNaoEGravada() throws Exception {
+        String location = publishedPlan();
+        MealPlan stale = plans.findById(idOf(location)).orElseThrow();
+        update(nutri(), location, basedOn(1, plan("Primeira edição", meal("Jantar", item(beans.id(), "80")))))
+                .andExpect(status().isOk());
+
+        MealPlan staleEdit = stale.edit(
+                1,
+                UUID.randomUUID(),
+                "Edição atrasada",
+                LocalDate.of(2026, 12, 3),
+                null,
+                List.of(new Meal.Draft(
+                        "Ceia", null, null, List.of(new MealItem(rice.id(), BigDecimal.TEN, null, null)))),
+                Instant.now());
+        assertThatThrownBy(() -> plans.addVersion(staleEdit, stale.updatedAt()))
+                .isInstanceOf(MealPlanStateException.class);
+        mvc.perform(get(location + "/versions").header("Authorization", nutri()))
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[1].name").value("Primeira edição"));
     }
 
     @Test

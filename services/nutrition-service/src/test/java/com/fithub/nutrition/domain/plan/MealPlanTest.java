@@ -203,6 +203,56 @@ class MealPlanTest {
     }
 
     @Test
+    void editarOPublicadoGeraAVersaoSeguinteJaPublicadaSemMexerNaAnterior() {
+        MealPlan published = draft(List.of(meal("Café", item("100")))).publish(NOW);
+        UUID nextId = UUID.randomUUID();
+        Instant later = NOW.plusSeconds(60);
+        MealPlan edited = published.edit(
+                1, nextId, "Revisado", LocalDate.of(2026, 12, 1), null, List.of(meal("Ceia", item("50"))), later);
+        assertThat(edited.status()).isEqualTo(MealPlan.Status.PUBLISHED);
+        assertThat(edited.current().number()).isEqualTo(2);
+        assertThat(edited.current().id()).isEqualTo(nextId);
+        assertThat(edited.current().publishedAt()).isEqualTo(later);
+        assertThat(published.current().name()).isEqualTo("Plano de novembro");
+        assertThat(published.current().number()).isEqualTo(1);
+
+        assertField(
+                () -> published.edit(
+                        null, nextId, "Revisado", LocalDate.now(), null, List.of(meal("Ceia", item("50"))), later),
+                "baseVersion");
+        assertField(
+                () -> published.edit(
+                        1,
+                        nextId,
+                        "Revisado",
+                        LocalDate.now(),
+                        null,
+                        List.of(meal("Ceia"), meal("Lanche", item("5"))),
+                        later),
+                "meals[0].items");
+        assertThatThrownBy(() -> published.edit(
+                        2, nextId, "Revisado", LocalDate.now(), null, List.of(meal("Ceia", item("50"))), later))
+                .isInstanceOf(MealPlanStateException.class);
+        assertThatThrownBy(() -> published
+                        .replace(later)
+                        .edit(1, nextId, "Revisado", LocalDate.now(), null, List.of(meal("Ceia", item("50"))), later))
+                .isInstanceOf(MealPlanStateException.class);
+    }
+
+    @Test
+    void editarORascunhoMudaNoLugarComBaseOpcional() {
+        MealPlan plan = draft(List.of(meal("Café", item("100"))));
+        MealPlan withoutBase =
+                plan.edit(null, UUID.randomUUID(), "Outro", LocalDate.now(), null, List.of(meal("Ceia")), NOW);
+        assertThat(withoutBase.current().number()).isEqualTo(1);
+        assertThat(withoutBase.current().id()).isEqualTo(plan.current().id());
+        assertThat(withoutBase.current().published()).isFalse();
+        assertThatThrownBy(() ->
+                        plan.edit(2, UUID.randomUUID(), "Outro", LocalDate.now(), null, List.of(meal("Ceia")), NOW))
+                .isInstanceOf(MealPlanStateException.class);
+    }
+
+    @Test
     void somaDosMacrosPerdeAFibraQuandoFaltaEmAlguma() {
         Food.Amounts rice = new Food.Amounts(
                 new BigDecimal("128.0"),

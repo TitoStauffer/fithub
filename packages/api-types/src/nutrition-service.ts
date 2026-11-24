@@ -179,6 +179,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/meal-plans/{planId}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** As versões publicadas do plano alimentar que o paciente recebeu */
+        get: operations["listMyMealPlanVersions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/meal-plans/{planId}/versions/{number}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Uma versão publicada do plano alimentar que o paciente recebeu, com os macros */
+        get: operations["getMyMealPlanVersion"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/meal-plans/{planId}": {
         parameters: {
             query?: never;
@@ -188,7 +222,7 @@ export interface paths {
         };
         /** O plano alimentar, para a autora (mesmo depois do fim do vínculo) */
         get: operations["getMealPlan"];
-        /** Edita o rascunho do plano alimentar */
+        /** Edita o plano alimentar: o rascunho no lugar; o publicado vira a versão seguinte */
         put: operations["updateMealPlan"];
         post?: never;
         delete?: never;
@@ -208,6 +242,40 @@ export interface paths {
         put?: never;
         /** Publica o rascunho; o plano ativo anterior do paciente fica substituído */
         post: operations["publishMealPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/meal-plans/{planId}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** As versões do plano alimentar, para a autora */
+        get: operations["listMealPlanVersions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/meal-plans/{planId}/versions/{number}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Uma versão do plano alimentar, com os macros, para a autora */
+        get: operations["getMealPlanVersion"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -462,11 +530,27 @@ export interface components {
         };
         /** @description Nome (2 a 80), início, observação (até 500) e de 1 a 10 refeições. */
         MealPlanInput: {
+            /**
+             * Format: int32
+             * @description A versão em que a edição se baseou; obrigatória para editar o plano publicado.
+             */
+            baseVersion?: number;
             meals: components["schemas"]["MealInput"][];
             name: string;
             note?: string;
             /** Format: date */
             startsOn: string;
+        };
+        /** @description Uma versão do plano: número, nome e publicação. */
+        MealPlanVersionSummary: {
+            name?: string;
+            /** Format: int32 */
+            number?: number;
+            /**
+             * Format: date-time
+             * @description Ausente no rascunho.
+             */
+            publishedAt?: string;
         };
         /** @description Energia e nutrientes de uma porção, com 1 casa decimal. */
         NutrientAmounts: {
@@ -1184,6 +1268,87 @@ export interface operations {
             };
         };
     };
+    listMyMealPlanVersions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Versões publicadas, da primeira para a última. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MealPlanVersionSummary"][];
+                };
+            };
+            /** @description A conta não é de cliente. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O plano não existe, é de outro paciente ou ainda é rascunho. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getMyMealPlanVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: string;
+                number: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A versão, com as refeições e os macros. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MealPlan"];
+                };
+            };
+            /** @description A conta não é de cliente. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O plano ou a versão não existe, é de outro paciente ou ainda é rascunho. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     getMealPlan: {
         parameters: {
             query?: never;
@@ -1239,7 +1404,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Rascunho editado. */
+            /** @description Plano editado (no publicado, já na versão nova). */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1275,7 +1440,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description O plano já foi publicado. */
+            /** @description O plano foi substituído, outra edição chegou antes ou ele mudou desde a leitura. */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -1335,6 +1500,87 @@ export interface operations {
             };
             /** @description O plano já foi publicado. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listMealPlanVersions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Versões, da primeira para a última. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MealPlanVersionSummary"][];
+                };
+            };
+            /** @description A conta não é nutricionista. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O plano não existe ou é de outra nutricionista. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getMealPlanVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: string;
+                number: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A versão, com as refeições e os macros. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MealPlan"];
+                };
+            };
+            /** @description A conta não é nutricionista. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O plano ou a versão não existe, ou o plano é de outra nutricionista. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

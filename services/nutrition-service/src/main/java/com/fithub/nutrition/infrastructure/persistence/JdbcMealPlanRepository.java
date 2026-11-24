@@ -56,14 +56,17 @@ class JdbcMealPlanRepository implements MealPlanRepository {
                 .param("createdAt", Timestamp.from(plan.createdAt()))
                 .param("updatedAt", Timestamp.from(plan.updatedAt()))
                 .update();
-        MealPlanVersion version = plan.current();
+        insertVersion(plan.id(), plan.current());
+    }
+
+    private void insertVersion(UUID planId, MealPlanVersion version) {
         jdbc.sql("""
                         insert into meal_plan_version
                             (id, plan_id, number, name, starts_on, note, published_at, created_at)
                         values (:id, :planId, :number, :name, :startsOn, :note, :publishedAt, :createdAt)
                         """)
                 .param("id", version.id())
-                .param("planId", plan.id())
+                .param("planId", planId)
                 .param("number", version.number())
                 .param("name", version.name())
                 .param("startsOn", version.startsOn())
@@ -78,12 +81,48 @@ class JdbcMealPlanRepository implements MealPlanRepository {
 
     @Override
     @Transactional
-    public void saveDraft(MealPlan plan, Instant readUpdatedAt) {
-        // O updated_at lido é a guarda: só grava se o plano ainda é o rascunho lido. Publicar ou outra edição no meio
-        // do caminho já trocou o updated_at, e o conteúdo publicado nunca é regravado (BR-09).
+    public void addVersion(MealPlan plan, Instant readUpdatedAt) {
+        // Como no rascunho, o updated_at lido é a guarda: duas edições da mesma versão base, só a primeira grava.
         int changed = jdbc.sql("""
                         update meal_plan set updated_at = :updatedAt
-                        where id = :id and updated_at = :readUpdatedAt
+                        where id = :id and updated_at = :baseUpdatedAt
+                        """)
+                .param("id", plan.id())
+                .param("updatedAt", Timestamp.from(plan.updatedAt()))
+                .param("baseUpdatedAt", Timestamp.from(readUpdatedAt))
+                .update();
+        if (changed == 0) {
+            throw changedMeanwhile();
+        }
+        insertVersion(plan.id(), plan.current());
+    }
+
+    @Override
+    public List<VersionSummary> findVersions(UUID planId) {
+        return jdbc.sql("""
+                        select number, name, published_at from meal_plan_version
+                        where plan_id = :planId order by number
+                        """)
+                .param("planId", planId)
+                .query((rs, index) -> new VersionSummary(
+                        rs.getInt("number"), rs.getString("name"), instant(rs.getTimestamp("published_at"))))
+                .list();
+    }
+
+    @Override
+    public Optional<MealPlanVersion> findVersion(UUID planId, int number) {
+        return version(planId, "and number = :number", number);
+    }
+
+    @Override
+    @Transactional
+    public void saveDraft(MealPlan plan, Instant readUpdatedAt) {
+        // O updated_at lido é a guarda: só grava se o plano ainda é o rascunho lido. Publicar ou outra edição no meio
+        // do caminho já trocou o updated_at. O status protege a versão publicada de ser regravada no lugar (BR-09):
+        // editar o publicado gera versão nova (addVersion).
+        int changed = jdbc.sql("""
+                        update meal_plan set updated_at = :updatedAt
+                        where id = :id and status = 'DRAFT' and updated_at = :readUpdatedAt
                         """)
                 .param("id", plan.id())
                 .param("updatedAt", Timestamp.from(plan.updatedAt()))
@@ -227,7 +266,8 @@ class JdbcMealPlanRepository implements MealPlanRepository {
                 .map(this::withCurrentVersion);
     }
 
-    private MealPlan withCurrentVersion(Header header) {
+    /** A versão do plano pelo filtro, com as refeições; sem filtro, a mais nova (a atual). */
+    private Optional<MealPlanVersion> version(UUID planId, String filter, Integer number) {
         record VersionRow(
                 UUID id,
                 int number,
@@ -236,13 +276,14 @@ class JdbcMealPlanRepository implements MealPlanRepository {
                 String note,
                 Instant publishedAt,
                 Instant createdAt) {}
-        VersionRow row = jdbc.sql("""
-                        select id, number, name, starts_on, note, published_at, created_at
-                        from meal_plan_version where plan_id = :planId
-                        order by number desc limit 1
-                        """)
-                .param("planId", header.id())
-                .query((rs, index) -> new VersionRow(
+        var query = jdbc.sql("select id, number, name, starts_on, note, published_at, created_at"
+                        + " from meal_plan_version where plan_id = :planId " + filter
+                        + " order by number desc limit 1")
+                .param("planId", planId);
+        if (number != null) {
+            query = query.param("number", number);
+        }
+        return query.query((rs, index) -> new VersionRow(
                         rs.getObject("id", UUID.class),
                         rs.getInt("number"),
                         rs.getString("name"),
@@ -250,16 +291,20 @@ class JdbcMealPlanRepository implements MealPlanRepository {
                         rs.getString("note"),
                         instant(rs.getTimestamp("published_at")),
                         rs.getTimestamp("created_at").toInstant()))
-                .single();
-        MealPlanVersion version = new MealPlanVersion(
-                row.id(),
-                row.number(),
-                row.name(),
-                row.startsOn(),
-                row.note(),
-                meals(row.id()),
-                row.publishedAt(),
-                row.createdAt());
+                .optional()
+                .map(row -> new MealPlanVersion(
+                        row.id(),
+                        row.number(),
+                        row.name(),
+                        row.startsOn(),
+                        row.note(),
+                        meals(row.id()),
+                        row.publishedAt(),
+                        row.createdAt()));
+    }
+
+    private MealPlan withCurrentVersion(Header header) {
+        MealPlanVersion version = version(header.id(), "", null).orElseThrow();
         return new MealPlan(
                 header.id(),
                 header.clientId(),

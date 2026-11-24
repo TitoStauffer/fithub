@@ -7,6 +7,7 @@ import com.fithub.nutrition.domain.food.Food;
 import com.fithub.nutrition.domain.plan.InvalidMealPlanException;
 import com.fithub.nutrition.domain.plan.MealPlan;
 import com.fithub.nutrition.domain.plan.MealPlanNotFoundException;
+import com.fithub.nutrition.domain.plan.MealPlanRepository;
 import com.fithub.nutrition.domain.plan.MealPlanStateException;
 import com.fithub.nutrition.domain.plan.MealPlanVersion;
 import io.swagger.v3.oas.annotations.Operation;
@@ -190,7 +191,7 @@ class MealPlanController {
 
         static PlanResponse of(ManageMealPlans.PlanView view) {
             MealPlan plan = view.plan();
-            MealPlanVersion current = plan.current();
+            MealPlanVersion current = view.version();
             return new PlanResponse(
                     plan.id(),
                     plan.clientId(),
@@ -252,18 +253,21 @@ class MealPlanController {
             String note,
 
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
-            List<MealRequest> meals) {
+            List<MealRequest> meals,
+
+            @Schema(description = "A versão em que a edição se baseou; obrigatória para editar o plano publicado.")
+            Integer baseVersion) {
 
         ManageMealPlans.Draft toDraft() {
             if (meals == null) {
-                return new ManageMealPlans.Draft(name, startsOn, note, null);
+                return new ManageMealPlans.Draft(baseVersion, name, startsOn, note, null);
             }
             List<ManageMealPlans.MealDraft> drafts = new ArrayList<>();
             for (int index = 0; index < meals.size(); index++) {
                 MealRequest meal = meals.get(index);
                 drafts.add(meal == null ? null : mealDraft(meal, index));
             }
-            return new ManageMealPlans.Draft(name, startsOn, note, drafts);
+            return new ManageMealPlans.Draft(baseVersion, name, startsOn, note, drafts);
         }
 
         private static ManageMealPlans.MealDraft mealDraft(MealRequest meal, int index) {
@@ -402,9 +406,9 @@ class MealPlanController {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
             operationId = "updateMealPlan",
-            summary = "Edita o rascunho do plano alimentar",
+            summary = "Edita o plano alimentar: o rascunho no lugar; o publicado vira a versão seguinte",
             responses = {
-                @ApiResponse(responseCode = "200", description = "Rascunho editado."),
+                @ApiResponse(responseCode = "200", description = "Plano editado (no publicado, já na versão nova)."),
                 @ApiResponse(
                         responseCode = "400",
                         description = "Campo fora das regras ou alimento indisponível; o campo vem em errors.",
@@ -428,7 +432,8 @@ class MealPlanController {
                                         schema = @Schema(implementation = ClientController.ApiProblem.class))),
                 @ApiResponse(
                         responseCode = "409",
-                        description = "O plano já foi publicado.",
+                        description =
+                                "O plano foi substituído, outra edição chegou antes ou ele mudou desde a leitura.",
                         content =
                                 @Content(
                                         mediaType = PROBLEM,
@@ -475,6 +480,71 @@ class MealPlanController {
             })
     PlanResponse publish(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID planId) {
         return PlanResponse.of(managePlans.publish(jwt.getSubject(), planId));
+    }
+
+    @Schema(name = "MealPlanVersionSummary", description = "Uma versão do plano: número, nome e publicação.")
+    record VersionSummaryResponse(
+            int number,
+            String name,
+
+            @JsonInclude(JsonInclude.Include.NON_NULL) @Schema(description = "Ausente no rascunho.")
+            Instant publishedAt) {
+
+        static VersionSummaryResponse of(MealPlanRepository.VersionSummary summary) {
+            return new VersionSummaryResponse(summary.number(), summary.name(), summary.publishedAt());
+        }
+    }
+
+    @GetMapping(path = "/meal-plans/{planId}/versions", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            operationId = "listMealPlanVersions",
+            summary = "As versões do plano alimentar, para a autora",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "Versões, da primeira para a última."),
+                @ApiResponse(
+                        responseCode = "403",
+                        description = "A conta não é nutricionista.",
+                        content =
+                                @Content(
+                                        mediaType = PROBLEM,
+                                        schema = @Schema(implementation = ClientController.ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "404",
+                        description = "O plano não existe ou é de outra nutricionista.",
+                        content =
+                                @Content(
+                                        mediaType = PROBLEM,
+                                        schema = @Schema(implementation = ClientController.ApiProblem.class)))
+            })
+    List<VersionSummaryResponse> versions(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID planId) {
+        return managePlans.versions(jwt.getSubject(), planId).stream()
+                .map(VersionSummaryResponse::of)
+                .toList();
+    }
+
+    @GetMapping(path = "/meal-plans/{planId}/versions/{number}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            operationId = "getMealPlanVersion",
+            summary = "Uma versão do plano alimentar, com os macros, para a autora",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "A versão, com as refeições e os macros."),
+                @ApiResponse(
+                        responseCode = "403",
+                        description = "A conta não é nutricionista.",
+                        content =
+                                @Content(
+                                        mediaType = PROBLEM,
+                                        schema = @Schema(implementation = ClientController.ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "404",
+                        description = "O plano ou a versão não existe, ou o plano é de outra nutricionista.",
+                        content =
+                                @Content(
+                                        mediaType = PROBLEM,
+                                        schema = @Schema(implementation = ClientController.ApiProblem.class)))
+            })
+    PlanResponse version(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID planId, @PathVariable int number) {
+        return PlanResponse.of(managePlans.version(jwt.getSubject(), planId, number));
     }
 
     @ExceptionHandler(InvalidMealPlanException.class)
