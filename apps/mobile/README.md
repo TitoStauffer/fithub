@@ -133,3 +133,12 @@ está no ADR-007.
 - "Recordes": por exercício, a maior carga e o 1RM estimado, com a marca, a data e a origem (registrada no treino ou
   lançada à mão). "Lançar recorde" busca o exercício no catálogo e pede carga, repetições e data (dd/mm/aaaa, hoje
   por padrão); o erro de campo da API aparece no campo, e o digitado fica.
+
+## Minha ficha (DEV-0073)
+
+- "Minha ficha" no menu, ou "Montar minha ficha" no treino de hoje sem ficha: o aluno monta a ficha própria (DEV-0069)
+  com nome, início, validade e até 7 treinos, cada um com exercícios do catálogo (busca pelo nome), séries, repetições
+  ou faixa, carga e descanso. Sem técnica nem alternativas no app (a API aceita).
+- A validação espelha a da API e o erro aparece no campo do item, inclusive o que a API devolver.
+- "Salvar ficha" grava o rascunho; "Publicar" exige exercício em cada treino, pede confirmação e a ficha passa a
+  aparecer no treino de hoje. Na ficha publicada, a tela avisa que salvar gera a versão seguinte.

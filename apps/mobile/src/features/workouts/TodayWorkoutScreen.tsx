@@ -21,6 +21,7 @@ import {
 export function TodayWorkoutScreen({
     api,
     onOpenSession,
+    onBuildOwnPlan,
     openUrl = (url) => Linking.openURL(url),
     newId = newSessionId,
     onDone,
@@ -28,6 +29,8 @@ export function TodayWorkoutScreen({
     api: WorkoutsApi;
     /** Leva ao registro das séries (DEV-0071); sem ele, a tela só avisa que o treino começou. */
     onOpenSession?: (sessionId: string, planId: string) => void;
+    /** Leva ao editor da ficha própria (DEV-0073), pelo convite de quem não tem ficha. */
+    onBuildOwnPlan?: () => void;
     openUrl?: (url: string) => Promise<unknown>;
     newId?: () => string;
     onDone: () => void;
@@ -109,10 +112,13 @@ export function TodayWorkoutScreen({
             ) : null}
             {notice ? <Text accessibilityLiveRegion="polite">{notice}</Text> : null}
             {plans.length === 0 ? (
-                <Text>
-                    Você ainda não tem ficha de treino. Peça a ficha ao seu personal, ou monte a sua própria
-                    em breve aqui no app.
-                </Text>
+                <>
+                    <Text>
+                        Você ainda não tem ficha de treino. Peça a ficha ao seu personal, ou monte a sua
+                        própria.
+                    </Text>
+                    {onBuildOwnPlan ? <Button onPress={onBuildOwnPlan}>Montar minha ficha</Button> : null}
+                </>
             ) : (
                 plans.map((plan) => (
                     <PlanCard

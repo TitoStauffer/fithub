@@ -11,6 +11,8 @@ import { AcceptInvitationScreen } from '../links/AcceptInvitationScreen';
 import { linksApiFrom, tokenFromUrl, type LinksApi } from '../links/linksApi';
 import { LinksScreen } from '../links/LinksScreen';
 import { HistoryScreen } from '../workouts/HistoryScreen';
+import { OwnPlanScreen } from '../workouts/OwnPlanScreen';
+import { ownPlanApiFrom, type OwnPlanApi } from '../workouts/ownPlanForm';
 import { RecordsScreen } from '../workouts/RecordsScreen';
 import { TodayWorkoutScreen } from '../workouts/TodayWorkoutScreen';
 import {
@@ -39,7 +41,8 @@ type Screen =
     | 'workout'
     | 'session'
     | 'history'
-    | 'records';
+    | 'records'
+    | 'ownPlan';
 
 /** De onde chegam os links abertos pelo sistema (`fithub://convite/<token>`); injetável nos testes. */
 export interface LinkSource {
@@ -60,6 +63,7 @@ export function ClientArea({
     workoutsApi: injectedWorkouts,
     sessionApi: injectedSessions,
     historyApi: injectedHistory,
+    ownPlanApi: injectedOwnPlans,
 }: {
     api?: ProfileApi;
     linksApi?: LinksApi;
@@ -69,6 +73,7 @@ export function ClientArea({
     workoutsApi?: WorkoutsApi;
     sessionApi?: SessionApi;
     historyApi?: HistoryApi;
+    ownPlanApi?: OwnPlanApi;
 }) {
     const { apiFetch } = useSession();
     const api = useMemo(() => injected ?? profileApiFrom(apiFetch), [injected, apiFetch]);
@@ -88,6 +93,10 @@ export function ClientArea({
     const historyApi = useMemo(
         () => injectedHistory ?? historyApiFrom(apiFetch),
         [injectedHistory, apiFetch],
+    );
+    const ownPlanApi = useMemo(
+        () => injectedOwnPlans ?? ownPlanApiFrom(apiFetch),
+        [injectedOwnPlans, apiFetch],
     );
     // Treino aberto no registro por série (DEV-0071).
     const [sessionId, setSessionId] = useState<string>();
@@ -177,10 +186,12 @@ export function ClientArea({
                     setSessionId(opened);
                     setScreen('session');
                 }}
+                onBuildOwnPlan={() => setScreen('ownPlan')}
                 onDone={() => setScreen('home')}
             />
         );
     }
+    if (screen === 'ownPlan') return <OwnPlanScreen api={ownPlanApi} onDone={() => setScreen('home')} />;
     if (screen === 'session' && sessionId) {
         // Ao finalizar, volta ao treino de hoje, que relê a ficha e mostra o próximo treino.
         return (
@@ -218,6 +229,7 @@ export function ClientArea({
             <Button onPress={() => setScreen('workout')}>Treino de hoje</Button>
             <Button onPress={() => setScreen('history')}>Histórico de treinos</Button>
             <Button onPress={() => setScreen('records')}>Recordes</Button>
+            <Button onPress={() => setScreen('ownPlan')}>Minha ficha</Button>
             <Button onPress={() => setScreen('editProfile')}>Editar perfil</Button>
             <Button onPress={() => setScreen('health')}>Perfil de saúde</Button>
             <Button onPress={() => setScreen('accept')}>Aceitar convite</Button>
