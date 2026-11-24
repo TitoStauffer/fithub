@@ -278,4 +278,36 @@ class AssessmentApiTest extends ServiceIntegrationTest {
                 .isInstanceOf(DataIntegrityViolationException.class)
                 .hasMessageContaining("ck_body_assessment_skinfolds_presential");
     }
+
+    /** A CHECK da V10 exige a altura junto da estimativa e só aceita a Marinha na online, mesmo sem o domínio. */
+    @Test
+    void bancoRecusaMarinhaSemAlturaOuNaPresencialMesmoPorEscritaDireta() {
+        String insert = """
+                insert into body_assessment (id, client_id, assessment_type, measured_on, weight_kg, author_id,
+                    author_role, created_at, navy_percent, navy_height_cm)
+                values (:id, :client, :type, date '2026-11-20', 64.0, :author, :role, now(), 25.9, :height)
+                """;
+        UUID client = UUID.randomUUID();
+
+        assertThatThrownBy(() -> jdbc.sql(insert)
+                        .param("id", UUID.randomUUID())
+                        .param("client", client)
+                        .param("type", "ONLINE")
+                        .param("author", client)
+                        .param("role", "CLIENT")
+                        .param("height", null)
+                        .update())
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("ck_body_assessment_navy");
+        assertThatThrownBy(() -> jdbc.sql(insert)
+                        .param("id", UUID.randomUUID())
+                        .param("client", client)
+                        .param("type", "PRESENTIAL")
+                        .param("author", UUID.randomUUID())
+                        .param("role", "PROFESSIONAL")
+                        .param("height", 165)
+                        .update())
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("ck_body_assessment_navy");
+    }
 }
