@@ -1,0 +1,1085 @@
+{
+    "issue": "DEV-0081",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "A nutricionista sem vínculo passa a criar o plano",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": "public PlanView create(String nutritionistAccount, UUID clientId, Draft draft) {\n        clientAccess.requireActiveLink(nutritionistAccount, clientId);",
+            "replace": "public PlanView create(String nutritionistAccount, UUID clientId, Draft draft) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "A nutricionista sem vínculo passa a listar os planos",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": "public List<PlanView> listForClient(String nutritionistAccount, UUID clientId) {\n        clientAccess.requireActiveLink(nutritionistAccount, clientId);",
+            "replace": "public List<PlanView> listForClient(String nutritionistAccount, UUID clientId) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "A autora sem vínculo passa a editar o plano",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": "public PlanView update(String nutritionistAccount, UUID planId, Draft draft) {\n        MealPlan plan = authored(nutritionistAccount, planId);\n        clientAccess.requireActiveLink(nutritionistAccount, plan.clientId());",
+            "replace": "public PlanView update(String nutritionistAccount, UUID planId, Draft draft) {\n        MealPlan plan = authored(nutritionistAccount, planId);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "A autora sem vínculo passa a publicar o plano",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": "public PlanView publish(String nutritionistAccount, UUID planId) {\n        MealPlan plan = authored(nutritionistAccount, planId);\n        clientAccess.requireActiveLink(nutritionistAccount, plan.clientId());",
+            "replace": "public PlanView publish(String nutritionistAccount, UUID planId) {\n        MealPlan plan = authored(nutritionistAccount, planId);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Outra nutricionista passa a ver, editar e publicar o plano",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": ".filter(plan -> plan.authoredBy(nutritionistId))",
+            "replace": ".filter(plan -> true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "O plano publicado anterior deixa de ficar substituído",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": "                .ifPresent(active -> plans.saveStatus(active.replace(clock.instant()), active.updatedAt()));",
+            "replace": ";",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "O alimento próprio de outra nutricionista passa a entrar no plano",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": ".filter(food -> food.visibleTo(nutritionistId))",
+            "replace": ".filter(food -> true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "O alimento arquivado passa a entrar num plano onde não estava",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": ".filter(food -> !food.archived() || alreadyInPlan.contains(food.id()))",
+            "replace": ".filter(food -> true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "O alimento arquivado que já estava no plano deixa de ser aceito na edição",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": "!food.archived() || alreadyInPlan.contains(food.id())",
+            "replace": "!food.archived()",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "A medida de outra nutricionista passa a ser aceita",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": ".filter(found -> found.ownedBy(nutritionistId))",
+            "replace": ".filter(found -> true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "A medida de outro alimento passa a ser aceita",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": ".filter(found -> found.foodId().equals(draft.foodId()))",
+            "replace": ".filter(found -> true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "A quantidade deixa de ser calculada pela medida",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": "amount = measure.toBaseUnit(draft.measureCount());",
+            "replace": "amount = draft.amount();",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M13",
+            "description": "O dia deixa de somar as refeições",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": "day = day.plus(total);",
+            "replace": "day = total;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M14",
+            "description": "A refeição deixa de somar os itens",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": "total = total.plus(nutrients);",
+            "replace": "total = nutrients;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M15",
+            "description": "A refeição vazia na lista passa a derrubar o pedido em vez de apontar o campo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": "            if (draft == null) {\n                throw new InvalidMealPlanException(\"meals[\" + meal + \"]\", \"Informe a refeição.\");",
+            "replace": "            if (false) {\n                throw new InvalidMealPlanException(\"meals[\" + meal + \"]\", \"Informe a refeição.\");",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M16",
+            "description": "O item vazio passa a derrubar o pedido em vez de apontar o campo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": "        if (draft == null) {\n            throw new InvalidMealPlanException(\"foodId\", \"Escolha o alimento.\");",
+            "replace": "        if (false) {\n            throw new InvalidMealPlanException(\"foodId\", \"Escolha o alimento.\");",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M17",
+            "description": "O horário fora do formato passa a derrubar o pedido em vez de apontar o campo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/interfaces/rest/MealPlanController.java",
+            "find": "catch (DateTimeParseException invalid)",
+            "replace": "catch (IllegalStateException invalid)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M18",
+            "description": "O personal passa a ter rota de plano alimentar",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/interfaces/rest/MealPlanController.java",
+            "find": "@PreAuthorize(\"hasRole('NUTRITIONIST')\")",
+            "replace": "@PreAuthorize(\"isAuthenticated()\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M19",
+            "description": "Publicar passa a aceitar refeição sem alimento (BR-10)",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealPlan.java",
+            "find": "if (meal.items().isEmpty()) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M20",
+            "description": "O plano publicado passa a ser publicado de novo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealPlan.java",
+            "find": "if (status != Status.DRAFT) {\n            throw new MealPlanStateException(\"O plano já foi publicado.\");",
+            "replace": "if (false) {\n            throw new MealPlanStateException(\"O plano já foi publicado.\");",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M21",
+            "description": "O plano publicado passa a ser editado no lugar",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealPlan.java",
+            "find": "if (status != Status.DRAFT) {\n            throw new MealPlanStateException(\"Só o rascunho pode ser editado assim.\");",
+            "replace": "if (false) {\n            throw new MealPlanStateException(\"Só o rascunho pode ser editado assim.\");",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M22",
+            "description": "O rascunho passa a ser substituído",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealPlan.java",
+            "find": "if (status != Status.PUBLISHED) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M23",
+            "description": "O item passa a aceitar menos de 0,1",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealItem.java",
+            "find": "amount == null || amount.compareTo(MIN_AMOUNT) < 0 ||",
+            "replace": "amount == null ||",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M24",
+            "description": "O item passa a aceitar mais de 5000",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealItem.java",
+            "find": " || amount.compareTo(MAX_AMOUNT) > 0) {",
+            "replace": ") {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M25",
+            "description": "O item passa a aceitar a medida sem a quantidade de medidas, ou o contrário",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealItem.java",
+            "find": "if ((measureId == null) != (measureCount == null)) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M26",
+            "description": "A quantidade de medidas passa a aceitar menos de 0,1",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealItem.java",
+            "find": "&& measureCount.compareTo(MIN_MEASURE_COUNT) >= 0",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M27",
+            "description": "A quantidade de medidas passa a aceitar mais de 100",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealItem.java",
+            "find": "&& measureCount.compareTo(MAX_MEASURE_COUNT) <= 0",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M28",
+            "description": "O item passa a aceitar alimento vazio",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealItem.java",
+            "find": "if (foodId == null) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M29",
+            "description": "O nome da refeição passa a aceitar menos de 2 caracteres",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/Meal.java",
+            "find": "name.length() < MIN_NAME_LENGTH || ",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M30",
+            "description": "O nome da refeição passa a aceitar mais de 60 caracteres",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/Meal.java",
+            "find": " || name.length() > MAX_NAME_LENGTH",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M31",
+            "description": "A observação da refeição passa a aceitar mais de 500 caracteres",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/Meal.java",
+            "find": "if (note != null && note.length() > MAX_NOTE_LENGTH) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M32",
+            "description": "A refeição passa a aceitar mais de 30 alimentos",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/Meal.java",
+            "find": "if (items.size() > MAX_ITEMS) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M33",
+            "description": "A refeição vazia na montagem do domínio passa a derrubar em vez de apontar o campo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/Meal.java",
+            "find": "if (draft == null) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M34",
+            "description": "O nome do plano passa a aceitar menos de 2 caracteres",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealPlanVersion.java",
+            "find": "name.length() < MIN_NAME_LENGTH || ",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M35",
+            "description": "O nome do plano passa a aceitar mais de 80 caracteres",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealPlanVersion.java",
+            "find": " || name.length() > MAX_NAME_LENGTH",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M36",
+            "description": "O plano passa a aceitar a data de início vazia",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealPlanVersion.java",
+            "find": "if (startsOn == null) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M37",
+            "description": "A observação do plano passa a aceitar mais de 500 caracteres",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealPlanVersion.java",
+            "find": "if (note != null && note.length() > MAX_NOTE_LENGTH) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M38",
+            "description": "O plano passa a aceitar nenhuma refeição",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealPlanVersion.java",
+            "find": "meals == null || meals.isEmpty() || ",
+            "replace": "meals == null || ",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M39",
+            "description": "O plano passa a aceitar mais de 10 refeições",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealPlanVersion.java",
+            "find": " || meals.size() > MAX_MEALS",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M40",
+            "description": "A soma dos macros deixa de somar a proteína",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/food/Food.java",
+            "find": "proteinG.add(other.proteinG),",
+            "replace": "proteinG,",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M41",
+            "description": "A soma passa a trazer a fibra mesmo quando falta em alguma parte",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/food/Food.java",
+            "find": "fiberG == null || other.fiberG == null ? null : fiberG.add(other.fiberG));",
+            "replace": "fiberG == null ? other.fiberG : other.fiberG == null ? fiberG : fiberG.add(other.fiberG));",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M42",
+            "description": "O banco passa a aceitar estado fora da lista",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V8__plano_alimentar.sql",
+            "find": "constraint ck_meal_plan_status check (status in ('DRAFT', 'PUBLISHED', 'REPLACED'))",
+            "replace": "constraint ck_meal_plan_status check (status is not null)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M43",
+            "description": "O banco passa a aceitar dois planos ativos para o paciente",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V8__plano_alimentar.sql",
+            "find": "create unique index ux_meal_plan_published on meal_plan (client_id) where status = 'PUBLISHED';",
+            "replace": "create index ux_meal_plan_published on meal_plan (client_id) where status = 'PUBLISHED';",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M44",
+            "description": "O banco passa a aceitar a versão 0",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V8__plano_alimentar.sql",
+            "find": "check (number >= 1)",
+            "replace": "check (number >= 0)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M45",
+            "description": "O banco passa a aceitar o nome do plano com menos de 2 caracteres",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V8__plano_alimentar.sql",
+            "find": "constraint ck_meal_plan_version_name check (char_length(btrim(name)) >= 2)",
+            "replace": "constraint ck_meal_plan_version_name check (char_length(btrim(name)) >= 0)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M46",
+            "description": "O banco passa a aceitar mais de 10 refeições",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V8__plano_alimentar.sql",
+            "find": "check (position between 0 and 9)",
+            "replace": "check (position between 0 and 99)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M47",
+            "description": "O banco passa a aceitar o nome da refeição com menos de 2 caracteres",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V8__plano_alimentar.sql",
+            "find": "constraint ck_meal_name check (char_length(btrim(name)) >= 2)",
+            "replace": "constraint ck_meal_name check (char_length(btrim(name)) >= 0)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M48",
+            "description": "O banco passa a aceitar mais de 30 alimentos na refeição",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V8__plano_alimentar.sql",
+            "find": "check (position between 0 and 29)",
+            "replace": "check (position between 0 and 99)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M49",
+            "description": "O banco passa a aceitar quantidade fora de 0,1 a 5000",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V8__plano_alimentar.sql",
+            "find": "check (amount between 0.1 and 5000)",
+            "replace": "check (amount >= 0)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M50",
+            "description": "O banco passa a aceitar quantidade de medidas fora de 0,1 a 100",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V8__plano_alimentar.sql",
+            "find": "check (measure_count is null or measure_count between 0.1 and 100)",
+            "replace": "check (measure_count is null or measure_count >= 0)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M51",
+            "description": "O rascunho lido antes da publicação passa a regravar o plano publicado",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/JdbcMealPlanRepository.java",
+            "find": "update meal_plan set updated_at = :updatedAt\n                        where id = :id and updated_at = :readUpdatedAt",
+            "replace": "update meal_plan set updated_at = :updatedAt\n                        where id = :id",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M52",
+            "description": "A publicação lida antes da edição passa a publicar o conteúdo antigo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/JdbcMealPlanRepository.java",
+            "find": "update meal_plan set status = :status, updated_at = :updatedAt\n                        where id = :id and updated_at = :readUpdatedAt",
+            "replace": "update meal_plan set status = :status, updated_at = :updatedAt\n                        where id = :id",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M53",
+            "description": "A gravação do rascunho desatualizado deixa de responder conflito e segue regravando",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/JdbcMealPlanRepository.java",
+            "find": "if (changed == 0) {\n            throw changedMeanwhile();\n        }\n        MealPlanVersion version = plan.current();",
+            "replace": "if (false) {\n            throw changedMeanwhile();\n        }\n        MealPlanVersion version = plan.current();",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M54",
+            "description": "A troca de estado desatualizada deixa de responder conflito e segue gravando a publicação",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/JdbcMealPlanRepository.java",
+            "find": "if (changed == 0) {\n            throw changedMeanwhile();\n        }\n        jdbc.sql(\"update meal_plan_version set published_at",
+            "replace": "if (false) {\n            throw changedMeanwhile();\n        }\n        jdbc.sql(\"update meal_plan_version set published_at",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

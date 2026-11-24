@@ -52,3 +52,13 @@ atualização e confere que ela continua lá.
     `finished_at`, com `coalesce` para nunca desfazer a finalização.
   - **Prevenção:** teste com a sessão desatualizada gravada depois da finalização; mutantes M6, M7 e M9 de
     `mutations/DEV-0067.json`.
+- **Revisão:** Code Review do PR #266, no SHA `df0ab1c` (MEDIUM: o `save` do plano alimentar regravava estado,
+  data de publicação e refeições juntos; um `PUT` do rascunho que corria junto com a publicação devolvia o plano a
+  rascunho e trocava o conteúdo publicado) — DEV-0081 (#73) · **PR:** #266
+  - **Impacto:** plano publicado sobrescrito, contra o BR-09, e paciente sem plano ativo sem aviso.
+  - **Correção:** gravação por fluxo com concorrência otimista. `add` cria, `saveDraft` grava o conteúdo e
+    `saveStatus` troca só o estado e a data de publicação, sem regravar as refeições. As duas últimas só gravam se o
+    `updated_at` ainda é o lido; senão, 409.
+  - **Prevenção:** testes que gravam pelo repositório um rascunho lido antes da publicação e uma publicação lida antes
+    da edição; mutantes M51 a M54 de `mutations/DEV-0081.json`. Quando o fluxo troca a linha inteira (o conteúdo do
+    rascunho), a guarda é a versão lida, não `coalesce`.

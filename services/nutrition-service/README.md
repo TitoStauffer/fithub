@@ -78,3 +78,22 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
 - Nutricionista com vínculo ativo (BR-02): `GET`/`POST /clients/{clientId}/food-restrictions` e
   `PUT`/`DELETE /clients/{clientId}/food-restrictions/{restrictionId}`; sem vínculo, ou restrição de outro paciente,
   404. O paciente lê as dele em `GET /me/food-restrictions`. O personal não tem rota (BR-03).
+
+## Plano alimentar (DEV-0081)
+
+- `meal_plan`, `meal_plan_version`, `meal` e `meal_item` (migration V8). O plano é da nutricionista para o paciente
+  vinculado: nome (2 a 80), início, observação (até 500) e de 1 a 10 refeições, cada uma com nome (2 a 60), horário
+  sugerido opcional (`HH:MM`), observação e até 30 alimentos. O conteúdo fica numa versão desde o rascunho, para a
+  edição do publicado gerar outra versão (DEV-0083).
+- Item: alimento da TACO ou próprio da autora, sem arquivado (a menos que já estivesse no plano), e quantidade na unidade
+  base (0,1 a 5000 g ou ml). Com a medida caseira dela daquele alimento e quantas (0,1 a 100), a quantidade sai da
+  medida. Medida apagada depois some do item; a quantidade fica.
+- Macros calculados na leitura (`Food.nutrientsIn`): por item, a refeição soma os itens e o dia soma as refeições. A
+  fibra some do total quando falta em algum alimento.
+- Rascunho, publicado e substituído: publicar exige alimento em cada refeição (BR-10) e deixa substituído o plano ativo
+  anterior do paciente (um ativo por vez, garantido pelo índice `ux_meal_plan_published`). Editar o publicado responde
+  409 até a DEV-0083.
+- Nutricionista com vínculo ativo (BR-02): `GET`/`POST /clients/{clientId}/meal-plans`, `PUT /meal-plans/{id}` e
+  `POST /meal-plans/{id}/publish`. `GET /meal-plans/{id}` só para a autora, mesmo sem vínculo (BR-05). Sem vínculo ou
+  plano de outra nutricionista, 404; campo fora das regras ou alimento indisponível, 400 com o caminho
+  (`meals[1].items[0].foodId`). O personal não tem rota (BR-03).
