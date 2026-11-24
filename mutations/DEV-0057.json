@@ -1,0 +1,110 @@
+{
+    "issue": "DEV-0057",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Web: link da mídia passa a abrir sem noopener noreferrer",
+            "area": "apps",
+            "file": "apps/web/src/features/exercises/ExercisesPage.tsx",
+            "find": " rel=\"noopener noreferrer\"",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Web: exercício importado deixa de mostrar a atribuição",
+            "area": "apps",
+            "file": "apps/web/src/features/exercises/ExercisesPage.tsx",
+            "find": "{exercise.attribution ? (",
+            "replace": "{false ? (",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Web: arquivar passa a dispensar a confirmação",
+            "area": "apps",
+            "file": "apps/web/src/features/exercises/ExercisesPage.tsx",
+            "find": "onClick={() => setConfirming(true)}",
+            "replace": "onClick={() => archive.mutate()}",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Web: link da mídia sem https passa a ser aceito no navegador",
+            "area": "apps",
+            "file": "apps/web/src/features/exercises/exerciseForm.ts",
+            "find": "if (value.length > LIMITS.maxMediaUrl || !value.startsWith('https://')) return false;",
+            "replace": "if (value.length > LIMITS.maxMediaUrl) return false;",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Web: erro de campo da API deixa de aparecer no campo",
+            "area": "apps",
+            "file": "apps/web/src/features/exercises/ExerciseFormPage.tsx",
+            "find": "setErrors(error.fieldErrors);",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Web: catálogo de exercícios passa a abrir para a nutricionista",
+            "area": "apps",
+            "file": "apps/web/src/App.tsx",
+            "find": "roles={['personal']}",
+            "replace": "roles={['personal', 'nutritionist']}",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Web: link de exercícios passa a aparecer para quem não é personal",
+            "area": "apps",
+            "file": "apps/web/src/App.tsx",
+            "find": "{personal ? (",
+            "replace": "{true ? (",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}

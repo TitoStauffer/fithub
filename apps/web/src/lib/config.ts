@@ -11,9 +11,14 @@ export const config = {
     keycloakClientId: 'fithub-web',
     accountApiUrl: setting(import.meta.env.VITE_ACCOUNT_API_URL, 'http://localhost:8081'),
     clientApiUrl: setting(import.meta.env.VITE_CLIENT_API_URL, 'http://localhost:8082'),
+    trainingApiUrl: setting(import.meta.env.VITE_TRAINING_API_URL, 'http://localhost:8083'),
 } as const;
 
 /** Origens que podem receber o token de acesso: só as APIs do FitHub. */
 export function apiOrigins(): string[] {
-    return [new URL(config.accountApiUrl).origin, new URL(config.clientApiUrl).origin];
+    return [
+        new URL(config.accountApiUrl).origin,
+        new URL(config.clientApiUrl).origin,
+        new URL(config.trainingApiUrl).origin,
+    ];
 }

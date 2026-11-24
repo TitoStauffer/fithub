@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Link, Navigate, NavLink, Route, Routes } from 'react-router';
 
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,8 @@ import { AssessmentFormPage } from '@/features/assessments/AssessmentFormPage';
 import { ClientDetailPage } from '@/features/clients/ClientDetailPage';
 import { ClientsPage } from '@/features/clients/ClientsPage';
 import { InvitationsPage } from '@/features/clients/InvitationsPage';
+import { ExerciseFormPage } from '@/features/exercises/ExerciseFormPage';
+import { ExercisesPage } from '@/features/exercises/ExercisesPage';
 import { OnboardingPage } from '@/features/onboarding/OnboardingPage';
 import { ServiceStatus } from '@/features/status/ServiceStatus';
 
@@ -80,8 +83,18 @@ function HomePage() {
     );
 }
 
-/** Área do profissional (DEV-0043): clientes vinculados, detalhe do cliente e convites. */
+/** Área do profissional (DEV-0043): clientes vinculados, detalhe do cliente, convites e, para o personal, exercícios. */
 function ProfessionalArea() {
+    const { user } = useAuth();
+    const personal = user?.roles.includes('personal') ?? false;
+    const onlyPersonal = (page: ReactNode) => (
+        <ProtectedRoute
+            roles={['personal']}
+            onMissingRole={<p role="alert">O catálogo de exercícios é só para o personal.</p>}
+        >
+            {page}
+        </ProtectedRoute>
+    );
     return (
         <section className="space-y-4">
             <h2 className="text-lg font-semibold">Área do profissional</h2>
@@ -92,12 +105,20 @@ function ProfessionalArea() {
                 <NavLink className="underline" to="/app/convites">
                     Convites
                 </NavLink>
+                {personal ? (
+                    <NavLink className="underline" to="/app/exercicios">
+                        Exercícios
+                    </NavLink>
+                ) : null}
             </nav>
             <Routes>
                 <Route index element={<ClientsPage />} />
                 <Route path="convites" element={<InvitationsPage />} />
                 <Route path="clientes/:clientId" element={<ClientDetailPage />} />
                 <Route path="clientes/:clientId/avaliacoes/nova" element={<AssessmentFormPage />} />
+                <Route path="exercicios" element={onlyPersonal(<ExercisesPage />)} />
+                <Route path="exercicios/novo" element={onlyPersonal(<ExerciseFormPage />)} />
+                <Route path="exercicios/:exerciseId/editar" element={onlyPersonal(<ExerciseFormPage />)} />
             </Routes>
             <ServiceStatus />
         </section>
