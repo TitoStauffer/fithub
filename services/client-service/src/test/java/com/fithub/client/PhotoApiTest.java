@@ -1,6 +1,7 @@
 package com.fithub.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -24,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -272,5 +274,27 @@ class PhotoApiTest extends ServiceIntegrationTest {
                 .andExpect(jsonPath("$.length()").value(0));
         // Nenhuma URL assinada nem chave de objeto no log.
         assertThat(output.getAll()).doesNotContain("X-Amz-Signature").doesNotContain("clients/" + client);
+    }
+
+    /** A CHECK da V12 recusa pose fora de frente, lado e costas mesmo sem passar pela API. */
+    @Test
+    void bancoRecusaPoseForaDasTresMesmoPorEscritaDireta() {
+        UUID client = UUID.randomUUID();
+        UUID assessment = UUID.randomUUID();
+        jdbc.sql("""
+                        insert into body_assessment (id, client_id, assessment_type, measured_on, weight_kg, author_id,
+                            author_role, created_at)
+                        values (:id, :client, 'ONLINE', date '2026-11-20', 64.0, :client, 'CLIENT', now())
+                        """).param("id", assessment).param("client", client).update();
+
+        assertThatThrownBy(() -> jdbc.sql("""
+                                insert into assessment_photo (assessment_id, client_id, pose, object_key, uploaded_at)
+                                values (:assessment, :client, 'TOP', 'chave-de-teste', now())
+                                """)
+                        .param("assessment", assessment)
+                        .param("client", client)
+                        .update())
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("ck_assessment_photo_pose");
     }
 }

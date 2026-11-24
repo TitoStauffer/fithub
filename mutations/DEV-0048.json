@@ -120,6 +120,26 @@
                 "-Dtest=PhotoApiTest",
                 "-Dsurefire.failIfNoSpecifiedTests=false"
             ]
+        },
+        {
+            "id": "M7",
+            "description": "Banco passa a aceitar pose fora de frente, lado e costas",
+            "area": "java",
+            "file": "services/client-service/src/main/resources/db/migration/V12__fotos_da_avaliacao.sql",
+            "find": "pose in ('FRONT', 'SIDE', 'BACK')",
+            "replace": "pose in ('FRONT', 'SIDE', 'BACK', 'TOP')",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=PhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
         }
     ]
 }
