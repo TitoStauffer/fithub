@@ -125,3 +125,12 @@ suba o Keycloak pelo compose de `infra/`). A decisão dos papéis e dos clients 
 - **Publicar** pede confirmação e exige o rascunho salvo e um exercício em cada treino. Na ficha publicada, a tela avisa
   que salvar cria a versão seguinte e manda a versão base; se outra edição chegou antes (409), a ficha é recarregada com
   aviso. Vínculo encerrado mostra que o acesso acabou.
+
+## Restrições de mobilidade e fichas vencendo (DEV-0064)
+
+- Na tela do aluno vinculado, a seção **Restrições de mobilidade** (só para o papel `personal`) lista as restrições e
+  permite adicionar (região do corpo + descrição de 1 a 500 caracteres), editar e remover com confirmação, com a
+  validação da API espelhada e o erro de campo dela. A ficha alerta quando um exercício envolve uma dessas regiões.
+- **`/app/fichas-vencendo`** (link na navegação, só para o personal): as fichas publicadas dos alunos vinculados que
+  vencem nos próximos 7 dias ou já venceram, com aluno, ficha e data, as vencidas marcadas; cada uma leva ao aluno.
+- A nutricionista não vê nenhuma das duas (BR-03): quem não é personal recebe "Esta área é só para o personal.".

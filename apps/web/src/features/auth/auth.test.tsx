@@ -25,6 +25,7 @@ vi.mock('@/features/assessments/AssessmentFormPage', () => ({ AssessmentFormPage
 // O catálogo de exercícios tem os testes dele (exercises.test.tsx); aqui só importa quem chega até ele.
 vi.mock('@/features/exercises/ExercisesPage', () => ({ ExercisesPage: () => <h3>Catálogo</h3> }));
 vi.mock('@/features/exercises/ExerciseFormPage', () => ({ ExerciseFormPage: () => null }));
+vi.mock('@/features/plans/ExpiringPlansPage', () => ({ ExpiringPlansPage: () => <h3>Vencendo</h3> }));
 
 let auth: AuthState;
 function AuthProbe() {
@@ -248,10 +249,28 @@ describe('catálogo de exercícios', () => {
     it('a nutricionista não vê o link nem a página', async () => {
         renderApp(fakeAuthClient({ user: userWith('nutritionist') }), '/app/exercicios');
 
-        expect(await screen.findByRole('alert')).toHaveTextContent(
-            'O catálogo de exercícios é só para o personal.',
-        );
+        expect(await screen.findByRole('alert')).toHaveTextContent('Esta área é só para o personal.');
         expect(screen.queryByRole('heading', { name: 'Catálogo' })).not.toBeInTheDocument();
         expect(screen.queryByRole('link', { name: 'Exercícios' })).not.toBeInTheDocument();
+    });
+});
+
+describe('fichas vencendo', () => {
+    it('é do personal: o link aparece e a página abre', async () => {
+        renderApp(fakeAuthClient({ user: userWith('personal') }), '/app/fichas-vencendo');
+
+        expect(await screen.findByRole('heading', { name: 'Vencendo' })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Fichas vencendo' })).toHaveAttribute(
+            'href',
+            '/app/fichas-vencendo',
+        );
+    });
+
+    it('a nutricionista não vê o link nem a página', async () => {
+        renderApp(fakeAuthClient({ user: userWith('nutritionist') }), '/app/fichas-vencendo');
+
+        expect(await screen.findByRole('alert')).toBeInTheDocument();
+        expect(screen.queryByRole('heading', { name: 'Vencendo' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: 'Fichas vencendo' })).not.toBeInTheDocument();
     });
 });

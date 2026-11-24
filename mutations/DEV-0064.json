@@ -1,0 +1,80 @@
+{
+    "issue": "DEV-0064",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Web: restrição sem região passa a ser aceita no navegador",
+            "area": "apps",
+            "file": "apps/web/src/features/restrictions/RestrictionsSection.tsx",
+            "find": "if (!form.region) errors.region = 'Informe a região do corpo.';",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Web: remover restrição passa a dispensar a confirmação",
+            "area": "apps",
+            "file": "apps/web/src/features/restrictions/RestrictionsSection.tsx",
+            "find": "onClick={() => setConfirming(true)}",
+            "replace": "onClick={() => remove.mutate()}",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Web: erro de campo da API deixa de aparecer na restrição",
+            "area": "apps",
+            "file": "apps/web/src/features/restrictions/RestrictionsSection.tsx",
+            "find": "setErrors(error.fieldErrors);",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Web: ficha vencida deixa de ser marcada",
+            "area": "apps",
+            "file": "apps/web/src/features/plans/ExpiringPlansPage.tsx",
+            "find": "const expired = (plan.expiresOn ?? '') < today;",
+            "replace": "const expired = false;",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Web: link de fichas vencendo passa a aparecer para quem não é personal",
+            "area": "apps",
+            "file": "apps/web/src/App.tsx",
+            "find": "                {personal ? (\n                    <NavLink className=\"underline\" to=\"/app/fichas-vencendo\">",
+            "replace": "                {true ? (\n                    <NavLink className=\"underline\" to=\"/app/fichas-vencendo\">",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { AssessmentHistory } from '@/features/assessments/AssessmentHistory';
 import { useAuth } from '@/features/auth/authContext';
 import { PlansSection } from '@/features/plans/PlansSection';
+import { RestrictionsSection } from '@/features/restrictions/RestrictionsSection';
 import { PhotoComparison } from '@/features/assessments/PhotoComparison';
 import { AccessEndedError } from '@/lib/clientApi';
 
@@ -22,7 +23,7 @@ export function ClientDetailPage() {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
     const [confirming, setConfirming] = useState(false);
-    // Fichas de treino são do personal (BR-03): a nutricionista não vê a seção.
+    // Restrições de mobilidade e fichas de treino são do personal (BR-03): a nutricionista não vê as seções.
     const { user } = useAuth();
     const personal = user?.roles.includes('personal') ?? false;
 
@@ -103,6 +104,7 @@ export function ClientDetailPage() {
             ) : null}
             {profile.data ? <AssessmentHistory clientId={clientId} /> : null}
             {profile.data ? <PhotoComparison clientId={clientId} /> : null}
+            {profile.data && personal ? <RestrictionsSection clientId={clientId} /> : null}
             {profile.data && personal ? <PlansSection clientId={clientId} /> : null}
             {profile.data && linkId ? (
                 <div className="space-y-2">
