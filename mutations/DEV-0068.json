@@ -1,0 +1,245 @@
+{
+    "issue": "DEV-0068",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "1RM estimado deixa de usar o divisor 30 de Epley",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/record/PersonalRecords.java",
+            "find": "BigDecimal.valueOf(30)",
+            "replace": "BigDecimal.valueOf(20)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PersonalRecordsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "1RM estimado passa a aceitar 13 repetições",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/record/PersonalRecords.java",
+            "find": "MAX_REPS_FOR_ESTIMATE = 12;",
+            "replace": "MAX_REPS_FOR_ESTIMATE = 13;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PersonalRecordsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Com 1 repetição o 1RM deixa de ser a própria carga",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/record/PersonalRecords.java",
+            "find": "if (reps == 1) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PersonalRecordsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Série sem repetição passa a contar como recorde",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/record/PersonalRecords.java",
+            "find": "if (performance.reps() >= 1) {",
+            "replace": "if (true) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PersonalRecordsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "No empate, vence a marca mais recente",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/record/PersonalRecords.java",
+            "find": "Comparator.reverseOrder())",
+            "replace": "Comparator.naturalOrder())",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PersonalRecordsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Recorde manual passa a aceitar data no futuro",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/record/ManualRecord.java",
+            "find": "if (performedOn != null && performedOn.isAfter(today)) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PersonalRecordsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Recorde manual passa a aceitar exercício fora do catálogo e das fichas",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ClientRecords.java",
+            "find": "if (draft.exerciseId() != null && !usableBy(clientId, draft.exerciseId())) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=SessionSetsApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "Personal sem vínculo ativo passa a ler os recordes do aluno",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ClientRecords.java",
+            "find": "clientAccess.requireActiveLink(personalAccount, clientId);",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=SessionSetsApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "Aluno passa a apagar recorde manual de outro aluno",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ClientRecords.java",
+            "find": ".filter(found -> found.ownedBy(clientId))",
+            "replace": ".filter(found -> true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=SessionSetsApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "Rota de recordes do aluno passa a aceitar conta só de cliente",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/interfaces/rest/ClientRecordController.java",
+            "find": "@PreAuthorize(\"hasRole('PERSONAL')\")",
+            "replace": "@PreAuthorize(\"hasRole('CLIENT')\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=SessionSetsApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "Banco passa a aceitar carga fora das regras no recorde manual",
+            "area": "java",
+            "file": "services/training-service/src/main/resources/db/migration/V13__recorde_manual.sql",
+            "find": "check (load_kg > 0 and load_kg <= 1000 and load_kg * 4 = trunc(load_kg * 4))",
+            "replace": "check (load_kg >= 0)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=SessionSetsApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "Banco passa a aceitar repetições fora das regras no recorde manual",
+            "area": "java",
+            "file": "services/training-service/src/main/resources/db/migration/V13__recorde_manual.sql",
+            "find": "check (reps between 1 and 300)",
+            "replace": "check (reps >= 0)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=SessionSetsApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}
