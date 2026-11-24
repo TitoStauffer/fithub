@@ -56,18 +56,25 @@ public class ManagePhotos {
         Assessment assessment = ownAssessment(clientAccount, assessmentId);
         String type = Photo.requireContentType(contentType);
         String uploadId = UUID.randomUUID().toString();
-        URI url = storage.presignUpload(objectKey(assessment, pose, uploadId), type);
+        URI url = storage.presignUpload(uploadKey(assessment, pose, uploadId), type);
         return new Upload(url, uploadId, clock.instant().plus(PhotoStorage.URL_VALIDITY));
     }
 
     /**
-     * Confirma o envio: o objeto precisa existir, ser JPEG ou PNG e ter até 10 MB; fora disso, é apagado e a
-     * confirmação é recusada. A foto nova é gravada antes de qualquer arquivo sair; depois, os outros objetos da
-     * pose (a foto anterior e envios de tentativas que nunca foram confirmados) são apagados.
+     * Confirma o envio. O objeto é copiado, dentro do bucket, para uma chave final que nenhuma URL de envio
+     * alcança: a URL de `PUT` vale 5 minutos e pode ser usada de novo, então a foto guardada não pode ficar na
+     * chave do envio. A cópia precisa ser JPEG ou PNG de até 10 MB; fora disso, é apagada e a confirmação é
+     * recusada. A foto nova é gravada antes de qualquer arquivo antigo sair; depois, os outros objetos da pose (a
+     * foto anterior e envios que nunca foram confirmados) são apagados.
      */
     public Viewable confirm(String clientAccount, UUID assessmentId, Photo.Pose pose, String uploadId) {
         Assessment assessment = ownAssessment(clientAccount, assessmentId);
-        String key = objectKey(assessment, pose, requireUploadId(uploadId));
+        String uploadKey = uploadKey(assessment, pose, requireUploadId(uploadId));
+        String key = photoKey(assessment, pose);
+        if (!storage.copy(uploadKey, key)) {
+            throw new InvalidAssessmentException("uploadId", "Envie a foto antes de confirmar.");
+        }
+        storage.delete(uploadKey);
         PhotoStorage.StoredObject stored = storage.describe(key)
                 .orElseThrow(() -> new InvalidAssessmentException("uploadId", "Envie a foto antes de confirmar."));
         if (!Photo.CONTENT_TYPES.contains(stored.contentType()) || stored.sizeBytes() > Photo.MAX_BYTES) {
@@ -176,7 +183,13 @@ public class ManagePhotos {
         return assessmentPrefix(assessment) + pose.name().toLowerCase(Locale.ROOT) + "-";
     }
 
-    private static String objectKey(Assessment assessment, Photo.Pose pose, String uploadId) {
-        return posePrefix(assessment, pose) + uploadId;
+    /** Chave do envio: a única que a URL pré-assinada de `PUT` alcança. */
+    private static String uploadKey(Assessment assessment, Photo.Pose pose, String uploadId) {
+        return posePrefix(assessment, pose) + "upload-" + uploadId;
+    }
+
+    /** Chave da foto confirmada: nova a cada confirmação e fora do alcance de qualquer URL de envio. */
+    private static String photoKey(Assessment assessment, Photo.Pose pose) {
+        return posePrefix(assessment, pose) + "photo-" + UUID.randomUUID();
     }
 }

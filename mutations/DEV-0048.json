@@ -260,6 +260,26 @@
                 "-Dtest=AssessmentApiTest",
                 "-Dsurefire.failIfNoSpecifiedTests=false"
             ]
+        },
+        {
+            "id": "M14",
+            "description": "Foto confirmada volta a ficar na chave que a URL de envio alcança",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManagePhotos.java",
+            "find": "        String key = photoKey(assessment, pose);\n        if (!storage.copy(uploadKey, key)) {\n            throw new InvalidAssessmentException(\"uploadId\", \"Envie a foto antes de confirmar.\");\n        }\n        storage.delete(uploadKey);",
+            "replace": "        String key = uploadKey;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=PhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
         }
     ]
 }

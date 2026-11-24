@@ -9,3 +9,6 @@ create table assessment_photo (
     primary key (assessment_id, pose),
     constraint ck_assessment_photo_pose check (pose in ('FRONT', 'SIDE', 'BACK'))
 );
+
+-- Cada objeto é de no máximo uma foto; o expurgo consulta por chave.
+create unique index ux_assessment_photo_object_key on assessment_photo (object_key);

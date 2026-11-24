@@ -13,6 +13,7 @@ import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -132,6 +133,26 @@ class S3PhotoStorage implements PhotoStorage {
     public void delete(String objectKey) {
         client.deleteObject(
                 DeleteObjectRequest.builder().bucket(bucket).key(objectKey).build());
+    }
+
+    @Override
+    public boolean copy(String fromKey, String toKey) {
+        try {
+            client.copyObject(CopyObjectRequest.builder()
+                    .sourceBucket(bucket)
+                    .sourceKey(fromKey)
+                    .destinationBucket(bucket)
+                    .destinationKey(toKey)
+                    .build());
+            return true;
+        } catch (NoSuchKeyException missing) {
+            return false;
+        } catch (S3Exception other) {
+            if (other.statusCode() == 404) {
+                return false;
+            }
+            throw other;
+        }
     }
 
     @Override

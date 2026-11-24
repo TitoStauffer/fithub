@@ -23,6 +23,12 @@ public interface PhotoStorage {
 
     void delete(String objectKey);
 
+    /**
+     * Copia o objeto dentro do bucket, sem passar pelo serviço. Devolve {@code false} se a origem não existe mais
+     * (por exemplo, o expurgo já levou um envio antigo).
+     */
+    boolean copy(String fromKey, String toKey);
+
     /** Apaga todos os objetos com o prefixo: os confirmados e os envios que nunca foram confirmados. */
     void deleteAll(String prefix);
 

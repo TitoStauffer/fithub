@@ -312,7 +312,7 @@ class PhotoApiTest extends ServiceIntegrationTest {
         JsonNode upload = read(uploadUrl(client, assessment, pose, "image/jpeg").andExpect(status().isOk()));
         assertThat(putFile(upload.get("uploadUrl").asString(), "image/jpeg", JPEG))
                 .isEqualTo(200);
-        return "clients/%s/assessments/%s/%s-%s"
+        return "clients/%s/assessments/%s/%s-upload-%s"
                 .formatted(
                         client,
                         assessment,
@@ -395,5 +395,29 @@ class PhotoApiTest extends ServiceIntegrationTest {
         managePhotos.purgeUnconfirmed(Instant.now().plus(1, ChronoUnit.DAYS));
         assertThat(stored(pending)).as("envio nunca confirmado").isFalse();
         assertThat(stored(confirmed)).as("foto confirmada continua").isTrue();
+    }
+
+    /**
+     * A URL de envio vale 5 minutos e pode ser usada de novo: a foto confirmada não pode mudar por ela, senão um
+     * arquivo de qualquer tamanho passaria por cima do limite de 10 MB.
+     */
+    @Test
+    void putDeNovoNaUrlDeEnvioDepoisDeConfirmarNaoMudaAFotoGuardada() throws Exception {
+        String client = client();
+        String assessment = assessment(client);
+        JsonNode upload =
+                read(uploadUrl(client, assessment, "FRONT", "image/jpeg").andExpect(status().isOk()));
+        String url = upload.get("uploadUrl").asString();
+        assertThat(putFile(url, "image/jpeg", JPEG)).isEqualTo(200);
+        confirm(client, assessment, "FRONT", upload.get("uploadId").asString()).andExpect(status().isOk());
+
+        assertThat(putFile(url, "image/jpeg", new byte[10 * 1024 * 1024 + 1])).isEqualTo(200);
+
+        String key = confirmedKey(assessment, "FRONT");
+        assertThat(storage.describe(key).orElseThrow().sizeBytes()).isEqualTo(JPEG.length);
+        JsonNode photos = read(mvc.perform(get("/clients/me/assessments/%s/photos".formatted(assessment))
+                        .header("Authorization", "Bearer conta-" + client))
+                .andExpect(status().isOk()));
+        assertThat(getFile(photos.get(0).get("url").asString()).body()).isEqualTo(JPEG);
     }
 }
