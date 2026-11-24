@@ -349,6 +349,13 @@
       "MealItem" : {
         "description" : "Alimento da refeição, com a quantidade e os macros dela.",
         "properties" : {
+          "alternatives" : {
+            "description" : "Até 2 trocas possíveis: a secundária e a terciária, na ordem.",
+            "items" : {
+              "$ref" : "#/components/schemas/MealItemAlternative"
+            },
+            "type" : "array"
+          },
           "amount" : {
             "description" : "Quantidade na unidade base.",
             "type" : "number"
@@ -382,9 +389,59 @@
         },
         "type" : "object"
       },
+      "MealItemAlternative" : {
+        "description" : "Troca possível do alimento, com a diferença para o principal.",
+        "properties" : {
+          "amount" : {
+            "description" : "Quantidade na unidade base.",
+            "type" : "number"
+          },
+          "baseUnit" : {
+            "description" : "G (gramas) ou ML (mililitros).",
+            "enum" : [ "G", "ML" ],
+            "type" : "string"
+          },
+          "difference" : {
+            "$ref" : "#/components/schemas/NutrientAmounts",
+            "description" : "Alternativa menos principal, com sinal: positivo é a mais na alternativa."
+          },
+          "foodId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "foodName" : {
+            "type" : "string"
+          },
+          "nutrients" : {
+            "$ref" : "#/components/schemas/NutrientAmounts"
+          }
+        },
+        "type" : "object"
+      },
+      "MealItemAlternativeInput" : {
+        "description" : "O alimento da alternativa e a quantidade (0,1 a 5000).",
+        "properties" : {
+          "amount" : {
+            "type" : "number"
+          },
+          "foodId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "amount", "foodId" ],
+        "type" : "object"
+      },
       "MealItemInput" : {
         "description" : "O alimento e a quantidade (0,1 a 5000), ou a medida caseira e quantas (a quantidade vem dela).",
         "properties" : {
+          "alternatives" : {
+            "description" : "Até 2 alternativas, sem repetir o alimento principal nem a outra.",
+            "items" : {
+              "$ref" : "#/components/schemas/MealItemAlternativeInput"
+            },
+            "type" : "array"
+          },
           "amount" : {
             "type" : "number"
           },

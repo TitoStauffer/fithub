@@ -196,6 +196,19 @@ public record Food(
                     fatG.add(other.fatG),
                     fiberG == null || other.fiberG == null ? null : fiberG.add(other.fiberG));
         }
+
+        /**
+         * A diferença para outra porção, com sinal (DEV-0082): a alternativa menos o principal. Positivo é a mais na
+         * alternativa. A fibra falta se faltar em alguma das duas.
+         */
+        public Amounts minus(Amounts other) {
+            return new Amounts(
+                    energyKcal.subtract(other.energyKcal),
+                    proteinG.subtract(other.proteinG),
+                    carbsG.subtract(other.carbsG),
+                    fatG.subtract(other.fatG),
+                    fiberG == null || other.fiberG == null ? null : fiberG.subtract(other.fiberG));
+        }
     }
 
     /** Os nutrientes de {@code quantity} gramas (ou ml) do alimento (DEV-0076): o valor por 100 vezes a quantidade. */

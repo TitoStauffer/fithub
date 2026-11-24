@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -138,6 +139,67 @@ class MealPlanTest {
         MealPlan edited = plan.editDraft("Outro nome", LocalDate.now(), null, List.of(meal("Ceia", item("20"))), NOW);
         assertThat(edited.current().name()).isEqualTo("Outro nome");
         assertThat(edited.current().id()).isEqualTo(plan.current().id());
+    }
+
+    private static MealItem.Alternative alternative(UUID food, String amount) {
+        return new MealItem.Alternative(food, new BigDecimal(amount));
+    }
+
+    private static MealItem withAlternatives(MealItem.Alternative... alternatives) {
+        return new MealItem(FOOD, BigDecimal.TEN, null, null, Arrays.asList(alternatives));
+    }
+
+    @Test
+    void ateDuasAlternativasSemRepetirOPrincipalNemAOutra() {
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        assertThat(withAlternatives(alternative(first, "80"), alternative(second, "50"))
+                        .alternatives())
+                .hasSize(2);
+        assertThat(new MealItem(FOOD, BigDecimal.TEN, null, null, null).alternatives())
+                .isEmpty();
+        assertField(
+                () -> withAlternatives(
+                        alternative(first, "80"), alternative(second, "50"), alternative(UUID.randomUUID(), "10")),
+                "alternatives");
+        assertField(() -> withAlternatives(alternative(FOOD, "80")), "alternatives[0].foodId");
+        assertField(
+                () -> withAlternatives(alternative(first, "80"), alternative(first, "50")), "alternatives[1].foodId");
+        assertField(() -> withAlternatives((MealItem.Alternative) null), "alternatives[0].foodId");
+    }
+
+    @Test
+    void alternativaTemAlimentoEQuantidadeDe0v1A5000() {
+        assertThat(alternative(FOOD, "0.1").amount()).isEqualByComparingTo("0.1");
+        assertThat(alternative(FOOD, "5000").amount()).isEqualByComparingTo("5000");
+        assertField(() -> alternative(FOOD, "0.09"), "amount");
+        assertField(() -> alternative(FOOD, "5000.1"), "amount");
+        assertField(() -> new MealItem.Alternative(null, BigDecimal.TEN), "foodId");
+    }
+
+    @Test
+    void diferencaEAAlternativaMenosOPrincipalComSinal() {
+        Food.Amounts rice = new Food.Amounts(
+                new BigDecimal("128.0"),
+                new BigDecimal("2.5"),
+                new BigDecimal("28.1"),
+                new BigDecimal("0.2"),
+                new BigDecimal("1.6"));
+        Food.Amounts pasta = new Food.Amounts(
+                new BigDecimal("81.6"),
+                new BigDecimal("2.7"),
+                new BigDecimal("15.9"),
+                new BigDecimal("1.0"),
+                new BigDecimal("1.2"));
+        Food.Amounts difference = pasta.minus(rice);
+        assertThat(difference.energyKcal()).isEqualByComparingTo("-46.4");
+        assertThat(difference.proteinG()).isEqualByComparingTo("0.2");
+        assertThat(difference.carbsG()).isEqualByComparingTo("-12.2");
+        assertThat(difference.fatG()).isEqualByComparingTo("0.8");
+        assertThat(difference.fiberG()).isEqualByComparingTo("-0.4");
+        Food.Amounts noFiber = new Food.Amounts(BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, null);
+        assertThat(noFiber.minus(rice).fiberG()).isNull();
+        assertThat(rice.minus(noFiber).fiberG()).isNull();
     }
 
     @Test

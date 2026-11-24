@@ -93,7 +93,10 @@ class MealPlanController {
 
             @JsonInclude(JsonInclude.Include.NON_NULL) BigDecimal measureCount,
 
-            AmountsResponse nutrients) {
+            AmountsResponse nutrients,
+
+            @Schema(description = "Até 2 trocas possíveis: a secundária e a terciária, na ordem.")
+            List<AlternativeResponse> alternatives) {
 
         static ItemResponse of(ManageMealPlans.ItemView view) {
             return new ItemResponse(
@@ -104,7 +107,35 @@ class MealPlanController {
                     view.measure() == null ? null : view.measure().id(),
                     view.measure() == null ? null : view.measure().name(),
                     view.measure() == null ? null : view.item().measureCount(),
-                    AmountsResponse.of(view.nutrients()));
+                    AmountsResponse.of(view.nutrients()),
+                    view.alternatives().stream().map(AlternativeResponse::of).toList());
+        }
+    }
+
+    @Schema(name = "MealItemAlternative", description = "Troca possível do alimento, com a diferença para o principal.")
+    record AlternativeResponse(
+            UUID foodId,
+            String foodName,
+
+            @Schema(description = "G (gramas) ou ML (mililitros).")
+            Food.BaseUnit baseUnit,
+
+            @Schema(description = "Quantidade na unidade base.")
+            BigDecimal amount,
+
+            AmountsResponse nutrients,
+
+            @Schema(description = "Alternativa menos principal, com sinal: positivo é a mais na alternativa.")
+            AmountsResponse difference) {
+
+        static AlternativeResponse of(ManageMealPlans.AlternativeView view) {
+            return new AlternativeResponse(
+                    view.food().id(),
+                    view.food().name(),
+                    view.food().baseUnit(),
+                    view.alternative().amount(),
+                    AmountsResponse.of(view.nutrients()),
+                    AmountsResponse.of(view.difference()));
         }
     }
 
@@ -186,7 +217,18 @@ class MealPlanController {
 
             BigDecimal amount,
             UUID measureId,
-            BigDecimal measureCount) {}
+            BigDecimal measureCount,
+
+            @Schema(description = "Até 2 alternativas, sem repetir o alimento principal nem a outra.")
+            List<AlternativeRequest> alternatives) {}
+
+    @Schema(name = "MealItemAlternativeInput", description = "O alimento da alternativa e a quantidade (0,1 a 5000).")
+    record AlternativeRequest(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            UUID foodId,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            BigDecimal amount) {}
 
     @Schema(name = "MealInput", description = "Nome (2 a 60), horário opcional (HH:MM), observação e até 30 alimentos.")
     record MealRequest(
@@ -231,9 +273,23 @@ class MealPlanController {
                             .map(item -> item == null
                                     ? null
                                     : new ManageMealPlans.ItemDraft(
-                                            item.foodId(), item.amount(), item.measureId(), item.measureCount()))
+                                            item.foodId(),
+                                            item.amount(),
+                                            item.measureId(),
+                                            item.measureCount(),
+                                            alternatives(item.alternatives())))
                             .toList();
             return new ManageMealPlans.MealDraft(meal.name(), time(meal.suggestedTime(), index), meal.note(), items);
+        }
+
+        private static List<ManageMealPlans.AlternativeDraft> alternatives(List<AlternativeRequest> alternatives) {
+            return alternatives == null
+                    ? null
+                    : alternatives.stream()
+                            .map(alternative -> alternative == null
+                                    ? null
+                                    : new ManageMealPlans.AlternativeDraft(alternative.foodId(), alternative.amount()))
+                            .toList();
         }
 
         /** O horário em HH:MM; vazio é sem horário. */

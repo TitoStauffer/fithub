@@ -1,0 +1,285 @@
+{
+    "issue": "DEV-0082",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O item passa a aceitar mais de 2 alternativas",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealItem.java",
+            "find": "if (alternatives.size() > MAX_ALTERNATIVES) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "A alternativa passa a poder repetir o alimento principal",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealItem.java",
+            "find": "        seen.add(foodId);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "A alternativa passa a poder repetir a outra alternativa",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealItem.java",
+            "find": "if (!seen.add(alternative.foodId())) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "A alternativa vazia passa a derrubar em vez de apontar o campo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealItem.java",
+            "find": "if (alternative == null) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "A alternativa passa a aceitar quantidade fora de 0,1 a 5000",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealItem.java",
+            "find": "\"Escolha o alimento da alternativa.\");\n            }\n            amount = checkedAmount(amount);",
+            "replace": "\"Escolha o alimento da alternativa.\");\n            }\n            amount = amount;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "A alternativa passa a aceitar alimento vazio",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealItem.java",
+            "find": "if (foodId == null) {\n                throw new InvalidMealPlanException(\"foodId\", \"Escolha o alimento da alternativa.\");",
+            "replace": "if (false) {\n                throw new InvalidMealPlanException(\"foodId\", \"Escolha o alimento da alternativa.\");",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "A alternativa de outra nutricionista, inexistente ou arquivada passa a ser aceita",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": "for (int index = 0; index < item.alternatives().size(); index++) {",
+            "replace": "for (int index = 0; index < 0; index++) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "A alternativa arquivada que já estava no plano deixa de ser aceita na edição",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": "Stream.of(item.foodId()), item.alternatives().stream().map(MealItem.Alternative::foodId)))",
+            "replace": "Stream.of(item.foodId()), Stream.<UUID>empty()))",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "O erro da alternativa perde o caminho dela",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": "throw invalid.under(\"alternatives[\" + index + \"]\");",
+            "replace": "throw invalid;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "A diferença deixa de descontar o principal",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": "otherNutrients.minus(nutrients)",
+            "replace": "otherNutrients",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "A diferença deixa de descontar a proteína do principal",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/food/Food.java",
+            "find": "proteinG.subtract(other.proteinG),",
+            "replace": "proteinG,",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "A diferença passa a trazer a fibra mesmo quando falta em uma das porções",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/food/Food.java",
+            "find": "fiberG == null || other.fiberG == null ? null : fiberG.subtract(other.fiberG));",
+            "replace": "fiberG == null ? other.fiberG : other.fiberG == null ? fiberG : fiberG.subtract(other.fiberG));",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M13",
+            "description": "O banco passa a aceitar mais de 2 alternativas",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V9__alternativas_de_alimento.sql",
+            "find": "check (position between 0 and 1)",
+            "replace": "check (position between 0 and 9)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M14",
+            "description": "O banco passa a aceitar quantidade da alternativa fora de 0,1 a 5000",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V9__alternativas_de_alimento.sql",
+            "find": "check (amount between 0.1 and 5000)",
+            "replace": "check (amount >= 0)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}
