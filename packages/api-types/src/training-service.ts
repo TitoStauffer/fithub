@@ -190,7 +190,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** O treino com o prescrito, as séries feitas e o último treino de cada exercício */
+        get: operations["viewSession"];
         /**
          * Inicia o próximo treino da ficha
          * @description O id é gerado pelo app: repetir com o mesmo id devolve a mesma sessão.
@@ -215,6 +216,27 @@ export interface paths {
         /** Finaliza o treino; a sequência avança */
         post: operations["finish"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/sessions/{sessionId}/sets/{setId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Registra ou corrige uma série
+         * @description O id é gerado pelo app: repetir corrige a mesma série em vez de criar outra.
+         */
+        put: operations["recordSet"];
+        post?: never;
+        /** Apaga uma série, no mesmo prazo da correção */
+        delete: operations["removeSet"];
         options?: never;
         head?: never;
         patch?: never;
@@ -494,6 +516,84 @@ export interface components {
         ProblemFieldError: {
             field?: string;
             message?: string;
+        };
+        /** @description Série registrada. */
+        RecordedSet: {
+            /** Format: uuid */
+            exerciseId?: string;
+            /** Format: uuid */
+            id?: string;
+            loadKg?: number;
+            /** Format: int32 */
+            reps?: number;
+            /** Format: int32 */
+            setNumber?: number;
+        };
+        /** @description Carga e repetições reais de uma série. */
+        RecordedSetInput: {
+            /**
+             * Format: int32
+             * @description Posição do exercício na divisão.
+             */
+            itemPosition: number;
+            /** @description De 0 a 1000 kg, em passos de 0,25. */
+            loadKg: number;
+            /**
+             * Format: int32
+             * @description De 0 a 300.
+             */
+            reps: number;
+            /**
+             * Format: int32
+             * @description Número da série, de 1 a 20.
+             */
+            setNumber: number;
+        };
+        /** @description Exercício do treino com o prescrito, o feito e o último treino. */
+        SessionItem: {
+            alternatives?: components["schemas"]["ClientExercise"][];
+            exercise?: components["schemas"]["ClientExercise"];
+            /** @description Séries do último treino com o exercício, para pré-preencher. */
+            last?: components["schemas"]["RecordedSet"][];
+            loadKg?: number | null;
+            note?: string | null;
+            /** Format: int32 */
+            position?: number;
+            /** @description Séries já registradas neste treino. */
+            recorded?: components["schemas"]["RecordedSet"][];
+            /** Format: int32 */
+            repsMax?: number;
+            /** Format: int32 */
+            repsMin?: number;
+            /** Format: int32 */
+            restSeconds?: number | null;
+            /** Format: int32 */
+            sets?: number;
+            /** @enum {string|null} */
+            technique?: "BI_SET" | "TRI_SET" | "DROP_SET" | "REST_PAUSE" | null;
+        };
+        /** @description O treino em andamento (ou já feito), na versão da ficha da sessão. */
+        SessionView: {
+            /** @description Se ainda dá para registrar e corrigir: até o fim do dia do treino. */
+            correctable?: boolean;
+            divisionLetter?: string;
+            divisionName?: string | null;
+            /** Format: int32 */
+            divisionPosition?: number;
+            /**
+             * Format: date-time
+             * @description Quando o aluno finalizou; ausente enquanto está aberta.
+             */
+            finishedAt?: string;
+            /** Format: uuid */
+            id?: string;
+            items?: components["schemas"]["SessionItem"][];
+            /** Format: uuid */
+            planId?: string;
+            /** Format: date-time */
+            startedAt?: string;
+            /** Format: int32 */
+            versionNumber?: number;
         };
         /** @description Divisão da ficha, na ordem da sequência. */
         WorkoutDivision: {
@@ -1441,6 +1541,46 @@ export interface operations {
             };
         };
     };
+    viewSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Treino. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionView"];
+                };
+            };
+            /** @description A conta não é de cliente. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A sessão não existe ou é de outro aluno. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     start: {
         parameters: {
             query?: never;
@@ -1534,6 +1674,117 @@ export interface operations {
             };
             /** @description A sessão não existe ou é de outro aluno. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    recordSet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+                setId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordedSetInput"];
+            };
+        };
+        responses: {
+            /** @description Série registrada. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordedSet"];
+                };
+            };
+            /** @description Campo fora das regras ou exercício que não está no treino; o campo vem em errors. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é de cliente. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A sessão não existe ou é de outro aluno. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O prazo de correção acabou, ou a série já foi registrada com outro id. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    removeSet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+                setId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Série apagada. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A conta não é de cliente. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A sessão ou a série não existe, ou é de outro aluno. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O prazo de correção acabou. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

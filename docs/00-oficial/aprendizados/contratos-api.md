@@ -45,3 +45,19 @@ o teste prova a ausência no corpo, não com `jsonPath(...).doesNotExist()`, que
   - **Prevenção:** o teste confere que o corpo do exercício próprio não contém `attribution`; o mutante M9
     de `mutations/DEV-0053.json` tira o `@JsonInclude` e é derrubado. Ao revisar o OpenAPI gerado, procurar
     `"type": "null"` ao lado de `$ref`.
+
+## operation-id-explicito-quando-o-metodo-repete
+
+**Regra:** o springdoc usa o nome do método Java como `operationId` e, quando dois controllers têm métodos com o mesmo
+nome, numera o segundo (`remove_1`, `view_1`). Uma rota nova pode então tomar o `operationId` de uma antiga e mudar o
+significado de `operations["remove"]` nos tipos gerados. Rota nova cujo nome de método já existe no serviço declara
+`@Operation(operationId = ...)`.
+
+### Ocorrências
+
+- **Revisão:** Code Review do PR #249, no SHA `430bccc` (LOW: `remove` passou a ser o DELETE de série e o DELETE de
+  restrição virou `remove_1`) — DEV-0066 (#58) · **PR:** #249
+  - **Impacto:** sem quebra no typecheck dos apps, mas `operations["remove"]` trocou de rota no pacote de tipos.
+  - **Correção:** `operationId` explícito nas rotas novas (`viewSession`, `recordSet`, `removeSet`); a restrição
+    voltou a ser `remove`.
+  - **Prevenção:** ao regenerar o contrato, conferir no diff do OpenAPI se algum `operationId` existente mudou.

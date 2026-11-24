@@ -12,6 +12,7 @@ que fazemos para não repeti-los.
 | Contratos de API (OpenAPI) | [contratos-api.md](contratos-api.md) |
 | Arquivos no bucket (fotos, URL pré-assinada) | [armazenamento.md](armazenamento.md) |
 | Testes de integração (Testcontainers, contexto do Spring) | [testes-de-integracao.md](testes-de-integracao.md) |
+| Idempotência e posse de registros (id do cliente, upsert) | [idempotencia-e-posse.md](idempotencia-e-posse.md) |
 
 Regras de registro: [AGENTS.md](../../../AGENTS.md), seção **Aprendizados**.
 

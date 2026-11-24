@@ -144,3 +144,16 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
 - Ficha de outro aluno, rascunho ou sessão de outro aluno respondem 404.
 - Testes: o pool de conexões fica em 3 nos testes (`src/test/resources/config/application.yml`), porque cada
   configuração de teste sobe um contexto do Spring (aprendizado `testes-de-integracao.md`).
+
+## Registro por série (DEV-0066)
+
+- `PUT /me/sessions/{sessionId}/sets/{setId}` (papel `client`): carga (0 a 1000 kg, passos de 0,25) e repetições (0 a
+  300) reais de uma série de um item da divisão (FR-48; migration V11). O id é gerado pelo app: repetir corrige a
+  mesma série (só carga e repetições: outro item ou número com o mesmo id responde 409); outra série no mesmo lugar
+  (item e número) responde 409. O id de uma série de outro treino não é corrigido (409) nem apagado (404). `DELETE` apaga.
+- A série fica na sessão, que guarda a versão da ficha: depois de o personal editar a ficha, os registros feitos ficam
+  na versão anterior e o próximo treino usa a nova (BR-09).
+- **Correção no mesmo dia** (BR-08, QUESTÃO-04): até o fim do dia em que o treino começou, em `America/Sao_Paulo`; depois,
+  409. Vale também para o treino já finalizado.
+- `GET /me/sessions/{sessionId}`: o treino na versão da sessão, com o prescrito de cada item, as séries já feitas e as
+  do último treino finalizado com o exercício (`last`), para o app pré-preencher.
