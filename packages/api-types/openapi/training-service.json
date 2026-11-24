@@ -388,6 +388,13 @@
       "WorkoutPlan" : {
         "description" : "Ficha de treino, com o conteúdo da versão atual.",
         "properties" : {
+          "alerts" : {
+            "description" : "Alertas de restrição de mobilidade; vazio sem vínculo ativo ou sem restrição.",
+            "items" : {
+              "$ref" : "#/components/schemas/WorkoutPlanAlert"
+            },
+            "type" : "array"
+          },
           "clientId" : {
             "format" : "uuid",
             "type" : "string"
@@ -438,6 +445,45 @@
           "version" : {
             "format" : "int32",
             "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "WorkoutPlanAlert" : {
+        "description" : "Exercício da ficha que envolve uma região restrita do aluno. Alerta, não bloqueio (BR-11).",
+        "properties" : {
+          "alternative" : {
+            "description" : "Se o exercício é uma alternativa do item.",
+            "type" : "boolean"
+          },
+          "description" : {
+            "description" : "Descrição da restrição, como o personal registrou.",
+            "type" : "string"
+          },
+          "divisionLetter" : {
+            "type" : "string"
+          },
+          "divisionPosition" : {
+            "description" : "Posição da divisão, a partir de 0.",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "exerciseId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "itemPosition" : {
+            "description" : "Posição do item na divisão, a partir de 0.",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "region" : {
+            "enum" : [ "CERVICAL", "SHOULDER", "ELBOW", "WRIST_HAND", "THORACIC", "LUMBAR", "HIP", "KNEE", "ANKLE_FOOT" ],
+            "type" : "string"
+          },
+          "restrictionId" : {
+            "format" : "uuid",
+            "type" : "string"
           }
         },
         "type" : "object"

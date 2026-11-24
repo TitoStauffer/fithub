@@ -2,6 +2,7 @@ package com.fithub.training.interfaces.rest;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fithub.training.application.ManagePlans;
+import com.fithub.training.application.PlanAlerts;
 import com.fithub.training.domain.access.ClientNotFoundException;
 import com.fithub.training.domain.plan.InvalidPlanException;
 import com.fithub.training.domain.plan.PlanConflictException;
@@ -11,6 +12,7 @@ import com.fithub.training.domain.plan.PlanRepository;
 import com.fithub.training.domain.plan.PlanStateException;
 import com.fithub.training.domain.plan.PlanVersion;
 import com.fithub.training.domain.plan.WorkoutPlan;
+import com.fithub.training.domain.restriction.BodyRegion;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -52,9 +54,52 @@ class PlanController {
     private static final String PROBLEM = MediaType.APPLICATION_PROBLEM_JSON_VALUE;
 
     private final ManagePlans managePlans;
+    private final PlanAlerts planAlerts;
 
-    PlanController(ManagePlans managePlans) {
+    PlanController(ManagePlans managePlans, PlanAlerts planAlerts) {
         this.managePlans = managePlans;
+        this.planAlerts = planAlerts;
+    }
+
+    /** A ficha com os alertas de restrição calculados agora (DEV-0062). */
+    private PlanResponse respond(WorkoutPlan plan) {
+        return PlanResponse.of(plan, planAlerts.of(plan));
+    }
+
+    @Schema(
+            name = "WorkoutPlanAlert",
+            description = "Exercício da ficha que envolve uma região restrita do aluno. Alerta, não bloqueio (BR-11).")
+    record AlertResponse(
+            @Schema(description = "Posição da divisão, a partir de 0.")
+            int divisionPosition,
+
+            String divisionLetter,
+
+            @Schema(description = "Posição do item na divisão, a partir de 0.")
+            int itemPosition,
+
+            UUID exerciseId,
+
+            @Schema(description = "Se o exercício é uma alternativa do item.")
+            boolean alternative,
+
+            BodyRegion region,
+            UUID restrictionId,
+
+            @Schema(description = "Descrição da restrição, como o personal registrou.")
+            String description) {
+
+        static AlertResponse of(PlanAlerts.Alert alert) {
+            return new AlertResponse(
+                    alert.divisionPosition(),
+                    alert.divisionLetter(),
+                    alert.itemPosition(),
+                    alert.exerciseId(),
+                    alert.alternative(),
+                    alert.region(),
+                    alert.restrictionId(),
+                    alert.description());
+        }
     }
 
     @Schema(name = "WorkoutDivision", description = "Divisão da ficha, na ordem da sequência.")
@@ -155,9 +200,12 @@ class PlanController {
             Instant publishedAt,
 
             Instant createdAt,
-            Instant updatedAt) {
+            Instant updatedAt,
 
-        static PlanResponse of(WorkoutPlan plan) {
+            @Schema(description = "Alertas de restrição de mobilidade; vazio sem vínculo ativo ou sem restrição.")
+            List<AlertResponse> alerts) {
+
+        static PlanResponse of(WorkoutPlan plan, List<PlanAlerts.Alert> alerts) {
             var version = plan.current();
             return new PlanResponse(
                     plan.id(),
@@ -171,7 +219,8 @@ class PlanController {
                     divisionsOf(version),
                     version.publishedAt(),
                     plan.createdAt(),
-                    plan.updatedAt());
+                    plan.updatedAt(),
+                    alerts.stream().map(AlertResponse::of).toList());
         }
     }
 
@@ -327,7 +376,7 @@ class PlanController {
     ResponseEntity<PlanResponse> create(
             @AuthenticationPrincipal Jwt jwt, @PathVariable UUID clientId, @RequestBody PlanRequest request) {
         WorkoutPlan plan = managePlans.create(jwt.getSubject(), clientId, request.toDraft());
-        return ResponseEntity.created(URI.create("/plans/" + plan.id())).body(PlanResponse.of(plan));
+        return ResponseEntity.created(URI.create("/plans/" + plan.id())).body(respond(plan));
     }
 
     @GetMapping(path = "/clients/{clientId}/plans", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -352,7 +401,7 @@ class PlanController {
             })
     List<PlanResponse> list(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID clientId) {
         return managePlans.listForClient(jwt.getSubject(), clientId).stream()
-                .map(PlanResponse::of)
+                .map(this::respond)
                 .toList();
     }
 
@@ -409,7 +458,7 @@ class PlanController {
                                         schema = @Schema(implementation = ClientController.ApiProblem.class)))
             })
     PlanResponse view(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID planId) {
-        return PlanResponse.of(managePlans.view(jwt.getSubject(), planId));
+        return respond(managePlans.view(jwt.getSubject(), planId));
     }
 
     @PutMapping(
@@ -451,7 +500,7 @@ class PlanController {
                                         schema = @Schema(implementation = ClientController.ApiProblem.class)))
             })
     PlanResponse update(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID planId, @RequestBody PlanRequest request) {
-        return PlanResponse.of(managePlans.update(jwt.getSubject(), planId, request.toDraft()));
+        return respond(managePlans.update(jwt.getSubject(), planId, request.toDraft()));
     }
 
     @PostMapping(path = "/plans/{planId}/publish", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -489,7 +538,7 @@ class PlanController {
                                         schema = @Schema(implementation = ClientController.ApiProblem.class)))
             })
     PlanResponse publish(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID planId) {
-        return PlanResponse.of(managePlans.publish(jwt.getSubject(), planId));
+        return respond(managePlans.publish(jwt.getSubject(), planId));
     }
 
     @ExceptionHandler(InvalidPlanException.class)

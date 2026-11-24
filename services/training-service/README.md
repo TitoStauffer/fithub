@@ -72,7 +72,7 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   /clients/{clientId}/restrictions`, `PUT` e `DELETE /clients/{clientId}/restrictions/{id}`. Sem vínculo, ou com a
   restrição de outro aluno, 404. Região fora da lista ou descrição fora do tamanho respondem 400 com o campo.
 - **Aluno** (papel `client`): `GET /me/restrictions`, só leitura. A nutricionista nunca vê (BR-03).
-- O alerta ao incluir na ficha um exercício de região restrita é a DEV-0062.
+- Ao incluir na ficha um exercício de região restrita, a ficha traz o alerta (DEV-0062).
 
 ## Ficha de treino (DEV-0059)
 
@@ -109,3 +109,23 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
 - Leitura: `GET /plans/{planId}/versions` e `/versions/{number}` para o autor (mesmo sem vínculo, BR-05);
   `GET /me/plans/{planId}/versions` e `/versions/{number}` para o aluno dono da ficha, só as versões publicadas (o
   rascunho responde 404). Os registros de execução do E6 vão apontar para a versão.
+
+## Alerta de restrição na ficha (DEV-0062)
+
+- A resposta da ficha (criar, ler, listar, editar, publicar) traz `alerts[]`: cada exercício, principal ou alternativa,
+  que envolve uma região restrita do aluno, com divisão, posição do item, região e a descrição da restrição (FR-27).
+- **Alerta, não bloqueio** (BR-11): salvar e publicar nunca são recusados por restrição.
+- Calculado na hora, com as restrições atuais, e só com vínculo ativo: sem vínculo, o autor lê a ficha com `alerts`
+  vazio, sem ver as restrições do aluno (BR-05). As versões antigas não trazem alerta.
+- Mapa grupo muscular → regiões (`MuscleRegions`):
+
+  | Grupo muscular | Regiões |
+  |---|---|
+  | `QUADRICEPS`, `HAMSTRINGS`, `GLUTES`, `ADDUCTORS` | `KNEE`, `HIP` |
+  | `CALVES` | `ANKLE_FOOT`, `KNEE` |
+  | `CHEST`, `SHOULDERS`, `TRICEPS`, `BICEPS` | `SHOULDER`, `ELBOW` |
+  | `FOREARMS` | `WRIST_HAND`, `ELBOW` |
+  | `BACK` | `SHOULDER`, `THORACIC` |
+  | `LOWER_BACK`, `ABS` | `LUMBAR` |
+  | `NECK` | `CERVICAL` |
+  | `FULL_BODY` | todas |
