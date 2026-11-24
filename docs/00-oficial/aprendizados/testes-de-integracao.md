@@ -21,3 +21,23 @@ testes, o pool fica pequeno (`spring.datasource.hikari.maximum-pool-size: 3` em
   - **Prevenção:** ao criar testes de integração num serviço, conferir se ele já tem o `config/application.yml` de
     teste com o pool pequeno; preferir reaproveitar a mesma configuração de token entre as classes, para o contexto
     ser um só.
+
+## teste-de-tela-espera-a-tela-de-destino
+
+**Regra:** quando uma ação muda de rota (salvar e ir para o endereço do registro, por exemplo), o teste de tela
+espera a tela de destino terminar de carregar antes de interagir. O sinal é algo que só a tela nova faz: um pedido
+que só ela dispara, seguido de `findBy` no elemento dela. Achar um elemento que existe nas duas telas (um alerta,
+um aviso) não prova que a navegação terminou, e um `getBy` logo depois disputa a ordem das microtarefas com a
+navegação: passa na máquina rápida e falha no runner do CI.
+
+### Ocorrências
+
+- **Bug de validação:** CI do merge da DEV-0067 (330e901) e dos PRs #251 e #261 — DEV-0157 (#252) · **PR:** a
+  correção da DEV-0157
+  - **Impacto:** o teste "cria o rascunho com exercício do catálogo, mostra o alerta e publica com confirmação"
+    (`apps/web/src/features/plans/plans.test.tsx`) falhou ao menos 5 vezes no job Apps. O DOM mostrava só
+    "Carregando a ficha…", e o CI dos PRs que rodam o Apps travava sem relação com a mudança.
+  - **Correção:** o teste espera o `GET /exercises/{id}`, que só a tela da ficha dispara, e acha o botão
+    "Publicar" com `findByRole`.
+  - **Prevenção:** a regra acima. A ordem não deu para fixar no mock, porque a disputa é entre microtarefas, então
+    a prova é a manual: 20 rodadas seguidas verdes e a leitura do DOM da falha no CI.
