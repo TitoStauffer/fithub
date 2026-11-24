@@ -17,6 +17,13 @@ export type SessionItem = TrainingSchemas['SessionItem'];
 export type RecordedSet = TrainingSchemas['RecordedSet'];
 export type RecordedSetInput = TrainingSchemas['RecordedSetInput'];
 export type SessionFeedback = TrainingSchemas['SessionFeedback'];
+export type SessionHistoryPage = TrainingSchemas['SessionHistoryPage'];
+export type SessionSummary = TrainingSchemas['SessionSummary'];
+export type ExerciseRecords = TrainingSchemas['ExerciseRecords'];
+export type RecordMark = TrainingSchemas['RecordMark'];
+export type ManualRecordInput = TrainingSchemas['ManualRecordInput'];
+export type ManualRecord = TrainingSchemas['ManualRecord'];
+export type ExercisePage = TrainingSchemas['ExercisePage'];
 
 /** Perfil do cliente como a API devolve (com a idade calculada). */
 export type ClientProfile = Schemas['ClientProfile'];
@@ -317,4 +324,36 @@ export function saveSessionFeedback(
 /** Finaliza o treino: a sequência avança para o próximo (DEV-0065). */
 export function finishWorkoutSession(apiFetch: ApiFetch, sessionId: string, baseUrl = trainingApiUrl()) {
     return post<WorkoutSession>(apiFetch, `${sessionPath(baseUrl, sessionId)}/finish`);
+}
+
+/** Histórico: os treinos finalizados do aluno, do mais novo para o mais antigo, em páginas de 20 (DEV-0072). */
+export async function fetchSessionHistory(
+    apiFetch: ApiFetch,
+    page: number,
+    baseUrl = trainingApiUrl(),
+): Promise<SessionHistoryPage> {
+    const found = await read<SessionHistoryPage>(apiFetch, `${baseUrl}/me/sessions?page=${page}`);
+    return found ?? { items: [], total: 0, page, size: 20 };
+}
+
+/** Recordes do aluno por exercício: maior carga e 1RM estimado (DEV-0068). */
+export async function fetchMyRecords(
+    apiFetch: ApiFetch,
+    baseUrl = trainingApiUrl(),
+): Promise<ExerciseRecords[]> {
+    return (await read<ExerciseRecords[]>(apiFetch, `${baseUrl}/me/records`)) ?? [];
+}
+
+/** Lança um recorde manual; a API valida carga, repetições, data e exercício (DEV-0068). */
+export function addManualRecord(apiFetch: ApiFetch, body: ManualRecordInput, baseUrl = trainingApiUrl()) {
+    return post<ManualRecord>(apiFetch, `${baseUrl}/me/records`, body);
+}
+
+/** Busca no catálogo de exercícios pelo nome, para o recorde manual (o aluno só vê o catálogo, DEV-0069). */
+export async function searchCatalog(apiFetch: ApiFetch, name: string, baseUrl = trainingApiUrl()) {
+    const found = await read<ExercisePage>(
+        apiFetch,
+        `${baseUrl}/exercises?name=${encodeURIComponent(name)}&size=10`,
+    );
+    return found?.items ?? [];
 }

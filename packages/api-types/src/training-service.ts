@@ -288,6 +288,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Histórico: os treinos finalizados do aluno, do mais novo para o mais antigo
+         * @description Páginas de 20, a partir de 0. Continua depois que o vínculo acaba (BR-06).
+         */
+        get: operations["listMySessions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/sessions/{sessionId}": {
         parameters: {
             query?: never;
@@ -750,6 +770,19 @@ export interface components {
              */
             feeling?: number | null;
         };
+        /** @description Página do histórico de treinos. */
+        SessionHistoryPage: {
+            items?: components["schemas"]["SessionSummary"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /**
+             * Format: int64
+             * @description Quantos treinos finalizados o aluno tem, somando todas as páginas.
+             */
+            total?: number;
+        };
         /** @description Exercício do treino com o prescrito, o feito e o último treino. */
         SessionItem: {
             alternatives?: components["schemas"]["ClientExercise"][];
@@ -774,6 +807,33 @@ export interface components {
             sets?: number;
             /** @enum {string|null} */
             technique?: "BI_SET" | "TRI_SET" | "DROP_SET" | "REST_PAUSE" | null;
+        };
+        /** @description Treino feito, no histórico. */
+        SessionSummary: {
+            divisionLetter?: string;
+            divisionName?: string;
+            /** Format: int32 */
+            divisionPosition?: number;
+            /**
+             * Format: int32
+             * @description De 1 a 5; ausente sem sensação.
+             */
+            feeling?: number;
+            /** Format: date-time */
+            finishedAt?: string;
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            planId?: string;
+            /** @description O nome da ficha na versão em que o treino foi feito. */
+            planName?: string;
+            /**
+             * Format: int32
+             * @description Quantas séries foram registradas.
+             */
+            setCount?: number;
+            /** Format: date-time */
+            startedAt?: string;
         };
         /** @description O treino em andamento (ou já feito), na versão da ficha da sessão. */
         SessionView: {
@@ -2118,6 +2178,47 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MobilityRestriction"][];
+                };
+            };
+            /** @description A conta não é de cliente. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listMySessions: {
+        parameters: {
+            query?: {
+                /** @description Página, a partir de 0. */
+                page?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Página do histórico. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionHistoryPage"];
+                };
+            };
+            /** @description Página negativa. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description A conta não é de cliente. */

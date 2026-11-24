@@ -192,3 +192,10 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
 - Migration V14: `personal_id` opcional e `author` (`PERSONAL` ou `CLIENT`), com a CHECK `ck_workout_plan_author`
   ligando os dois, e o índice único `ux_workout_plan_own_published` (uma própria publicada por aluno).
 - O aluno também lê e busca o catálogo em `/exercises` (papel `client`); exercício próprio de personal não aparece.
+
+## Histórico de treinos (DEV-0072)
+
+- `GET /me/sessions?page=` (papel `client`): os treinos finalizados do aluno, do mais novo para o mais antigo, em
+  páginas de 20 (a partir de 0; negativa responde 400). Cada um traz a ficha e o treino na versão em que foi feito, as
+  datas, quantas séries teve e a sensação. O detalhe é `GET /me/sessions/{sessionId}` (DEV-0066).
+- O histórico e as fichas recebidas são do aluno: continuam depois que o vínculo acaba (BR-06).

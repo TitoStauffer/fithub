@@ -10,8 +10,10 @@ import com.fithub.training.domain.plan.PlanVersion;
 import com.fithub.training.domain.plan.WorkoutPlan;
 import com.fithub.training.domain.session.SessionConflictException;
 import com.fithub.training.domain.session.SessionNotFoundException;
+import com.fithub.training.domain.session.SessionRepository;
 import com.fithub.training.domain.session.WorkoutSession;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -35,6 +37,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -209,6 +212,86 @@ class MyWorkoutController {
         return clientWorkouts.activePlans(jwt.getSubject()).stream()
                 .map(ActivePlanResponse::of)
                 .toList();
+    }
+
+    @Schema(name = "SessionSummary", description = "Treino feito, no histórico.")
+    record SessionSummaryResponse(
+            UUID id,
+            UUID planId,
+
+            @Schema(description = "O nome da ficha na versão em que o treino foi feito.")
+            String planName,
+
+            int divisionPosition,
+            String divisionLetter,
+            @JsonInclude(JsonInclude.Include.NON_NULL) String divisionName,
+            Instant startedAt,
+            Instant finishedAt,
+
+            @Schema(description = "Quantas séries foram registradas.")
+            int setCount,
+
+            @JsonInclude(JsonInclude.Include.NON_NULL) @Schema(description = "De 1 a 5; ausente sem sensação.")
+            Integer feeling) {
+
+        static SessionSummaryResponse of(SessionRepository.FinishedSummary summary) {
+            return new SessionSummaryResponse(
+                    summary.id(),
+                    summary.planId(),
+                    summary.planName(),
+                    summary.divisionPosition(),
+                    summary.divisionLetter(),
+                    summary.divisionName(),
+                    summary.startedAt(),
+                    summary.finishedAt(),
+                    summary.setCount(),
+                    summary.feeling());
+        }
+    }
+
+    @Schema(name = "SessionHistoryPage", description = "Página do histórico de treinos.")
+    record HistoryResponse(
+            List<SessionSummaryResponse> items,
+
+            @Schema(description = "Quantos treinos finalizados o aluno tem, somando todas as páginas.")
+            long total,
+
+            int page,
+            int size) {}
+
+    @GetMapping(path = "/me/sessions", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            operationId = "listMySessions",
+            summary = "Histórico: os treinos finalizados do aluno, do mais novo para o mais antigo",
+            description = "Páginas de 20, a partir de 0. Continua depois que o vínculo acaba (BR-06).",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "Página do histórico."),
+                @ApiResponse(
+                        responseCode = "400",
+                        description = "Página negativa.",
+                        content =
+                                @Content(
+                                        mediaType = PROBLEM,
+                                        schema = @Schema(implementation = ClientController.ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "403",
+                        description = "A conta não é de cliente.",
+                        content =
+                                @Content(
+                                        mediaType = PROBLEM,
+                                        schema = @Schema(implementation = ClientController.ApiProblem.class)))
+            })
+    HistoryResponse history(
+            @AuthenticationPrincipal Jwt jwt,
+            @Parameter(description = "Página, a partir de 0.", schema = @Schema(defaultValue = "0"))
+                    @RequestParam(required = false)
+                    Integer page) {
+        ClientWorkouts.History history = clientWorkouts.history(jwt.getSubject(), page);
+        return new HistoryResponse(
+                history.items().stream().map(SessionSummaryResponse::of).toList(),
+                history.total(),
+                history.page(),
+                history.size());
     }
 
     @PutMapping(

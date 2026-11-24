@@ -495,4 +495,76 @@ class ClientWorkoutApiTest extends ServiceIntegrationTest {
                 .isInstanceOf(DataIntegrityViolationException.class)
                 .hasMessageContaining("ux_workout_plan_own_published");
     }
+
+    @Test
+    void historicoListaSoAsFinalizadasDoAlunoEmPaginasDe20() throws Exception {
+        String planId = publishedPlan(TODAY, 8);
+        UUID first = UUID.randomUUID();
+        start(first, planId);
+        mvc.perform(put("/me/sessions/" + first + "/sets/" + UUID.randomUUID())
+                        .header("Authorization", clientToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"itemPosition\": 0, \"setNumber\": 1, \"loadKg\": 40, \"reps\": 10}"))
+                .andExpect(status().isOk());
+        mvc.perform(put("/me/sessions/" + first + "/feedback")
+                        .header("Authorization", clientToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"feeling\": 4}"))
+                .andExpect(status().isOk());
+        finish(first);
+        UUID last = first;
+        for (int index = 1; index < 21; index++) {
+            last = UUID.randomUUID();
+            start(last, planId);
+            finish(last);
+        }
+        // A sessão aberta não entra no histórico.
+        start(UUID.randomUUID(), planId);
+
+        mvc.perform(get("/me/sessions").header("Authorization", clientToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(21))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.items.length()").value(20))
+                .andExpect(jsonPath("$.items[0].id").value(last.toString()))
+                .andExpect(jsonPath("$.items[0].planName").value("ABC"));
+        // A mais antiga fica na segunda página, com a ficha, o treino, as séries e a sensação.
+        mvc.perform(get("/me/sessions").param("page", "1").header("Authorization", clientToken()))
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].id").value(first.toString()))
+                .andExpect(jsonPath("$.items[0].divisionLetter").value("A"))
+                .andExpect(jsonPath("$.items[0].divisionName").value("Pernas"))
+                .andExpect(jsonPath("$.items[0].setCount").value(1))
+                .andExpect(jsonPath("$.items[0].feeling").value(4))
+                .andExpect(jsonPath("$.items[0].finishedAt").exists());
+        mvc.perform(get("/me/sessions").header("Authorization", "Bearer conta-" + UUID.randomUUID()))
+                .andExpect(jsonPath("$.total").value(0))
+                .andExpect(jsonPath("$.items").isEmpty());
+        mvc.perform(get("/me/sessions").param("page", "-1").header("Authorization", clientToken()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("page"));
+    }
+
+    @Test
+    void depoisDoVinculoAcabarOHistoricoEAFichaRecebidaContinuam() throws Exception {
+        String planId = publishedPlan(TODAY, 8);
+        UUID session = UUID.randomUUID();
+        start(session, planId);
+        finish(session);
+
+        jdbc.sql(
+                        "update client_link set status = 'ENDED', ended_at = now() where client_id = :client and professional_id = :personal")
+                .param("client", client)
+                .param("personal", personal)
+                .update();
+
+        mvc.perform(get("/me/sessions").header("Authorization", clientToken()))
+                .andExpect(jsonPath("$.items[0].id").value(session.toString()));
+        mvc.perform(get("/me/sessions/" + session).header("Authorization", clientToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].exercise.name").value("Agachamento livre"));
+        mvc.perform(get("/me/plans/active").header("Authorization", clientToken()))
+                .andExpect(jsonPath("$[0].planId").value(planId));
+    }
 }
