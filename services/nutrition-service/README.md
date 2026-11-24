@@ -26,3 +26,14 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   regras das CHECKs, com o campo no erro.
 - `GET /foods/{foodId}` (papel `nutritionist`): a TACO e os próprios da nutricionista; o próprio de outra responde
   404. Personal e cliente não têm rota de alimento.
+
+## Importação da Tabela TACO (DEV-0075, [ADR-011](../../docs/00-oficial/adr/ADR-011-base-de-alimentos-taco.md))
+
+- A TACO, 4ª edição (NEPA/UNICAMP, 2011), vem do CSV versionado `src/main/resources/taco/taco-4a-edicao.csv`
+  (597 linhas da planilha oficial, gerado por [tools/taco](../../tools/taco/README.md)). O serviço não baixa nada.
+- Os valores seguem a legenda da planilha: "Tr" (traço) e "NA" (não aplicável) valem 0; "*" (em reavaliação) e
+  vazio ficam ausentes; carboidrato por diferença levemente negativo (erro analítico, 4 itens) vale 0. Item sem energia ou sem um macro (ou com descrição inválida) é pulado e listado no log:
+  hoje são 6, e entram 591.
+- A etiqueta vegano é curada no CSV, item a item (a TACO não traz); na dúvida, o item fica sem ela.
+- Job desligado por padrão: `FITHUB_FOODS_IMPORT_ENABLED=true` importa uma vez na subida do serviço, em thread à
+  parte. Reexecutável pelo par (fonte, número na TACO): atualiza, não duplica e não apaga.

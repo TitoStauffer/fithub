@@ -10,4 +10,7 @@ public interface FoodRepository {
     void save(Food food);
 
     Optional<Food> findById(UUID id);
+
+    /** O alimento importado pela fonte e pelo id nela (DEV-0075): a chave da reimportação. */
+    Optional<Food> findBySource(String source, String externalId);
 }

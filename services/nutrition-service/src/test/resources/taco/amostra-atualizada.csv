@@ -1,0 +1,6 @@
+taco_number,name,category,base_unit,energy_kcal,protein_g,carbs_g,fat_g,fiber_g,vegan
+amostra-1,"Arroz, tipo 1, cozido",Cereais e derivados,G,128.3,2.60,28.06,0.23,1.56,true
+amostra-2,"Azeite, de oliva, extra virgem",Gorduras e óleos,G,884.0,NA,NA,100.00,NA,true
+amostra-3,"Biscoito, de amostra",Cereais e derivados,G,471.8,6.40,70.55,Tr,*,false
+amostra-5,"Peixe, de amostra, cru",Pescados e frutos do mar,G,128.2,17.37,-0.03,5.99,NA,false
+amostra-4,"Leite, de vaca, integral",Leite e derivados,G,*,*,*,*,*,false
