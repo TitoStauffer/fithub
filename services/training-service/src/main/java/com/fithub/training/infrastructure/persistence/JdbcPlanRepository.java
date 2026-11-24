@@ -224,6 +224,18 @@ class JdbcPlanRepository implements PlanRepository {
     }
 
     private WorkoutPlan toPlan(ResultSet row, int index) throws SQLException {
+        return new WorkoutPlan(
+                row.getObject("id", UUID.class),
+                row.getObject("client_id", UUID.class),
+                row.getObject("personal_id", UUID.class),
+                WorkoutPlan.Status.valueOf(row.getString("status")),
+                toVersion(row),
+                row.getTimestamp("created_at").toInstant(),
+                row.getTimestamp("updated_at").toInstant());
+    }
+
+    /** A versão da linha (colunas `version_id`, `number`, `name`...), com as divisões e os itens. */
+    private PlanVersion toVersion(ResultSet row) throws SQLException {
         UUID versionId = row.getObject("version_id", UUID.class);
         Map<Integer, List<PlanItem>> items = items(versionId);
         List<PlanVersion.Division> divisions = jdbc.sql(
@@ -235,21 +247,44 @@ class JdbcPlanRepository implements PlanRepository {
                         items.getOrDefault(division.getInt("position"), List.of())))
                 .list();
         Timestamp publishedAt = row.getTimestamp("published_at");
-        return new WorkoutPlan(
-                row.getObject("id", UUID.class),
-                row.getObject("client_id", UUID.class),
-                row.getObject("personal_id", UUID.class),
-                WorkoutPlan.Status.valueOf(row.getString("status")),
-                new PlanVersion(
-                        versionId,
-                        row.getInt("number"),
-                        row.getString("name"),
-                        row.getObject("starts_on", LocalDate.class),
-                        row.getInt("validity_weeks"),
-                        divisions,
-                        publishedAt == null ? null : publishedAt.toInstant(),
-                        row.getTimestamp("version_created_at").toInstant()),
-                row.getTimestamp("created_at").toInstant(),
-                row.getTimestamp("updated_at").toInstant());
+        return new PlanVersion(
+                versionId,
+                row.getInt("number"),
+                row.getString("name"),
+                row.getObject("starts_on", LocalDate.class),
+                row.getInt("validity_weeks"),
+                divisions,
+                publishedAt == null ? null : publishedAt.toInstant(),
+                row.getTimestamp("version_created_at").toInstant());
+    }
+
+    @Override
+    public List<VersionSummary> findVersions(UUID planId) {
+        return jdbc.sql("""
+                        select number, name, published_at from workout_plan_version
+                        where plan_id = :planId order by number
+                        """)
+                .param("planId", planId)
+                .query((row, index) -> {
+                    Timestamp publishedAt = row.getTimestamp("published_at");
+                    return new VersionSummary(
+                            row.getInt("number"),
+                            row.getString("name"),
+                            publishedAt == null ? null : publishedAt.toInstant());
+                })
+                .list();
+    }
+
+    @Override
+    public Optional<PlanVersion> findVersion(UUID planId, int number) {
+        return jdbc.sql("""
+                        select id as version_id, number, name, starts_on, validity_weeks, published_at,
+                            created_at as version_created_at
+                        from workout_plan_version where plan_id = :planId and number = :number
+                        """)
+                .param("planId", planId)
+                .param("number", number)
+                .query((row, index) -> toVersion(row))
+                .optional();
     }
 }

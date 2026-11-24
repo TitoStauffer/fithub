@@ -1,0 +1,145 @@
+{
+    "issue": "DEV-0061",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Editar a publicada passa a sobrescrever a versão anterior",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/plan/WorkoutPlan.java",
+            "find": "                UUID.randomUUID(),\n                current.number() + 1,",
+            "replace": "                current.id(),\n                current.number() + 1,",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PlanVersioningApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Versão base desatualizada deixa de dar conflito",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/plan/WorkoutPlan.java",
+            "find": "if (baseVersion != null && baseVersion != current.number()) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PlanVersioningApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Ficha substituída passa a aceitar edição",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/plan/WorkoutPlan.java",
+            "find": "if (status == Status.REPLACED) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PlanVersioningApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Editar a publicada passa a dispensar a versão base",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/plan/WorkoutPlan.java",
+            "find": "throw new InvalidPlanException(\"baseVersion\", \"Informe a versão em que a edição se baseou.\");",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Aluno passa a ver o rascunho da ficha",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ManagePlans.java",
+            "find": ".filter(plan -> plan.status() != WorkoutPlan.Status.DRAFT)",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PlanVersioningApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Aluno passa a ver a ficha de outro aluno",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ManagePlans.java",
+            "find": ".filter(plan -> plan.clientId().equals(clientId))",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PlanVersioningApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Nova versão passa a aceitar divisão sem exercício",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/plan/WorkoutPlan.java",
+            "find": "        requireExerciseInEveryDivision(next);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=WorkoutPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

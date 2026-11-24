@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fithub.training.application.ManagePlans;
 import com.fithub.training.domain.access.ClientNotFoundException;
 import com.fithub.training.domain.plan.InvalidPlanException;
+import com.fithub.training.domain.plan.PlanConflictException;
 import com.fithub.training.domain.plan.PlanItem;
 import com.fithub.training.domain.plan.PlanNotFoundException;
 import com.fithub.training.domain.plan.PlanRepository;
@@ -167,14 +168,7 @@ class PlanController {
                     version.startsOn(),
                     version.validityWeeks(),
                     version.expiresOn(),
-                    version.divisions().stream()
-                            .map(division -> new DivisionResponse(
-                                    division.letter(),
-                                    division.name(),
-                                    division.items().stream()
-                                            .map(ItemResponse::of)
-                                            .toList()))
-                            .toList(),
+                    divisionsOf(version),
                     version.publishedAt(),
                     plan.createdAt(),
                     plan.updatedAt());
@@ -200,8 +194,63 @@ class PlanController {
         }
     }
 
-    @Schema(name = "WorkoutPlanInput", description = "Cabeçalho e divisões da ficha em rascunho.")
+    static List<DivisionResponse> divisionsOf(PlanVersion version) {
+        return version.divisions().stream()
+                .map(division -> new DivisionResponse(
+                        division.letter(),
+                        division.name(),
+                        division.items().stream().map(ItemResponse::of).toList()))
+                .toList();
+    }
+
+    @Schema(name = "WorkoutPlanVersionSummary", description = "Uma versão da ficha, sem o conteúdo.")
+    record VersionSummaryResponse(
+            int number,
+            String name,
+
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            @Schema(description = "Quando foi publicada; ausente no rascunho.")
+            Instant publishedAt) {
+
+        static VersionSummaryResponse of(PlanRepository.VersionSummary version) {
+            return new VersionSummaryResponse(version.number(), version.name(), version.publishedAt());
+        }
+    }
+
+    @Schema(name = "WorkoutPlanVersion", description = "O conteúdo de uma versão da ficha; a publicada nunca muda.")
+    record VersionResponse(
+            int number,
+            String name,
+            LocalDate startsOn,
+            int validityWeeks,
+            LocalDate expiresOn,
+            List<DivisionResponse> divisions,
+
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            @Schema(description = "Quando foi publicada; ausente no rascunho.")
+            Instant publishedAt) {
+
+        static VersionResponse of(PlanVersion version) {
+            return new VersionResponse(
+                    version.number(),
+                    version.name(),
+                    version.startsOn(),
+                    version.validityWeeks(),
+                    version.expiresOn(),
+                    divisionsOf(version),
+                    version.publishedAt());
+        }
+    }
+
+    @Schema(
+            name = "WorkoutPlanInput",
+            description = "Cabeçalho e divisões da ficha. Na ficha publicada, a edição gera a versão seguinte.")
     record PlanRequest(
+            @Schema(
+                    nullable = true,
+                    description = "Versão em que a edição se baseou; obrigatória ao editar a ficha publicada.")
+            Integer baseVersion,
+
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "De 2 a 80 caracteres.")
             String name,
 
@@ -216,6 +265,7 @@ class PlanController {
 
         ManagePlans.Draft toDraft() {
             return new ManagePlans.Draft(
+                    baseVersion,
                     name,
                     startsOn,
                     validityWeeks,
@@ -367,7 +417,7 @@ class PlanController {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
-            summary = "Edita a ficha em rascunho",
+            summary = "Edita a ficha: o rascunho no lugar; a publicada vira a versão seguinte",
             responses = {
                 @ApiResponse(responseCode = "200", description = "Ficha editada."),
                 @ApiResponse(
@@ -393,7 +443,8 @@ class PlanController {
                                         schema = @Schema(implementation = ClientController.ApiProblem.class))),
                 @ApiResponse(
                         responseCode = "409",
-                        description = "A ficha não é rascunho.",
+                        description =
+                                "A ficha foi substituída, ou outra edição chegou antes (versão base desatualizada).",
                         content =
                                 @Content(
                                         mediaType = PROBLEM,
@@ -461,6 +512,63 @@ class PlanController {
     ProblemDetail planNotFound(PlanNotFoundException exception) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
         problem.setTitle("Ficha não encontrada");
+        return problem;
+    }
+
+    @GetMapping(path = "/plans/{planId}/versions", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            summary = "As versões da ficha, da primeira para a última",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "Versões."),
+                @ApiResponse(
+                        responseCode = "403",
+                        description = "A conta não é personal.",
+                        content =
+                                @Content(
+                                        mediaType = PROBLEM,
+                                        schema = @Schema(implementation = ClientController.ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "404",
+                        description = "A ficha não existe ou é de outro personal.",
+                        content =
+                                @Content(
+                                        mediaType = PROBLEM,
+                                        schema = @Schema(implementation = ClientController.ApiProblem.class)))
+            })
+    List<VersionSummaryResponse> versions(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID planId) {
+        return managePlans.versions(jwt.getSubject(), planId).stream()
+                .map(VersionSummaryResponse::of)
+                .toList();
+    }
+
+    @GetMapping(path = "/plans/{planId}/versions/{number}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            summary = "Uma versão da ficha, pelo número",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "Versão."),
+                @ApiResponse(
+                        responseCode = "403",
+                        description = "A conta não é personal.",
+                        content =
+                                @Content(
+                                        mediaType = PROBLEM,
+                                        schema = @Schema(implementation = ClientController.ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "404",
+                        description = "A ficha ou a versão não existe, ou a ficha é de outro personal.",
+                        content =
+                                @Content(
+                                        mediaType = PROBLEM,
+                                        schema = @Schema(implementation = ClientController.ApiProblem.class)))
+            })
+    VersionResponse version(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID planId, @PathVariable int number) {
+        return VersionResponse.of(managePlans.version(jwt.getSubject(), planId, number));
+    }
+
+    @ExceptionHandler(PlanConflictException.class)
+    ProblemDetail conflict(PlanConflictException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
+        problem.setTitle("Edição concorrente");
         return problem;
     }
 

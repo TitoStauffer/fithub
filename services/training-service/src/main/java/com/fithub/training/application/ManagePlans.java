@@ -2,6 +2,7 @@ package com.fithub.training.application;
 
 import com.fithub.training.domain.exercise.ExerciseRepository;
 import com.fithub.training.domain.plan.InvalidPlanException;
+import com.fithub.training.domain.plan.PlanConflictException;
 import com.fithub.training.domain.plan.PlanItem;
 import com.fithub.training.domain.plan.PlanNotFoundException;
 import com.fithub.training.domain.plan.PlanRepository;
@@ -13,6 +14,7 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,7 +46,11 @@ public class ManagePlans {
 
     /** Cabeçalho e divisões que o personal informa para criar ou editar o rascunho. */
     public record Draft(
-            String name, LocalDate startsOn, Integer validityWeeks, List<PlanVersion.DivisionDraft> divisions) {
+            Integer baseVersion,
+            String name,
+            LocalDate startsOn,
+            Integer validityWeeks,
+            List<PlanVersion.DivisionDraft> divisions) {
 
         int weeks() {
             if (validityWeeks == null) {
@@ -80,14 +86,62 @@ public class ManagePlans {
         return authored(personalAccount, planId);
     }
 
+    /**
+     * Edita a ficha: o rascunho no lugar; a publicada vira a versão seguinte (DEV-0061, BR-09).
+     *
+     * @throws PlanConflictException se outra edição chegou antes
+     */
     public WorkoutPlan update(String personalAccount, UUID planId, Draft draft) {
         WorkoutPlan plan = authored(personalAccount, planId);
         clientAccess.requireActiveLink(personalAccount, plan.clientId());
-        WorkoutPlan edited =
-                plan.editDraft(draft.name(), draft.startsOn(), draft.weeks(), draft.divisions(), clock.instant());
+        WorkoutPlan edited = plan.edit(
+                draft.baseVersion(), draft.name(), draft.startsOn(), draft.weeks(), draft.divisions(), clock.instant());
         requireUsableExercises(edited, plan.current().exerciseIds());
-        plans.save(edited);
+        try {
+            plans.save(edited);
+        } catch (DataIntegrityViolationException sameVersion) {
+            // Duas edições da mesma base ao mesmo tempo: a segunda bate na unicidade (ficha, número).
+            throw new PlanConflictException();
+        }
         return edited;
+    }
+
+    /** As versões da ficha, da primeira para a última, para o autor. */
+    public List<PlanRepository.VersionSummary> versions(String personalAccount, UUID planId) {
+        return plans.findVersions(authored(personalAccount, planId).id());
+    }
+
+    /**
+     * As versões publicadas da ficha que o aluno recebeu (DEV-0061): o rascunho nunca aparece para ele.
+     *
+     * @param clientAccount o {@code sub} do token, que é o id do aluno (ADR-009)
+     */
+    public List<PlanRepository.VersionSummary> clientVersions(String clientAccount, UUID planId) {
+        return plans.findVersions(received(clientAccount, planId).id()).stream()
+                .filter(version -> version.publishedAt() != null)
+                .toList();
+    }
+
+    /** Uma versão publicada da ficha que o aluno recebeu. */
+    public PlanVersion clientVersion(String clientAccount, UUID planId, int number) {
+        return plans.findVersion(received(clientAccount, planId).id(), number)
+                .filter(PlanVersion::published)
+                .orElseThrow(PlanNotFoundException::new);
+    }
+
+    /** A ficha do aluno, já publicada alguma vez; a de outro aluno e o rascunho respondem como inexistentes. */
+    private WorkoutPlan received(String clientAccount, UUID planId) {
+        UUID clientId = ViewExercise.accountId(clientAccount);
+        return plans.findById(planId)
+                .filter(plan -> plan.clientId().equals(clientId))
+                .filter(plan -> plan.status() != WorkoutPlan.Status.DRAFT)
+                .orElseThrow(PlanNotFoundException::new);
+    }
+
+    /** Uma versão da ficha, para o autor. */
+    public PlanVersion version(String personalAccount, UUID planId, int number) {
+        return plans.findVersion(authored(personalAccount, planId).id(), number)
+                .orElseThrow(PlanNotFoundException::new);
     }
 
     /** Publica o rascunho; a ficha que estava ativa para o aluno fica substituída (uma ativa por vez, FR-34). */
