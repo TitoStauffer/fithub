@@ -9,4 +9,7 @@ public interface ExerciseRepository {
     void save(Exercise exercise);
 
     Optional<Exercise> findById(UUID id);
+
+    /** Exercício importado de uma base externa, pelo id que ele tem lá (DEV-0054). */
+    Optional<Exercise> findByExternalId(String source, String externalId);
 }

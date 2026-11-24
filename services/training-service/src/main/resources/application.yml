@@ -52,3 +52,12 @@ fithub:
   messaging:
     # Exchange topic de origem dos eventos deste serviço (ADR-003).
     exchange: fithub.training
+  exercises:
+    # Importação da base do wger (DEV-0054, ADR-010): desligada por padrão; liga com
+    # FITHUB_EXERCISES_IMPORT_ENABLED=true e roda uma vez na subida do serviço.
+    import:
+      enabled: ${FITHUB_EXERCISES_IMPORT_ENABLED:false}
+      base-url: ${FITHUB_EXERCISES_IMPORT_BASE_URL:https://wger.de/api/v2}
+      page-size: 100
+      max-pages: 200
+      timeout: 30s

@@ -65,11 +65,20 @@ public record Exercise(
         if (instructions != null && instructions.length() > MAX_INSTRUCTIONS_LENGTH) {
             throw new InvalidExerciseException("instructions", "As instruções podem ter até 4000 caracteres.");
         }
-        mediaUrl = blankToNull(mediaUrl);
-        if (mediaUrl != null && !isHttpsUrl(mediaUrl)) {
+        mediaUrl = checkedMedia(blankToNull(mediaUrl), attribution);
+    }
+
+    private static String checkedMedia(String mediaUrl, Attribution attribution) {
+        if (mediaUrl != null && !acceptsMediaUrl(mediaUrl)) {
             throw new InvalidExerciseException(
                     "mediaUrl", "O link da mídia precisa ser um endereço https de até 500 caracteres.");
         }
+        // Mídia importada só com o crédito dela (ADR-010); sem mídia, não há o que creditar.
+        if (attribution != null && (mediaUrl != null) != attribution.hasMediaCredit()) {
+            throw new InvalidExerciseException(
+                    "mediaUrl", "Mídia importada precisa da licença e do autor dela, e só existe com o link.");
+        }
+        return mediaUrl;
     }
 
     /** O catálogo é de todos; o exercício próprio, só do dono (BR-13). */
@@ -85,8 +94,8 @@ public record Exercise(
      * Só https (em minúsculas, como a CHECK do banco) com host e sem usuário: nada de http, javascript ou data num
      * link que a tela abre.
      */
-    private static boolean isHttpsUrl(String value) {
-        if (value.length() > MAX_MEDIA_URL_LENGTH) {
+    public static boolean acceptsMediaUrl(String value) {
+        if (value == null || value.length() > MAX_MEDIA_URL_LENGTH) {
             return false;
         }
         try {

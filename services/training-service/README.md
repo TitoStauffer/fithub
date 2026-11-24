@@ -27,4 +27,26 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   a API devolve a atribuição para a tela mostrar o crédito.
 - `GET /exercises/{id}` (papel `personal`): exercício do catálogo ou próprio. O de outro personal e o id desconhecido
   respondem o mesmo 404.
-- Importação da base (DEV-0054), busca (DEV-0055) e cadastro do exercício próprio (DEV-0056) vêm depois.
+- Busca (DEV-0055) e cadastro do exercício próprio (DEV-0056) vêm depois.
+
+## Importação da base do wger (DEV-0054)
+
+- Copia a API pública do wger (`/exerciseinfo/`, paginada por `limit`/`offset`) para o catálogo local, com o nome e
+  as instruções em português quando houver tradução e em inglês quando não. Os ids de músculo, categoria e
+  equipamento do wger viram os grupos e equipamentos do FitHub pelo mapa versionado em `WgerMapping`.
+- **Desligada por padrão.** Para importar, suba o serviço com a variável abaixo; o job roda uma vez, numa thread à
+  parte, depois que o serviço já está no ar:
+
+  ```text
+  FITHUB_EXERCISES_IMPORT_ENABLED=true
+  ```
+
+  `FITHUB_EXERCISES_IMPORT_BASE_URL` troca a raiz da API (padrão `https://wger.de/api/v2`). Não há endpoint público.
+- **Pode rodar de novo:** atualiza pelo id externo (fonte + id), não duplica, não regrava o que não mudou e não apaga
+  exercício que saiu da base.
+- **Licença (ADR-010):** o texto guarda a licença e o autor da tradução usada (ou os do exercício, quando a tradução
+  não tem). A mídia entra só com licença Creative Commons e autor registrados nela, e o crédito dela vai em
+  `mediaLicense` e `mediaAuthor` da atribuição (migration V4). Sem mídia assim, o exercício entra sem mídia.
+- Item sem nome, sem grupo muscular mapeável ou sem licença e autor do texto é pulado e só contado no log.
+- **Falha da base** (erro HTTP, tempo esgotado, resposta fora do formato) interrompe o job; o que já foi importado
+  fica como estava e o serviço continua no ar. O log traz só as contagens ou o tipo do erro.

@@ -40,12 +40,28 @@ class ExerciseController {
     }
 
     @Schema(name = "ExerciseAttribution", description = "Origem e licença do exercício importado (ADR-010).")
-    record AttributionResponse(String source, String license, String author) {
+    record AttributionResponse(
+            String source,
+            String license,
+            String author,
+            // Crédito próprio da mídia importada (DEV-0054); ausente quando o item não tem mídia.
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            @Schema(description = "Licença da mídia importada; presente só quando há mídia.")
+            String mediaLicense,
+
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            @Schema(description = "Autor da mídia importada; presente só quando há mídia.")
+            String mediaAuthor) {
 
         static AttributionResponse of(Attribution attribution) {
             return attribution == null
                     ? null
-                    : new AttributionResponse(attribution.source(), attribution.license(), attribution.author());
+                    : new AttributionResponse(
+                            attribution.source(),
+                            attribution.license(),
+                            attribution.author(),
+                            attribution.mediaLicense(),
+                            attribution.mediaAuthor());
         }
     }
 

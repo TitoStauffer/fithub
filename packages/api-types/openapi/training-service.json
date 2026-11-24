@@ -50,6 +50,14 @@
           "license" : {
             "type" : "string"
           },
+          "mediaAuthor" : {
+            "description" : "Autor da mídia importada; presente só quando há mídia.",
+            "type" : "string"
+          },
+          "mediaLicense" : {
+            "description" : "Licença da mídia importada; presente só quando há mídia.",
+            "type" : "string"
+          },
           "source" : {
             "type" : "string"
           }
