@@ -52,3 +52,9 @@ fithub:
   messaging:
     # Exchange topic de origem dos eventos deste serviço (ADR-003).
     exchange: fithub.nutrition
+  foods:
+    # Importação da Tabela TACO (DEV-0075, ADR-011): desligada por padrão; liga com
+    # FITHUB_FOODS_IMPORT_ENABLED=true e roda uma vez na subida do serviço.
+    import:
+      enabled: ${FITHUB_FOODS_IMPORT_ENABLED:false}
+      resource: classpath:taco/taco-4a-edicao.csv

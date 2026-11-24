@@ -14,6 +14,12 @@ import org.springframework.stereotype.Repository;
 @Repository
 class JdbcFoodRepository implements FoodRepository {
 
+    private static final String SELECT = """
+            select id, kind, owner_id, name, base_unit, energy_kcal, protein_g, carbs_g, fat_g, fiber_g, vegan,
+                external_source, external_id, created_at, updated_at
+            from food
+            """;
+
     private final JdbcClient jdbc;
 
     JdbcFoodRepository(JdbcClient jdbc) {
@@ -63,11 +69,19 @@ class JdbcFoodRepository implements FoodRepository {
 
     @Override
     public Optional<Food> findById(UUID id) {
-        return jdbc.sql("""
-                        select id, kind, owner_id, name, base_unit, energy_kcal, protein_g, carbs_g, fat_g, fiber_g,
-                            vegan, external_source, external_id, created_at, updated_at
-                        from food where id = :id
-                        """).param("id", id).query(JdbcFoodRepository::toFood).optional();
+        return jdbc.sql(SELECT + "where id = :id")
+                .param("id", id)
+                .query(JdbcFoodRepository::toFood)
+                .optional();
+    }
+
+    @Override
+    public Optional<Food> findBySource(String source, String externalId) {
+        return jdbc.sql(SELECT + "where external_source = :source and external_id = :externalId")
+                .param("source", source)
+                .param("externalId", externalId)
+                .query(JdbcFoodRepository::toFood)
+                .optional();
     }
 
     private static Food toFood(ResultSet row, int index) throws SQLException {

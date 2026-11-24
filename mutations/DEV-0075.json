@@ -1,0 +1,125 @@
+{
+    "issue": "DEV-0075",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "A reimportação deixa de achar o alimento pelo id externo (duplicaria)",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ImportFoods.java",
+            "find": "Optional<Food> existing = foods.findBySource(source.name(), entry.externalId());",
+            "replace": "Optional<Food> existing = Optional.empty();",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=TacoCsvSourceTest,FoodImportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Traço deixa de valer 0",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/taco/TacoCsvSource.java",
+            "find": "case \"Tr\", \"NA\" -> BigDecimal.ZERO;",
+            "replace": "case \"NA\" -> BigDecimal.ZERO;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=TacoCsvSourceTest,FoodImportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Não aplicável deixa de valer 0",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/taco/TacoCsvSource.java",
+            "find": "case \"Tr\", \"NA\" -> BigDecimal.ZERO;",
+            "replace": "case \"Tr\" -> BigDecimal.ZERO;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=TacoCsvSourceTest,FoodImportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Análise em reavaliação deixa de ficar ausente",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/taco/TacoCsvSource.java",
+            "find": "case \"*\", \"\" -> null;",
+            "replace": "case \"\" -> null;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=TacoCsvSourceTest,FoodImportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Item sem mudança passa a ser regravado",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ImportFoods.java",
+            "find": "if (candidate.equals(existing.get())) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=TacoCsvSourceTest,FoodImportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Carboidrato por diferença negativo deixa de valer 0 (o item seria pulado)",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/taco/TacoCsvSource.java",
+            "find": "return carbs != null && carbs.signum() < 0 ? BigDecimal.ZERO : carbs;",
+            "replace": "return carbs;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=TacoCsvSourceTest,FoodImportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}
