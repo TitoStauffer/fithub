@@ -17,6 +17,9 @@ export type WorkoutItemInput = Schemas['WorkoutItemInput'];
 export type WorkoutPlanAlert = Schemas['WorkoutPlanAlert'];
 export type Technique = NonNullable<WorkoutItemInput['technique']>;
 export type BodyRegion = NonNullable<WorkoutPlanAlert['region']>;
+export type MobilityRestriction = Schemas['MobilityRestriction'];
+export type MobilityRestrictionInput = Schemas['MobilityRestrictionInput'];
+export type ExpiringPlan = Schemas['ExpiringPlan'];
 
 /** Filtros da busca (DEV-0055); campo vazio não filtra. */
 export interface ExerciseSearch {
@@ -39,6 +42,8 @@ export function trainingApi(apiFetch: ApiFetch, baseUrl: string) {
     const url = (path: string) => `${baseUrl}${path}`;
     const exerciseUrl = (id: string) => url(`/exercises/${encodeURIComponent(id)}`);
     const planUrl = (id: string) => url(`/plans/${encodeURIComponent(id)}`);
+    const restrictionsUrl = (clientId: string) =>
+        url(`/clients/${encodeURIComponent(clientId)}/restrictions`);
     return {
         async searchExercises(search: ExerciseSearch): Promise<ExercisePage> {
             const params = new URLSearchParams();
@@ -78,6 +83,50 @@ export function trainingApi(apiFetch: ApiFetch, baseUrl: string) {
         async archiveExercise(id: string): Promise<void> {
             const response = await apiFetch(exerciseUrl(id), { method: 'DELETE' });
             if (!response.ok) throw await problem(response);
+        },
+        /** Restrições de mobilidade do aluno vinculado (DEV-0058). */
+        async listRestrictions(clientId: string): Promise<MobilityRestriction[]> {
+            return json(
+                await apiFetch(restrictionsUrl(clientId), { headers: { Accept: 'application/json' } }),
+            );
+        },
+        async createRestriction(
+            clientId: string,
+            input: MobilityRestrictionInput,
+        ): Promise<MobilityRestriction> {
+            return json(
+                await apiFetch(restrictionsUrl(clientId), {
+                    method: 'POST',
+                    headers: JSON_HEADERS,
+                    body: JSON.stringify(input),
+                }),
+            );
+        },
+        async updateRestriction(
+            clientId: string,
+            restrictionId: string,
+            input: MobilityRestrictionInput,
+        ): Promise<MobilityRestriction> {
+            return json(
+                await apiFetch(`${restrictionsUrl(clientId)}/${encodeURIComponent(restrictionId)}`, {
+                    method: 'PUT',
+                    headers: JSON_HEADERS,
+                    body: JSON.stringify(input),
+                }),
+            );
+        },
+        async removeRestriction(clientId: string, restrictionId: string): Promise<void> {
+            const response = await apiFetch(
+                `${restrictionsUrl(clientId)}/${encodeURIComponent(restrictionId)}`,
+                {
+                    method: 'DELETE',
+                },
+            );
+            if (!response.ok) throw await problem(response);
+        },
+        /** Fichas publicadas que vencem nos próximos dias ou já venceram (DEV-0059). */
+        async expiringPlans(): Promise<ExpiringPlan[]> {
+            return json(await apiFetch(url('/plans/expiring'), { headers: { Accept: 'application/json' } }));
         },
         /** Fichas que o personal criou para o aluno vinculado (DEV-0059). */
         async listPlans(clientId: string): Promise<WorkoutPlan[]> {

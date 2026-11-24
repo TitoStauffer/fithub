@@ -78,6 +78,9 @@ const REGION_LABELS: Record<BodyRegion, string> = {
 
 export const regionLabel = (region: string) => REGION_LABELS[region as BodyRegion] ?? region;
 
+/** Regiões do corpo na ordem da lista de escolha (DEV-0058). */
+export const BODY_REGIONS = Object.keys(REGION_LABELS) as BodyRegion[];
+
 export const letterOf = (position: number) => String.fromCharCode(65 + position);
 
 export function emptyItem(exercise: PickedExercise): ItemForm {
