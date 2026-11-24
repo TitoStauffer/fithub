@@ -254,6 +254,13 @@
       "WorkoutDivision" : {
         "description" : "Divisão da ficha, na ordem da sequência.",
         "properties" : {
+          "items" : {
+            "description" : "Exercícios prescritos, na ordem.",
+            "items" : {
+              "$ref" : "#/components/schemas/WorkoutItem"
+            },
+            "type" : "array"
+          },
           "letter" : {
             "description" : "Letra da posição: A, B, C...",
             "type" : "string"
@@ -266,11 +273,116 @@
       },
       "WorkoutDivisionInput" : {
         "properties" : {
+          "items" : {
+            "description" : "Até 30 exercícios, na ordem.",
+            "items" : {
+              "$ref" : "#/components/schemas/WorkoutItemInput"
+            },
+            "type" : [ "array", "null" ]
+          },
           "name" : {
             "description" : "Até 60 caracteres.",
             "type" : [ "string", "null" ]
           }
         },
+        "type" : "object"
+      },
+      "WorkoutItem" : {
+        "description" : "Exercício prescrito na divisão.",
+        "properties" : {
+          "alternatives" : {
+            "description" : "Exercícios alternativos, na ordem.",
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "exerciseId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "loadKg" : {
+            "description" : "Carga sugerida em kg.",
+            "type" : [ "number", "null" ]
+          },
+          "note" : {
+            "type" : [ "string", "null" ]
+          },
+          "repsMax" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "repsMin" : {
+            "description" : "Igual ao máximo quando as repetições são fixas.",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "restSeconds" : {
+            "description" : "Descanso entre as séries, em segundos.",
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "sets" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "technique" : {
+            "enum" : [ "BI_SET", "TRI_SET", "DROP_SET", "REST_PAUSE" ],
+            "type" : [ "string", "null" ]
+          }
+        },
+        "type" : "object"
+      },
+      "WorkoutItemInput" : {
+        "description" : "Exercício prescrito, com as regras do modelo.",
+        "properties" : {
+          "alternatives" : {
+            "description" : "Até 3 exercícios, diferentes do principal.",
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : [ "array", "null" ]
+          },
+          "exerciseId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "loadKg" : {
+            "description" : "De 0 a 1000 kg, em passos de 0,5.",
+            "type" : [ "number", "null" ]
+          },
+          "note" : {
+            "description" : "Até 500 caracteres.",
+            "type" : [ "string", "null" ]
+          },
+          "repsMax" : {
+            "description" : "Máximo da faixa (8–12); vazio para repetições fixas.",
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "repsMin" : {
+            "description" : "Repetições, de 1 a 100.",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "restSeconds" : {
+            "description" : "De 0 a 600 segundos.",
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "sets" : {
+            "description" : "De 1 a 20.",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "technique" : {
+            "enum" : [ "BI_SET", "TRI_SET", "DROP_SET", "REST_PAUSE" ],
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "exerciseId", "repsMin", "sets" ],
         "type" : "object"
       },
       "WorkoutPlan" : {
@@ -1365,6 +1477,16 @@
               }
             },
             "description" : "Ficha publicada."
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Alguma divisão está sem exercício (BR-10); a divisão vem em errors."
           },
           "403" : {
             "content" : {

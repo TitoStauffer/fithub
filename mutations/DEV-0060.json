@@ -1,0 +1,185 @@
+{
+    "issue": "DEV-0060",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Faixa de repetições passa a aceitar máximo menor que o mínimo",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/plan/PlanItem.java",
+            "find": "requireBetween(\"repsMax\", repsMax, repsMin, MAX_REPS,",
+            "replace": "requireBetween(\"repsMax\", repsMax, 1, MAX_REPS,",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PlanItem*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Exercício próprio de outro personal passa a entrar na ficha",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ManagePlans.java",
+            "find": ".filter(exercise -> exercise.visibleTo(plan.personalId()))",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PrescriptionApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Exercício arquivado passa a entrar na ficha",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ManagePlans.java",
+            "find": ".filter(exercise -> !exercise.archived() || alreadyInPlan.contains(exerciseId))",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PrescriptionApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Publicar passa a aceitar divisão sem exercício",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/plan/WorkoutPlan.java",
+            "find": "if (current.divisions().get(position).items().isEmpty()) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=WorkoutPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Alternativa deixa de ser conferida",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ManagePlans.java",
+            "find": "item.alternatives().get(alternative),",
+            "replace": "item.exerciseId(),",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PrescriptionApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Carga fora do passo de 0,5 passa a ser aceita",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/plan/PlanItem.java",
+            "find": "boolean halfStep = loadKg.multiply(BigDecimal.TWO).stripTrailingZeros().scale() <= 0;",
+            "replace": "boolean halfStep = true;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PlanItem*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Banco passa a aceitar faixa com máximo menor que o mínimo",
+            "area": "java",
+            "file": "services/training-service/src/main/resources/db/migration/V9__prescricao_por_exercicio.sql",
+            "find": "reps_max between reps_min and 100",
+            "replace": "reps_max between 1 and 100",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PrescriptionApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "Banco passa a aceitar carga fora do passo de 0,5",
+            "area": "java",
+            "file": "services/training-service/src/main/resources/db/migration/V9__prescricao_por_exercicio.sql",
+            "find": " and load_kg * 2 = trunc(load_kg * 2)",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PrescriptionApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "Exercício arquivado que já estava na ficha passa a ser recusado ao salvar",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ManagePlans.java",
+            "find": "|| alreadyInPlan.contains(exerciseId)",
+            "replace": "|| false",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=PrescriptionApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

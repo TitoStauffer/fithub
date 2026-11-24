@@ -312,13 +312,76 @@ export interface components {
         };
         /** @description Divisão da ficha, na ordem da sequência. */
         WorkoutDivision: {
+            /** @description Exercícios prescritos, na ordem. */
+            items?: components["schemas"]["WorkoutItem"][];
             /** @description Letra da posição: A, B, C... */
             letter?: string;
             name?: string | null;
         };
         WorkoutDivisionInput: {
+            /** @description Até 30 exercícios, na ordem. */
+            items?: components["schemas"]["WorkoutItemInput"][] | null;
             /** @description Até 60 caracteres. */
             name?: string | null;
+        };
+        /** @description Exercício prescrito na divisão. */
+        WorkoutItem: {
+            /** @description Exercícios alternativos, na ordem. */
+            alternatives?: string[];
+            /** Format: uuid */
+            exerciseId?: string;
+            /** @description Carga sugerida em kg. */
+            loadKg?: number | null;
+            note?: string | null;
+            /** Format: int32 */
+            repsMax?: number;
+            /**
+             * Format: int32
+             * @description Igual ao máximo quando as repetições são fixas.
+             */
+            repsMin?: number;
+            /**
+             * Format: int32
+             * @description Descanso entre as séries, em segundos.
+             */
+            restSeconds?: number | null;
+            /** Format: int32 */
+            sets?: number;
+            /** @enum {string|null} */
+            technique?: "BI_SET" | "TRI_SET" | "DROP_SET" | "REST_PAUSE" | null;
+        };
+        /** @description Exercício prescrito, com as regras do modelo. */
+        WorkoutItemInput: {
+            /** @description Até 3 exercícios, diferentes do principal. */
+            alternatives?: string[] | null;
+            /** Format: uuid */
+            exerciseId: string;
+            /** @description De 0 a 1000 kg, em passos de 0,5. */
+            loadKg?: number | null;
+            /** @description Até 500 caracteres. */
+            note?: string | null;
+            /**
+             * Format: int32
+             * @description Máximo da faixa (8–12); vazio para repetições fixas.
+             */
+            repsMax?: number | null;
+            /**
+             * Format: int32
+             * @description Repetições, de 1 a 100.
+             */
+            repsMin: number;
+            /**
+             * Format: int32
+             * @description De 0 a 600 segundos.
+             */
+            restSeconds?: number | null;
+            /**
+             * Format: int32
+             * @description De 1 a 20.
+             */
+            sets: number;
+            /** @enum {string|null} */
+            technique?: "BI_SET" | "TRI_SET" | "DROP_SET" | "REST_PAUSE" | null;
         };
         /** @description Ficha de treino, com o conteúdo da versão atual. */
         WorkoutPlan: {
@@ -1164,6 +1227,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkoutPlan"];
+                };
+            };
+            /** @description Alguma divisão está sem exercício (BR-10); a divisão vem em errors. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
                 };
             };
             /** @description A conta não é personal. */

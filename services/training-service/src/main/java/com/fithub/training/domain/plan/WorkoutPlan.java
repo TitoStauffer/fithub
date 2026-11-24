@@ -50,17 +50,10 @@ public record WorkoutPlan(
             String name,
             LocalDate startsOn,
             int validityWeeks,
-            List<String> divisionNames,
+            List<PlanVersion.DivisionDraft> divisions,
             Instant now) {
         PlanVersion first = new PlanVersion(
-                UUID.randomUUID(),
-                1,
-                name,
-                startsOn,
-                validityWeeks,
-                PlanVersion.divisionsNamed(divisionNames),
-                null,
-                now);
+                UUID.randomUUID(), 1, name, startsOn, validityWeeks, PlanVersion.divisions(divisions), null, now);
         return new WorkoutPlan(UUID.randomUUID(), clientId, personalId, Status.DRAFT, first, now, now);
     }
 
@@ -74,7 +67,11 @@ public record WorkoutPlan(
      * @throws PlanStateException se a ficha já foi publicada (editar a publicada é a DEV-0061)
      */
     public WorkoutPlan editDraft(
-            String name, LocalDate startsOn, int validityWeeks, List<String> divisionNames, Instant now) {
+            String name,
+            LocalDate startsOn,
+            int validityWeeks,
+            List<PlanVersion.DivisionDraft> divisions,
+            Instant now) {
         if (status != Status.DRAFT) {
             throw new PlanStateException("Só o rascunho pode ser editado assim.");
         }
@@ -84,7 +81,7 @@ public record WorkoutPlan(
                 name,
                 startsOn,
                 validityWeeks,
-                PlanVersion.divisionsNamed(divisionNames),
+                PlanVersion.divisions(divisions),
                 null,
                 current.createdAt());
         return new WorkoutPlan(id, clientId, personalId, status, content, createdAt, now);
@@ -94,10 +91,17 @@ public record WorkoutPlan(
      * Publica o rascunho: o aluno passa a ver a ficha.
      *
      * @throws PlanStateException se a ficha não é rascunho
+     * @throws InvalidPlanException se alguma divisão não tem exercício (BR-10)
      */
     public WorkoutPlan publish(Instant now) {
         if (status != Status.DRAFT) {
             throw new PlanStateException("A ficha já foi publicada.");
+        }
+        for (int position = 0; position < current.divisions().size(); position++) {
+            if (current.divisions().get(position).items().isEmpty()) {
+                throw new InvalidPlanException(
+                        "divisions[" + position + "].items", "Cada divisão precisa de ao menos um exercício.");
+            }
         }
         PlanVersion published = new PlanVersion(
                 current.id(),

@@ -4,9 +4,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fithub.training.application.ManagePlans;
 import com.fithub.training.domain.access.ClientNotFoundException;
 import com.fithub.training.domain.plan.InvalidPlanException;
+import com.fithub.training.domain.plan.PlanItem;
 import com.fithub.training.domain.plan.PlanNotFoundException;
 import com.fithub.training.domain.plan.PlanRepository;
 import com.fithub.training.domain.plan.PlanStateException;
+import com.fithub.training.domain.plan.PlanVersion;
 import com.fithub.training.domain.plan.WorkoutPlan;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -14,6 +16,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.math.BigDecimal;
 import java.net.URI;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -58,7 +61,81 @@ class PlanController {
             @Schema(description = "Letra da posição: A, B, C...")
             String letter,
 
-            @Schema(nullable = true) String name) {}
+            @Schema(nullable = true) String name,
+
+            @Schema(description = "Exercícios prescritos, na ordem.")
+            List<ItemResponse> items) {}
+
+    @Schema(name = "WorkoutItem", description = "Exercício prescrito na divisão.")
+    record ItemResponse(
+            UUID exerciseId,
+            int sets,
+
+            @Schema(description = "Igual ao máximo quando as repetições são fixas.")
+            int repsMin,
+
+            int repsMax,
+
+            @Schema(nullable = true, description = "Carga sugerida em kg.")
+            BigDecimal loadKg,
+
+            @Schema(nullable = true, description = "Descanso entre as séries, em segundos.")
+            Integer restSeconds,
+
+            @Schema(nullable = true) String note,
+            @Schema(nullable = true) PlanItem.Technique technique,
+
+            @Schema(description = "Exercícios alternativos, na ordem.")
+            List<UUID> alternatives) {
+
+        static ItemResponse of(PlanItem item) {
+            return new ItemResponse(
+                    item.exerciseId(),
+                    item.sets(),
+                    item.repsMin(),
+                    item.repsMax(),
+                    item.loadKg(),
+                    item.restSeconds(),
+                    item.note(),
+                    item.technique(),
+                    item.alternatives());
+        }
+    }
+
+    @Schema(name = "WorkoutItemInput", description = "Exercício prescrito, com as regras do modelo.")
+    record ItemRequest(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            UUID exerciseId,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "De 1 a 20.")
+            Integer sets,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Repetições, de 1 a 100.")
+            Integer repsMin,
+
+            @Schema(nullable = true, description = "Máximo da faixa (8–12); vazio para repetições fixas.")
+            Integer repsMax,
+
+            @Schema(nullable = true, description = "De 0 a 1000 kg, em passos de 0,5.")
+            BigDecimal loadKg,
+
+            @Schema(nullable = true, description = "De 0 a 600 segundos.")
+            Integer restSeconds,
+
+            @Schema(nullable = true, description = "Até 500 caracteres.")
+            String note,
+
+            @Schema(nullable = true, implementation = PlanItem.Technique.class)
+            String technique,
+
+            @Schema(nullable = true, description = "Até 3 exercícios, diferentes do principal.")
+            List<UUID> alternatives) {
+
+        PlanItem.Draft toDraft() {
+            return new PlanItem.Draft(
+                    exerciseId, sets, repsMin, repsMax, loadKg, restSeconds, note, technique, alternatives);
+        }
+    }
 
     @Schema(name = "WorkoutPlan", description = "Ficha de treino, com o conteúdo da versão atual.")
     record PlanResponse(
@@ -91,7 +168,12 @@ class PlanController {
                     version.validityWeeks(),
                     version.expiresOn(),
                     version.divisions().stream()
-                            .map(division -> new DivisionResponse(division.letter(), division.name()))
+                            .map(division -> new DivisionResponse(
+                                    division.letter(),
+                                    division.name(),
+                                    division.items().stream()
+                                            .map(ItemResponse::of)
+                                            .toList()))
                             .toList(),
                     version.publishedAt(),
                     plan.createdAt(),
@@ -102,7 +184,21 @@ class PlanController {
     @Schema(name = "WorkoutDivisionInput")
     record DivisionRequest(
             @Schema(nullable = true, description = "Até 60 caracteres.")
-            String name) {}
+            String name,
+
+            @Schema(nullable = true, description = "Até 30 exercícios, na ordem.")
+            List<ItemRequest> items) {
+
+        PlanVersion.DivisionDraft toDraft() {
+            return new PlanVersion.DivisionDraft(
+                    name,
+                    items == null
+                            ? null
+                            : items.stream()
+                                    .map(item -> item == null ? null : item.toDraft())
+                                    .toList());
+        }
+    }
 
     @Schema(name = "WorkoutPlanInput", description = "Cabeçalho e divisões da ficha em rascunho.")
     record PlanRequest(
@@ -126,7 +222,7 @@ class PlanController {
                     divisions == null
                             ? null
                             : divisions.stream()
-                                    .map(division -> division == null ? null : division.name())
+                                    .map(division -> division == null ? null : division.toDraft())
                                     .toList());
         }
     }
@@ -312,6 +408,13 @@ class PlanController {
             summary = "Publica a ficha; a que estava ativa para o aluno fica substituída",
             responses = {
                 @ApiResponse(responseCode = "200", description = "Ficha publicada."),
+                @ApiResponse(
+                        responseCode = "400",
+                        description = "Alguma divisão está sem exercício (BR-10); a divisão vem em errors.",
+                        content =
+                                @Content(
+                                        mediaType = PROBLEM,
+                                        schema = @Schema(implementation = ClientController.ApiProblem.class))),
                 @ApiResponse(
                         responseCode = "403",
                         description = "A conta não é personal.",

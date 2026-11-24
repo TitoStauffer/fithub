@@ -9,11 +9,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fithub.testing.service.ServiceIntegrationTest;
+import com.fithub.training.domain.exercise.Equipment;
+import com.fithub.training.domain.exercise.Exercise;
+import com.fithub.training.domain.exercise.ExerciseRepository;
+import com.fithub.training.domain.exercise.MuscleGroup;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +48,9 @@ class PlanApiTest extends ServiceIntegrationTest {
     @Autowired
     MockMvc mvc;
 
+    @Autowired
+    ExerciseRepository exercises;
+
     private UUID personal;
     private UUID client;
 
@@ -70,6 +78,19 @@ class PlanApiTest extends ServiceIntegrationTest {
 
     @BeforeEach
     void link() {
+        exercise = UUID.randomUUID();
+        exercises.save(new Exercise(
+                exercise,
+                Exercise.Kind.CATALOG,
+                null,
+                "Supino reto",
+                Set.of(MuscleGroup.CHEST),
+                Equipment.BARBELL,
+                null,
+                null,
+                null,
+                Instant.now(),
+                Instant.now()));
         personal = UUID.randomUUID();
         client = UUID.randomUUID();
         insertLink(personal, client, "ACTIVE");
@@ -112,13 +133,26 @@ class PlanApiTest extends ServiceIntegrationTest {
                         divisions);
     }
 
-    private static final String ABC = "[{\"name\": \"Peito e tríceps\"}, {\"name\": \" \"}, {\"name\": \"Pernas\"}]";
+    /** Exercício do catálogo para as divisões: publicar exige ao menos um em cada (BR-10, DEV-0060). */
+    private UUID exercise;
+
+    private String item() {
+        return "{\"exerciseId\": \"" + exercise + "\", \"sets\": 3, \"repsMin\": 10}";
+    }
+
+    private String abc() {
+        return "[" + division("Peito e tríceps") + ", " + division(" ") + ", " + division("Pernas") + "]";
+    }
+
+    private String division(String name) {
+        return "{\"name\": " + (name == null ? "null" : "\"" + name + "\"") + ", \"items\": [" + item() + "]}";
+    }
 
     private String create(UUID account, UUID clientId, String name, LocalDate startsOn, int weeks) throws Exception {
         String location = mvc.perform(post("/clients/" + clientId + "/plans")
                         .header("Authorization", bearer(account))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body(name, startsOn, weeks, ABC)))
+                        .content(body(name, startsOn, weeks, abc())))
                 .andExpect(status().isCreated())
                 .andReturn()
                 .getResponse()
@@ -136,7 +170,7 @@ class PlanApiTest extends ServiceIntegrationTest {
         mvc.perform(post("/clients/" + client + "/plans")
                         .header("Authorization", bearer(personal))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body(" Hipertrofia ABC ", TODAY, 8, ABC)))
+                        .content(body(" Hipertrofia ABC ", TODAY, 8, abc())))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", Matchers.startsWith("/plans/")))
                 .andExpect(jsonPath("$.status").value("DRAFT"))
@@ -152,7 +186,12 @@ class PlanApiTest extends ServiceIntegrationTest {
         mvc.perform(put("/plans/" + planId)
                         .header("Authorization", bearer(personal))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body("Força ABCD", TODAY.plusDays(2), 6, "[{}, {}, {}, {\"name\": \"Core\"}]")))
+                        .content(body(
+                                "Força ABCD",
+                                TODAY.plusDays(2),
+                                6,
+                                "[" + division(null) + ", " + division(null) + ", " + division(null) + ", "
+                                        + division("Core") + "]")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Força ABCD"))
                 .andExpect(jsonPath("$.validityWeeks").value(6))
@@ -172,7 +211,7 @@ class PlanApiTest extends ServiceIntegrationTest {
         mvc.perform(put("/plans/" + planId)
                         .header("Authorization", bearer(personal))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body("Outra", TODAY, 4, ABC)))
+                        .content(body("Outra", TODAY, 4, abc())))
                 .andExpect(status().isConflict());
         mvc.perform(post("/plans/" + planId + "/publish").header("Authorization", bearer(personal)))
                 .andExpect(status().isConflict());
@@ -204,14 +243,14 @@ class PlanApiTest extends ServiceIntegrationTest {
         mvc.perform(post("/clients/" + client + "/plans")
                         .header("Authorization", bearer(personal))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body("Nova", TODAY, 4, ABC)))
+                        .content(body("Nova", TODAY, 4, abc())))
                 .andExpect(status().isNotFound());
         mvc.perform(get("/clients/" + client + "/plans").header("Authorization", bearer(personal)))
                 .andExpect(status().isNotFound());
         mvc.perform(put("/plans/" + draft)
                         .header("Authorization", bearer(personal))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body("Editada", TODAY, 4, ABC)))
+                        .content(body("Editada", TODAY, 4, abc())))
                 .andExpect(status().isNotFound());
         mvc.perform(post("/plans/" + draft + "/publish").header("Authorization", bearer(personal)))
                 .andExpect(status().isNotFound());
@@ -237,7 +276,7 @@ class PlanApiTest extends ServiceIntegrationTest {
         mvc.perform(put("/plans/" + planId)
                         .header("Authorization", bearer(other))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body("Tomada", TODAY, 4, ABC)))
+                        .content(body("Tomada", TODAY, 4, abc())))
                 .andExpect(status().isNotFound());
         mvc.perform(post("/plans/" + planId + "/publish").header("Authorization", bearer(other)))
                 .andExpect(status().isNotFound());
@@ -252,12 +291,12 @@ class PlanApiTest extends ServiceIntegrationTest {
     void camposForaDasRegrasApontamOCampo() throws Exception {
         String sixtyOne = "a".repeat(61);
         for (String[] invalid : new String[][] {
-            {body("a", TODAY, 4, ABC), "name"},
-            {body(null, TODAY, 4, ABC), "name"},
-            {body("Ficha", null, 4, ABC), "startsOn"},
-            {body("Ficha", TODAY, 0, ABC), "validityWeeks"},
-            {body("Ficha", TODAY, 53, ABC), "validityWeeks"},
-            {body("Ficha", TODAY, null, ABC), "validityWeeks"},
+            {body("a", TODAY, 4, abc()), "name"},
+            {body(null, TODAY, 4, abc()), "name"},
+            {body("Ficha", null, 4, abc()), "startsOn"},
+            {body("Ficha", TODAY, 0, abc()), "validityWeeks"},
+            {body("Ficha", TODAY, 53, abc()), "validityWeeks"},
+            {body("Ficha", TODAY, null, abc()), "validityWeeks"},
             {body("Ficha", TODAY, 4, "[]"), "divisions"},
             {body("Ficha", TODAY, 4, "null"), "divisions"},
             {body("Ficha", TODAY, 4, "[{},{},{},{},{},{},{},{}]"), "divisions"},
