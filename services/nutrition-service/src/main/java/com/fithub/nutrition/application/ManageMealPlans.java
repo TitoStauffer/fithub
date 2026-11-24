@@ -25,6 +25,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -65,7 +66,15 @@ public class ManageMealPlans {
     /**
      * Um alimento como chega: a quantidade direta, ou a medida caseira dela e quantas (a quantidade vem da medida).
      */
-    public record ItemDraft(UUID foodId, BigDecimal amount, UUID measureId, BigDecimal measureCount) {}
+    public record ItemDraft(
+            UUID foodId,
+            BigDecimal amount,
+            UUID measureId,
+            BigDecimal measureCount,
+            List<AlternativeDraft> alternatives) {}
+
+    /** Uma alternativa como chega (DEV-0082): o alimento e a quantidade dele. */
+    public record AlternativeDraft(UUID foodId, BigDecimal amount) {}
 
     /** O plano com os alimentos e os macros de cada item, de cada refeição e do dia. */
     public record PlanView(MealPlan plan, List<MealView> meals, Food.Amounts day) {}
@@ -73,7 +82,19 @@ public class ManageMealPlans {
     public record MealView(Meal meal, List<ItemView> items, Food.Amounts total) {}
 
     /** O item com o alimento (nome, unidade), a medida usada para exibir (se houver) e os macros da quantidade. */
-    public record ItemView(MealItem item, Food food, FoodMeasure measure, Food.Amounts nutrients) {}
+    public record ItemView(
+            MealItem item,
+            Food food,
+            FoodMeasure measure,
+            Food.Amounts nutrients,
+            List<AlternativeView> alternatives) {}
+
+    /**
+     * A alternativa com o alimento, os macros da quantidade dela e a diferença em relação ao principal (alternativa
+     * menos principal, com sinal).
+     */
+    public record AlternativeView(
+            MealItem.Alternative alternative, Food food, Food.Amounts nutrients, Food.Amounts difference) {}
 
     public PlanView create(String nutritionistAccount, UUID clientId, Draft draft) {
         clientAccess.requireActiveLink(nutritionistAccount, clientId);
@@ -177,14 +198,7 @@ public class ManageMealPlans {
         if (draft == null) {
             throw new InvalidMealPlanException("foodId", "Escolha o alimento.");
         }
-        boolean usable = foods.findById(draft.foodId())
-                .filter(food -> food.visibleTo(nutritionistId))
-                .filter(food -> !food.archived() || alreadyInPlan.contains(food.id()))
-                .isPresent();
-        if (!usable) {
-            throw new InvalidMealPlanException(
-                    "foodId", "Alimento indisponível: ele não existe, foi arquivado ou é de outra nutricionista.");
-        }
+        requireUsableFood(draft.foodId(), nutritionistId, alreadyInPlan, "foodId");
         BigDecimal amount = draft.amount();
         if (draft.measureId() != null) {
             FoodMeasure measure = measures.findById(draft.measureId())
@@ -196,7 +210,45 @@ public class ManageMealPlans {
                 amount = measure.toBaseUnit(draft.measureCount());
             }
         }
-        return new MealItem(draft.foodId(), amount, draft.measureId(), draft.measureCount());
+        // O domínio confere o limite e a repetição das alternativas; depois, cada uma precisa ser um alimento usável.
+        MealItem item = new MealItem(
+                draft.foodId(), amount, draft.measureId(), draft.measureCount(), alternatives(draft.alternatives()));
+        for (int index = 0; index < item.alternatives().size(); index++) {
+            requireUsableFood(
+                    item.alternatives().get(index).foodId(),
+                    nutritionistId,
+                    alreadyInPlan,
+                    "alternatives[" + index + "].foodId");
+        }
+        return item;
+    }
+
+    private static List<MealItem.Alternative> alternatives(List<AlternativeDraft> drafts) {
+        if (drafts == null) {
+            return List.of();
+        }
+        List<MealItem.Alternative> alternatives = new ArrayList<>();
+        for (int index = 0; index < drafts.size(); index++) {
+            AlternativeDraft draft = drafts.get(index);
+            try {
+                alternatives.add(draft == null ? null : new MealItem.Alternative(draft.foodId(), draft.amount()));
+            } catch (InvalidMealPlanException invalid) {
+                throw invalid.under("alternatives[" + index + "]");
+            }
+        }
+        return alternatives;
+    }
+
+    /** O alimento precisa ser da TACO ou da autora e não estar arquivado, a menos que já estivesse no plano. */
+    private void requireUsableFood(UUID foodId, UUID nutritionistId, Set<UUID> alreadyInPlan, String field) {
+        boolean usable = foods.findById(foodId)
+                .filter(food -> food.visibleTo(nutritionistId))
+                .filter(food -> !food.archived() || alreadyInPlan.contains(food.id()))
+                .isPresent();
+        if (!usable) {
+            throw new InvalidMealPlanException(
+                    field, "Alimento indisponível: ele não existe, foi arquivado ou é de outra nutricionista.");
+        }
     }
 
     /** Os macros do plano: cada item pela quantidade, a refeição pela soma dos itens e o dia pela soma das refeições. */
@@ -217,7 +269,16 @@ public class ManageMealPlans {
                                 .computeIfAbsent(item.measureId(), measures::findById)
                                 .orElse(null);
                 Food.Amounts nutrients = food.nutrientsIn(item.amount());
-                items.add(new ItemView(item, food, measure, nutrients));
+                List<AlternativeView> alternatives = new ArrayList<>();
+                for (MealItem.Alternative alternative : item.alternatives()) {
+                    Food other = foodCache.computeIfAbsent(
+                            alternative.foodId(), id -> foods.findById(id).orElseThrow());
+                    Food.Amounts otherNutrients = other.nutrientsIn(alternative.amount());
+                    alternatives.add(
+                            new AlternativeView(alternative, other, otherNutrients, otherNutrients.minus(nutrients)));
+                }
+                // Só o principal entra na soma da refeição: a alternativa é uma troca, não um acréscimo.
+                items.add(new ItemView(item, food, measure, nutrients, alternatives));
                 total = total.plus(nutrients);
             }
             meals.add(new MealView(meal, items, total));
@@ -229,7 +290,8 @@ public class ManageMealPlans {
     private static Set<UUID> foodsIn(MealPlan plan) {
         return plan.current().meals().stream()
                 .flatMap(meal -> meal.items().stream())
-                .map(MealItem::foodId)
+                .flatMap(item -> Stream.concat(
+                        Stream.of(item.foodId()), item.alternatives().stream().map(MealItem.Alternative::foodId)))
                 .collect(Collectors.toSet());
     }
 

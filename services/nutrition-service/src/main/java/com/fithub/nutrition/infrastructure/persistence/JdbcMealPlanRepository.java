@@ -168,6 +168,20 @@ class JdbcMealPlanRepository implements MealPlanRepository {
                     .param("measureId", item.measureId())
                     .param("measureCount", item.measureCount())
                     .update();
+            for (int alternative = 0; alternative < item.alternatives().size(); alternative++) {
+                jdbc.sql("""
+                                insert into meal_item_alternative
+                                    (version_id, meal_position, item_position, position, food_id, amount)
+                                values (:versionId, :mealPosition, :itemPosition, :position, :foodId, :amount)
+                                """)
+                        .param("versionId", versionId)
+                        .param("mealPosition", meal.position())
+                        .param("itemPosition", position)
+                        .param("position", alternative)
+                        .param("foodId", item.alternatives().get(alternative).foodId())
+                        .param("amount", item.alternatives().get(alternative).amount())
+                        .update();
+            }
         }
     }
 
@@ -257,9 +271,20 @@ class JdbcMealPlanRepository implements MealPlanRepository {
     }
 
     private List<Meal> meals(UUID versionId) {
+        Map<List<Integer>, List<MealItem.Alternative>> alternatives = new LinkedHashMap<>();
+        jdbc.sql("""
+                        select meal_position, item_position, food_id, amount
+                        from meal_item_alternative where version_id = :versionId
+                        order by meal_position, item_position, position
+                        """).param("versionId", versionId).query(rs -> {
+            alternatives
+                    .computeIfAbsent(
+                            List.of(rs.getInt("meal_position"), rs.getInt("item_position")), key -> new ArrayList<>())
+                    .add(new MealItem.Alternative(rs.getObject("food_id", UUID.class), rs.getBigDecimal("amount")));
+        });
         Map<Integer, List<MealItem>> items = new LinkedHashMap<>();
         jdbc.sql("""
-                        select meal_position, food_id, amount, measure_id, measure_count
+                        select meal_position, position, food_id, amount, measure_id, measure_count
                         from meal_item where version_id = :versionId
                         order by meal_position, position
                         """).param("versionId", versionId).query(rs -> {
@@ -270,7 +295,9 @@ class JdbcMealPlanRepository implements MealPlanRepository {
                             rs.getObject("food_id", UUID.class),
                             rs.getBigDecimal("amount"),
                             measureId,
-                            measureId == null ? null : rs.getBigDecimal("measure_count")));
+                            measureId == null ? null : rs.getBigDecimal("measure_count"),
+                            alternatives.getOrDefault(
+                                    List.of(rs.getInt("meal_position"), rs.getInt("position")), List.of())));
         });
         return jdbc.sql("""
                         select position, name, suggested_time, note

@@ -379,6 +379,8 @@ export interface components {
         };
         /** @description Alimento da refeição, com a quantidade e os macros dela. */
         MealItem: {
+            /** @description Até 2 trocas possíveis: a secundária e a terciária, na ordem. */
+            alternatives?: components["schemas"]["MealItemAlternative"][];
             /** @description Quantidade na unidade base. */
             amount?: number;
             /**
@@ -398,8 +400,32 @@ export interface components {
             measureName?: string;
             nutrients?: components["schemas"]["NutrientAmounts"];
         };
+        /** @description Troca possível do alimento, com a diferença para o principal. */
+        MealItemAlternative: {
+            /** @description Quantidade na unidade base. */
+            amount?: number;
+            /**
+             * @description G (gramas) ou ML (mililitros).
+             * @enum {string}
+             */
+            baseUnit?: "G" | "ML";
+            /** @description Alternativa menos principal, com sinal: positivo é a mais na alternativa. */
+            difference?: components["schemas"]["NutrientAmounts"];
+            /** Format: uuid */
+            foodId?: string;
+            foodName?: string;
+            nutrients?: components["schemas"]["NutrientAmounts"];
+        };
+        /** @description O alimento da alternativa e a quantidade (0,1 a 5000). */
+        MealItemAlternativeInput: {
+            amount: number;
+            /** Format: uuid */
+            foodId: string;
+        };
         /** @description O alimento e a quantidade (0,1 a 5000), ou a medida caseira e quantas (a quantidade vem dela). */
         MealItemInput: {
+            /** @description Até 2 alternativas, sem repetir o alimento principal nem a outra. */
+            alternatives?: components["schemas"]["MealItemAlternativeInput"][];
             amount?: number;
             /** Format: uuid */
             foodId: string;

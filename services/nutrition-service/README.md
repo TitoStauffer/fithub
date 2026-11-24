@@ -90,6 +90,10 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   medida. Medida apagada depois some do item; a quantidade fica.
 - Macros calculados na leitura (`Food.nutrientsIn`): por item, a refeição soma os itens e o dia soma as refeições. A
   fibra some do total quando falta em algum alimento.
+- Alternativas (DEV-0082, FR-44, `meal_item_alternative`, migration V9): até 2 por item (a secundária e a terciária),
+  cada uma com alimento usável e quantidade própria (0,1 a 5000), sem repetir o principal nem a outra. A leitura traz os
+  macros da alternativa e a diferença para o principal (alternativa menos principal, com sinal). Só o principal entra
+  na soma da refeição e do dia.
 - Rascunho, publicado e substituído: publicar exige alimento em cada refeição (BR-10) e deixa substituído o plano ativo
   anterior do paciente (um ativo por vez, garantido pelo índice `ux_meal_plan_published`). Editar o publicado responde
   409 até a DEV-0083.

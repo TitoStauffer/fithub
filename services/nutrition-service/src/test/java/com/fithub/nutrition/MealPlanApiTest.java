@@ -403,6 +403,147 @@ class MealPlanApiTest extends ServiceIntegrationTest {
                 .andExpect(jsonPath("$.meals.length()").value(2));
     }
 
+    private static String withAlternatives(UUID food, String amount, String... alternatives) {
+        return "{\"foodId\": \"" + food + "\", \"amount\": " + amount + ", \"alternatives\": ["
+                + String.join(", ", alternatives) + "]}";
+    }
+
+    private static String alternative(UUID food, String amount) {
+        return "{\"foodId\": \"" + food + "\", \"amount\": " + amount + "}";
+    }
+
+    @Test
+    void alternativasMostramADiferencaDeCadaMacroComSinalEFicamForaDaSoma() throws Exception {
+        Food pasta = food(Food.Kind.TACO, null, "Macarrão, trigo, cozido", "102", "3.4", "19.9", "1.2", "1.5");
+        String location = locationOf(create(
+                nutri(),
+                client,
+                plan(
+                        "Plano com trocas",
+                        meal(
+                                "Almoço",
+                                withAlternatives(
+                                        rice.id(),
+                                        "100",
+                                        alternative(pasta.id(), "80"),
+                                        alternative(beans.id(), "50"))))));
+
+        mvc.perform(get(location).header("Authorization", nutri()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.meals[0].items[0].alternatives.length()").value(2))
+                .andExpect(
+                        jsonPath("$.meals[0].items[0].alternatives[0].foodName").value("Macarrão, trigo, cozido"))
+                .andExpect(
+                        jsonPath("$.meals[0].items[0].alternatives[0].amount").value(80.0))
+                .andExpect(jsonPath("$.meals[0].items[0].alternatives[0].nutrients.proteinG")
+                        .value(2.7))
+                .andExpect(jsonPath("$.meals[0].items[0].alternatives[0].difference.energyKcal")
+                        .value(-46.4))
+                .andExpect(jsonPath("$.meals[0].items[0].alternatives[0].difference.proteinG")
+                        .value(0.2))
+                .andExpect(jsonPath("$.meals[0].items[0].alternatives[0].difference.carbsG")
+                        .value(-12.2))
+                .andExpect(jsonPath("$.meals[0].items[0].alternatives[0].difference.fatG")
+                        .value(0.8))
+                .andExpect(jsonPath("$.meals[0].items[0].alternatives[1].difference.energyKcal")
+                        .value(-90.0))
+                .andExpect(jsonPath("$.meals[0].items[0].alternatives[1].difference.proteinG")
+                        .value(-0.1))
+                // A refeição soma só o principal: a alternativa é uma troca.
+                .andExpect(jsonPath("$.meals[0].total.energyKcal").value(128.0))
+                .andExpect(jsonPath("$.day.proteinG").value(2.5));
+    }
+
+    @Test
+    void terceiraRepetidaOuDeOutraNutricionistaResponde400NoCampo() throws Exception {
+        Food pasta = food(Food.Kind.TACO, null, "Macarrão, trigo, cozido", "102", "3.4", "19.9", "1.2", "1.5");
+        Food othersOwn = food(Food.Kind.OWN, UUID.randomUUID(), "Granola dela", "400", "10", "60", "15", "8");
+        Food potato = food(Food.Kind.TACO, null, "Batata, inglesa, cozida", "52", "1.2", "11.9", "0", "1.3");
+        String pastaAlt = alternative(pasta.id(), "80");
+        record Case(String item, String field) {}
+        for (Case wrong : List.of(
+                new Case(
+                        withAlternatives(
+                                rice.id(),
+                                "100",
+                                pastaAlt,
+                                alternative(beans.id(), "50"),
+                                alternative(potato.id(), "90")),
+                        "meals[0].items[0].alternatives"),
+                new Case(
+                        withAlternatives(rice.id(), "100", alternative(rice.id(), "80")),
+                        "meals[0].items[0].alternatives[0].foodId"),
+                new Case(
+                        withAlternatives(rice.id(), "100", pastaAlt, alternative(pasta.id(), "60")),
+                        "meals[0].items[0].alternatives[1].foodId"),
+                new Case(
+                        withAlternatives(rice.id(), "100", pastaAlt, alternative(othersOwn.id(), "40")),
+                        "meals[0].items[0].alternatives[1].foodId"),
+                new Case(
+                        withAlternatives(rice.id(), "100", alternative(UUID.randomUUID(), "40")),
+                        "meals[0].items[0].alternatives[0].foodId"),
+                new Case(
+                        withAlternatives(rice.id(), "100", alternative(pasta.id(), "0")),
+                        "meals[0].items[0].alternatives[0].amount"))) {
+            create(nutri(), client, plan("Plano", meal("Almoço", wrong.item())))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.errors[0].field").value(wrong.field()));
+        }
+    }
+
+    @Test
+    void alternativaArquivadaSoSeJaEstavaNoPlano() throws Exception {
+        Food granola = food(Food.Kind.OWN, nutritionist, "Granola da casa", "400", "10", "60", "15", "8");
+        String location = locationOf(create(
+                nutri(),
+                client,
+                plan("Plano", meal("Café", withAlternatives(rice.id(), "100", alternative(granola.id(), "40"))))));
+        foods.save(granola.archive(Instant.now()));
+
+        update(
+                        nutri(),
+                        location,
+                        plan("Plano", meal("Café", withAlternatives(rice.id(), "90", alternative(granola.id(), "30")))))
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.meals[0].items[0].alternatives[0].amount").value(30.0));
+        create(
+                        nutri(),
+                        client,
+                        plan(
+                                "Plano",
+                                meal("Café", withAlternatives(rice.id(), "100", alternative(granola.id(), "40")))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("meals[0].items[0].alternatives[0].foodId"));
+    }
+
+    @Test
+    void bancoRecusaAlternativaForaDasRegras() {
+        UUID plan = UUID.randomUUID();
+        UUID version = UUID.randomUUID();
+        insertPlan(plan, client, "DRAFT");
+        insertVersion(version, plan, 1, "Plano");
+        insertMeal(version, 0, "Café");
+        insertItem(version, 0, "10", null);
+
+        expectViolation(() -> insertAlternative(version, 2, "10"), "ck_meal_item_alternative_position");
+        expectViolation(() -> insertAlternative(version, 0, "0.0"), "ck_meal_item_alternative_amount");
+        expectViolation(() -> insertAlternative(version, 0, "5000.1"), "ck_meal_item_alternative_amount");
+    }
+
+    private void insertAlternative(UUID version, int position, String amount) {
+        jdbc.sql("""
+                        insert into meal_item_alternative
+                            (version_id, meal_position, item_position, position, food_id, amount)
+                        values (:version, 0, 0, :position, :food, :amount)
+                        """)
+                .param("version", version)
+                .param("position", position)
+                .param("food", beans.id())
+                .param("amount", new BigDecimal(amount))
+                .update();
+    }
+
     @Test
     void bancoRecusaPlanoForaDasRegras() {
         UUID plan = UUID.randomUUID();
