@@ -41,7 +41,8 @@ public class ManageAssessments {
             BigDecimal weightKg,
             Circumferences circumferences,
             Assessment.Sex sexForFormulas,
-            Skinfolds skinfolds) {}
+            Skinfolds skinfolds,
+            BigDecimal bioimpedanceBodyFatPercent) {}
 
     /** Cliente sem vínculo ativo com o profissional, ou avaliação que não é da conta (404). */
     public static final class NotFoundException extends RuntimeException {
@@ -95,6 +96,7 @@ public class ManageAssessments {
                 role,
                 ageAt(clientId, command.measuredOn()),
                 heightOf(clientId),
+                command.bioimpedanceBodyFatPercent(),
                 LocalDate.now(clock),
                 clock.instant());
         assessments.save(assessment);

@@ -95,7 +95,8 @@ class AssessmentController {
     enum BodyFatOrigin {
         POLLOCK_3,
         POLLOCK_7,
-        NAVY
+        NAVY,
+        BIOIMPEDANCE
     }
 
     @Schema(name = "BodyFatEstimate")
@@ -111,6 +112,9 @@ class AssessmentController {
             }
             if (bodyFat.navy() != null) {
                 estimates.add(new BodyFatEstimate(BodyFatOrigin.NAVY, bodyFat.navy()));
+            }
+            if (bodyFat.bioimpedance() != null) {
+                estimates.add(new BodyFatEstimate(BodyFatOrigin.BIOIMPEDANCE, bodyFat.bioimpedance()));
             }
             return estimates;
         }
@@ -128,7 +132,10 @@ class AssessmentController {
             @Schema(nullable = true, description = "Sexo usado só nos cálculos de % de gordura.")
             Assessment.Sex sexForFormulas,
 
-            @Schema(nullable = true) SkinfoldsBody skinfolds) {
+            @Schema(nullable = true) SkinfoldsBody skinfolds,
+
+            @Schema(nullable = true, description = "% de gordura de uma bioimpedância, de 3 a 70.")
+            BigDecimal bioimpedanceBodyFatPercent) {
 
         ManageAssessments.Command toCommand() {
             return new ManageAssessments.Command(
@@ -136,7 +143,8 @@ class AssessmentController {
                     weightKg,
                     circumferences == null ? null : circumferences.toDomain(),
                     sexForFormulas,
-                    skinfolds == null ? null : skinfolds.toDomain());
+                    skinfolds == null ? null : skinfolds.toDomain(),
+                    bioimpedanceBodyFatPercent);
         }
     }
 

@@ -31,6 +31,7 @@ class AssessmentTest {
                 Assessment.AuthorRole.CLIENT,
                 null,
                 null,
+                null,
                 TODAY,
                 NOW);
     }

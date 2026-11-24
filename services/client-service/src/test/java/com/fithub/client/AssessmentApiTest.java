@@ -208,6 +208,27 @@ class AssessmentApiTest extends ServiceIntegrationTest {
     }
 
     @Test
+    void bioimpedanciaInformadaSaiSeparadaDoCalculado() throws Exception {
+        recordOnline(
+                        client(),
+                        BODY.replace(
+                                "\"weightKg\": 72.5,", "\"weightKg\": 72.5, \"bioimpedanceBodyFatPercent\": 24.8,"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.bodyFat[?(@.origin == 'BIOIMPEDANCE')].percent")
+                        .value(24.8))
+                .andExpect(jsonPath("$.bodyFat[?(@.origin == 'NAVY')].percent").value(26.1));
+    }
+
+    @Test
+    void bioimpedanciaForaDaFaixaVoltaComOCampo() throws Exception {
+        recordOnline(
+                        client(),
+                        BODY.replace("\"weightKg\": 72.5,", "\"weightKg\": 72.5, \"bioimpedanceBodyFatPercent\": 71,"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("bioimpedanceBodyFatPercent"));
+    }
+
+    @Test
     void dobrasSoNaAvaliacaoPresencial() throws Exception {
         recordOnline(client(), """
                         {"measuredOn": "2026-11-20", "weightKg": 64.0, "skinfolds": {"triceps": 18}}
@@ -309,5 +330,26 @@ class AssessmentApiTest extends ServiceIntegrationTest {
                         .update())
                 .isInstanceOf(DataIntegrityViolationException.class)
                 .hasMessageContaining("ck_body_assessment_navy");
+    }
+
+    /** A CHECK da V11 recusa bioimpedância fora de 3 a 70% mesmo sem o domínio. */
+    @Test
+    void bancoRecusaBioimpedanciaForaDaFaixaMesmoPorEscritaDireta() {
+        String insert = """
+                insert into body_assessment (id, client_id, assessment_type, measured_on, weight_kg, author_id,
+                    author_role, created_at, bioimpedance_percent)
+                values (:id, :client, 'ONLINE', date '2026-11-20', 64.0, :client, 'CLIENT', now(), :percent)
+                """;
+        for (String percent : new String[] {"2.9", "70.1"}) {
+            UUID client = UUID.randomUUID();
+            assertThatThrownBy(() -> jdbc.sql(insert)
+                            .param("id", UUID.randomUUID())
+                            .param("client", client)
+                            .param("percent", new java.math.BigDecimal(percent))
+                            .update())
+                    .as(percent)
+                    .isInstanceOf(DataIntegrityViolationException.class)
+                    .hasMessageContaining("ck_body_assessment_bioimpedance");
+        }
     }
 }

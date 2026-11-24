@@ -184,7 +184,8 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
   autor, do token. Imutável; só o cliente exclui. Dobras cutâneas só na
   presencial, com % de gordura por Pollock 3 e 7 (DEV-0045) calculado na
   gravação, cada valor marcado pela origem (FR-19). Na online, a fórmula da
-  Marinha dos EUA (DEV-0046) usa a altura do perfil, gravada junto.
+  Marinha dos EUA (DEV-0046) usa a altura do perfil, gravada junto. O % de
+  bioimpedância é informado à mão (DEV-0047).
 - **Leitura pelo profissional vinculado** (DEV-0040): `GET
   /professionals/me/clients/{clientId}/profile` e `/health` exigem vínculo
   ativo (404 sem ele, ou com ele encerrado). Cada leitura da saúde é registrada

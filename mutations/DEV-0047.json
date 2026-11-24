@@ -1,0 +1,65 @@
+{
+    "issue": "DEV-0047",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Bioimpedância fora de 3 a 70% passa a ser aceita",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/assessment/BodyFat.java",
+            "find": "                MAX_BIOIMPEDANCE,\n",
+            "replace": "                new BigDecimal(\"100\"),\n",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AssessmentApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Bioimpedância informada deixa de sair com a origem própria",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/interfaces/rest/AssessmentController.java",
+            "find": "new BodyFatEstimate(BodyFatOrigin.BIOIMPEDANCE, bodyFat.bioimpedance())",
+            "replace": "new BodyFatEstimate(BodyFatOrigin.NAVY, bodyFat.bioimpedance())",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AssessmentApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Banco passa a aceitar bioimpedância acima de 70%",
+            "area": "java",
+            "file": "services/client-service/src/main/resources/db/migration/V11__bioimpedancia.sql",
+            "find": "bioimpedance_percent between 3 and 70",
+            "replace": "bioimpedance_percent between 3 and 100",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AssessmentApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}
