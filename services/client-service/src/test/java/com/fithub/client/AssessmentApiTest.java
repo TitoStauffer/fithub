@@ -331,4 +331,25 @@ class AssessmentApiTest extends ServiceIntegrationTest {
                 .isInstanceOf(DataIntegrityViolationException.class)
                 .hasMessageContaining("ck_body_assessment_navy");
     }
+
+    /** A CHECK da V11 recusa bioimpedância fora de 3 a 70% mesmo sem o domínio. */
+    @Test
+    void bancoRecusaBioimpedanciaForaDaFaixaMesmoPorEscritaDireta() {
+        String insert = """
+                insert into body_assessment (id, client_id, assessment_type, measured_on, weight_kg, author_id,
+                    author_role, created_at, bioimpedance_percent)
+                values (:id, :client, 'ONLINE', date '2026-11-20', 64.0, :client, 'CLIENT', now(), :percent)
+                """;
+        for (String percent : new String[] {"2.9", "70.1"}) {
+            UUID client = UUID.randomUUID();
+            assertThatThrownBy(() -> jdbc.sql(insert)
+                            .param("id", UUID.randomUUID())
+                            .param("client", client)
+                            .param("percent", new java.math.BigDecimal(percent))
+                            .update())
+                    .as(percent)
+                    .isInstanceOf(DataIntegrityViolationException.class)
+                    .hasMessageContaining("ck_body_assessment_bioimpedance");
+        }
+    }
 }
