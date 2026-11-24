@@ -1,4 +1,4 @@
-import { originOf } from '../features/auth/authConfig';
+import { apiOrigins, originOf } from '../features/auth/authConfig';
 import { InvalidSessionError } from '../features/auth/session';
 import { createApiFetch } from './apiFetch';
 
@@ -85,5 +85,11 @@ describe('originOf', () => {
         for (const url of ['', '/x', '//evil.example', 'fithub://auth', 'javascript:alert(1)', 'nada']) {
             expect(originOf(url)).toBe('');
         }
+    });
+});
+
+describe('apiOrigins', () => {
+    it('o token vai só para o client-service e o training-service', () => {
+        expect(apiOrigins()).toEqual(['http://localhost:8082', 'http://localhost:8083']);
     });
 });

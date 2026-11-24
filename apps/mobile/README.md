@@ -99,3 +99,15 @@ está no ADR-007.
 
 - "Comparar fotos" na tela inicial: o cliente escolhe duas datas e a pose e vê as próprias fotos lado a lado. A URL de
   cada foto é pedida na hora de mostrar e pedida de novo uma vez se a imagem não carregar (URL vencida).
+
+## Treino de hoje (DEV-0070)
+
+- "Treino de hoje" na tela inicial: cada ficha ativa (a do personal e, se houver, a própria) com o próximo treino da
+  sequência e cada exercício com séries e repetições (ou a faixa), carga sugerida, descanso, técnica, observação e
+  alternativas. A mídia abre fora do app, pelo link; o exercício importado mostra o crédito (fonte, licença e autor).
+- Ficha vencida mostra o aviso e continua disponível; sem ficha, a tela convida a pedir ao personal.
+- "Começar treino" inicia a sessão com um id gerado no aparelho (`expo-crypto`), então o toque duplo não abre duas;
+  com sessão aberta, a ficha mostra "Continuar treino". O registro das séries é a DEV-0071.
+- O app fala com o training-service em `EXPO_PUBLIC_TRAINING_API_URL` (padrão `http://localhost:8083`), que passa a
+  receber o token junto com o client-service.
+- Sem conexão, a tela avisa e mantém o que já estava carregado.

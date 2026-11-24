@@ -10,13 +10,15 @@ import { useSession } from '../auth/SessionProvider';
 import { AcceptInvitationScreen } from '../links/AcceptInvitationScreen';
 import { linksApiFrom, tokenFromUrl, type LinksApi } from '../links/linksApi';
 import { LinksScreen } from '../links/LinksScreen';
+import { TodayWorkoutScreen } from '../workouts/TodayWorkoutScreen';
+import { workoutsApiFrom, type WorkoutsApi } from '../workouts/workoutsApi';
 import { HealthFormScreen } from './HealthFormScreen';
 import { messageOf, profileApiFrom, type ProfileApi } from './profileApi';
 import { fromProfile } from './profileForm';
 import { ProfileFormScreen } from './ProfileFormScreen';
 import { Alert, Button } from './ui';
 
-type Screen = 'home' | 'editProfile' | 'health' | 'accept' | 'links' | 'assessment' | 'compare';
+type Screen = 'home' | 'editProfile' | 'health' | 'accept' | 'links' | 'assessment' | 'compare' | 'workout';
 
 /** De onde chegam os links abertos pelo sistema (`fithub://convite/<token>`); injetável nos testes. */
 export interface LinkSource {
@@ -34,12 +36,14 @@ export function ClientArea({
     linkSource = Linking,
     assessmentApi: injectedAssessments,
     photoSource = expoPhotoSource,
+    workoutsApi: injectedWorkouts,
 }: {
     api?: ProfileApi;
     linksApi?: LinksApi;
     linkSource?: LinkSource;
     assessmentApi?: AssessmentApi;
     photoSource?: PhotoSource;
+    workoutsApi?: WorkoutsApi;
 }) {
     const { apiFetch } = useSession();
     const api = useMemo(() => injected ?? profileApiFrom(apiFetch), [injected, apiFetch]);
@@ -47,6 +51,10 @@ export function ClientArea({
     const assessmentApi = useMemo(
         () => injectedAssessments ?? assessmentApiFrom(apiFetch),
         [injectedAssessments, apiFetch],
+    );
+    const workoutsApi = useMemo(
+        () => injectedWorkouts ?? workoutsApiFrom(apiFetch),
+        [injectedWorkouts, apiFetch],
     );
     // Token do convite aberto pelo link (DEV-0042): vale depois do perfil, que o aceite exige.
     const [invitationToken, setInvitationToken] = useState<string>();
@@ -126,6 +134,8 @@ export function ClientArea({
         );
     }
     if (screen === 'links') return <LinksScreen api={linksApi} onDone={() => setScreen('home')} />;
+    if (screen === 'workout')
+        return <TodayWorkoutScreen api={workoutsApi} onDone={() => setScreen('home')} />;
     if (screen === 'compare') {
         return <PhotoComparisonScreen api={assessmentApi} onDone={() => setScreen('home')} />;
     }
@@ -145,6 +155,7 @@ export function ClientArea({
                 Olá, {profile.name}
             </Text>
             <Text>{profile.age} anos</Text>
+            <Button onPress={() => setScreen('workout')}>Treino de hoje</Button>
             <Button onPress={() => setScreen('editProfile')}>Editar perfil</Button>
             <Button onPress={() => setScreen('health')}>Perfil de saúde</Button>
             <Button onPress={() => setScreen('accept')}>Aceitar convite</Button>
