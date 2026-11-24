@@ -1,0 +1,30 @@
+package com.fithub.training.domain.plan;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+/** Fichas de treino e as versões delas (DEV-0059). */
+public interface PlanRepository {
+
+    /** Grava o cabeçalho e a versão atual (com as divisões). */
+    void save(WorkoutPlan plan);
+
+    Optional<WorkoutPlan> findById(UUID id);
+
+    /** As fichas do personal para o aluno, da mais nova para a mais antiga. */
+    List<WorkoutPlan> findByClientAndPersonal(UUID clientId, UUID personalId);
+
+    /** A ficha publicada (ativa) do personal para o aluno, se houver. */
+    Optional<WorkoutPlan> findPublished(UUID clientId, UUID personalId);
+
+    /**
+     * Fichas publicadas do personal, de alunos com vínculo ativo, que vencem até {@code until} (inclusive as já
+     * vencidas), pela data de vencimento.
+     */
+    List<ExpiringPlan> expiring(UUID personalId, LocalDate until);
+
+    /** Ficha publicada perto do vencimento, com o nome do aluno da projeção local (pode faltar). */
+    record ExpiringPlan(UUID planId, UUID clientId, String clientName, String name, LocalDate expiresOn) {}
+}

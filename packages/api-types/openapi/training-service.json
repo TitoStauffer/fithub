@@ -125,6 +125,31 @@
         },
         "type" : "object"
       },
+      "ExpiringPlan" : {
+        "description" : "Ficha publicada que vence no período ou já venceu.",
+        "properties" : {
+          "clientId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "clientName" : {
+            "description" : "Nome do aluno, quando já chegou à projeção local.",
+            "type" : [ "string", "null" ]
+          },
+          "expiresOn" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "planId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "LinkedClient" : {
         "description" : "Dados básicos do cliente vinculado.",
         "properties" : {
@@ -225,6 +250,112 @@
           }
         },
         "type" : "object"
+      },
+      "WorkoutDivision" : {
+        "description" : "Divisão da ficha, na ordem da sequência.",
+        "properties" : {
+          "letter" : {
+            "description" : "Letra da posição: A, B, C...",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "type" : "object"
+      },
+      "WorkoutDivisionInput" : {
+        "properties" : {
+          "name" : {
+            "description" : "Até 60 caracteres.",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "type" : "object"
+      },
+      "WorkoutPlan" : {
+        "description" : "Ficha de treino, com o conteúdo da versão atual.",
+        "properties" : {
+          "clientId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "divisions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/WorkoutDivision"
+            },
+            "type" : "array"
+          },
+          "expiresOn" : {
+            "description" : "Início mais a validade.",
+            "format" : "date",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "publishedAt" : {
+            "description" : "Quando a versão atual foi publicada; ausente no rascunho.",
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "startsOn" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "DRAFT", "PUBLISHED", "REPLACED" ],
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "validityWeeks" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "version" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "WorkoutPlanInput" : {
+        "description" : "Cabeçalho e divisões da ficha em rascunho.",
+        "properties" : {
+          "divisions" : {
+            "description" : "De 1 a 7 divisões, na ordem.",
+            "items" : {
+              "$ref" : "#/components/schemas/WorkoutDivisionInput"
+            },
+            "type" : "array"
+          },
+          "name" : {
+            "description" : "De 2 a 80 caracteres.",
+            "type" : "string"
+          },
+          "startsOn" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "validityWeeks" : {
+            "description" : "De 1 a 52 semanas.",
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "divisions", "name", "startsOn", "validityWeeks" ],
+        "type" : "object"
       }
     },
     "securitySchemes" : {
@@ -298,6 +429,123 @@
         },
         "summary" : "Dados básicos de um cliente com vínculo ativo",
         "tags" : [ "Clientes" ]
+      }
+    },
+    "/clients/{clientId}/plans" : {
+      "get" : {
+        "operationId" : "list_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/WorkoutPlan"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "Fichas."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é personal."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem vínculo ativo com o aluno."
+          }
+        },
+        "summary" : "Fichas que o personal criou para o aluno vinculado, da mais nova para a mais antiga",
+        "tags" : [ "Fichas de treino" ]
+      },
+      "post" : {
+        "operationId" : "create_2",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WorkoutPlanInput"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkoutPlan"
+                }
+              }
+            },
+            "description" : "Ficha criada; o endereço vem em Location."
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Campo fora das regras; o campo vem em errors."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é personal."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem vínculo ativo com o aluno."
+          }
+        },
+        "summary" : "Cria uma ficha em rascunho para o aluno vinculado",
+        "tags" : [ "Fichas de treino" ]
       }
     },
     "/clients/{clientId}/restrictions" : {
@@ -466,7 +714,7 @@
         "tags" : [ "Restrições de mobilidade" ]
       },
       "put" : {
-        "operationId" : "update_1",
+        "operationId" : "update_2",
         "parameters" : [ {
           "in" : "path",
           "name" : "clientId",
@@ -799,7 +1047,7 @@
         "tags" : [ "Exercícios" ]
       },
       "put" : {
-        "operationId" : "update",
+        "operationId" : "update_1",
         "parameters" : [ {
           "in" : "path",
           "name" : "exerciseId",
@@ -916,6 +1164,242 @@
         "summary" : "As restrições de mobilidade do próprio aluno",
         "tags" : [ "Restrições de mobilidade" ]
       }
+    },
+    "/plans/expiring" : {
+      "get" : {
+        "description" : "Só as do próprio personal e de alunos com vínculo ativo, pela data de vencimento.",
+        "operationId" : "expiring",
+        "parameters" : [ {
+          "description" : "Dias à frente, de 0 a 60.",
+          "in" : "query",
+          "name" : "withinDays",
+          "required" : false,
+          "schema" : {
+            "default" : "7",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ExpiringPlan"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "Fichas vencendo."
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Período fora de 0 a 60 dias."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é personal."
+          }
+        },
+        "summary" : "Fichas publicadas que vencem no período ou já venceram",
+        "tags" : [ "Fichas de treino" ]
+      }
+    },
+    "/plans/{planId}" : {
+      "get" : {
+        "description" : "O autor lê a ficha mesmo depois que o vínculo acaba (BR-05).",
+        "operationId" : "view",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "planId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkoutPlan"
+                }
+              }
+            },
+            "description" : "Ficha."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é personal."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A ficha não existe ou é de outro personal."
+          }
+        },
+        "summary" : "Uma ficha do personal",
+        "tags" : [ "Fichas de treino" ]
+      },
+      "put" : {
+        "operationId" : "update",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "planId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WorkoutPlanInput"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkoutPlan"
+                }
+              }
+            },
+            "description" : "Ficha editada."
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Campo fora das regras; o campo vem em errors."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é personal."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A ficha não existe, é de outro personal ou o vínculo acabou."
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A ficha não é rascunho."
+          }
+        },
+        "summary" : "Edita a ficha em rascunho",
+        "tags" : [ "Fichas de treino" ]
+      }
+    },
+    "/plans/{planId}/publish" : {
+      "post" : {
+        "operationId" : "publish",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "planId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WorkoutPlan"
+                }
+              }
+            },
+            "description" : "Ficha publicada."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é personal."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A ficha não existe, é de outro personal ou o vínculo acabou."
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A ficha já foi publicada."
+          }
+        },
+        "summary" : "Publica a ficha; a que estava ativa para o aluno fica substituída",
+        "tags" : [ "Fichas de treino" ]
+      }
     }
   },
   "security" : [ {
@@ -934,5 +1418,8 @@
   }, {
     "description" : "Restrições de mobilidade do aluno",
     "name" : "Restrições de mobilidade"
+  }, {
+    "description" : "Fichas de treino que o personal monta para o aluno",
+    "name" : "Fichas de treino"
   } ]
 }
