@@ -11,6 +11,9 @@ import { ClientDetailPage } from './ClientDetailPage';
 import { ClientsPage } from './ClientsPage';
 import { InvitationsPage } from './InvitationsPage';
 
+// A seção de fichas tem os testes dela (plans.test.tsx).
+vi.mock('@/features/plans/PlansSection', () => ({ PlansSection: () => null }));
+
 const API = 'http://localhost:8082';
 const CLIENT = '0193a1b2-0000-7000-8000-00000000000c';
 const LINK = '0193a1b2-0000-7000-8000-0000000000aa';

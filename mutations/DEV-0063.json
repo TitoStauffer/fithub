@@ -1,0 +1,110 @@
+{
+    "issue": "DEV-0063",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Web: alerta de restrição deixa de aparecer no item",
+            "area": "apps",
+            "file": "apps/web/src/features/plans/PlanEditorPage.tsx",
+            "find": "                                        dirty\n                                            ? []",
+            "replace": "                                        true\n                                            ? []",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Web: editar a publicada deixa de mandar a versão base",
+            "area": "apps",
+            "file": "apps/web/src/features/plans/PlanEditorPage.tsx",
+            "find": "toInput(form, published ? current.version : undefined)",
+            "replace": "toInput(form)",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Web: publicar passa a dispensar a confirmação",
+            "area": "apps",
+            "file": "apps/web/src/features/plans/PlanEditorPage.tsx",
+            "find": "if (Object.keys(found).length === 0) setConfirmingPublish(true);",
+            "replace": "if (Object.keys(found).length === 0) publish.mutate();",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Web: publicar passa a aceitar divisão sem exercício no navegador",
+            "area": "apps",
+            "file": "apps/web/src/features/plans/planForm.ts",
+            "find": "        if (division.items.length === 0) {",
+            "replace": "        if (false) {",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Web: conflito de edição deixa de recarregar a ficha",
+            "area": "apps",
+            "file": "apps/web/src/features/plans/PlanEditorPage.tsx",
+            "find": "await queryClient.invalidateQueries({ queryKey: planKey(current.id) });",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Web: erro de campo da API deixa de aparecer no item",
+            "area": "apps",
+            "file": "apps/web/src/features/plans/PlanEditorPage.tsx",
+            "find": "setErrors(error.fieldErrors);",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Web: zero séries passa a ser aceito no navegador",
+            "area": "apps",
+            "file": "apps/web/src/features/plans/planForm.ts",
+            "find": "checkInteger(errors, `${path}.sets`, item.sets, 1,",
+            "replace": "checkInteger(errors, `${path}.sets`, item.sets, 0,",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}

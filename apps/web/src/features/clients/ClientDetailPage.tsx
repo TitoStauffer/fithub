@@ -4,6 +4,8 @@ import { Link, useNavigate, useParams } from 'react-router';
 
 import { Button } from '@/components/ui/button';
 import { AssessmentHistory } from '@/features/assessments/AssessmentHistory';
+import { useAuth } from '@/features/auth/authContext';
+import { PlansSection } from '@/features/plans/PlansSection';
 import { PhotoComparison } from '@/features/assessments/PhotoComparison';
 import { AccessEndedError } from '@/lib/clientApi';
 
@@ -20,6 +22,9 @@ export function ClientDetailPage() {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
     const [confirming, setConfirming] = useState(false);
+    // Fichas de treino são do personal (BR-03): a nutricionista não vê a seção.
+    const { user } = useAuth();
+    const personal = user?.roles.includes('personal') ?? false;
 
     const profile = useQuery({
         queryKey: ['professional', 'client', clientId, 'profile'],
@@ -98,6 +103,7 @@ export function ClientDetailPage() {
             ) : null}
             {profile.data ? <AssessmentHistory clientId={clientId} /> : null}
             {profile.data ? <PhotoComparison clientId={clientId} /> : null}
+            {profile.data && personal ? <PlansSection clientId={clientId} /> : null}
             {profile.data && linkId ? (
                 <div className="space-y-2">
                     {!confirming ? (

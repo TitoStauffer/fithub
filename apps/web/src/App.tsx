@@ -10,6 +10,7 @@ import { ClientsPage } from '@/features/clients/ClientsPage';
 import { InvitationsPage } from '@/features/clients/InvitationsPage';
 import { ExerciseFormPage } from '@/features/exercises/ExerciseFormPage';
 import { ExercisesPage } from '@/features/exercises/ExercisesPage';
+import { PlanEditorPage } from '@/features/plans/PlanEditorPage';
 import { OnboardingPage } from '@/features/onboarding/OnboardingPage';
 import { ServiceStatus } from '@/features/status/ServiceStatus';
 
@@ -119,6 +120,8 @@ function ProfessionalArea() {
                 <Route path="exercicios" element={onlyPersonal(<ExercisesPage />)} />
                 <Route path="exercicios/novo" element={onlyPersonal(<ExerciseFormPage />)} />
                 <Route path="exercicios/:exerciseId/editar" element={onlyPersonal(<ExerciseFormPage />)} />
+                <Route path="clientes/:clientId/fichas/nova" element={onlyPersonal(<PlanEditorPage />)} />
+                <Route path="clientes/:clientId/fichas/:planId" element={onlyPersonal(<PlanEditorPage />)} />
             </Routes>
             <ServiceStatus />
         </section>
