@@ -26,6 +26,8 @@ public record Assessment(
         BigDecimal weightKg,
         Circumferences circumferences,
         Sex sexForFormulas,
+        Skinfolds skinfolds,
+        BodyFat bodyFat,
         UUID authorId,
         AuthorRole authorRole,
         Instant createdAt) {
@@ -62,6 +64,11 @@ public record Assessment(
         Measures.requireInRange(
                 "weightKg", weightKg, MIN_WEIGHT, MAX_WEIGHT, "O peso vai de 20 a 400 kg, com até 1 casa decimal.");
         circumferences = circumferences == null ? Circumferences.NONE : circumferences;
+        skinfolds = skinfolds == null ? Skinfolds.NONE : skinfolds;
+        bodyFat = bodyFat == null ? BodyFat.NONE : bodyFat;
+        if (type == Type.ONLINE && skinfolds.any()) {
+            throw new InvalidAssessmentException("skinfolds", "Dobras cutâneas só na avaliação presencial.");
+        }
         if ((type == Type.PRESENTIAL) != (authorRole == AuthorRole.PROFESSIONAL)) {
             throw new IllegalArgumentException("Avaliação presencial é do profissional; online, do cliente.");
         }
@@ -76,14 +83,34 @@ public record Assessment(
             BigDecimal weightKg,
             Circumferences circumferences,
             Sex sexForFormulas,
+            Skinfolds skinfolds,
             UUID authorId,
             AuthorRole authorRole,
+            Integer ageAtMeasurement,
             LocalDate today,
             Instant now) {
         if (measuredOn != null && measuredOn.isAfter(today)) {
             throw new InvalidAssessmentException("measuredOn", "A data da medição não pode estar no futuro.");
         }
+        Skinfolds folds = skinfolds == null ? Skinfolds.NONE : skinfolds;
+        // % de gordura calculado uma vez, na gravação (FR-16); sem os dados do protocolo, fica vazio.
+        BodyFat bodyFat = new BodyFat(
+                BodyFatFormulas.pollock3(sexForFormulas, ageAtMeasurement, folds)
+                        .orElse(null),
+                BodyFatFormulas.pollock7(sexForFormulas, ageAtMeasurement, folds)
+                        .orElse(null));
         return new Assessment(
-                id, clientId, type, measuredOn, weightKg, circumferences, sexForFormulas, authorId, authorRole, now);
+                id,
+                clientId,
+                type,
+                measuredOn,
+                weightKg,
+                circumferences,
+                sexForFormulas,
+                folds,
+                bodyFat,
+                authorId,
+                authorRole,
+                now);
     }
 }

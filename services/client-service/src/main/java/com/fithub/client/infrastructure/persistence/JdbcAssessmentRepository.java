@@ -2,7 +2,9 @@ package com.fithub.client.infrastructure.persistence;
 
 import com.fithub.client.domain.assessment.Assessment;
 import com.fithub.client.domain.assessment.AssessmentRepository;
+import com.fithub.client.domain.assessment.BodyFat;
 import com.fithub.client.domain.assessment.Circumferences;
+import com.fithub.client.domain.assessment.Skinfolds;
 import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -19,7 +21,9 @@ class JdbcAssessmentRepository implements AssessmentRepository {
 
     private static final String COLUMNS = "id, client_id, assessment_type, measured_on, weight_kg, neck_cm, chest_cm,"
             + " waist_cm, abdomen_cm, hip_cm, arm_cm, forearm_cm, thigh_cm, calf_cm, sex_for_formulas, author_id,"
-            + " author_role, created_at";
+            + " author_role, created_at, skinfold_chest_mm, skinfold_midaxillary_mm, skinfold_triceps_mm,"
+            + " skinfold_subscapular_mm, skinfold_abdomen_mm, skinfold_suprailiac_mm, skinfold_thigh_mm,"
+            + " pollock3_percent, pollock7_percent";
 
     private final JdbcClient jdbc;
 
@@ -30,9 +34,11 @@ class JdbcAssessmentRepository implements AssessmentRepository {
     @Override
     public void save(Assessment assessment) {
         Circumferences c = assessment.circumferences();
+        Skinfolds s = assessment.skinfolds();
         jdbc.sql("insert into body_assessment (" + COLUMNS + ") values (:id, :clientId, :type, :measuredOn, :weight,"
                         + " :neck, :chest, :waist, :abdomen, :hip, :arm, :forearm, :thigh, :calf, :sex, :authorId,"
-                        + " :authorRole, :createdAt)")
+                        + " :authorRole, :createdAt, :sfChest, :sfMidaxillary, :sfTriceps, :sfSubscapular, :sfAbdomen,"
+                        + " :sfSuprailiac, :sfThigh, :pollock3, :pollock7)")
                 .param("id", assessment.id())
                 .param("clientId", assessment.clientId())
                 .param("type", assessment.type().name())
@@ -55,6 +61,15 @@ class JdbcAssessmentRepository implements AssessmentRepository {
                 .param("authorId", assessment.authorId())
                 .param("authorRole", assessment.authorRole().name())
                 .param("createdAt", Timestamp.from(assessment.createdAt()))
+                .param("sfChest", s.chest())
+                .param("sfMidaxillary", s.midaxillary())
+                .param("sfTriceps", s.triceps())
+                .param("sfSubscapular", s.subscapular())
+                .param("sfAbdomen", s.abdomen())
+                .param("sfSuprailiac", s.suprailiac())
+                .param("sfThigh", s.thigh())
+                .param("pollock3", assessment.bodyFat().pollock3())
+                .param("pollock7", assessment.bodyFat().pollock7())
                 .update();
     }
 
@@ -100,6 +115,15 @@ class JdbcAssessmentRepository implements AssessmentRepository {
                         row.getBigDecimal("thigh_cm"),
                         row.getBigDecimal("calf_cm")),
                 sex == null ? null : Assessment.Sex.valueOf(sex),
+                new Skinfolds(
+                        row.getBigDecimal("skinfold_chest_mm"),
+                        row.getBigDecimal("skinfold_midaxillary_mm"),
+                        row.getBigDecimal("skinfold_triceps_mm"),
+                        row.getBigDecimal("skinfold_subscapular_mm"),
+                        row.getBigDecimal("skinfold_abdomen_mm"),
+                        row.getBigDecimal("skinfold_suprailiac_mm"),
+                        row.getBigDecimal("skinfold_thigh_mm")),
+                new BodyFat(row.getBigDecimal("pollock3_percent"), row.getBigDecimal("pollock7_percent")),
                 row.getObject("author_id", UUID.class),
                 Assessment.AuthorRole.valueOf(row.getString("author_role")),
                 row.getTimestamp("created_at").toInstant());

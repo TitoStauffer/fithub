@@ -26,8 +26,10 @@ class AssessmentTest {
                 weight == null ? null : new BigDecimal(weight),
                 circumferences,
                 null,
+                null,
                 CLIENT,
                 Assessment.AuthorRole.CLIENT,
+                null,
                 TODAY,
                 NOW);
     }
@@ -87,9 +89,43 @@ class AssessmentTest {
                         new BigDecimal("70"),
                         null,
                         null,
+                        null,
+                        null,
                         CLIENT,
                         Assessment.AuthorRole.CLIENT,
                         NOW))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    /** Dobra no índice informado (peitoral, axilar média, tríceps, subescapular, abdominal, suprailíaca, coxa). */
+    private static Skinfolds onlyFold(int index, String mm) {
+        BigDecimal[] values = new BigDecimal[7];
+        values[index] = new BigDecimal(mm);
+        return new Skinfolds(values[0], values[1], values[2], values[3], values[4], values[5], values[6]);
+    }
+
+    private static final String[] FOLD_FIELDS = {
+        "skinfolds.chest",
+        "skinfolds.midaxillary",
+        "skinfolds.triceps",
+        "skinfolds.subscapular",
+        "skinfolds.abdomen",
+        "skinfolds.suprailiac",
+        "skinfolds.thigh"
+    };
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0.9", "80.1", "10.55"})
+    void cadaDobraForaDaFaixaOuComMaisDeUmaCasaERecusadaComOCampo(String mm) {
+        for (int index = 0; index < FOLD_FIELDS.length; index++) {
+            int fold = index;
+            assertThat(fieldOf(() -> onlyFold(fold, mm))).as(FOLD_FIELDS[index]).isEqualTo(FOLD_FIELDS[index]);
+        }
+    }
+
+    @Test
+    void limitesDasDobrasSaoAceitos() {
+        assertThat(onlyFold(2, "1").triceps()).isEqualByComparingTo("1");
+        assertThat(onlyFold(6, "80.0").thigh()).isEqualByComparingTo("80");
     }
 }

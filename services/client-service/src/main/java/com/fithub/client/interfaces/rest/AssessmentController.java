@@ -2,8 +2,10 @@ package com.fithub.client.interfaces.rest;
 
 import com.fithub.client.application.ManageAssessments;
 import com.fithub.client.domain.assessment.Assessment;
+import com.fithub.client.domain.assessment.BodyFat;
 import com.fithub.client.domain.assessment.Circumferences;
 import com.fithub.client.domain.assessment.InvalidAssessmentException;
+import com.fithub.client.domain.assessment.Skinfolds;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -12,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -68,6 +71,47 @@ class AssessmentController {
         }
     }
 
+    @Schema(name = "Skinfolds", description = "Dobras cutâneas em mm, só na avaliação presencial.")
+    record SkinfoldsBody(
+            @Schema(nullable = true) BigDecimal chest,
+            @Schema(nullable = true) BigDecimal midaxillary,
+            @Schema(nullable = true) BigDecimal triceps,
+            @Schema(nullable = true) BigDecimal subscapular,
+            @Schema(nullable = true) BigDecimal abdomen,
+            @Schema(nullable = true) BigDecimal suprailiac,
+            @Schema(nullable = true) BigDecimal thigh) {
+
+        Skinfolds toDomain() {
+            return new Skinfolds(chest, midaxillary, triceps, subscapular, abdomen, suprailiac, thigh);
+        }
+
+        static SkinfoldsBody of(Skinfolds s) {
+            return new SkinfoldsBody(
+                    s.chest(), s.midaxillary(), s.triceps(), s.subscapular(), s.abdomen(), s.suprailiac(), s.thigh());
+        }
+    }
+
+    /** Origem de cada % de gordura (FR-19): os métodos não são comparáveis entre si. */
+    enum BodyFatOrigin {
+        POLLOCK_3,
+        POLLOCK_7
+    }
+
+    @Schema(name = "BodyFatEstimate")
+    record BodyFatEstimate(BodyFatOrigin origin, BigDecimal percent) {
+
+        static List<BodyFatEstimate> of(BodyFat bodyFat) {
+            List<BodyFatEstimate> estimates = new ArrayList<>();
+            if (bodyFat.pollock3() != null) {
+                estimates.add(new BodyFatEstimate(BodyFatOrigin.POLLOCK_3, bodyFat.pollock3()));
+            }
+            if (bodyFat.pollock7() != null) {
+                estimates.add(new BodyFatEstimate(BodyFatOrigin.POLLOCK_7, bodyFat.pollock7()));
+            }
+            return estimates;
+        }
+    }
+
     @Schema(name = "AssessmentRequest")
     record AssessmentRequest(
             LocalDate measuredOn,
@@ -78,11 +122,17 @@ class AssessmentController {
             @Schema(nullable = true) CircumferencesBody circumferences,
 
             @Schema(nullable = true, description = "Sexo usado só nos cálculos de % de gordura.")
-            Assessment.Sex sexForFormulas) {
+            Assessment.Sex sexForFormulas,
+
+            @Schema(nullable = true) SkinfoldsBody skinfolds) {
 
         ManageAssessments.Command toCommand() {
             return new ManageAssessments.Command(
-                    measuredOn, weightKg, circumferences == null ? null : circumferences.toDomain(), sexForFormulas);
+                    measuredOn,
+                    weightKg,
+                    circumferences == null ? null : circumferences.toDomain(),
+                    sexForFormulas,
+                    skinfolds == null ? null : skinfolds.toDomain());
         }
     }
 
@@ -94,6 +144,11 @@ class AssessmentController {
             BigDecimal weightKg,
             CircumferencesBody circumferences,
             @Schema(nullable = true) Assessment.Sex sexForFormulas,
+            SkinfoldsBody skinfolds,
+
+            @Schema(description = "% de gordura de cada origem; vazio quando não há dados para calcular.")
+            List<BodyFatEstimate> bodyFat,
+
             UUID authorId,
             Assessment.AuthorRole authorRole,
             Instant createdAt) {
@@ -106,6 +161,8 @@ class AssessmentController {
                     a.weightKg(),
                     CircumferencesBody.of(a.circumferences()),
                     a.sexForFormulas(),
+                    SkinfoldsBody.of(a.skinfolds()),
+                    BodyFatEstimate.of(a.bodyFat()),
                     a.authorId(),
                     a.authorRole(),
                     a.createdAt());
