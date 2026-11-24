@@ -191,7 +191,7 @@ public class SessionSets {
     /** Comentário e sensação do treino, no mesmo prazo da correção das séries (BR-08). */
     public WorkoutSession feedback(String clientAccount, UUID sessionId, String comment, Integer feeling) {
         WorkoutSession session = correctableSession(clientAccount, sessionId).withFeedback(comment, feeling);
-        sessions.save(session);
+        sessions.saveFeedback(session);
         return session;
     }
 

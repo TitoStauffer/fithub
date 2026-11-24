@@ -288,6 +288,13 @@ class MySessionController {
                                         mediaType = PROBLEM,
                                         schema = @Schema(implementation = ClientController.ApiProblem.class))),
                 @ApiResponse(
+                        responseCode = "403",
+                        description = "A conta não é de cliente.",
+                        content =
+                                @Content(
+                                        mediaType = PROBLEM,
+                                        schema = @Schema(implementation = ClientController.ApiProblem.class))),
+                @ApiResponse(
                         responseCode = "404",
                         description = "A sessão não existe ou é de outro aluno.",
                         content =

@@ -14,7 +14,9 @@ import com.fithub.training.domain.exercise.Equipment;
 import com.fithub.training.domain.exercise.Exercise;
 import com.fithub.training.domain.exercise.ExerciseRepository;
 import com.fithub.training.domain.exercise.MuscleGroup;
+import com.fithub.training.domain.session.SessionRepository;
 import com.fithub.training.domain.session.SetRepository;
+import com.fithub.training.domain.session.WorkoutSession;
 import com.fithub.training.domain.session.WorkoutSet;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -57,6 +59,9 @@ class SessionSetsApiTest extends ServiceIntegrationTest {
 
     @Autowired
     SetRepository sets;
+
+    @Autowired
+    SessionRepository sessionRepository;
 
     private UUID personal;
     private UUID client;
@@ -550,6 +555,31 @@ class SessionSetsApiTest extends ServiceIntegrationTest {
                         .update())
                 .isInstanceOf(DataIntegrityViolationException.class)
                 .hasMessageContaining("ck_workout_session_feeling");
+    }
+
+    /**
+     * Code Review do PR #250: comentar e finalizar ao mesmo tempo não se desfazem. Uma gravação da sessão lida antes
+     * da finalização não reabre o treino nem troca o comentário gravado.
+     */
+    @Test
+    void gravacaoDaSessaoDesatualizadaNaoReabreONemApagaOComentario() throws Exception {
+        UUID session = startSession(publishedPlan());
+        mvc.perform(put("/me/sessions/" + session + "/feedback")
+                        .header("Authorization", clientToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"comment\": \"Bom treino.\", \"feeling\": 3}"))
+                .andExpect(status().isOk());
+        WorkoutSession stale = sessionRepository.findById(session).orElseThrow();
+        mvc.perform(post("/me/sessions/" + session + "/finish").header("Authorization", clientToken()))
+                .andExpect(status().isOk());
+
+        // Gravação atrasada de quem leu a sessão ainda aberta, com outro comentário.
+        sessionRepository.save(stale.withFeedback("Comentário velho.", 1));
+
+        WorkoutSession stored = sessionRepository.findById(session).orElseThrow();
+        assertThat(stored.finished()).isTrue();
+        assertThat(stored.comment()).isEqualTo("Bom treino.");
+        assertThat(stored.feeling()).isEqualTo(3);
     }
 
     /** As CHECKs e a unicidade da V11 recusam sem passar pelo domínio. */

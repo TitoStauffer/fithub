@@ -100,6 +100,86 @@
                 "-Dtest=WorkoutSession*Test",
                 "-Dsurefire.failIfNoSpecifiedTests=false"
             ]
+        },
+        {
+            "id": "M6",
+            "description": "Gravação atrasada da sessão passa a reabrir o treino finalizado",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcSessionRepository.java",
+            "find": "finished_at = coalesce(workout_session.finished_at, excluded.finished_at)",
+            "replace": "finished_at = excluded.finished_at",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=SessionSetsApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Gravação da sessão passa a regravar o comentário (finalizar apaga o comentário novo)",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcSessionRepository.java",
+            "find": "finished_at = coalesce(workout_session.finished_at, excluded.finished_at)",
+            "replace": "finished_at = coalesce(workout_session.finished_at, excluded.finished_at), comment = excluded.comment, feeling = excluded.feeling",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=SessionSetsApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "Comentário com mais de 500 caracteres passa a ser aceito",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/session/WorkoutSession.java",
+            "find": "comment.length() > MAX_COMMENT_LENGTH",
+            "replace": "comment.length() > MAX_COMMENT_LENGTH + 1",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=WorkoutSession*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "Comentário passa a usar a gravação da sessão inteira",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/SessionSets.java",
+            "find": "sessions.saveFeedback(session);",
+            "replace": "sessions.save(session);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=SessionSetsApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
         }
     ]
 }

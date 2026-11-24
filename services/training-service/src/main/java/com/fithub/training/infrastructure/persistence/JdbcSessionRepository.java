@@ -27,15 +27,15 @@ class JdbcSessionRepository implements SessionRepository {
 
     @Override
     public void save(WorkoutSession session) {
+        // Iniciar grava a sessão; finalizar só preenche finished_at e nunca desfaz uma finalização. O comentário tem
+        // gravação própria (saveFeedback): assim, finalizar e comentar ao mesmo tempo não apagam um ao outro.
         jdbc.sql("""
                         insert into workout_session (id, client_id, plan_id, version_id, division_position, started_at,
                             finished_at, comment, feeling)
                         values (:id, :clientId, :planId, :versionId, :division, :startedAt, :finishedAt, :comment,
                             :feeling)
                         on conflict (id) do update set
-                            finished_at = excluded.finished_at,
-                            comment = excluded.comment,
-                            feeling = excluded.feeling
+                            finished_at = coalesce(workout_session.finished_at, excluded.finished_at)
                         """)
                 .param("id", session.id())
                 .param("clientId", session.clientId())
@@ -44,6 +44,15 @@ class JdbcSessionRepository implements SessionRepository {
                 .param("division", session.divisionPosition())
                 .param("startedAt", Timestamp.from(session.startedAt()))
                 .param("finishedAt", session.finishedAt() == null ? null : Timestamp.from(session.finishedAt()))
+                .param("comment", session.comment())
+                .param("feeling", session.feeling())
+                .update();
+    }
+
+    @Override
+    public void saveFeedback(WorkoutSession session) {
+        jdbc.sql("update workout_session set comment = :comment, feeling = :feeling where id = :id")
+                .param("id", session.id())
                 .param("comment", session.comment())
                 .param("feeling", session.feeling())
                 .update();
