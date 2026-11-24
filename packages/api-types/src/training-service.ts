@@ -31,7 +31,8 @@ export interface paths {
          */
         get: operations["search"];
         put?: never;
-        post?: never;
+        /** Cria um exercício próprio do personal */
+        post: operations["create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -47,9 +48,14 @@ export interface paths {
         };
         /** Um exercício do catálogo ou próprio do personal */
         get: operations["exercise"];
-        put?: never;
+        /** Edita um exercício próprio do personal */
+        put: operations["update"];
         post?: never;
-        delete?: never;
+        /**
+         * Arquiva um exercício próprio do personal
+         * @description Não apaga: as fichas antigas continuam mostrando o exercício, que sai da busca. Arquivar de novo não muda nada.
+         */
+        delete: operations["archive"];
         options?: never;
         head?: never;
         patch?: never;
@@ -61,6 +67,11 @@ export interface components {
     schemas: {
         /** @description Exercício do catálogo ou próprio do personal. */
         Exercise: {
+            /**
+             * Format: date-time
+             * @description Quando o dono arquivou o exercício próprio; presente só se arquivado.
+             */
+            archivedAt?: string;
             /** @description Presente só em exercício importado; a tela mostra o crédito. */
             attribution?: components["schemas"]["ExerciseAttribution"];
             /** @enum {string} */
@@ -85,6 +96,19 @@ export interface components {
             /** @description Licença da mídia importada; presente só quando há mídia. */
             mediaLicense?: string;
             source?: string;
+        };
+        /** @description Exercício próprio, com as mesmas regras do modelo. */
+        ExerciseInput: {
+            /** @enum {string} */
+            equipment: "BARBELL" | "DUMBBELL" | "KETTLEBELL" | "MACHINE" | "CABLE" | "BAND" | "BODYWEIGHT" | "OTHER";
+            /** @description Até 4000 caracteres. */
+            instructions?: string | null;
+            /** @description Vídeo ou imagem da execução, https de até 500 caracteres. */
+            mediaUrl?: string | null;
+            /** @description Um ou mais grupos musculares. */
+            muscleGroups: ("CHEST" | "BACK" | "LOWER_BACK" | "SHOULDERS" | "BICEPS" | "TRICEPS" | "FOREARMS" | "ABS" | "GLUTES" | "QUADRICEPS" | "HAMSTRINGS" | "ADDUCTORS" | "CALVES" | "NECK" | "FULL_BODY")[];
+            /** @description De 2 a 120 caracteres. */
+            name: string;
         };
         /** @description Uma página da busca, ordenada por nome. */
         ExercisePage: {
@@ -235,6 +259,57 @@ export interface operations {
             };
         };
     };
+    create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExerciseInput"];
+            };
+        };
+        responses: {
+            /** @description Exercício criado; o endereço vem em Location. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Exercise"];
+                };
+            };
+            /** @description Campo fora das regras; o campo vem em errors. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é personal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     exercise: {
         parameters: {
             query?: never;
@@ -274,6 +349,124 @@ export interface operations {
                 };
             };
             /** @description O exercício não existe ou é próprio de outro personal. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exerciseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExerciseInput"];
+            };
+        };
+        responses: {
+            /** @description Exercício editado. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Exercise"];
+                };
+            };
+            /** @description Campo fora das regras; o campo vem em errors. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é personal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O exercício não existe, é de outro personal ou do catálogo. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O exercício foi arquivado e não muda mais. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    archive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exerciseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Exercício arquivado. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é personal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O exercício não existe, é de outro personal ou do catálogo. */
             404: {
                 headers: {
                     [name: string]: unknown;

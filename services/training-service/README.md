@@ -33,7 +33,13 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   literais). Os filtros se combinam (E lógico). Resposta `{items, total, page, size}`, ordenada por nome; página a
   partir de 0, 20 itens por padrão e até 50. Filtro fora da lista, página negativa ou tamanho fora de 1 a 50 respondem
   400 com o campo em `errors`.
-- Cadastro do exercício próprio (DEV-0056) vem depois.
+- **Exercício próprio** (DEV-0056, FR-24), papel `personal`:
+  - `POST /exercises` cria (201, endereço em `Location`), com as regras do modelo; o dono vem sempre do token.
+  - `PUT /exercises/{id}` edita e `DELETE /exercises/{id}` arquiva (204). Só o dono altera: exercício de outro
+    personal, do catálogo ou inexistente responde o mesmo 404.
+  - Arquivar não apaga (`archived_at`, migration V6): o exercício continua legível por id, com `archivedAt`, para as
+    fichas antigas, mas sai da busca e não muda mais (editar responde 409). Arquivar de novo não troca a data. Só
+    exercício próprio pode ser arquivado (domínio e `ck_exercise_archived_own`).
 
 ## Importação da base do wger (DEV-0054)
 

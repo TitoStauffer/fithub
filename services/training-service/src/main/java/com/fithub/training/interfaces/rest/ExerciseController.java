@@ -16,10 +16,9 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -92,7 +91,12 @@ class ExerciseController {
             // `nullable` sobre o $ref geraria um schema impossível (aprendizado nulo-sobre-ref-no-openapi).
             @JsonInclude(JsonInclude.Include.NON_NULL)
             @Schema(description = "Presente só em exercício importado; a tela mostra o crédito.")
-            AttributionResponse attribution) {
+            AttributionResponse attribution,
+
+            // Ausente enquanto o exercício está ativo (DEV-0056).
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            @Schema(description = "Quando o dono arquivou o exercício próprio; presente só se arquivado.")
+            Instant archivedAt) {
 
         static ExerciseResponse of(Exercise exercise) {
             return new ExerciseResponse(
@@ -103,7 +107,8 @@ class ExerciseController {
                     exercise.equipment(),
                     exercise.instructions(),
                     exercise.mediaUrl(),
-                    AttributionResponse.of(exercise.attribution()));
+                    AttributionResponse.of(exercise.attribution()),
+                    exercise.archivedAt());
         }
     }
 
@@ -230,17 +235,11 @@ class ExerciseController {
 
     @ExceptionHandler(InvalidExerciseException.class)
     ProblemDetail invalid(InvalidExerciseException exception) {
-        ProblemDetail problem =
-                ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Um ou mais campos são inválidos.");
-        problem.setTitle("Dados inválidos");
-        problem.setProperty("errors", List.of(Map.of("field", exception.field(), "message", exception.getMessage())));
-        return problem;
+        return ExerciseProblems.invalid(exception);
     }
 
     @ExceptionHandler(ExerciseNotFoundException.class)
     ProblemDetail notFound(ExerciseNotFoundException exception) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
-        problem.setTitle("Exercício não encontrado");
-        return problem;
+        return ExerciseProblems.notFound(exception);
     }
 }
