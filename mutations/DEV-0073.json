@@ -1,0 +1,80 @@
+{
+    "issue": "DEV-0073",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Mobile: divisão sem exercício deixa de impedir publicar",
+            "area": "apps",
+            "file": "apps/mobile/src/features/workouts/ownPlanForm.ts",
+            "find": "if (division.items.length === 0) {",
+            "replace": "if (false) {",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Mobile: editar a publicada deixa de mandar a versão base",
+            "area": "apps",
+            "file": "apps/mobile/src/features/workouts/OwnPlanScreen.tsx",
+            "find": "published ? (plan?.version ?? null) : null",
+            "replace": "null",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Mobile: publicar deixa de pedir confirmação",
+            "area": "apps",
+            "file": "apps/mobile/src/features/workouts/OwnPlanScreen.tsx",
+            "find": "setConfirming(true);",
+            "replace": "void publish();",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Mobile: série zero passa na validação espelhada",
+            "area": "apps",
+            "file": "apps/mobile/src/features/workouts/ownPlanForm.ts",
+            "find": "sets < 1 || sets > 20",
+            "replace": "sets > 20",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Mobile: a ficha publicada deixa de avisar que salvar gera nova versão",
+            "area": "apps",
+            "file": "apps/mobile/src/features/workouts/OwnPlanScreen.tsx",
+            "find": "const published = plan?.status === 'PUBLISHED';",
+            "replace": "const published = false;",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}

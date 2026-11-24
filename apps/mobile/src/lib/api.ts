@@ -24,6 +24,8 @@ export type RecordMark = TrainingSchemas['RecordMark'];
 export type ManualRecordInput = TrainingSchemas['ManualRecordInput'];
 export type ManualRecord = TrainingSchemas['ManualRecord'];
 export type ExercisePage = TrainingSchemas['ExercisePage'];
+export type WorkoutPlan = TrainingSchemas['WorkoutPlan'];
+export type WorkoutPlanInput = TrainingSchemas['WorkoutPlanInput'];
 
 /** Perfil do cliente como a API devolve (com a idade calculada). */
 export type ClientProfile = Schemas['ClientProfile'];
@@ -356,4 +358,35 @@ export async function searchCatalog(apiFetch: ApiFetch, name: string, baseUrl = 
         `${baseUrl}/exercises?name=${encodeURIComponent(name)}&size=10`,
     );
     return found?.items ?? [];
+}
+
+/** As fichas próprias do aluno, da mais nova para a mais antiga (DEV-0069). */
+export async function fetchOwnPlans(apiFetch: ApiFetch, baseUrl = trainingApiUrl()): Promise<WorkoutPlan[]> {
+    return (await read<WorkoutPlan[]>(apiFetch, `${baseUrl}/me/own-plans`)) ?? [];
+}
+
+export function createOwnPlan(apiFetch: ApiFetch, body: WorkoutPlanInput, baseUrl = trainingApiUrl()) {
+    return post<WorkoutPlan>(apiFetch, `${baseUrl}/me/own-plans`, body);
+}
+
+/** Edita a ficha própria: o rascunho no lugar; a publicada vira a versão seguinte (DEV-0069). */
+export function updateOwnPlan(
+    apiFetch: ApiFetch,
+    planId: string,
+    body: WorkoutPlanInput,
+    baseUrl = trainingApiUrl(),
+) {
+    return write<WorkoutPlan>(apiFetch, `${baseUrl}/me/own-plans/${encodeURIComponent(planId)}`, body);
+}
+
+export function publishOwnPlan(apiFetch: ApiFetch, planId: string, baseUrl = trainingApiUrl()) {
+    return post<WorkoutPlan>(apiFetch, `${baseUrl}/me/own-plans/${encodeURIComponent(planId)}/publish`);
+}
+
+/** Um exercício do catálogo, para mostrar o nome na ficha própria. */
+export function fetchCatalogExercise(apiFetch: ApiFetch, exerciseId: string, baseUrl = trainingApiUrl()) {
+    return read<{ id?: string; name?: string }>(
+        apiFetch,
+        `${baseUrl}/exercises/${encodeURIComponent(exerciseId)}`,
+    );
 }
