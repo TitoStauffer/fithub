@@ -94,7 +94,8 @@ class AssessmentController {
     /** Origem de cada % de gordura (FR-19): os métodos não são comparáveis entre si. */
     enum BodyFatOrigin {
         POLLOCK_3,
-        POLLOCK_7
+        POLLOCK_7,
+        NAVY
     }
 
     @Schema(name = "BodyFatEstimate")
@@ -107,6 +108,9 @@ class AssessmentController {
             }
             if (bodyFat.pollock7() != null) {
                 estimates.add(new BodyFatEstimate(BodyFatOrigin.POLLOCK_7, bodyFat.pollock7()));
+            }
+            if (bodyFat.navy() != null) {
+                estimates.add(new BodyFatEstimate(BodyFatOrigin.NAVY, bodyFat.navy()));
             }
             return estimates;
         }

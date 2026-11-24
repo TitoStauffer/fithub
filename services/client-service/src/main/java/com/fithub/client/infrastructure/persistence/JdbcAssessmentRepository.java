@@ -23,7 +23,7 @@ class JdbcAssessmentRepository implements AssessmentRepository {
             + " waist_cm, abdomen_cm, hip_cm, arm_cm, forearm_cm, thigh_cm, calf_cm, sex_for_formulas, author_id,"
             + " author_role, created_at, skinfold_chest_mm, skinfold_midaxillary_mm, skinfold_triceps_mm,"
             + " skinfold_subscapular_mm, skinfold_abdomen_mm, skinfold_suprailiac_mm, skinfold_thigh_mm,"
-            + " pollock3_percent, pollock7_percent";
+            + " pollock3_percent, pollock7_percent, navy_percent, navy_height_cm";
 
     private final JdbcClient jdbc;
 
@@ -38,7 +38,7 @@ class JdbcAssessmentRepository implements AssessmentRepository {
         jdbc.sql("insert into body_assessment (" + COLUMNS + ") values (:id, :clientId, :type, :measuredOn, :weight,"
                         + " :neck, :chest, :waist, :abdomen, :hip, :arm, :forearm, :thigh, :calf, :sex, :authorId,"
                         + " :authorRole, :createdAt, :sfChest, :sfMidaxillary, :sfTriceps, :sfSubscapular, :sfAbdomen,"
-                        + " :sfSuprailiac, :sfThigh, :pollock3, :pollock7)")
+                        + " :sfSuprailiac, :sfThigh, :pollock3, :pollock7, :navy, :navyHeight)")
                 .param("id", assessment.id())
                 .param("clientId", assessment.clientId())
                 .param("type", assessment.type().name())
@@ -70,6 +70,8 @@ class JdbcAssessmentRepository implements AssessmentRepository {
                 .param("sfThigh", s.thigh())
                 .param("pollock3", assessment.bodyFat().pollock3())
                 .param("pollock7", assessment.bodyFat().pollock7())
+                .param("navy", assessment.bodyFat().navy())
+                .param("navyHeight", assessment.bodyFat().navyHeightCm())
                 .update();
     }
 
@@ -123,7 +125,11 @@ class JdbcAssessmentRepository implements AssessmentRepository {
                         row.getBigDecimal("skinfold_abdomen_mm"),
                         row.getBigDecimal("skinfold_suprailiac_mm"),
                         row.getBigDecimal("skinfold_thigh_mm")),
-                new BodyFat(row.getBigDecimal("pollock3_percent"), row.getBigDecimal("pollock7_percent")),
+                new BodyFat(
+                        row.getBigDecimal("pollock3_percent"),
+                        row.getBigDecimal("pollock7_percent"),
+                        row.getBigDecimal("navy_percent"),
+                        row.getObject("navy_height_cm", Integer.class)),
                 row.getObject("author_id", UUID.class),
                 Assessment.AuthorRole.valueOf(row.getString("author_role")),
                 row.getTimestamp("created_at").toInstant());

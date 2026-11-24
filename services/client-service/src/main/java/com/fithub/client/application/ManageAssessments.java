@@ -94,6 +94,7 @@ public class ManageAssessments {
                 authorId,
                 role,
                 ageAt(clientId, command.measuredOn()),
+                heightOf(clientId),
                 LocalDate.now(clock),
                 clock.instant());
         assessments.save(assessment);
@@ -105,6 +106,13 @@ public class ManageAssessments {
         if (measuredOn == null) return null;
         return profiles.findByAccountId(clientId.toString())
                 .map(profile -> Period.between(profile.birthDate(), measuredOn).getYears())
+                .orElse(null);
+    }
+
+    /** Altura atual do perfil (FR-21), usada na fórmula da Marinha. */
+    private Integer heightOf(UUID clientId) {
+        return profiles.findByAccountId(clientId.toString())
+                .map(profile -> profile.heightCm())
                 .orElse(null);
     }
 

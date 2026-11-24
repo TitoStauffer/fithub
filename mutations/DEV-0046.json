@@ -1,0 +1,145 @@
+{
+    "issue": "DEV-0046",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Constante da Marinha masculina errada",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/assessment/BodyFatFormulas.java",
+            "find": "1.0324 - 0.19077 * Math.log10(waist - neck)",
+            "replace": "1.0324 - 0.2 * Math.log10(waist - neck)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=BodyFatFormulasTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Cintura menor que o pescoço deixa de ser recusada (homem)",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/assessment/BodyFatFormulas.java",
+            "find": "if (waist <= neck) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=BodyFatFormulasTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Mulher sem quadril deixa de ficar sem estimativa",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/assessment/BodyFatFormulas.java",
+            "find": "if (c.hip() == null || waist + c.hip().doubleValue() <= neck) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=BodyFatFormulasTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Marinha passa a ser calculada também na presencial",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/assessment/Assessment.java",
+            "find": "BigDecimal navy = type == Type.ONLINE && circumferences != null",
+            "replace": "BigDecimal navy = circumferences != null",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AssessmentApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Altura da fórmula deixa de vir do perfil",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManageAssessments.java",
+            "find": ".map(profile -> profile.heightCm())",
+            "replace": ".map(profile -> 170)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AssessmentApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Banco passa a aceitar a estimativa da Marinha sem a altura usada",
+            "area": "java",
+            "file": "services/client-service/src/main/resources/db/migration/V10__marinha.sql",
+            "find": "        (navy_percent is null) = (navy_height_cm is null)\n        and ",
+            "replace": "        ",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AssessmentApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Banco passa a aceitar a Marinha na avaliação presencial",
+            "area": "java",
+            "file": "services/client-service/src/main/resources/db/migration/V10__marinha.sql",
+            "find": "(navy_percent is null or assessment_type = 'ONLINE')",
+            "replace": "(true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AssessmentApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

@@ -187,6 +187,27 @@ class AssessmentApiTest extends ServiceIntegrationTest {
     }
 
     @Test
+    void avaliacaoOnlineCompletaEstimaPelaMarinhaComAAlturaDoPerfil() throws Exception {
+        // Perfil com 165 cm; mulher com pescoço 33, cintura 70,5 e quadril 98: 26,1% (conferido à parte).
+        recordOnline(client(), BODY)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.bodyFat.length()").value(1))
+                .andExpect(jsonPath("$.bodyFat[0].origin").value("NAVY"))
+                .andExpect(jsonPath("$.bodyFat[0].percent").value(26.1));
+    }
+
+    @Test
+    void medidasIncompletasOuAvaliacaoPresencialNaoTemEstimativaDaMarinha() throws Exception {
+        String client = client();
+        recordOnline(client, BODY.replace(", \"hip\": 98.0", ""))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.bodyFat.length()").value(0));
+        recordPresential("personal-" + linkedPersonal(client), client, BODY)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.bodyFat.length()").value(0));
+    }
+
+    @Test
     void dobrasSoNaAvaliacaoPresencial() throws Exception {
         recordOnline(client(), """
                         {"measuredOn": "2026-11-20", "weightKg": 64.0, "skinfolds": {"triceps": 18}}
@@ -256,5 +277,37 @@ class AssessmentApiTest extends ServiceIntegrationTest {
                         .update())
                 .isInstanceOf(DataIntegrityViolationException.class)
                 .hasMessageContaining("ck_body_assessment_skinfolds_presential");
+    }
+
+    /** A CHECK da V10 exige a altura junto da estimativa e só aceita a Marinha na online, mesmo sem o domínio. */
+    @Test
+    void bancoRecusaMarinhaSemAlturaOuNaPresencialMesmoPorEscritaDireta() {
+        String insert = """
+                insert into body_assessment (id, client_id, assessment_type, measured_on, weight_kg, author_id,
+                    author_role, created_at, navy_percent, navy_height_cm)
+                values (:id, :client, :type, date '2026-11-20', 64.0, :author, :role, now(), 25.9, :height)
+                """;
+        UUID client = UUID.randomUUID();
+
+        assertThatThrownBy(() -> jdbc.sql(insert)
+                        .param("id", UUID.randomUUID())
+                        .param("client", client)
+                        .param("type", "ONLINE")
+                        .param("author", client)
+                        .param("role", "CLIENT")
+                        .param("height", null)
+                        .update())
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("ck_body_assessment_navy");
+        assertThatThrownBy(() -> jdbc.sql(insert)
+                        .param("id", UUID.randomUUID())
+                        .param("client", client)
+                        .param("type", "PRESENTIAL")
+                        .param("author", UUID.randomUUID())
+                        .param("role", "PROFESSIONAL")
+                        .param("height", 165)
+                        .update())
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("ck_body_assessment_navy");
     }
 }

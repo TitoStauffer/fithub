@@ -64,6 +64,29 @@ public final class BodyFatFormulas {
         return sex != null && age != null && age >= MIN_AGE;
     }
 
+    /**
+     * Fórmula da Marinha dos EUA (DEV-0046, medidas em cm): homem com cintura, pescoço e altura; mulher com cintura,
+     * quadril, pescoço e altura. Medida faltando, ou que deixaria o logaritmo sem sentido, não dá resultado.
+     */
+    public static Optional<BigDecimal> navy(Assessment.Sex sex, Integer heightCm, Circumferences c) {
+        if (sex == null || heightCm == null || c.waist() == null || c.neck() == null) {
+            return Optional.empty();
+        }
+        double waist = c.waist().doubleValue();
+        double neck = c.neck().doubleValue();
+        if (sex == Assessment.Sex.MALE) {
+            if (waist <= neck) {
+                return Optional.empty();
+            }
+            return siri(1.0324 - 0.19077 * Math.log10(waist - neck) + 0.15456 * Math.log10(heightCm));
+        }
+        if (c.hip() == null || waist + c.hip().doubleValue() <= neck) {
+            return Optional.empty();
+        }
+        double girth = waist + c.hip().doubleValue() - neck;
+        return siri(1.29579 - 0.35004 * Math.log10(girth) + 0.22100 * Math.log10(heightCm));
+    }
+
     /** Equação de Siri: densidade corporal para % de gordura, com 1 casa decimal; vazio fora da faixa plausível. */
     static Optional<BigDecimal> siri(double bodyDensity) {
         BigDecimal percent = BigDecimal.valueOf(495 / bodyDensity - 450).setScale(1, RoundingMode.HALF_UP);
