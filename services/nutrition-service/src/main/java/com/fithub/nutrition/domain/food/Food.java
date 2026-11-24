@@ -112,6 +112,30 @@ public record Food(
         }
     }
 
+    /**
+     * Energia e nutrientes de uma quantidade (na unidade base), arredondados a 1 casa; a fibra falta se o alimento não
+     * traz. Sem limite de 100: é o quanto há na porção.
+     */
+    public record Amounts(
+            BigDecimal energyKcal, BigDecimal proteinG, BigDecimal carbsG, BigDecimal fatG, BigDecimal fiberG) {}
+
+    /** Os nutrientes de {@code quantity} gramas (ou ml) do alimento (DEV-0076): o valor por 100 vezes a quantidade. */
+    public Amounts nutrientsIn(BigDecimal quantity) {
+        if (quantity == null || quantity.signum() <= 0) {
+            throw new InvalidFoodException("quantity", "Informe uma quantidade maior que zero.");
+        }
+        return new Amounts(
+                portion(per100.energyKcal(), quantity),
+                portion(per100.proteinG(), quantity),
+                portion(per100.carbsG(), quantity),
+                portion(per100.fatG(), quantity),
+                per100.fiberG() == null ? null : portion(per100.fiberG(), quantity));
+    }
+
+    private static BigDecimal portion(BigDecimal valuePer100, BigDecimal quantity) {
+        return valuePer100.multiply(quantity).divide(BigDecimal.valueOf(100), 1, RoundingMode.HALF_UP);
+    }
+
     /** A TACO é de todas as nutricionistas; o próprio, só da dona (BR-13). */
     public boolean visibleTo(UUID nutritionistId) {
         return kind == Kind.TACO || ownerId.equals(nutritionistId);
