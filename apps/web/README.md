@@ -112,3 +112,16 @@ suba o Keycloak pelo compose de `infra/`). A decisão dos papéis e dos clients 
   (nome de 2 a 120, ao menos um grupo, equipamento, instruções até 4000, mídia só `https`) e o erro de campo da API
   no campo. Arquivar pede confirmação na própria tela; o arquivado sai da busca, e editá-lo responde o aviso da API.
 - **Configuração:** `VITE_TRAINING_API_URL` (padrão `http://localhost:8083`); a origem entra em `apiOrigins()`.
+
+## Editor de ficha de treino (DEV-0063)
+
+- Na tela do aluno vinculado, a seção **Fichas de treino** (só para o papel `personal`) lista as fichas com o estado
+  (rascunho, publicada, substituída), a versão e o vencimento, e leva ao editor.
+- **Editor** (`/app/clientes/:clientId/fichas/nova` e `.../fichas/:planId`): nome, início, validade e até 7 treinos
+  (A a G), com nome opcional. Os exercícios vêm da busca do catálogo, com séries, repetições (fixas ou faixa), carga,
+  descanso, técnica, observação e até 3 alternativas; a ordem muda por subir e descer.
+- A validação da API fica espelhada no navegador, e o erro de campo da API aparece no item (`divisions[i].items[j]...`).
+  O alerta de restrição aparece no item e não impede salvar nem publicar (BR-11).
+- **Publicar** pede confirmação e exige o rascunho salvo e um exercício em cada treino. Na ficha publicada, a tela avisa
+  que salvar cria a versão seguinte e manda a versão base; se outra edição chegou antes (409), a ficha é recarregada com
+  aviso. Vínculo encerrado mostra que o acesso acabou.

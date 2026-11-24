@@ -11,6 +11,12 @@ export type ExerciseInput = Schemas['ExerciseInput'];
 // O OpenAPI do springdoc marca todo campo de resposta como opcional; a tela trata a ausência.
 export type MuscleGroup = NonNullable<Exercise['muscleGroups']>[number];
 export type Equipment = NonNullable<Exercise['equipment']>;
+export type WorkoutPlan = Schemas['WorkoutPlan'];
+export type WorkoutPlanInput = Schemas['WorkoutPlanInput'];
+export type WorkoutItemInput = Schemas['WorkoutItemInput'];
+export type WorkoutPlanAlert = Schemas['WorkoutPlanAlert'];
+export type Technique = NonNullable<WorkoutItemInput['technique']>;
+export type BodyRegion = NonNullable<WorkoutPlanAlert['region']>;
 
 /** Filtros da busca (DEV-0055); campo vazio não filtra. */
 export interface ExerciseSearch {
@@ -32,6 +38,7 @@ const JSON_HEADERS = { Accept: 'application/json', 'Content-Type': 'application/
 export function trainingApi(apiFetch: ApiFetch, baseUrl: string) {
     const url = (path: string) => `${baseUrl}${path}`;
     const exerciseUrl = (id: string) => url(`/exercises/${encodeURIComponent(id)}`);
+    const planUrl = (id: string) => url(`/plans/${encodeURIComponent(id)}`);
     return {
         async searchExercises(search: ExerciseSearch): Promise<ExercisePage> {
             const params = new URLSearchParams();
@@ -71,6 +78,44 @@ export function trainingApi(apiFetch: ApiFetch, baseUrl: string) {
         async archiveExercise(id: string): Promise<void> {
             const response = await apiFetch(exerciseUrl(id), { method: 'DELETE' });
             if (!response.ok) throw await problem(response);
+        },
+        /** Fichas que o personal criou para o aluno vinculado (DEV-0059). */
+        async listPlans(clientId: string): Promise<WorkoutPlan[]> {
+            return json(
+                await apiFetch(url(`/clients/${encodeURIComponent(clientId)}/plans`), {
+                    headers: { Accept: 'application/json' },
+                }),
+            );
+        },
+        async plan(planId: string): Promise<WorkoutPlan> {
+            return json(await apiFetch(planUrl(planId), { headers: { Accept: 'application/json' } }));
+        },
+        async createPlan(clientId: string, input: WorkoutPlanInput): Promise<WorkoutPlan> {
+            return json(
+                await apiFetch(url(`/clients/${encodeURIComponent(clientId)}/plans`), {
+                    method: 'POST',
+                    headers: JSON_HEADERS,
+                    body: JSON.stringify(input),
+                }),
+            );
+        },
+        /** Rascunho muda no lugar; ficha publicada vira a versão seguinte (DEV-0061, com `baseVersion`). */
+        async updatePlan(planId: string, input: WorkoutPlanInput): Promise<WorkoutPlan> {
+            return json(
+                await apiFetch(planUrl(planId), {
+                    method: 'PUT',
+                    headers: JSON_HEADERS,
+                    body: JSON.stringify(input),
+                }),
+            );
+        },
+        async publishPlan(planId: string): Promise<WorkoutPlan> {
+            return json(
+                await apiFetch(`${planUrl(planId)}/publish`, {
+                    method: 'POST',
+                    headers: { Accept: 'application/json' },
+                }),
+            );
         },
     };
 }
