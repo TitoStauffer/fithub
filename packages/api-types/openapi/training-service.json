@@ -49,6 +49,22 @@
         },
         "type" : "object"
       },
+      "AlternativeLast" : {
+        "description" : "Séries do último treino com uma alternativa do item.",
+        "properties" : {
+          "exerciseId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "sets" : {
+            "items" : {
+              "$ref" : "#/components/schemas/RecordedSet"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
       "ClientExercise" : {
         "description" : "O exercício como o aluno vê: nome, mídia e crédito.",
         "properties" : {
@@ -411,6 +427,11 @@
       "RecordedSetInput" : {
         "description" : "Carga e repetições reais de uma série.",
         "properties" : {
+          "exerciseId" : {
+            "description" : "Exercício feito: vazio para o do treino, ou uma alternativa prevista.",
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
           "itemPosition" : {
             "description" : "Posição do exercício na divisão.",
             "format" : "int32",
@@ -434,12 +455,34 @@
         "required" : [ "itemPosition", "loadKg", "reps", "setNumber" ],
         "type" : "object"
       },
+      "SessionFeedback" : {
+        "description" : "Como foi o treino.",
+        "properties" : {
+          "comment" : {
+            "description" : "Até 500 caracteres.",
+            "type" : [ "string", "null" ]
+          },
+          "feeling" : {
+            "description" : "De 1 (muito fácil) a 5 (exaustivo).",
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          }
+        },
+        "type" : "object"
+      },
       "SessionItem" : {
         "description" : "Exercício do treino com o prescrito, o feito e o último treino.",
         "properties" : {
           "alternatives" : {
             "items" : {
               "$ref" : "#/components/schemas/ClientExercise"
+            },
+            "type" : "array"
+          },
+          "alternativesLast" : {
+            "description" : "Séries do último treino com cada alternativa, para pré-preencher depois da troca.",
+            "items" : {
+              "$ref" : "#/components/schemas/AlternativeLast"
             },
             "type" : "array"
           },
@@ -496,6 +539,10 @@
       "SessionView" : {
         "description" : "O treino em andamento (ou já feito), na versão da ficha da sessão.",
         "properties" : {
+          "comment" : {
+            "description" : "Comentário do aluno sobre o treino.",
+            "type" : [ "string", "null" ]
+          },
           "correctable" : {
             "description" : "Se ainda dá para registrar e corrigir: até o fim do dia do treino.",
             "type" : "boolean"
@@ -509,6 +556,11 @@
           "divisionPosition" : {
             "format" : "int32",
             "type" : "integer"
+          },
+          "feeling" : {
+            "description" : "Sensação de 1 (muito fácil) a 5 (exaustivo).",
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
           },
           "finishedAt" : {
             "description" : "Quando o aluno finalizou; ausente enquanto está aberta.",
@@ -1969,6 +2021,85 @@
           }
         },
         "summary" : "Inicia o próximo treino da ficha",
+        "tags" : [ "Treino do aluno" ]
+      }
+    },
+    "/me/sessions/{sessionId}/feedback" : {
+      "put" : {
+        "description" : "Substitui o que havia. Vale no mesmo prazo da correção das séries.",
+        "operationId" : "recordFeedback",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "sessionId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SessionFeedback"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SessionView"
+                }
+              }
+            },
+            "description" : "Treino com o comentário e a sensação."
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Comentário longo demais ou sensação fora de 1 a 5; o campo vem em errors."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é de cliente."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A sessão não existe ou é de outro aluno."
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O prazo de correção acabou."
+          }
+        },
+        "summary" : "Comentário e sensação do treino",
         "tags" : [ "Treino do aluno" ]
       }
     },

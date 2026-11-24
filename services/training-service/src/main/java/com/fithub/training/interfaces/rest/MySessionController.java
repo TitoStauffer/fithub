@@ -77,7 +77,21 @@ class MySessionController {
             List<SetResponse> recorded,
 
             @Schema(description = "Séries do último treino com o exercício, para pré-preencher.")
-            List<SetResponse> last) {}
+            List<SetResponse> last,
+
+            @Schema(description = "Séries do último treino com cada alternativa, para pré-preencher depois da troca.")
+            List<AlternativeLastResponse> alternativesLast) {}
+
+    @Schema(name = "AlternativeLast", description = "Séries do último treino com uma alternativa do item.")
+    record AlternativeLastResponse(UUID exerciseId, List<SetResponse> sets) {}
+
+    @Schema(name = "SessionFeedback", description = "Como foi o treino.")
+    record FeedbackRequest(
+            @Schema(nullable = true, description = "Até 500 caracteres.")
+            String comment,
+
+            @Schema(nullable = true, description = "De 1 (muito fácil) a 5 (exaustivo).")
+            Integer feeling) {}
 
     @Schema(name = "SessionView", description = "O treino em andamento (ou já feito), na versão da ficha da sessão.")
     record SessionViewResponse(
@@ -96,6 +110,12 @@ class MySessionController {
             @Schema(description = "Se ainda dá para registrar e corrigir: até o fim do dia do treino.")
             boolean correctable,
 
+            @Schema(nullable = true, description = "Comentário do aluno sobre o treino.")
+            String comment,
+
+            @Schema(nullable = true, description = "Sensação de 1 (muito fácil) a 5 (exaustivo).")
+            Integer feeling,
+
             List<SessionItemResponse> items) {
 
         static SessionViewResponse of(SessionSets.SessionView view) {
@@ -111,6 +131,8 @@ class MySessionController {
                     view.session().startedAt(),
                     view.session().finishedAt(),
                     view.correctable(),
+                    view.session().comment(),
+                    view.session().feeling(),
                     IntStream.range(0, items.size())
                             .mapToObj(position -> item(view, position, items.get(position)))
                             .toList());
@@ -136,6 +158,13 @@ class MySessionController {
                             .toList(),
                     view.lastSets().getOrDefault(item.exerciseId(), List.of()).stream()
                             .map(SetResponse::of)
+                            .toList(),
+                    item.alternatives().stream()
+                            .map(id -> new AlternativeLastResponse(
+                                    id,
+                                    view.lastSets().getOrDefault(id, List.of()).stream()
+                                            .map(SetResponse::of)
+                                            .toList()))
                             .toList());
         }
     }
@@ -152,7 +181,12 @@ class MySessionController {
             BigDecimal loadKg,
 
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "De 0 a 300.")
-            Integer reps) {}
+            Integer reps,
+
+            @Schema(
+                    nullable = true,
+                    description = "Exercício feito: vazio para o do treino, ou uma alternativa prevista.")
+            UUID exerciseId) {}
 
     @GetMapping(path = "/me/sessions/{sessionId}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
@@ -229,7 +263,56 @@ class MySessionController {
                 sessionId,
                 setId,
                 new SessionSets.SetDraft(
-                        request.itemPosition(), request.setNumber(), request.loadKg(), request.reps())));
+                        request.itemPosition(),
+                        request.setNumber(),
+                        request.loadKg(),
+                        request.reps(),
+                        request.exerciseId())));
+    }
+
+    @PutMapping(
+            path = "/me/sessions/{sessionId}/feedback",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            operationId = "recordFeedback",
+            summary = "Comentário e sensação do treino",
+            description = "Substitui o que havia. Vale no mesmo prazo da correção das séries.",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "Treino com o comentário e a sensação."),
+                @ApiResponse(
+                        responseCode = "400",
+                        description = "Comentário longo demais ou sensação fora de 1 a 5; o campo vem em errors.",
+                        content =
+                                @Content(
+                                        mediaType = PROBLEM,
+                                        schema = @Schema(implementation = ClientController.ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "403",
+                        description = "A conta não é de cliente.",
+                        content =
+                                @Content(
+                                        mediaType = PROBLEM,
+                                        schema = @Schema(implementation = ClientController.ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "404",
+                        description = "A sessão não existe ou é de outro aluno.",
+                        content =
+                                @Content(
+                                        mediaType = PROBLEM,
+                                        schema = @Schema(implementation = ClientController.ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "409",
+                        description = "O prazo de correção acabou.",
+                        content =
+                                @Content(
+                                        mediaType = PROBLEM,
+                                        schema = @Schema(implementation = ClientController.ApiProblem.class)))
+            })
+    SessionViewResponse feedback(
+            @AuthenticationPrincipal Jwt jwt, @PathVariable UUID sessionId, @RequestBody FeedbackRequest request) {
+        sessionSets.feedback(jwt.getSubject(), sessionId, request.comment(), request.feeling());
+        return SessionViewResponse.of(sessionSets.view(jwt.getSubject(), sessionId));
     }
 
     @DeleteMapping(path = "/me/sessions/{sessionId}/sets/{setId}")

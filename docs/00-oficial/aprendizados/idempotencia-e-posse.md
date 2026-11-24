@@ -23,3 +23,23 @@ caso antes.
     sessão (0 linhas = 409); testes com id de outra sessão do próprio aluno e de outro aluno no PUT (409) e no DELETE
     (404), e o teste do repositório para a guarda do banco.
   - **Prevenção:** mutantes M7 a M11 de `mutations/DEV-0066.json`, um para cada guarda.
+
+## gravacao-por-fluxo-nao-regrava-a-linha-inteira
+
+**Regra:** quando dois fluxos mexem na mesma linha (finalizar o treino e comentar o treino, por exemplo), cada um
+grava só as suas colunas. Um upsert que regrava a linha inteira com o que leu antes perde a atualização do outro fluxo
+que chegou no meio: pode desfazer uma finalização ou apagar um comentário que já respondeu 200. Estado que só avança
+(finalizado) usa `coalesce` para nunca voltar. O teste grava pelo repositório um objeto lido antes da outra
+atualização e confere que ela continua lá.
+
+### Ocorrências
+
+- **Revisão:** Code Review do PR #250, no SHA `a8c1bce` (MEDIUM: o upsert da sessão passou a regravar
+  `finished_at`, `comment` e `feeling` juntos; comentar e finalizar ao mesmo tempo podiam reabrir o treino ou apagar o
+  comentário) — DEV-0067 (#59) · **PR:** #250
+  - **Impacto:** treino finalizado voltando a aberto (a sequência não avança, FR-29) e comentário do aluno perdido
+    depois de um 200 (BR-01).
+  - **Correção:** o comentário e a sensação têm gravação própria (`saveFeedback`); o upsert da sessão só preenche
+    `finished_at`, com `coalesce` para nunca desfazer a finalização.
+  - **Prevenção:** teste com a sessão desatualizada gravada depois da finalização; mutantes M6, M7 e M9 de
+    `mutations/DEV-0067.json`.
