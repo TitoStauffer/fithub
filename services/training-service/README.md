@@ -62,3 +62,14 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
 - Item sem nome, sem grupo muscular mapeável ou sem licença e autor do texto é pulado e só contado no log.
 - **Falha da base** (erro HTTP, tempo esgotado, resposta fora do formato) interrompe o job; o que já foi importado
   fica como estava e o serviço continua no ar. O log traz só as contagens ou o tipo do erro.
+
+## Restrições de mobilidade (DEV-0058)
+
+- Restrição do aluno: região do corpo (`CERVICAL`, `SHOULDER`, `ELBOW`, `WRIST_HAND`, `THORACIC`, `LUMBAR`, `HIP`,
+  `KNEE`, `ANKLE_FOOT`) e descrição de 1 a 500 caracteres (FR-26). É do aluno (BR-01): quando o vínculo acaba, o
+  personal perde o acesso, mas ela continua.
+- **Personal** (papel `personal`, sempre com vínculo ativo pelo `ClientAccess`): `GET` e `POST
+  /clients/{clientId}/restrictions`, `PUT` e `DELETE /clients/{clientId}/restrictions/{id}`. Sem vínculo, ou com a
+  restrição de outro aluno, 404. Região fora da lista ou descrição fora do tamanho respondem 400 com o campo.
+- **Aluno** (papel `client`): `GET /me/restrictions`, só leitura. A nutricionista nunca vê (BR-03).
+- O alerta ao incluir na ficha um exercício de região restrita é a DEV-0062.

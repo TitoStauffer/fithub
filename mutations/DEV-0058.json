@@ -1,0 +1,145 @@
+{
+    "issue": "DEV-0058",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Listar passa a dispensar o vínculo ativo",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ManageRestrictions.java",
+            "find": "clientAccess.requireActiveLink(personalAccount, clientId);\n        return restrictions.findByClient(clientId);",
+            "replace": "return restrictions.findByClient(clientId);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=RestrictionApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Registrar passa a dispensar o vínculo ativo",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ManageRestrictions.java",
+            "find": "clientAccess.requireActiveLink(personalAccount, clientId);\n        MobilityRestriction restriction",
+            "replace": "MobilityRestriction restriction",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=RestrictionApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Restrição de outro aluno passa a ser editável pelo caminho de um aluno vinculado",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ManageRestrictions.java",
+            "find": ".filter(restriction -> restriction.clientId().equals(clientId))",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=RestrictionApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Descrição em branco passa a ser aceita",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/restriction/MobilityRestriction.java",
+            "find": "if (description.isEmpty() || description.length() > MAX_DESCRIPTION_LENGTH) {",
+            "replace": "if (description.length() > MAX_DESCRIPTION_LENGTH) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=MobilityRestriction*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Restrição sem região passa a ser aceita no domínio",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/restriction/MobilityRestriction.java",
+            "find": "if (region == null) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=MobilityRestriction*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Banco passa a aceitar região fora da lista",
+            "area": "java",
+            "file": "services/training-service/src/main/resources/db/migration/V7__restricoes_de_mobilidade.sql",
+            "find": "region in ('CERVICAL', 'SHOULDER', 'ELBOW', 'WRIST_HAND', 'THORACIC', 'LUMBAR', 'HIP', 'KNEE', 'ANKLE_FOOT')",
+            "replace": "true",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=RestrictionApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Banco passa a aceitar descrição em branco",
+            "area": "java",
+            "file": "services/training-service/src/main/resources/db/migration/V7__restricoes_de_mobilidade.sql",
+            "find": "check (char_length(btrim(description)) >= 1)",
+            "replace": "check (true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=RestrictionApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

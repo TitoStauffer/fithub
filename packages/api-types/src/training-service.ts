@@ -18,6 +18,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clients/{clientId}/restrictions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Restrições de mobilidade do aluno vinculado */
+        get: operations["list"];
+        put?: never;
+        /** Registra uma restrição de mobilidade do aluno vinculado */
+        post: operations["create_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clients/{clientId}/restrictions/{restrictionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Edita uma restrição de mobilidade do aluno vinculado */
+        put: operations["update_1"];
+        post?: never;
+        /** Remove uma restrição de mobilidade do aluno vinculado */
+        delete: operations["remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/exercises": {
         parameters: {
             query?: never;
@@ -56,6 +92,23 @@ export interface paths {
          * @description Não apaga: as fichas antigas continuam mostrando o exercício, que sai da busca. Arquivar de novo não muda nada.
          */
         delete: operations["archive"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/restrictions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** As restrições de mobilidade do próprio aluno */
+        get: operations["mine"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -132,6 +185,28 @@ export interface components {
             gender?: string | null;
             name?: string;
         };
+        /** @description Restrição de mobilidade do aluno. */
+        MobilityRestriction: {
+            /** Format: date-time */
+            createdAt?: string;
+            description?: string;
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            region?: "CERVICAL" | "SHOULDER" | "ELBOW" | "WRIST_HAND" | "THORACIC" | "LUMBAR" | "HIP" | "KNEE" | "ANKLE_FOOT";
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        /** @description Região do corpo e descrição da restrição. */
+        MobilityRestrictionInput: {
+            /** @description De 1 a 500 caracteres. */
+            description: string;
+            /**
+             * @description Região do corpo.
+             * @enum {string}
+             */
+            region: "CERVICAL" | "SHOULDER" | "ELBOW" | "WRIST_HAND" | "THORACIC" | "LUMBAR" | "HIP" | "KNEE" | "ANKLE_FOOT";
+        };
         /** @description Erro no formato Problem Details (RFC 9457). */
         Problem: {
             detail?: string;
@@ -195,6 +270,192 @@ export interface operations {
                 };
             };
             /** @description Sem vínculo ativo com o cliente (ou ele não existe). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Restrições, da mais antiga para a mais nova. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobilityRestriction"][];
+                };
+            };
+            /** @description A conta não é personal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem vínculo ativo com o aluno. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    create_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MobilityRestrictionInput"];
+            };
+        };
+        responses: {
+            /** @description Restrição registrada; o endereço vem em Location. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobilityRestriction"];
+                };
+            };
+            /** @description Região fora da lista ou descrição fora do tamanho; o campo vem em errors. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é personal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem vínculo ativo com o aluno. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    update_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clientId: string;
+                restrictionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MobilityRestrictionInput"];
+            };
+        };
+        responses: {
+            /** @description Restrição editada. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobilityRestriction"];
+                };
+            };
+            /** @description Região fora da lista ou descrição fora do tamanho; o campo vem em errors. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é personal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem vínculo ativo com o aluno, ou a restrição não existe ou é de outro. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clientId: string;
+                restrictionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Restrição removida. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A conta não é personal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem vínculo ativo com o aluno, ou a restrição não existe ou é de outro. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -468,6 +729,35 @@ export interface operations {
             };
             /** @description O exercício não existe, é de outro personal ou do catálogo. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    mine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Restrições, da mais antiga para a mais nova. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobilityRestriction"][];
+                };
+            };
+            /** @description A conta não é de cliente. */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
