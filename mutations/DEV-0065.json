@@ -1,0 +1,145 @@
+{
+    "issue": "DEV-0065",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Próximo treino deixa de voltar ao início depois da última divisão",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/session/WorkoutSession.java",
+            "find": "(lastFinished.divisionPosition() + 1) % divisions",
+            "replace": "lastFinished.divisionPosition() + 1",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=WorkoutSession*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Aluno passa a finalizar a sessão de outro aluno",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ClientWorkouts.java",
+            "find": ".filter(found -> found.ownedBy(clientId))",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientWorkoutApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Aluno passa a iniciar treino na ficha de outro aluno",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ClientWorkouts.java",
+            "find": ".filter(found -> found.clientId().equals(clientId))",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientWorkoutApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Banco passa a aceitar duas sessões abertas na mesma ficha",
+            "area": "java",
+            "file": "services/training-service/src/main/resources/db/migration/V10__sessao_de_treino.sql",
+            "find": "create unique index ux_workout_session_open",
+            "replace": "create index ux_workout_session_open",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientWorkoutApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Iniciar de novo com o mesmo id deixa de devolver a mesma sessão",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ClientWorkouts.java",
+            "find": "return existing.get();",
+            "replace": "throw new SessionConflictException(\"Esse id já é de outra sessão.\");",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientWorkoutApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Aluno passa a iniciar treino em ficha não publicada",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ClientWorkouts.java",
+            "find": ".filter(found -> found.status() == WorkoutPlan.Status.PUBLISHED)",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientWorkoutApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Finalizar deixa de avançar a sequência",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ClientWorkouts.java",
+            "find": "            sessions.save(finished);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientWorkoutApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

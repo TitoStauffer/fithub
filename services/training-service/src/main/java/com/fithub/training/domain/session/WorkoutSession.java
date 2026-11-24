@@ -1,0 +1,63 @@
+package com.fithub.training.domain.session;
+
+import java.time.Instant;
+import java.util.Objects;
+import java.util.UUID;
+
+/**
+ * Sessão de treino do aluno (DEV-0065): a divisão da ficha que ele fez, na versão que estava ativa (BR-09). Finalizar
+ * avança a sequência (FR-29).
+ *
+ * @param id gerado pelo app, para iniciar de novo sem duplicar
+ * @param clientId o {@code sub} do aluno (ADR-009)
+ * @param finishedAt quando o aluno finalizou, ou {@code null} enquanto está aberta
+ */
+public record WorkoutSession(
+        UUID id,
+        UUID clientId,
+        UUID planId,
+        UUID versionId,
+        int divisionPosition,
+        Instant startedAt,
+        Instant finishedAt) {
+
+    public WorkoutSession {
+        Objects.requireNonNull(id, "id");
+        Objects.requireNonNull(clientId, "clientId");
+        Objects.requireNonNull(planId, "planId");
+        Objects.requireNonNull(versionId, "versionId");
+        Objects.requireNonNull(startedAt, "startedAt");
+        if (divisionPosition < 0) {
+            throw new IllegalArgumentException("A divisão começa em 0.");
+        }
+    }
+
+    public boolean finished() {
+        return finishedAt != null;
+    }
+
+    public boolean ownedBy(UUID client) {
+        return clientId.equals(client);
+    }
+
+    /** Finaliza; finalizar de novo não muda nada. */
+    public WorkoutSession finish(Instant now) {
+        if (finished()) {
+            return this;
+        }
+        return new WorkoutSession(id, clientId, planId, versionId, divisionPosition, startedAt, now);
+    }
+
+    /**
+     * A divisão do próximo treino: a seguinte à da última sessão finalizada, em ordem e voltando ao início (A→B→C→A).
+     * Se a versão nova tiver menos divisões, volta ao começo pelo resto.
+     *
+     * @param lastFinished a última sessão finalizada da ficha, ou {@code null} se ainda não houve
+     */
+    public static int nextDivision(WorkoutSession lastFinished, int divisions) {
+        if (divisions < 1) {
+            throw new IllegalArgumentException("A ficha tem ao menos uma divisão.");
+        }
+        return lastFinished == null ? 0 : (lastFinished.divisionPosition() + 1) % divisions;
+    }
+}

@@ -17,6 +17,9 @@ public interface PlanRepository {
     /** As fichas do personal para o aluno, da mais nova para a mais antiga. */
     List<WorkoutPlan> findByClientAndPersonal(UUID clientId, UUID personalId);
 
+    /** As fichas publicadas do aluno, da mais nova para a mais antiga (DEV-0065). */
+    List<WorkoutPlan> findPublishedForClient(UUID clientId);
+
     /** A ficha publicada (ativa) do personal para o aluno, se houver. */
     Optional<WorkoutPlan> findPublished(UUID clientId, UUID personalId);
 

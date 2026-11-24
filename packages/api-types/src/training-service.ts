@@ -115,6 +115,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/plans/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** As fichas publicadas do aluno, com o próximo treino da sequência */
+        get: operations["activePlans"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/plans/{planId}/versions": {
         parameters: {
             query?: never;
@@ -160,6 +177,43 @@ export interface paths {
         get: operations["mine"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/sessions/{sessionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Inicia o próximo treino da ficha
+         * @description O id é gerado pelo app: repetir com o mesmo id devolve a mesma sessão.
+         */
+        put: operations["start"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/sessions/{sessionId}/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finaliza o treino; a sequência avança */
+        post: operations["finish"];
         delete?: never;
         options?: never;
         head?: never;
@@ -262,6 +316,69 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Ficha publicada do aluno com o próximo treino da sequência. */
+        ActivePlan: {
+            divisions?: components["schemas"]["ClientWorkoutDivision"][];
+            /** @description A validade passou; o aluno continua vendo e registrando. */
+            expired?: boolean;
+            /** Format: date */
+            expiresOn?: string;
+            name?: string;
+            /**
+             * Format: int32
+             * @description Posição do próximo treino, a partir de 0.
+             */
+            nextDivision?: number;
+            nextDivisionLetter?: string;
+            /**
+             * Format: uuid
+             * @description Sessão aberta nessa ficha, para continuar o treino; ausente se não houver.
+             */
+            openSessionId?: string;
+            /** Format: uuid */
+            planId?: string;
+            /** Format: date */
+            startsOn?: string;
+            /** Format: int32 */
+            version?: number;
+        };
+        /** @description O exercício como o aluno vê: nome, mídia e crédito. */
+        ClientExercise: {
+            /** @description Presente só em exercício importado; a tela mostra o crédito. */
+            attribution?: components["schemas"]["ExerciseAttribution"];
+            /** Format: uuid */
+            id?: string;
+            /** @description Vídeo ou imagem, https; ausente se não houver. */
+            mediaUrl?: string;
+            name?: string;
+        };
+        ClientWorkoutDivision: {
+            items?: components["schemas"]["ClientWorkoutItem"][];
+            letter?: string;
+            name?: string | null;
+            /** Format: int32 */
+            position?: number;
+        };
+        /** @description Exercício prescrito, com o exercício e as alternativas. */
+        ClientWorkoutItem: {
+            alternatives?: components["schemas"]["ClientExercise"][];
+            exercise?: components["schemas"]["ClientExercise"];
+            loadKg?: number | null;
+            note?: string | null;
+            /** Format: int32 */
+            repsMax?: number;
+            /**
+             * Format: int32
+             * @description Igual ao máximo quando as repetições são fixas.
+             */
+            repsMin?: number;
+            /** Format: int32 */
+            restSeconds?: number | null;
+            /** Format: int32 */
+            sets?: number;
+            /** @enum {string|null} */
+            technique?: "BI_SET" | "TRI_SET" | "DROP_SET" | "REST_PAUSE" | null;
+        };
         /** @description Exercício do catálogo ou próprio do personal. */
         Exercise: {
             /**
@@ -555,6 +672,26 @@ export interface components {
              * @description Quando foi publicada; ausente no rascunho.
              */
             publishedAt?: string;
+        };
+        /** @description Sessão de treino: a divisão da ficha, na versão que estava ativa. */
+        WorkoutSession: {
+            /** Format: int32 */
+            divisionPosition?: number;
+            /**
+             * Format: date-time
+             * @description Quando o aluno finalizou; ausente enquanto está aberta.
+             */
+            finishedAt?: string;
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            planId?: string;
+            /** Format: date-time */
+            startedAt?: string;
+        };
+        WorkoutSessionInput: {
+            /** Format: uuid */
+            planId: string;
         };
     };
     responses: never;
@@ -1165,6 +1302,35 @@ export interface operations {
             };
         };
     };
+    activePlans: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Fichas ativas (a lista pode ser vazia). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivePlan"][];
+                };
+            };
+            /** @description A conta não é de cliente. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     versions_1: {
         parameters: {
             query?: never;
@@ -1266,6 +1432,108 @@ export interface operations {
             };
             /** @description A conta não é de cliente. */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    start: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkoutSessionInput"];
+            };
+        };
+        responses: {
+            /** @description Sessão iniciada (ou a mesma, se já existia). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutSession"];
+                };
+            };
+            /** @description Ficha não informada. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é de cliente. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A ficha não existe, não é do aluno ou não está publicada. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Já há um treino em andamento nesta ficha. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    finish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sessão finalizada. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkoutSession"];
+                };
+            };
+            /** @description A conta não é de cliente. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A sessão não existe ou é de outro aluno. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
