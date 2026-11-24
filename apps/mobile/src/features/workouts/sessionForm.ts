@@ -11,10 +11,10 @@ export function loadText(value: number | null | undefined): string {
     return String(value ?? 0).replace('.', ',');
 }
 
-/** "42,5" ou "42.5" em número; vazio ou inválido, `undefined`. */
+/** "42,5" ou "42.5" em número; vazio, negativo, notação científica ou outro texto, `undefined`. */
 export function parseLoad(text: string): number | undefined {
-    const value = Number(text.trim().replace(',', '.'));
-    return text.trim() === '' || Number.isNaN(value) ? undefined : value;
+    const trimmed = text.trim();
+    return /^\d+([.,]\d+)?$/.test(trimmed) ? Number(trimmed.replace(',', '.')) : undefined;
 }
 
 export function parseReps(text: string): number | undefined {

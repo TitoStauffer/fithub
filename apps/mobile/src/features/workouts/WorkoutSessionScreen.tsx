@@ -100,12 +100,17 @@ export function WorkoutSessionScreen({
         );
     };
 
+    /**
+     * Grava a série. {@code doneWith} é o exercício feito: na série nova, o escolhido agora; na correção, o que a
+     * série gravou, para corrigir carga e repetições não trocar o exercício sem o aluno pedir.
+     */
     const confirm = async (
         item: SessionItem,
         setNumber: number,
         draft: SetDraft,
         setId: string,
         key: string,
+        doneWith: string | undefined,
     ) => {
         const loadKg = parseLoad(draft.load);
         const reps = parseReps(draft.reps);
@@ -114,7 +119,6 @@ export function WorkoutSessionScreen({
             return;
         }
         const position = item.position ?? 0;
-        const exerciseId = chosen[position];
         setBusy(key);
         setError(undefined);
         try {
@@ -123,7 +127,7 @@ export function WorkoutSessionScreen({
                 setNumber,
                 loadKg,
                 reps,
-                exerciseId: exerciseId && exerciseId !== item.exercise?.id ? exerciseId : null,
+                exerciseId: doneWith && doneWith !== item.exercise?.id ? doneWith : null,
             });
             replaceSet(position, saved);
             // Gravada, a série mostra o que está no servidor: o rascunho sai.
@@ -157,10 +161,13 @@ export function WorkoutSessionScreen({
         setBusy('finish');
         setError(undefined);
         try {
-            if (comment.trim() !== '' || feeling) {
+            const newComment = comment.trim() === '' ? null : comment.trim();
+            const newFeeling = feeling ? Number(feeling) : null;
+            // Envia sempre que mudou do que veio, inclusive quando o aluno apaga o comentário ou a sensação.
+            if (newComment !== (session.comment ?? null) || newFeeling !== (session.feeling ?? null)) {
                 await api.feedback(sessionId, {
-                    comment: comment.trim() === '' ? null : comment.trim(),
-                    feeling: feeling ? Number(feeling) : null,
+                    comment: newComment,
+                    feeling: newFeeling,
                 });
             }
             if (!session.finishedAt) await api.finish(sessionId);
@@ -227,7 +234,14 @@ export function WorkoutSessionScreen({
                                           reps: String(recorded.reps ?? 0),
                                       }
                                     : prefill(item, setNumber, exerciseId));
-                            const label = `${current?.name ?? ''}, série ${setNumber}`;
+                            // A série registrada mostra e corrige o exercício que gravou, não o escolhido agora.
+                            const setExerciseId = recorded
+                                ? (recorded.exerciseId ?? item.exercise?.id)
+                                : exerciseId;
+                            const setName = [item.exercise, ...(item.alternatives ?? [])].find(
+                                (each) => each?.id === setExerciseId,
+                            )?.name;
+                            const label = `${setName ?? current?.name ?? ''}, série ${setNumber}`;
                             const edit = (change: Partial<SetDraft>) =>
                                 setDrafts((all) => ({ ...all, [key]: { ...draft, ...change } }));
                             return (
@@ -259,7 +273,14 @@ export function WorkoutSessionScreen({
                                                 onPress={() => {
                                                     newIds.current[key] ??= newId();
                                                     const id = recorded?.id ?? newIds.current[key];
-                                                    void confirm(item, setNumber, draft, id, key);
+                                                    void confirm(
+                                                        item,
+                                                        setNumber,
+                                                        draft,
+                                                        id,
+                                                        key,
+                                                        setExerciseId,
+                                                    );
                                                 }}
                                             >
                                                 {recorded ? `Corrigir ${label}` : `Confirmar ${label}`}

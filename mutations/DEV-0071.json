@@ -36,7 +36,7 @@
             "description": "Mobile: a série com a alternativa grava o exercício do item",
             "area": "apps",
             "file": "apps/mobile/src/features/workouts/WorkoutSessionScreen.tsx",
-            "find": "exerciseId: exerciseId && exerciseId !== item.exercise?.id ? exerciseId : null,",
+            "find": "exerciseId: doneWith && doneWith !== item.exercise?.id ? doneWith : null,",
             "replace": "exerciseId: null,",
             "command": [
                 "pnpm",
@@ -68,6 +68,51 @@
             "file": "apps/mobile/src/features/workouts/sessionForm.ts",
             "find": "if (!exerciseId || exerciseId === item.exercise?.id) return item.last ?? [];",
             "replace": "if (exerciseId !== undefined) return item.last ?? [];",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Mobile: corrigir a série grava o exercício escolhido agora, não o que ela gravou",
+            "area": "apps",
+            "file": "apps/mobile/src/features/workouts/WorkoutSessionScreen.tsx",
+            "find": "(recorded.exerciseId ?? item.exercise?.id)",
+            "replace": "exerciseId",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Mobile: apagar o comentário ou a sensação deixa de ser enviado",
+            "area": "apps",
+            "file": "apps/mobile/src/features/workouts/WorkoutSessionScreen.tsx",
+            "find": "newComment !== (session.comment ?? null) || newFeeling !== (session.feeling ?? null)",
+            "replace": "newComment !== null || newFeeling !== null",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "Mobile: a carga volta a aceitar Infinity, negativo e notação científica",
+            "area": "apps",
+            "file": "apps/mobile/src/features/workouts/sessionForm.ts",
+            "find": "return /^\\d+([.,]\\d+)?$/.test(trimmed) ? Number(trimmed.replace(',', '.')) : undefined;",
+            "replace": "return trimmed !== '' && !Number.isNaN(Number(trimmed.replace(',', '.'))) ? Number(trimmed.replace(',', '.')) : undefined;",
             "command": [
                 "pnpm",
                 "--filter",

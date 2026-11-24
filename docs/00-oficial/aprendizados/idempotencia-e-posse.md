@@ -23,6 +23,15 @@ caso antes.
     sessão (0 linhas = 409); testes com id de outra sessão do próprio aluno e de outro aluno no PUT (409) e no DELETE
     (404), e o teste do repositório para a guarda do banco.
   - **Prevenção:** mutantes M7 a M11 de `mutations/DEV-0066.json`, um para cada guarda.
+- **Revisão:** Code Review do PR #255, no SHA `6526080` (MEDIUM: no app, corrigir uma série já registrada mandava
+  o exercício escolhido na tela, e não o que a série gravou; a série feita com a alternativa virava do exercício do
+  item, e vice-versa) — DEV-0071 (#63) · **PR:** #255
+  - **Impacto:** a correção de carga ou repetições trocava o exercício da série sem o aluno pedir, distorcendo o
+    pré-preenchimento e os recordes por exercício (FR-53 a FR-55) que o personal vinculado lê (BR-01).
+  - **Correção:** o cliente também respeita a regra: a correção manda o exercício que a série gravou
+    (`recorded.exerciseId`) e mostra o nome dele; a escolha da alternativa só vale para as séries novas.
+  - **Prevenção:** teste que corrige a série feita com a alternativa (e o inverso) e confere o `exerciseId` enviado;
+    mutante M6 de `mutations/DEV-0071.json`.
 
 ## gravacao-por-fluxo-nao-regrava-a-linha-inteira
 

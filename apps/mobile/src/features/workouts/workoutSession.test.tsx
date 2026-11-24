@@ -3,7 +3,7 @@ import { render, screen, userEvent, waitFor } from '@testing-library/react-nativ
 import { OfflineError, type ActivePlan, type RecordedSet, type SessionView } from '../../lib/api';
 import { ClientArea } from '../profile/ClientArea';
 import type { ProfileApi } from '../profile/profileApi';
-import { prefill } from './sessionForm';
+import { parseLoad, prefill } from './sessionForm';
 import type { SessionApi, WorkoutsApi } from './workoutsApi';
 import { WorkoutSessionScreen } from './WorkoutSessionScreen';
 
@@ -309,5 +309,64 @@ describe('do treino de hoje ao próximo treino', () => {
         expect(sessions.view).toHaveBeenCalledWith('id-do-aparelho');
         expect(sessions.finish).toHaveBeenCalledWith('id-do-aparelho');
         expect(await screen.findByText('Próximo: Treino B — Peito')).toBeOnTheScreen();
+    });
+});
+
+describe('correção e comentário (revisão do PR #255)', () => {
+    it('corrigir a série mantém o exercício que ela gravou, não o escolhido agora', async () => {
+        const user = userEvent.setup();
+        const withAlternative = { id: 'set-alt', setNumber: 1, loadKg: 120, reps: 12, exerciseId: 'e-press' };
+        const withItem = { id: 'set-item', setNumber: 2, loadKg: 40, reps: 10, exerciseId: 'e-squat' };
+        const sessions = api({}, view({}, { recorded: [withAlternative, withItem] }));
+        await renderScreen(sessions);
+
+        // A série feita no Leg press aparece com o nome dele, mesmo com o item no Agachamento.
+        const load = await screen.findByLabelText('Carga (kg) de Leg press, série 1');
+        await user.clear(load);
+        await user.type(load, '125');
+        await user.press(screen.getByRole('button', { name: 'Corrigir Leg press, série 1' }));
+        expect(sessions.record).toHaveBeenLastCalledWith(
+            SESSION,
+            'set-alt',
+            expect.objectContaining({ setNumber: 1, loadKg: 125, exerciseId: 'e-press' }),
+        );
+
+        // O inverso: trocar pela alternativa não muda a série já feita com o exercício do item.
+        await user.press(screen.getByRole('button', { name: 'Trocar por Leg press' }));
+        await user.press(screen.getByRole('button', { name: 'Corrigir Agachamento livre, série 2' }));
+        expect(sessions.record).toHaveBeenLastCalledWith(
+            SESSION,
+            'set-item',
+            expect.objectContaining({ setNumber: 2, exerciseId: null }),
+        );
+    });
+
+    it('apagar o comentário e a sensação envia a mudança; sem mudança, não envia', async () => {
+        const user = userEvent.setup();
+        const sessions = api({}, view({ comment: 'Joelho doeu.', feeling: 3 }));
+        await renderScreen(sessions);
+
+        await user.clear(await screen.findByLabelText('Comentário do treino'));
+        await user.press(screen.getByRole('checkbox', { name: 'Moderado' }));
+        await user.press(screen.getByRole('button', { name: 'Finalizar treino' }));
+        expect(sessions.feedback).toHaveBeenCalledWith(SESSION, { comment: null, feeling: null });
+    });
+
+    it('finalizar sem mudar o comentário não reenvia', async () => {
+        const user = userEvent.setup();
+        const sessions = api({}, view({ comment: 'Joelho doeu.', feeling: 3 }));
+        await renderScreen(sessions);
+
+        await user.press(await screen.findByRole('button', { name: 'Finalizar treino' }));
+        expect(sessions.feedback).not.toHaveBeenCalled();
+        expect(sessions.finish).toHaveBeenCalledWith(SESSION);
+    });
+
+    it('carga só aceita número com vírgula ou ponto', () => {
+        expect(parseLoad('42,5')).toBe(42.5);
+        expect(parseLoad(' 40 ')).toBe(40);
+        for (const text of ['', 'Infinity', '-5', '1e3', '4,', 'abc']) {
+            expect(parseLoad(text)).toBeUndefined();
+        }
     });
 });
