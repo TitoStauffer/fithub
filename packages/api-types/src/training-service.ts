@@ -204,6 +204,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/sessions/{sessionId}/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Comentário e sensação do treino
+         * @description Substitui o que havia. Vale no mesmo prazo da correção das séries.
+         */
+        put: operations["recordFeedback"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/sessions/{sessionId}/finish": {
         parameters: {
             query?: never;
@@ -363,6 +383,12 @@ export interface components {
             startsOn?: string;
             /** Format: int32 */
             version?: number;
+        };
+        /** @description Séries do último treino com uma alternativa do item. */
+        AlternativeLast: {
+            /** Format: uuid */
+            exerciseId?: string;
+            sets?: components["schemas"]["RecordedSet"][];
         };
         /** @description O exercício como o aluno vê: nome, mídia e crédito. */
         ClientExercise: {
@@ -532,6 +558,11 @@ export interface components {
         /** @description Carga e repetições reais de uma série. */
         RecordedSetInput: {
             /**
+             * Format: uuid
+             * @description Exercício feito: vazio para o do treino, ou uma alternativa prevista.
+             */
+            exerciseId?: string | null;
+            /**
              * Format: int32
              * @description Posição do exercício na divisão.
              */
@@ -549,9 +580,21 @@ export interface components {
              */
             setNumber: number;
         };
+        /** @description Como foi o treino. */
+        SessionFeedback: {
+            /** @description Até 500 caracteres. */
+            comment?: string | null;
+            /**
+             * Format: int32
+             * @description De 1 (muito fácil) a 5 (exaustivo).
+             */
+            feeling?: number | null;
+        };
         /** @description Exercício do treino com o prescrito, o feito e o último treino. */
         SessionItem: {
             alternatives?: components["schemas"]["ClientExercise"][];
+            /** @description Séries do último treino com cada alternativa, para pré-preencher depois da troca. */
+            alternativesLast?: components["schemas"]["AlternativeLast"][];
             exercise?: components["schemas"]["ClientExercise"];
             /** @description Séries do último treino com o exercício, para pré-preencher. */
             last?: components["schemas"]["RecordedSet"][];
@@ -574,12 +617,19 @@ export interface components {
         };
         /** @description O treino em andamento (ou já feito), na versão da ficha da sessão. */
         SessionView: {
+            /** @description Comentário do aluno sobre o treino. */
+            comment?: string | null;
             /** @description Se ainda dá para registrar e corrigir: até o fim do dia do treino. */
             correctable?: boolean;
             divisionLetter?: string;
             divisionName?: string | null;
             /** Format: int32 */
             divisionPosition?: number;
+            /**
+             * Format: int32
+             * @description Sensação de 1 (muito fácil) a 5 (exaustivo).
+             */
+            feeling?: number | null;
             /**
              * Format: date-time
              * @description Quando o aluno finalizou; ausente enquanto está aberta.
@@ -1633,6 +1683,59 @@ export interface operations {
                 };
             };
             /** @description Já há um treino em andamento nesta ficha. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    recordFeedback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionFeedback"];
+            };
+        };
+        responses: {
+            /** @description Treino com o comentário e a sensação. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionView"];
+                };
+            };
+            /** @description Comentário longo demais ou sensação fora de 1 a 5; o campo vem em errors. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A sessão não existe ou é de outro aluno. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O prazo de correção acabou. */
             409: {
                 headers: {
                     [name: string]: unknown;

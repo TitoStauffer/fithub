@@ -12,6 +12,8 @@ import java.util.UUID;
  * @param id gerado pelo app, para iniciar de novo sem duplicar
  * @param clientId o {@code sub} do aluno (ADR-009)
  * @param finishedAt quando o aluno finalizou, ou {@code null} enquanto está aberta
+ * @param comment como foi o treino, até 500 caracteres, ou {@code null} (DEV-0067)
+ * @param feeling sensação de 1 (muito fácil) a 5 (exaustivo), ou {@code null} (DEV-0067)
  */
 public record WorkoutSession(
         UUID id,
@@ -20,7 +22,11 @@ public record WorkoutSession(
         UUID versionId,
         int divisionPosition,
         Instant startedAt,
-        Instant finishedAt) {
+        Instant finishedAt,
+        String comment,
+        Integer feeling) {
+
+    public static final int MAX_COMMENT_LENGTH = 500;
 
     public WorkoutSession {
         Objects.requireNonNull(id, "id");
@@ -31,6 +37,31 @@ public record WorkoutSession(
         if (divisionPosition < 0) {
             throw new IllegalArgumentException("A divisão começa em 0.");
         }
+        comment = comment == null || comment.isBlank() ? null : comment.strip();
+        if (comment != null && comment.length() > MAX_COMMENT_LENGTH) {
+            throw new InvalidSetException("comment", "O comentário pode ter até 500 caracteres.");
+        }
+        if (feeling != null && (feeling < 1 || feeling > 5)) {
+            throw new InvalidSetException("feeling", "A sensação vai de 1 (muito fácil) a 5 (exaustivo).");
+        }
+    }
+
+    /** Sessão sem comentário nem sensação. */
+    public WorkoutSession(
+            UUID id,
+            UUID clientId,
+            UUID planId,
+            UUID versionId,
+            int divisionPosition,
+            Instant startedAt,
+            Instant finishedAt) {
+        this(id, clientId, planId, versionId, divisionPosition, startedAt, finishedAt, null, null);
+    }
+
+    /** A mesma sessão com o comentário e a sensação do aluno (DEV-0067, FR-49). */
+    public WorkoutSession withFeedback(String newComment, Integer newFeeling) {
+        return new WorkoutSession(
+                id, clientId, planId, versionId, divisionPosition, startedAt, finishedAt, newComment, newFeeling);
     }
 
     public boolean finished() {
@@ -54,7 +85,7 @@ public record WorkoutSession(
         if (finished()) {
             return this;
         }
-        return new WorkoutSession(id, clientId, planId, versionId, divisionPosition, startedAt, now);
+        return new WorkoutSession(id, clientId, planId, versionId, divisionPosition, startedAt, now, comment, feeling);
     }
 
     /**

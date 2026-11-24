@@ -1,0 +1,105 @@
+{
+    "issue": "DEV-0067",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Série passa a aceitar exercício fora do item e das alternativas",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/SessionSets.java",
+            "find": "if (!item.exerciseIds().contains(exerciseId)) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=SessionSetsApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Sensação acima de 5 passa a ser aceita",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/session/WorkoutSession.java",
+            "find": "if (feeling != null && (feeling < 1 || feeling > 5)) {",
+            "replace": "if (feeling != null && feeling < 1) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=WorkoutSession*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Banco passa a aceitar sensação fora de 1 a 5",
+            "area": "java",
+            "file": "services/training-service/src/main/resources/db/migration/V12__comentario_do_treino.sql",
+            "find": "check (feeling is null or feeling between 1 and 5)",
+            "replace": "check (true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=SessionSetsApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Comentário passa a ser aceito fora do prazo de correção",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/SessionSets.java",
+            "find": "correctableSession(clientAccount, sessionId).withFeedback(",
+            "replace": "owned(clientAccount, sessionId).withFeedback(",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=SessionSetsApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Finalizar passa a apagar o comentário e a sensação",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/session/WorkoutSession.java",
+            "find": "startedAt, now, comment, feeling);",
+            "replace": "startedAt, now, null, null);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=WorkoutSession*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

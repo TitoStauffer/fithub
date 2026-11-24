@@ -157,3 +157,12 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   409. Vale também para o treino já finalizado.
 - `GET /me/sessions/{sessionId}`: o treino na versão da sessão, com o prescrito de cada item, as séries já feitas e as
   do último treino finalizado com o exercício (`last`), para o app pré-preencher.
+
+## Alternativa e comentário do treino (DEV-0067)
+
+- A série pode trazer `exerciseId`: vazio, vale o exercício do item; senão, precisa ser uma alternativa prevista no
+  item (FR-49, "exercício indisponível"). Outro exercício responde 400 no campo.
+- O pré-preenchimento usa o exercício realmente feito: o item traz `last` (do exercício do treino) e
+  `alternativesLast` (do último treino com cada alternativa).
+- `PUT /me/sessions/{sessionId}/feedback`: comentário até 500 caracteres e sensação de 1 (muito fácil) a 5
+  (exaustivo), opcionais, no mesmo prazo da correção das séries (migration V12). O treino devolve os dois.

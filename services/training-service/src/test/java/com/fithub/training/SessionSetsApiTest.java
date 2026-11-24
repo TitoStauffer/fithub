@@ -444,6 +444,114 @@ class SessionSetsApiTest extends ServiceIntegrationTest {
         assertThat(sets.findById(setId).orElseThrow().loadKg()).isEqualByComparingTo("40");
     }
 
+    /** Ficha de uma divisão com agachamento e leg press como alternativa, publicada. */
+    private String planWithAlternative() throws Exception {
+        String body = """
+                {"name": "Pernas", "startsOn": "%s", "validityWeeks": 8,
+                 "divisions": [{"items": [{"exerciseId": "%s", "sets": 3, "repsMin": 10,
+                                           "alternatives": ["%s"]}]}]}
+                """.formatted(TODAY, squat, legPress);
+        String location = mvc.perform(post("/clients/" + client + "/plans")
+                        .header("Authorization", "Bearer personal-" + personal)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getHeader("Location");
+        String planId = location.substring("/plans/".length());
+        mvc.perform(post("/plans/" + planId + "/publish").header("Authorization", "Bearer personal-" + personal))
+                .andExpect(status().isOk());
+        return planId;
+    }
+
+    private static String setWith(int item, int number, String load, int reps, UUID exercise) {
+        return "{\"itemPosition\": %d, \"setNumber\": %d, \"loadKg\": %s, \"reps\": %d, \"exerciseId\": \"%s\"}"
+                .formatted(item, number, load, reps, exercise);
+    }
+
+    /** DEV-0067: a série registra a alternativa prevista, e o pré-preenchimento usa o exercício realmente feito. */
+    @Test
+    void serieComAlternativaPrevistaEPreenchimentoDoExercicioFeito() throws Exception {
+        String planId = planWithAlternative();
+        UUID first = startSession(planId);
+        UUID other = saveExercise("Cadeira extensora");
+
+        mvc.perform(put("/me/sessions/" + first + "/sets/" + UUID.randomUUID())
+                        .header("Authorization", clientToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(setWith(0, 1, "120", 10, legPress)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.exerciseId").value(legPress.toString()));
+        mvc.perform(put("/me/sessions/" + first + "/sets/" + UUID.randomUUID())
+                        .header("Authorization", clientToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(setWith(0, 2, "120", 10, other)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("exerciseId"));
+        mvc.perform(post("/me/sessions/" + first + "/finish").header("Authorization", clientToken()))
+                .andExpect(status().isOk());
+
+        UUID second = startSession(planId);
+        mvc.perform(get("/me/sessions/" + second).header("Authorization", clientToken()))
+                .andExpect(jsonPath("$.items[0].last").isEmpty())
+                .andExpect(jsonPath("$.items[0].alternativesLast[0].exerciseId").value(legPress.toString()))
+                .andExpect(
+                        jsonPath("$.items[0].alternativesLast[0].sets.length()").value(1))
+                .andExpect(jsonPath("$.items[0].alternativesLast[0].sets[0].loadKg")
+                        .value(120.0));
+    }
+
+    /** DEV-0067: comentário e sensação do treino, no prazo da correção. */
+    @Test
+    void comentarioESensacaoDoTreino() throws Exception {
+        UUID session = startSession(publishedPlan());
+
+        mvc.perform(put("/me/sessions/" + session + "/feedback")
+                        .header("Authorization", clientToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"comment\": \"  Pesado hoje.  \", \"feeling\": 4}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.comment").value("Pesado hoje."))
+                .andExpect(jsonPath("$.feeling").value(4));
+        for (String[] invalid : new String[][] {
+            {"{\"feeling\": 6}", "feeling"},
+            {"{\"feeling\": 0}", "feeling"},
+            {"{\"comment\": \"" + "a".repeat(501) + "\"}", "comment"}
+        }) {
+            mvc.perform(put("/me/sessions/" + session + "/feedback")
+                            .header("Authorization", clientToken())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(invalid[0]))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.errors[0].field").value(invalid[1]));
+        }
+        mvc.perform(post("/me/sessions/" + session + "/finish").header("Authorization", clientToken()))
+                .andExpect(status().isOk());
+        mvc.perform(get("/me/sessions/" + session).header("Authorization", clientToken()))
+                .andExpect(jsonPath("$.comment").value("Pesado hoje."))
+                .andExpect(jsonPath("$.feeling").value(4));
+
+        jdbc.sql("update workout_session set started_at = started_at - interval '1 day' where id = :id")
+                .param("id", session)
+                .update();
+        mvc.perform(put("/me/sessions/" + session + "/feedback")
+                        .header("Authorization", clientToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"feeling\": 2}"))
+                .andExpect(status().isConflict());
+        mvc.perform(put("/me/sessions/" + session + "/feedback")
+                        .header("Authorization", "Bearer conta-" + UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"feeling\": 2}"))
+                .andExpect(status().isNotFound());
+        assertThatThrownBy(() -> jdbc.sql("update workout_session set feeling = 6 where id = :id")
+                        .param("id", session)
+                        .update())
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("ck_workout_session_feeling");
+    }
+
     /** As CHECKs e a unicidade da V11 recusam sem passar pelo domínio. */
     @Test
     void bancoRecusaCargaRepeticoesSerieItemELugarRepetido() throws Exception {

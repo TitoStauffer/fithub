@@ -1,6 +1,7 @@
 package com.fithub.training.domain.session;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -43,5 +44,27 @@ class WorkoutSessionTest {
         assertThat(open.ownedBy(open.clientId())).isTrue();
         assertThat(open.ownedBy(UUID.randomUUID())).isFalse();
         assertThat(open.ownedBy(null)).isFalse();
+    }
+
+    @Test
+    void comentarioESensacaoTemLimitesEFicamAoFinalizar() {
+        WorkoutSession open = new WorkoutSession(
+                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), 0, NOW, null);
+
+        WorkoutSession withFeedback = open.withFeedback("  Pesado.  ", 5);
+        assertThat(withFeedback.comment()).isEqualTo("Pesado.");
+        assertThat(withFeedback.finish(NOW.plusSeconds(60)).feeling()).isEqualTo(5);
+        assertThat(withFeedback.finish(NOW.plusSeconds(60)).comment()).isEqualTo("Pesado.");
+        assertThat(open.withFeedback(" ", null).comment()).isNull();
+        for (int feeling : new int[] {0, 6}) {
+            assertThatThrownBy(() -> open.withFeedback(null, feeling))
+                    .isInstanceOfSatisfying(
+                            InvalidSetException.class,
+                            invalid -> assertThat(invalid.field()).isEqualTo("feeling"));
+        }
+        assertThatThrownBy(() -> open.withFeedback("a".repeat(501), 3))
+                .isInstanceOfSatisfying(
+                        InvalidSetException.class,
+                        invalid -> assertThat(invalid.field()).isEqualTo("comment"));
     }
 }

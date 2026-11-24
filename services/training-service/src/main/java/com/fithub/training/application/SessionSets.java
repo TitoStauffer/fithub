@@ -51,7 +51,7 @@ public class SessionSets {
     }
 
     /** O que o app manda para uma série. */
-    public record SetDraft(Integer itemPosition, Integer setNumber, BigDecimal loadKg, Integer reps) {}
+    public record SetDraft(Integer itemPosition, Integer setNumber, BigDecimal loadKg, Integer reps, UUID exerciseId) {}
 
     /**
      * O treino como o app precisa para registrar: a divisão na versão da sessão, as séries já feitas e as do último
@@ -101,6 +101,7 @@ public class SessionSets {
     public WorkoutSet record(String clientAccount, UUID sessionId, UUID setId, SetDraft draft) {
         WorkoutSession session = correctableSession(clientAccount, sessionId);
         PlanItem item = itemAt(session, draft.itemPosition());
+        UUID done = exerciseDone(item, draft.exerciseId());
         Instant now = clock.instant();
         Optional<WorkoutSet> existing = sets.findById(setId);
         if (existing.isPresent() && !existing.get().sessionId().equals(sessionId)) {
@@ -112,14 +113,13 @@ public class SessionSets {
                         || !Integer.valueOf(existing.get().setNumber()).equals(draft.setNumber()))) {
             throw new SessionConflictException("Esse id já é de outra série deste treino (outro exercício ou número).");
         }
-        WorkoutSet set = existing.map(
-                        found -> found.correct(item.exerciseId(), draft.loadKg(), required("reps", draft.reps()), now))
+        WorkoutSet set = existing.map(found -> found.correct(done, draft.loadKg(), required("reps", draft.reps()), now))
                 .orElseGet(() -> new WorkoutSet(
                         setId,
                         sessionId,
                         draft.itemPosition(),
                         required("setNumber", draft.setNumber()),
-                        item.exerciseId(),
+                        done,
                         draft.loadKg(),
                         required("reps", draft.reps()),
                         now,
@@ -173,6 +173,26 @@ public class SessionSets {
             throw new InvalidSetException("itemPosition", "Esse exercício não está neste treino.");
         }
         return items.get(itemPosition);
+    }
+
+    /**
+     * O exercício feito: o principal do item, sem informar, ou uma das alternativas previstas (DEV-0067, FR-49).
+     */
+    private static UUID exerciseDone(PlanItem item, UUID exerciseId) {
+        if (exerciseId == null) {
+            return item.exerciseId();
+        }
+        if (!item.exerciseIds().contains(exerciseId)) {
+            throw new InvalidSetException("exerciseId", "Use o exercício do treino ou uma alternativa prevista.");
+        }
+        return exerciseId;
+    }
+
+    /** Comentário e sensação do treino, no mesmo prazo da correção das séries (BR-08). */
+    public WorkoutSession feedback(String clientAccount, UUID sessionId, String comment, Integer feeling) {
+        WorkoutSession session = correctableSession(clientAccount, sessionId).withFeedback(comment, feeling);
+        sessions.save(session);
+        return session;
     }
 
     private static int required(String field, Integer value) {

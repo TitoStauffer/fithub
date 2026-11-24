@@ -15,7 +15,7 @@ import org.springframework.stereotype.Repository;
 class JdbcSessionRepository implements SessionRepository {
 
     private static final String SELECT = """
-            select id, client_id, plan_id, version_id, division_position, started_at, finished_at
+            select id, client_id, plan_id, version_id, division_position, started_at, finished_at, comment, feeling
             from workout_session
             """;
 
@@ -29,9 +29,13 @@ class JdbcSessionRepository implements SessionRepository {
     public void save(WorkoutSession session) {
         jdbc.sql("""
                         insert into workout_session (id, client_id, plan_id, version_id, division_position, started_at,
-                            finished_at)
-                        values (:id, :clientId, :planId, :versionId, :division, :startedAt, :finishedAt)
-                        on conflict (id) do update set finished_at = excluded.finished_at
+                            finished_at, comment, feeling)
+                        values (:id, :clientId, :planId, :versionId, :division, :startedAt, :finishedAt, :comment,
+                            :feeling)
+                        on conflict (id) do update set
+                            finished_at = excluded.finished_at,
+                            comment = excluded.comment,
+                            feeling = excluded.feeling
                         """)
                 .param("id", session.id())
                 .param("clientId", session.clientId())
@@ -40,6 +44,8 @@ class JdbcSessionRepository implements SessionRepository {
                 .param("division", session.divisionPosition())
                 .param("startedAt", Timestamp.from(session.startedAt()))
                 .param("finishedAt", session.finishedAt() == null ? null : Timestamp.from(session.finishedAt()))
+                .param("comment", session.comment())
+                .param("feeling", session.feeling())
                 .update();
     }
 
@@ -77,6 +83,8 @@ class JdbcSessionRepository implements SessionRepository {
                 row.getObject("version_id", UUID.class),
                 row.getInt("division_position"),
                 row.getTimestamp("started_at").toInstant(),
-                finishedAt == null ? null : finishedAt.toInstant());
+                finishedAt == null ? null : finishedAt.toInstant(),
+                row.getString("comment"),
+                row.getObject("feeling", Integer.class));
     }
 }
