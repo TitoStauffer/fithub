@@ -10,6 +10,7 @@ que fazemos para não repeti-los.
 | Keycloak, realm, clients e login | [identidade.md](identidade.md) |
 | Migrations, CHECKs e unicidade | [migrations.md](migrations.md) |
 | Contratos de API (OpenAPI) | [contratos-api.md](contratos-api.md) |
+| Arquivos no bucket (fotos, URL pré-assinada) | [armazenamento.md](armazenamento.md) |
 
 Regras de registro: [AGENTS.md](../../../AGENTS.md), seção **Aprendizados**.
 

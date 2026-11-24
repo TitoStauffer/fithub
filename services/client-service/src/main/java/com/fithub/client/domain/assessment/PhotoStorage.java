@@ -2,6 +2,8 @@ package com.fithub.client.domain.assessment;
 
 import java.net.URI;
 import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 /** Armazenamento privado das fotos (porta do domínio, DEV-0048). Nada daqui vai para log. */
@@ -21,5 +23,13 @@ public interface PhotoStorage {
 
     void delete(String objectKey);
 
+    /** Apaga todos os objetos com o prefixo: os confirmados e os envios que nunca foram confirmados. */
+    void deleteAll(String prefix);
+
+    /** Objetos com o prefixo e quando foram gravados; vazio se o bucket ainda não existe. */
+    List<StoredKey> list(String prefix);
+
     record StoredObject(String contentType, long sizeBytes) {}
+
+    record StoredKey(String objectKey, Instant lastModified) {}
 }

@@ -58,6 +58,15 @@ class JdbcPhotoRepository implements PhotoRepository {
     }
 
     @Override
+    public boolean existsByObjectKey(String objectKey) {
+        return jdbc.sql("select count(*) from assessment_photo where object_key = :key")
+                        .param("key", objectKey)
+                        .query(Integer.class)
+                        .single()
+                > 0;
+    }
+
+    @Override
     public void delete(UUID assessmentId, Photo.Pose pose) {
         jdbc.sql("delete from assessment_photo where assessment_id = :id and pose = :pose")
                 .param("id", assessmentId)

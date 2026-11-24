@@ -142,7 +142,10 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
 | `GET /professionals/me/clients/{clientId}/assessments/{id}/photos` | profissional com vínculo ativo | Fotos com URL de leitura; 404 sem vínculo |
 
 - Poses `FRONT`, `SIDE` e `BACK`, uma foto por pose. O bucket nunca é público; URLs e chaves de objeto não vão para log.
-- Excluir a avaliação apaga os arquivos das fotos dela.
+- Excluir a avaliação ou a foto de uma pose apaga do bucket tudo o que está sob o prefixo dela, inclusive envios que
+  nunca foram confirmados. A confirmação grava a foto nova antes de apagar a anterior e os envios pendentes da pose.
+- Expurgo: a cada `fithub.storage.purge-interval` (padrão 1 h), saem os envios não confirmados gravados há mais de
+  `fithub.storage.pending-max-age` (padrão 1 h). O log traz só a quantidade.
 - Configuração: `S3_ENDPOINT` (padrão `http://localhost:8333`, o SeaweedFS do compose), `S3_PUBLIC_ENDPOINT` (o endereço
   que o app alcança, usado nas URLs assinadas), `S3_REGION`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` e `S3_PHOTOS_BUCKET`
   (padrão `fithub-photos`, criado no primeiro envio se não existir).

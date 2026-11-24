@@ -2,6 +2,7 @@ package com.fithub.client.infrastructure.storage;
 
 import com.fithub.client.domain.assessment.PhotoStorage;
 import java.net.URI;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,6 +19,7 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
@@ -130,6 +132,33 @@ class S3PhotoStorage implements PhotoStorage {
     public void delete(String objectKey) {
         client.deleteObject(
                 DeleteObjectRequest.builder().bucket(bucket).key(objectKey).build());
+    }
+
+    @Override
+    public void deleteAll(String prefix) {
+        list(prefix).forEach(stored -> delete(stored.objectKey()));
+    }
+
+    @Override
+    public List<StoredKey> list(String prefix) {
+        try {
+            return client
+                    .listObjectsV2Paginator(ListObjectsV2Request.builder()
+                            .bucket(bucket)
+                            .prefix(prefix)
+                            .build())
+                    .contents()
+                    .stream()
+                    .map(object -> new StoredKey(object.key(), object.lastModified()))
+                    .toList();
+        } catch (NoSuchBucketException missing) {
+            return List.of();
+        } catch (S3Exception other) {
+            if (other.statusCode() == 404) {
+                return List.of();
+            }
+            throw other;
+        }
     }
 
     private static URI toUri(String url) {

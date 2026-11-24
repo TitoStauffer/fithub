@@ -15,4 +15,7 @@ public interface PhotoRepository {
     void save(Photo photo);
 
     void delete(UUID assessmentId, Photo.Pose pose);
+
+    /** Se o objeto é o de alguma foto confirmada. */
+    boolean existsByObjectKey(String objectKey);
 }

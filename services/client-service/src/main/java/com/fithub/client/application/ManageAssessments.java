@@ -84,9 +84,10 @@ public class ManageAssessments {
                 .findById(assessmentId)
                 .filter(found -> found.clientId().equals(clientId))
                 .orElseThrow(() -> new NotFoundException("Avaliação não encontrada."));
-        // Os arquivos das fotos saem do bucket; as linhas saem com a avaliação (on delete cascade).
-        photos.deleteFilesOf(assessment.id());
+        // A avaliação sai primeiro (as linhas das fotos saem junto, on delete cascade). Depois, tudo dela sai do
+        // bucket, inclusive envios não confirmados; se o armazenamento falhar, o expurgo apaga os objetos órfãos.
         assessments.delete(assessment.id());
+        photos.deleteFilesOf(assessment);
     }
 
     private Assessment save(

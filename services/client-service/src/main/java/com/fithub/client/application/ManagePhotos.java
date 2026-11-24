@@ -13,6 +13,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
@@ -22,6 +24,8 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class ManagePhotos {
+
+    private static final Logger log = LoggerFactory.getLogger(ManagePhotos.class);
 
     private final AssessmentRepository assessments;
     private final PhotoRepository photos;
@@ -58,7 +62,8 @@ public class ManagePhotos {
 
     /**
      * Confirma o envio: o objeto precisa existir, ser JPEG ou PNG e ter até 10 MB; fora disso, é apagado e a
-     * confirmação é recusada. A foto anterior da pose é substituída.
+     * confirmação é recusada. A foto nova é gravada antes de qualquer arquivo sair; depois, os outros objetos da
+     * pose (a foto anterior e envios de tentativas que nunca foram confirmados) são apagados.
      */
     public Viewable confirm(String clientAccount, UUID assessmentId, Photo.Pose pose, String uploadId) {
         Assessment assessment = ownAssessment(clientAccount, assessmentId);
@@ -69,11 +74,12 @@ public class ManagePhotos {
             storage.delete(key);
             throw new InvalidAssessmentException("photo", "A foto precisa ser JPEG ou PNG de até 10 MB.");
         }
-        photos.find(assessmentId, pose)
-                .filter(previous -> !previous.objectKey().equals(key))
-                .ifPresent(previous -> storage.delete(previous.objectKey()));
         Photo photo = new Photo(assessmentId, assessment.clientId(), pose, key, clock.instant());
         photos.save(photo);
+        storage.list(posePrefix(assessment, pose)).stream()
+                .map(PhotoStorage.StoredKey::objectKey)
+                .filter(other -> !other.equals(key))
+                .forEach(storage::delete);
         return viewable(photo);
     }
 
@@ -97,17 +103,42 @@ public class ManagePhotos {
                 .toList();
     }
 
+    /** Exclui a foto da pose: o registro e todos os objetos da pose no bucket, inclusive envios não confirmados. */
     public void delete(String clientAccount, UUID assessmentId, Photo.Pose pose) {
-        ownAssessment(clientAccount, assessmentId);
-        photos.find(assessmentId, pose).ifPresent(photo -> {
-            storage.delete(photo.objectKey());
-            photos.delete(assessmentId, pose);
-        });
+        Assessment assessment = ownAssessment(clientAccount, assessmentId);
+        photos.delete(assessmentId, pose);
+        storage.deleteAll(posePrefix(assessment, pose));
     }
 
-    /** Apaga os arquivos das fotos de uma avaliação que está sendo excluída. */
-    void deleteFilesOf(UUID assessmentId) {
-        photos.listByAssessment(assessmentId).forEach(photo -> storage.delete(photo.objectKey()));
+    /**
+     * Apaga do bucket tudo da avaliação que foi excluída, pelo prefixo: as fotos confirmadas e os envios que nunca
+     * foram confirmados (direito de exclusão do titular). Com o armazenamento fora do ar, a exclusão da avaliação
+     * não é desfeita: os objetos ficaram sem foto registrada, e o expurgo ({@link #purgeUnconfirmed}) os apaga.
+     */
+    void deleteFilesOf(Assessment assessment) {
+        try {
+            storage.deleteAll(assessmentPrefix(assessment));
+        } catch (RuntimeException failure) {
+            // Só o tipo da falha: a mensagem do S3 pode trazer a chave do objeto.
+            log.warn(
+                    "Arquivos da avaliação excluída ficam para o expurgo ({})",
+                    failure.getClass().getSimpleName());
+        }
+    }
+
+    /**
+     * Expurgo dos envios que nunca foram confirmados (o app falhou, fechou ou tentou de novo com outro envio): apaga
+     * os objetos gravados antes de {@code cutoff} que não são de nenhuma foto confirmada. Devolve quantos saíram.
+     */
+    public int purgeUnconfirmed(Instant cutoff) {
+        int removed = 0;
+        for (PhotoStorage.StoredKey stored : storage.list(ROOT_PREFIX)) {
+            if (stored.lastModified().isBefore(cutoff) && !photos.existsByObjectKey(stored.objectKey())) {
+                storage.delete(stored.objectKey());
+                removed++;
+            }
+        }
+        return removed;
     }
 
     private Viewable viewable(Photo photo) {
@@ -134,8 +165,18 @@ public class ManagePhotos {
         }
     }
 
+    /** Todos os objetos das fotos ficam abaixo deste prefixo. */
+    static final String ROOT_PREFIX = "clients/";
+
+    private static String assessmentPrefix(Assessment assessment) {
+        return ROOT_PREFIX + "%s/assessments/%s/".formatted(assessment.clientId(), assessment.id());
+    }
+
+    private static String posePrefix(Assessment assessment, Photo.Pose pose) {
+        return assessmentPrefix(assessment) + pose.name().toLowerCase(Locale.ROOT) + "-";
+    }
+
     private static String objectKey(Assessment assessment, Photo.Pose pose, String uploadId) {
-        return "clients/%s/assessments/%s/%s-%s"
-                .formatted(assessment.clientId(), assessment.id(), pose.name().toLowerCase(Locale.ROOT), uploadId);
+        return posePrefix(assessment, pose) + uploadId;
     }
 }

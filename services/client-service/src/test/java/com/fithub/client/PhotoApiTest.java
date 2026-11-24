@@ -9,7 +9,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fithub.client.application.ManagePhotos;
 import com.fithub.client.application.RecordProfessional;
+import com.fithub.client.domain.assessment.PhotoStorage;
 import com.fithub.client.domain.professional.ProfessionalType;
 import com.fithub.testing.service.ServiceIntegrationTest;
 import java.net.URI;
@@ -17,6 +19,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -79,6 +82,12 @@ class PhotoApiTest extends ServiceIntegrationTest {
 
     @Autowired
     RecordProfessional recordProfessional;
+
+    @Autowired
+    PhotoStorage storage;
+
+    @Autowired
+    ManagePhotos managePhotos;
 
     private String client() throws Exception {
         String account = UUID.randomUUID().toString();
@@ -296,5 +305,95 @@ class PhotoApiTest extends ServiceIntegrationTest {
                         .update())
                 .isInstanceOf(DataIntegrityViolationException.class)
                 .hasMessageContaining("ck_assessment_photo_pose");
+    }
+
+    /** Pede a URL e envia o arquivo, sem confirmar; devolve a chave do objeto que ficou no bucket. */
+    private String pendingUpload(String client, String assessment, String pose) throws Exception {
+        JsonNode upload = read(uploadUrl(client, assessment, pose, "image/jpeg").andExpect(status().isOk()));
+        assertThat(putFile(upload.get("uploadUrl").asString(), "image/jpeg", JPEG))
+                .isEqualTo(200);
+        return "clients/%s/assessments/%s/%s-%s"
+                .formatted(
+                        client,
+                        assessment,
+                        pose.toLowerCase(),
+                        upload.get("uploadId").asString());
+    }
+
+    private String confirmedKey(String assessment, String pose) {
+        return jdbc.sql("select object_key from assessment_photo where assessment_id = :id and pose = :pose")
+                .param("id", UUID.fromString(assessment))
+                .param("pose", pose)
+                .query(String.class)
+                .single();
+    }
+
+    private boolean stored(String key) {
+        return storage.describe(key).isPresent();
+    }
+
+    /** Direito de exclusão do titular: excluir a avaliação tira do bucket as fotos confirmadas e os envios pendentes. */
+    @Test
+    void excluirAAvaliacaoApagaDoBucketAsFotosConfirmadasEOsEnviosPendentes() throws Exception {
+        String client = client();
+        String assessment = assessment(client);
+        sendPhoto(client, assessment, "FRONT", JPEG);
+        String confirmed = confirmedKey(assessment, "FRONT");
+        String pending = pendingUpload(client, assessment, "SIDE");
+        assertThat(stored(confirmed)).isTrue();
+        assertThat(stored(pending)).isTrue();
+
+        mvc.perform(delete("/clients/me/assessments/" + assessment).header("Authorization", "Bearer conta-" + client))
+                .andExpect(status().isNoContent());
+
+        assertThat(stored(confirmed)).as("foto confirmada").isFalse();
+        assertThat(stored(pending)).as("envio nunca confirmado").isFalse();
+    }
+
+    @Test
+    void excluirAFotoDaPoseApagaTambemOEnvioPendenteDaPose() throws Exception {
+        String client = client();
+        String assessment = assessment(client);
+        sendPhoto(client, assessment, "FRONT", JPEG);
+        String confirmed = confirmedKey(assessment, "FRONT");
+        String pending = pendingUpload(client, assessment, "FRONT");
+        String otherPose = pendingUpload(client, assessment, "BACK");
+
+        mvc.perform(delete("/clients/me/assessments/%s/photos/FRONT".formatted(assessment))
+                        .header("Authorization", "Bearer conta-" + client))
+                .andExpect(status().isNoContent());
+
+        assertThat(stored(confirmed)).isFalse();
+        assertThat(stored(pending)).isFalse();
+        assertThat(stored(otherPose)).as("a outra pose não é tocada").isTrue();
+    }
+
+    @Test
+    void confirmarApagaOsEnviosPendentesDeTentativasAnterioresDaPose() throws Exception {
+        String client = client();
+        String assessment = assessment(client);
+        String abandoned = pendingUpload(client, assessment, "SIDE");
+
+        sendPhoto(client, assessment, "SIDE", JPEG);
+
+        assertThat(stored(abandoned)).isFalse();
+        assertThat(stored(confirmedKey(assessment, "SIDE"))).isTrue();
+    }
+
+    @Test
+    void expurgoApagaSoOsEnviosNaoConfirmadosMaisAntigosQueOCorte() throws Exception {
+        String client = client();
+        String assessment = assessment(client);
+        sendPhoto(client, assessment, "BACK", JPEG);
+        String confirmed = confirmedKey(assessment, "BACK");
+        String pending = pendingUpload(client, assessment, "SIDE");
+
+        // Envio recente (dentro da validade da URL) não sai.
+        managePhotos.purgeUnconfirmed(Instant.now().minus(1, ChronoUnit.DAYS));
+        assertThat(stored(pending)).isTrue();
+
+        managePhotos.purgeUnconfirmed(Instant.now().plus(1, ChronoUnit.DAYS));
+        assertThat(stored(pending)).as("envio nunca confirmado").isFalse();
+        assertThat(stored(confirmed)).as("foto confirmada continua").isTrue();
     }
 }
