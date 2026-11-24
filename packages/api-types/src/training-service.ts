@@ -60,6 +60,10 @@ export interface components {
         ExerciseAttribution: {
             author?: string;
             license?: string;
+            /** @description Autor da mídia importada; presente só quando há mídia. */
+            mediaAuthor?: string;
+            /** @description Licença da mídia importada; presente só quando há mídia. */
+            mediaLicense?: string;
             source?: string;
         };
         /** @description Dados básicos do cliente vinculado. */

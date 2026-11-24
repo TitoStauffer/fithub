@@ -1,0 +1,225 @@
+{
+    "issue": "DEV-0054",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Reimportação cria exercício novo em vez de atualizar o do mesmo id externo",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ImportExercises.java",
+            "find": "existing.map(Exercise::id).orElseGet(UUID::randomUUID)",
+            "replace": "UUID.randomUUID()",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=WgerImportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Item sem mudança na fonte passa a ser regravado com data nova",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ImportExercises.java",
+            "find": "if (candidate.equals(existing.get())) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=WgerImportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Mídia sem licença Creative Commons passa a entrar",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ImportExercises.java",
+            "find": "&& isCreativeCommons(media.license())",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=WgerImportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Mídia sem autor registrado passa a ser escolhida",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ImportExercises.java",
+            "find": "&& !media.author().isBlank()",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=WgerImportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Exercício importado passa a aceitar mídia sem o crédito dela",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/exercise/Exercise.java",
+            "find": "if (attribution != null && (mediaUrl != null) != attribution.hasMediaCredit()) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=Exercise*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Crédito da mídia passa a aceitar licença sem autor",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/exercise/Attribution.java",
+            "find": "if ((mediaLicense == null || mediaLicense.isBlank()) != (mediaAuthor == null || mediaAuthor.isBlank())) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=Exercise*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Banco passa a aceitar licença da mídia sem autor",
+            "area": "java",
+            "file": "services/training-service/src/main/resources/db/migration/V4__credito_da_midia.sql",
+            "find": "check ((media_license is null) = (media_author is null))",
+            "replace": "check (true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ExerciseApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "Banco passa a aceitar crédito de mídia importada em exercício próprio",
+            "area": "java",
+            "file": "services/training-service/src/main/resources/db/migration/V4__credito_da_midia.sql",
+            "find": "(external_source is null and media_license is null)",
+            "replace": "(external_source is null)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ExerciseApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "Falha da fonte no job passa a escapar e derrubar a thread",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/wger/ExerciseImportJob.java",
+            "find": "} catch (RuntimeException failure) {",
+            "replace": "} catch (IllegalCallerException failure) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=WgerImportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "Paginação deixa de ter limite",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/wger/WgerExerciseSource.java",
+            "find": "if (page >= settings.maxPages()) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=WgerImportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "Tradução em inglês passa a ter preferência sobre a em português",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/wger/WgerExerciseSource.java",
+            "find": "List.of(WgerMapping.PORTUGUESE, WgerMapping.ENGLISH)",
+            "replace": "List.of(WgerMapping.ENGLISH, WgerMapping.PORTUGUESE)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=WgerImportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

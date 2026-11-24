@@ -79,7 +79,13 @@ class ExerciseApiTest extends ServiceIntegrationTest {
                 Equipment.BARBELL,
                 "Deite no banco e desça a barra até o peito.",
                 "https://videos.example/supino",
-                new Attribution("wger", UUID.randomUUID().toString(), "CC-BY-SA 4.0", "wger.de contributors"),
+                new Attribution(
+                        "wger",
+                        UUID.randomUUID().toString(),
+                        "CC-BY-SA 4.0",
+                        "wger.de contributors",
+                        "CC-BY-SA 3",
+                        "Everkinetic"),
                 NOW,
                 NOW);
         exercises.save(exercise);
@@ -119,7 +125,9 @@ class ExerciseApiTest extends ServiceIntegrationTest {
                 .andExpect(jsonPath("$.mediaUrl").value("https://videos.example/supino"))
                 .andExpect(jsonPath("$.attribution.source").value("wger"))
                 .andExpect(jsonPath("$.attribution.license").value("CC-BY-SA 4.0"))
-                .andExpect(jsonPath("$.attribution.author").value("wger.de contributors"));
+                .andExpect(jsonPath("$.attribution.author").value("wger.de contributors"))
+                .andExpect(jsonPath("$.attribution.mediaLicense").value("CC-BY-SA 3"))
+                .andExpect(jsonPath("$.attribution.mediaAuthor").value("Everkinetic"));
     }
 
     @Test
@@ -178,7 +186,12 @@ class ExerciseApiTest extends ServiceIntegrationTest {
                 Equipment.BARBELL,
                 null,
                 null,
-                exercise.attribution(),
+                // Sem a mídia, sai também o crédito dela.
+                new Attribution(
+                        exercise.attribution().source(),
+                        exercise.attribution().externalId(),
+                        exercise.attribution().license(),
+                        exercise.attribution().author()),
                 exercise.createdAt(),
                 NOW.plusSeconds(60)));
 
@@ -186,6 +199,7 @@ class ExerciseApiTest extends ServiceIntegrationTest {
         assertThat(saved.name()).isEqualTo("Supino reto com barra");
         assertThat(saved.muscleGroups()).containsExactly(MuscleGroup.CHEST);
         assertThat(saved.mediaUrl()).isNull();
+        assertThat(saved.attribution().hasMediaCredit()).isFalse();
         assertThat(saved.updatedAt()).isEqualTo(NOW.plusSeconds(60));
     }
 
@@ -277,5 +291,51 @@ class ExerciseApiTest extends ServiceIntegrationTest {
                         .update())
                 .isInstanceOf(DataIntegrityViolationException.class)
                 .hasMessageContaining("ck_exercise_muscle_group");
+    }
+
+    /** As CHECKs da V4 recusam crédito de mídia incompleto ou fora do lugar sem passar pelo domínio (DEV-0054). */
+    @Test
+    void bancoRecusaCreditoDeMidiaIncompletoSemMidiaOuEmExercicioProprio() {
+        String insert = """
+                insert into exercise (id, kind, owner_id, name, equipment, media_url, external_source, external_id,
+                    license, license_author, media_license, media_author, created_at, updated_at)
+                values (:id, :kind, :owner, 'Supino', 'BARBELL', :media, :source, :externalId, :license, :author,
+                    :mediaLicense, :mediaAuthor, now(), now())
+                """;
+        record Row(
+                String kind, String media, String source, String mediaLicense, String mediaAuthor, String constraint) {}
+        for (Row row : new Row[] {
+            // Licença sem autor.
+            new Row("CATALOG", "https://wger.de/m.png", "wger", "CC-BY-SA 3", null, "ck_exercise_media_credit_pair"),
+            // Mídia importada sem crédito.
+            new Row("CATALOG", "https://wger.de/m.png", "wger", null, null, "ck_exercise_media_credit_match"),
+            // Crédito sem mídia.
+            new Row("CATALOG", null, "wger", "CC-BY-SA 3", "Everkinetic", "ck_exercise_media_credit_match"),
+            // Exercício próprio com crédito de mídia importada.
+            new Row(
+                    "OWN",
+                    "https://videos.example/m",
+                    null,
+                    "CC-BY-SA 3",
+                    "Everkinetic",
+                    "ck_exercise_media_credit_match")
+        }) {
+            boolean imported = row.source() != null;
+            assertThatThrownBy(() -> jdbc.sql(insert)
+                            .param("id", UUID.randomUUID())
+                            .param("kind", row.kind())
+                            .param("owner", imported ? null : UUID.randomUUID())
+                            .param("media", row.media())
+                            .param("source", row.source())
+                            .param("externalId", imported ? UUID.randomUUID().toString() : null)
+                            .param("license", imported ? "CC-BY-SA 4" : null)
+                            .param("author", imported ? "wger.de" : null)
+                            .param("mediaLicense", row.mediaLicense())
+                            .param("mediaAuthor", row.mediaAuthor())
+                            .update())
+                    .as(row.constraint() + " " + row)
+                    .isInstanceOf(DataIntegrityViolationException.class)
+                    .hasMessageContaining(row.constraint());
+        }
     }
 }

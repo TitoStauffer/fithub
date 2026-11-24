@@ -150,4 +150,40 @@ class ExerciseTest {
         assertInvalid("attribution.source", () -> new Attribution("", "192", "CC-BY-SA 4.0", "autor"));
         assertInvalid("attribution.externalId", () -> new Attribution("wger", null, "CC-BY-SA 4.0", "autor"));
     }
+
+    private static Exercise imported(String mediaUrl, Attribution attribution) {
+        return new Exercise(
+                UUID.randomUUID(),
+                Exercise.Kind.CATALOG,
+                null,
+                "Supino reto",
+                Set.of(MuscleGroup.CHEST),
+                Equipment.BARBELL,
+                null,
+                mediaUrl,
+                attribution,
+                NOW,
+                NOW);
+    }
+
+    /** DEV-0054, ADR-010: a mídia importada só entra com o crédito dela, e o crédito só existe com a mídia. */
+    @Test
+    void midiaImportadaPrecisaDoCreditoDelaESoExisteComOLink() {
+        Attribution textOnly = new Attribution("wger", "192", "CC-BY-SA 3", "wger.de");
+        Attribution withMedia = new Attribution("wger", "192", "CC-BY-SA 3", "wger.de", "CC-BY-SA 4", "Everkinetic");
+
+        assertInvalid("mediaUrl", () -> imported("https://wger.de/media/supino.png", textOnly));
+        assertInvalid("mediaUrl", () -> imported(null, withMedia));
+        assertThat(imported("https://wger.de/media/supino.png", withMedia)
+                        .attribution()
+                        .mediaAuthor())
+                .isEqualTo("Everkinetic");
+        assertThat(imported(null, textOnly).attribution().hasMediaCredit()).isFalse();
+        assertInvalid(
+                "attribution.mediaLicense",
+                () -> new Attribution("wger", "192", "CC-BY-SA 3", "wger.de", "CC-BY-SA 4", " "));
+        assertInvalid(
+                "attribution.mediaLicense",
+                () -> new Attribution("wger", "192", "CC-BY-SA 3", "wger.de", null, "autor"));
+    }
 }
