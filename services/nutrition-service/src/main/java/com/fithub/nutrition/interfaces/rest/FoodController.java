@@ -2,12 +2,14 @@ package com.fithub.nutrition.interfaces.rest;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fithub.nutrition.application.ManageFoodMeasures;
+import com.fithub.nutrition.application.ManageOwnFoods;
 import com.fithub.nutrition.application.ViewFood;
 import com.fithub.nutrition.domain.food.Food;
 import com.fithub.nutrition.domain.food.FoodMeasure;
 import com.fithub.nutrition.domain.food.FoodMeasureNotFoundException;
 import com.fithub.nutrition.domain.food.FoodNotFoundException;
 import com.fithub.nutrition.domain.food.InvalidFoodException;
+import com.fithub.nutrition.domain.food.Recipe;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -30,6 +32,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -48,10 +51,12 @@ class FoodController {
 
     private final ViewFood viewFood;
     private final ManageFoodMeasures manageMeasures;
+    private final ManageOwnFoods manageOwnFoods;
 
-    FoodController(ViewFood viewFood, ManageFoodMeasures manageMeasures) {
+    FoodController(ViewFood viewFood, ManageFoodMeasures manageMeasures, ManageOwnFoods manageOwnFoods) {
         this.viewFood = viewFood;
         this.manageMeasures = manageMeasures;
+        this.manageOwnFoods = manageOwnFoods;
     }
 
     @Schema(name = "FoodMeasure", description = "Medida caseira da nutricionista e quanto vale na unidade base.")
@@ -64,6 +69,88 @@ class FoodController {
 
         static MeasureResponse of(FoodMeasure measure) {
             return new MeasureResponse(measure.id(), measure.name(), measure.amount());
+        }
+    }
+
+    @Schema(name = "RecipeIngredient", description = "Ingrediente da receita: o alimento e a quantidade.")
+    record IngredientBody(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            UUID foodId,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "De 0,1 a 5000 g (ou ml).")
+            BigDecimal amount) {}
+
+    @Schema(name = "Recipe", description = "Ingredientes e rendimento; os valores por 100 g saem deles.")
+    record RecipeResponse(List<IngredientBody> ingredients, BigDecimal yieldGrams) {
+
+        static RecipeResponse of(Recipe recipe) {
+            return new RecipeResponse(
+                    recipe.ingredients().stream()
+                            .map(ingredient -> new IngredientBody(ingredient.foodId(), ingredient.amount()))
+                            .toList(),
+                    recipe.yieldGrams());
+        }
+    }
+
+    @Schema(name = "RecipeInput", description = "Ingredientes (1 a 30) e o rendimento total.")
+    record RecipeRequest(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+            List<IngredientBody> ingredients,
+
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Em gramas, de 1 a 20000.")
+            BigDecimal yieldGrams) {}
+
+    @Schema(
+            name = "FoodInput",
+            description =
+                    "Alimento próprio. Com recipe, os valores por 100 g e a etiqueta vegano saem dos ingredientes.")
+    record FoodRequest(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "De 2 a 120 caracteres.")
+            String name,
+
+            @Schema(description = "G ou ML; a receita é sempre em gramas.")
+            Food.BaseUnit baseUnit,
+
+            @Schema(description = "Por 100, de 0 a 900 kcal; ignorado na receita.")
+            BigDecimal energyKcal,
+
+            @Schema(description = "Por 100, de 0 a 100 g; ignorado na receita.")
+            BigDecimal proteinG,
+
+            @Schema(description = "Por 100, de 0 a 100 g; ignorado na receita.")
+            BigDecimal carbsG,
+
+            @Schema(description = "Por 100, de 0 a 100 g; ignorado na receita.")
+            BigDecimal fatG,
+
+            @Schema(description = "Por 100, opcional.") BigDecimal fiberG,
+
+            @Schema(description = "Ignorado na receita: vegana só se todos os ingredientes forem.")
+            Boolean vegan,
+
+            RecipeRequest recipe) {
+
+        ManageOwnFoods.Draft toDraft() {
+            return new ManageOwnFoods.Draft(
+                    name,
+                    baseUnit,
+                    energyKcal,
+                    proteinG,
+                    carbsG,
+                    fatG,
+                    fiberG,
+                    vegan,
+                    recipe == null
+                            ? null
+                            : new ManageOwnFoods.RecipeDraft(
+                                    recipe.ingredients() == null
+                                            ? null
+                                            : recipe.ingredients().stream()
+                                                    .map(each -> each == null
+                                                            ? null
+                                                            : new Recipe.Ingredient(each.foodId(), each.amount()))
+                                                    .toList(),
+                                    recipe.yieldGrams()));
         }
     }
 
@@ -101,7 +188,13 @@ class FoodController {
             SourceResponse source,
 
             @Schema(description = "As medidas caseiras da nutricionista neste alimento (só as dela).")
-            List<MeasureResponse> measures) {
+            List<MeasureResponse> measures,
+
+            @Schema(description = "Se a dona arquivou o próprio: sai da busca, mas continua nos planos.")
+            boolean archived,
+
+            @JsonInclude(JsonInclude.Include.NON_NULL) @Schema(description = "Presente só na receita.")
+            RecipeResponse recipe) {
 
         static FoodResponse of(Food food, List<FoodMeasure> measures) {
             Food.Nutrients per100 = food.per100();
@@ -120,7 +213,9 @@ class FoodController {
                             ? null
                             : new SourceResponse(
                                     food.source().name(), food.source().externalId()),
-                    measures.stream().map(MeasureResponse::of).toList());
+                    measures.stream().map(MeasureResponse::of).toList(),
+                    food.archived(),
+                    food.isRecipe() ? RecipeResponse.of(food.recipe()) : null);
         }
     }
 
@@ -213,6 +308,96 @@ class FoodController {
             @AuthenticationPrincipal Jwt jwt, @PathVariable UUID foodId, @PathVariable UUID measureId) {
         manageMeasures.remove(jwt.getSubject(), foodId, measureId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            operationId = "createOwnFood",
+            summary = "Cadastra um alimento ou receita própria da nutricionista",
+            responses = {
+                @ApiResponse(responseCode = "201", description = "Alimento cadastrado; o endereço vem em Location."),
+                @ApiResponse(
+                        responseCode = "400",
+                        description = "Campo fora das regras ou ingrediente indisponível; o campo vem em errors.",
+                        content =
+                                @Content(
+                                        mediaType = PROBLEM,
+                                        schema = @Schema(implementation = ClientController.ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "403",
+                        description = "A conta não é nutricionista.",
+                        content =
+                                @Content(
+                                        mediaType = PROBLEM,
+                                        schema = @Schema(implementation = ClientController.ApiProblem.class)))
+            })
+    ResponseEntity<FoodResponse> create(@AuthenticationPrincipal Jwt jwt, @RequestBody FoodRequest request) {
+        Food food = manageOwnFoods.create(jwt.getSubject(), request.toDraft());
+        return ResponseEntity.created(URI.create("/foods/" + food.id())).body(FoodResponse.of(food, List.of()));
+    }
+
+    @PutMapping(
+            path = "/{foodId}",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            operationId = "updateOwnFood",
+            summary = "Edita o alimento ou a receita própria (a receita é recalculada)",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "Alimento editado."),
+                @ApiResponse(
+                        responseCode = "400",
+                        description = "Campo fora das regras ou ingrediente indisponível; o campo vem em errors.",
+                        content =
+                                @Content(
+                                        mediaType = PROBLEM,
+                                        schema = @Schema(implementation = ClientController.ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "403",
+                        description = "A conta não é nutricionista.",
+                        content =
+                                @Content(
+                                        mediaType = PROBLEM,
+                                        schema = @Schema(implementation = ClientController.ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "404",
+                        description = "O alimento não existe, é da TACO ou de outra nutricionista.",
+                        content =
+                                @Content(
+                                        mediaType = PROBLEM,
+                                        schema = @Schema(implementation = ClientController.ApiProblem.class)))
+            })
+    FoodResponse update(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID foodId, @RequestBody FoodRequest request) {
+        Food food = manageOwnFoods.update(jwt.getSubject(), foodId, request.toDraft());
+        return FoodResponse.of(food, manageMeasures.list(jwt.getSubject(), foodId));
+    }
+
+    @PostMapping(path = "/{foodId}/archive", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            operationId = "archiveOwnFood",
+            summary = "Arquiva o alimento próprio: sai da busca, mas continua nos planos",
+            responses = {
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "Alimento arquivado (arquivar de novo não muda nada)."),
+                @ApiResponse(
+                        responseCode = "403",
+                        description = "A conta não é nutricionista.",
+                        content =
+                                @Content(
+                                        mediaType = PROBLEM,
+                                        schema = @Schema(implementation = ClientController.ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "404",
+                        description = "O alimento não existe, é da TACO ou de outra nutricionista.",
+                        content =
+                                @Content(
+                                        mediaType = PROBLEM,
+                                        schema = @Schema(implementation = ClientController.ApiProblem.class)))
+            })
+    FoodResponse archive(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID foodId) {
+        Food food = manageOwnFoods.archive(jwt.getSubject(), foodId);
+        return FoodResponse.of(food, manageMeasures.list(jwt.getSubject(), foodId));
     }
 
     @ExceptionHandler(InvalidFoodException.class)

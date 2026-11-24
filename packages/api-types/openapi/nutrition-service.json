@@ -4,6 +4,10 @@
       "Food" : {
         "description" : "Alimento, com os valores por 100 da unidade base (100 g ou 100 ml).",
         "properties" : {
+          "archived" : {
+            "description" : "Se a dona arquivou o próprio: sai da busca, mas continua nos planos.",
+            "type" : "boolean"
+          },
           "baseUnit" : {
             "description" : "G (gramas) ou ML (mililitros).",
             "enum" : [ "G", "ML" ],
@@ -43,6 +47,10 @@
           "proteinG" : {
             "type" : "number"
           },
+          "recipe" : {
+            "$ref" : "#/components/schemas/Recipe",
+            "description" : "Presente só na receita."
+          },
           "source" : {
             "$ref" : "#/components/schemas/FoodSource",
             "description" : "Presente só no item importado."
@@ -51,6 +59,49 @@
             "type" : "boolean"
           }
         },
+        "type" : "object"
+      },
+      "FoodInput" : {
+        "description" : "Alimento próprio. Com recipe, os valores por 100 g e a etiqueta vegano saem dos ingredientes.",
+        "properties" : {
+          "baseUnit" : {
+            "description" : "G ou ML; a receita é sempre em gramas.",
+            "enum" : [ "G", "ML" ],
+            "type" : "string"
+          },
+          "carbsG" : {
+            "description" : "Por 100, de 0 a 100 g; ignorado na receita.",
+            "type" : "number"
+          },
+          "energyKcal" : {
+            "description" : "Por 100, de 0 a 900 kcal; ignorado na receita.",
+            "type" : "number"
+          },
+          "fatG" : {
+            "description" : "Por 100, de 0 a 100 g; ignorado na receita.",
+            "type" : "number"
+          },
+          "fiberG" : {
+            "description" : "Por 100, opcional.",
+            "type" : "number"
+          },
+          "name" : {
+            "description" : "De 2 a 120 caracteres.",
+            "type" : "string"
+          },
+          "proteinG" : {
+            "description" : "Por 100, de 0 a 100 g; ignorado na receita.",
+            "type" : "number"
+          },
+          "recipe" : {
+            "$ref" : "#/components/schemas/RecipeInput"
+          },
+          "vegan" : {
+            "description" : "Ignorado na receita: vegana só se todos os ingredientes forem.",
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "name" ],
         "type" : "object"
       },
       "FoodMeasure" : {
@@ -138,6 +189,53 @@
           }
         },
         "type" : "object"
+      },
+      "Recipe" : {
+        "description" : "Ingredientes e rendimento; os valores por 100 g saem deles.",
+        "properties" : {
+          "ingredients" : {
+            "items" : {
+              "$ref" : "#/components/schemas/RecipeIngredient"
+            },
+            "type" : "array"
+          },
+          "yieldGrams" : {
+            "type" : "number"
+          }
+        },
+        "type" : "object"
+      },
+      "RecipeIngredient" : {
+        "description" : "Ingrediente da receita: o alimento e a quantidade.",
+        "properties" : {
+          "amount" : {
+            "description" : "De 0,1 a 5000 g (ou ml).",
+            "type" : "number"
+          },
+          "foodId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "amount", "foodId" ],
+        "type" : "object"
+      },
+      "RecipeInput" : {
+        "description" : "Ingredientes (1 a 30) e o rendimento total.",
+        "properties" : {
+          "ingredients" : {
+            "items" : {
+              "$ref" : "#/components/schemas/RecipeIngredient"
+            },
+            "type" : "array"
+          },
+          "yieldGrams" : {
+            "description" : "Em gramas, de 1 a 20000.",
+            "type" : "number"
+          }
+        },
+        "required" : [ "ingredients", "yieldGrams" ],
+        "type" : "object"
       }
     },
     "securitySchemes" : {
@@ -213,6 +311,55 @@
         "tags" : [ "Clientes" ]
       }
     },
+    "/foods" : {
+      "post" : {
+        "operationId" : "createOwnFood",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FoodInput"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Food"
+                }
+              }
+            },
+            "description" : "Alimento cadastrado; o endereço vem em Location."
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Campo fora das regras ou ingrediente indisponível; o campo vem em errors."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é nutricionista."
+          }
+        },
+        "summary" : "Cadastra um alimento ou receita própria da nutricionista",
+        "tags" : [ "Alimentos" ]
+      }
+    },
     "/foods/{foodId}" : {
       "get" : {
         "operationId" : "viewFood",
@@ -258,6 +405,120 @@
           }
         },
         "summary" : "Um alimento da TACO ou próprio da nutricionista",
+        "tags" : [ "Alimentos" ]
+      },
+      "put" : {
+        "operationId" : "updateOwnFood",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "foodId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FoodInput"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Food"
+                }
+              }
+            },
+            "description" : "Alimento editado."
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Campo fora das regras ou ingrediente indisponível; o campo vem em errors."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é nutricionista."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O alimento não existe, é da TACO ou de outra nutricionista."
+          }
+        },
+        "summary" : "Edita o alimento ou a receita própria (a receita é recalculada)",
+        "tags" : [ "Alimentos" ]
+      }
+    },
+    "/foods/{foodId}/archive" : {
+      "post" : {
+        "operationId" : "archiveOwnFood",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "foodId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Food"
+                }
+              }
+            },
+            "description" : "Alimento arquivado (arquivar de novo não muda nada)."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é nutricionista."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O alimento não existe, é da TACO ou de outra nutricionista."
+          }
+        },
+        "summary" : "Arquiva o alimento próprio: sai da busca, mas continua nos planos",
         "tags" : [ "Alimentos" ]
       }
     },

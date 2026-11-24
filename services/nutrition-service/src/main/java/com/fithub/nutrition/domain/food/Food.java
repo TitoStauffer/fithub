@@ -12,6 +12,8 @@ import java.util.UUID;
  *
  * @param ownerId o {@code sub} da nutricionista dona (ADR-009); vazio na TACO
  * @param source fonte e id externo do item importado (para a importação ser reexecutável); vazio no próprio
+ * @param recipe os ingredientes e o rendimento, quando o alimento próprio é uma receita (DEV-0077)
+ * @param archivedAt quando a dona arquivou o próprio: sai da busca, mas continua nos planos (DEV-0077)
  */
 public record Food(
         UUID id,
@@ -23,7 +25,9 @@ public record Food(
         boolean vegan,
         Source source,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        Recipe recipe,
+        Instant archivedAt) {
 
     public static final int MIN_NAME_LENGTH = 2;
     public static final int MAX_NAME_LENGTH = 120;
@@ -100,16 +104,69 @@ public record Food(
         if ((kind == Kind.TACO) != (source != null)) {
             throw new InvalidFoodException("source", "Só o alimento importado tem a fonte.");
         }
-        name = name == null ? null : name.strip();
-        if (name == null || name.length() < MIN_NAME_LENGTH || name.length() > MAX_NAME_LENGTH) {
-            throw new InvalidFoodException("name", "O nome precisa ter de 2 a 120 caracteres.");
-        }
+        name = checkedName(name);
         if (baseUnit == null) {
             throw new InvalidFoodException("baseUnit", "Informe a unidade base (g ou ml).");
         }
         if (per100 == null) {
             throw new InvalidFoodException("per100", "Informe os valores nutricionais por 100.");
         }
+        requireOwnForRecipeAndArchive(kind, baseUnit, recipe, archivedAt);
+    }
+
+    private static String checkedName(String name) {
+        String stripped = name == null ? null : name.strip();
+        if (stripped == null || stripped.length() < MIN_NAME_LENGTH || stripped.length() > MAX_NAME_LENGTH) {
+            throw new InvalidFoodException("name", "O nome precisa ter de 2 a 120 caracteres.");
+        }
+        return stripped;
+    }
+
+    /** Receita e arquivamento são só do alimento próprio; a receita é sempre em gramas. */
+    private static void requireOwnForRecipeAndArchive(Kind kind, BaseUnit baseUnit, Recipe recipe, Instant archivedAt) {
+        if (recipe != null && (kind != Kind.OWN || baseUnit != BaseUnit.G)) {
+            throw new InvalidFoodException("recipe", "Só o alimento próprio em gramas pode ser receita.");
+        }
+        if (archivedAt != null && kind != Kind.OWN) {
+            throw new InvalidFoodException("archivedAt", "Só o alimento próprio é arquivado.");
+        }
+    }
+
+    /** Alimento que não é receita nem está arquivado (o da TACO e o próprio novo). */
+    public Food(
+            UUID id,
+            Kind kind,
+            UUID ownerId,
+            String name,
+            BaseUnit baseUnit,
+            Nutrients per100,
+            boolean vegan,
+            Source source,
+            Instant createdAt,
+            Instant updatedAt) {
+        this(id, kind, ownerId, name, baseUnit, per100, vegan, source, createdAt, updatedAt, null, null);
+    }
+
+    public boolean archived() {
+        return archivedAt != null;
+    }
+
+    public boolean isRecipe() {
+        return recipe != null;
+    }
+
+    /** A dona arquiva o próprio; arquivar de novo não muda a data. */
+    public Food archive(Instant now) {
+        if (kind != Kind.OWN) {
+            throw new InvalidFoodException("archivedAt", "Só o alimento próprio é arquivado.");
+        }
+        Instant when = archivedAt == null ? now : archivedAt;
+        return new Food(id, kind, ownerId, name, baseUnit, per100, vegan, source, createdAt, updatedAt, recipe, when);
+    }
+
+    /** A dona do próprio; a TACO não tem dona. */
+    public boolean ownedBy(UUID nutritionistId) {
+        return kind == Kind.OWN && ownerId.equals(nutritionistId);
     }
 
     /**

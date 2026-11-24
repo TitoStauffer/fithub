@@ -48,3 +48,16 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   `GET /foods/{foodId}` traz as medidas da nutricionista.
 - Conversão no domínio, para o plano (E8): medidas para gramas/ml (`FoodMeasure.toBaseUnit`) e os nutrientes da
   porção (`Food.nutrientsIn`, valor por 100 vezes a quantidade, a 1 casa).
+
+## Alimentos e receitas próprios (DEV-0077)
+
+- `POST /foods` (201), `PUT /foods/{foodId}` e `POST /foods/{foodId}/archive` (papel `nutritionist`): o alimento próprio
+  com as regras do modelo. Só a dona lê, edita e arquiva; outra nutricionista e o da TACO respondem 404 (BR-13).
+- Arquivar em vez de apagar (migration V5, `archived_at`): o arquivado sai da busca (DEV-0078), mas continua nos planos;
+  a dona continua lendo. Arquivar de novo não muda a data.
+- **Receita:** alimento próprio em gramas com ingredientes (1 a 30, alimento visível para a dona e que não seja
+  receita, 0,1 a 5000 g ou ml) e o rendimento (1 a 20000 g), em `food_recipe_ingredient`. Os valores por 100 g são
+  calculados ao salvar, pela soma de (valor por 100 × quantidade) dividida pelo rendimento, e gravados no alimento;
+  editar um ingrediente depois não muda a receita até ela ser salva de novo. A fibra falta se algum ingrediente não a
+  traz, e a receita é vegana só se todos os ingredientes forem. Ingrediente inválido responde 400 no campo
+  `recipe.ingredients[i].foodId`.
