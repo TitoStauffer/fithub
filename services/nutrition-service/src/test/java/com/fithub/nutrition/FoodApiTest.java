@@ -547,4 +547,70 @@ class FoodApiTest extends ServiceIntegrationTest {
                     .hasMessageContaining("ck_food_recipe");
         }
     }
+
+    private ResultActions searchAs(String token, String query) throws Exception {
+        var request = get("/foods").header("Authorization", "Bearer " + token);
+        for (String pair : query.split("&")) {
+            int equals = pair.indexOf('=');
+            request.param(pair.substring(0, equals), pair.substring(equals + 1));
+        }
+        return mvc.perform(request);
+    }
+
+    @Test
+    void buscaSemAcentoComFiltroVeganoSoOsVisiveisEOProprioAntesDaTacoNoEmpate() throws Exception {
+        String tag = "zq" + UUID.randomUUID().toString().substring(0, 8);
+        String me = "nutri-" + UUID.randomUUID();
+        String other = "nutri-" + UUID.randomUUID();
+        tacoWith(tag + " Feijão, preto, cozido", "4.5", true);
+        tacoWith(tag + " Feijoada", "8.7", false);
+        tacoWith(tag + " Arroz", "2.5", true);
+        idOf(createFood(me, GRANOLA.replace("Granola da casa", tag + " Feijão da casa")));
+        idOf(createFood(me, GRANOLA.replace("Granola da casa", tag + " Arroz")));
+        idOf(createFood(other, GRANOLA.replace("Granola da casa", tag + " Feijão dela")));
+        String archived = idOf(createFood(me, GRANOLA.replace("Granola da casa", tag + " Feijão arquivado")));
+        mvc.perform(post("/foods/" + archived + "/archive").header("Authorization", "Bearer " + me))
+                .andExpect(status().isOk());
+
+        // Maiúsculas e acento no texto buscado; só a TACO e o próprio dela, sem o arquivado.
+        searchAs(me, "name=" + tag.toUpperCase() + " FEIJÃO")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(2))
+                .andExpect(jsonPath("$.items[*].name")
+                        .value(Matchers.contains(tag + " Feijão da casa", tag + " Feijão, preto, cozido")))
+                .andExpect(jsonPath("$.items[0].kind").value("OWN"))
+                .andExpect(jsonPath("$.items[1].proteinG").value(4.5))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20));
+        searchAs(me, "name=" + tag + "&vegan=false")
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.items[0].name").value(tag + " Feijoada"));
+        searchAs(me, "name=" + tag + "&vegan=true")
+                .andExpect(jsonPath("$.total").value(4));
+        // Mesmo nome: o próprio antes da TACO.
+        searchAs(me, "name=" + tag + " Arroz")
+                .andExpect(jsonPath("$.items[0].kind").value("OWN"))
+                .andExpect(jsonPath("$.items[1].kind").value("TACO"));
+        searchAs(me, "name=" + tag + "&size=2&page=1")
+                .andExpect(jsonPath("$.total").value(5))
+                .andExpect(jsonPath("$.items.length()").value(2));
+    }
+
+    @Test
+    void parametrosDaBuscaForaDasRegrasApontamOCampo() throws Exception {
+        String token = "nutri-" + UUID.randomUUID();
+        for (String[] query : new String[][] {
+            {"page=-1", "page"},
+            {"page=abc", "page"},
+            {"size=0", "size"},
+            {"size=51", "size"},
+            {"vegan=talvez", "vegan"},
+            {"name=" + "a".repeat(121), "name"}
+        }) {
+            searchAs(token, query[0])
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.errors[0].field").value(query[1]));
+        }
+        searchAs("personal-" + UUID.randomUUID(), "name=arroz").andExpect(status().isForbidden());
+    }
 }

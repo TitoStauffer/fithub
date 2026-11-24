@@ -61,3 +61,11 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   editar um ingrediente depois não muda a receita até ela ser salva de novo. A fibra falta se algum ingrediente não a
   traz, e a receita é vegana só se todos os ingredientes forem. Ingrediente inválido responde 400 no campo
   `recipe.ingredients[i].foodId`.
+
+## Busca de alimentos (DEV-0078)
+
+- `GET /foods?name=&vegan=&page=&size=` (papel `nutritionist`): a TACO e os próprios da nutricionista, sem os
+  arquivados e nunca os de outra (BR-13). O nome busca por trecho, sem diferenciar maiúsculas nem acentos
+  (`fold_search` da migration V6, aplicada ao nome gravado e ao texto buscado; `%` e `_` são literais).
+  `vegan=true` traz só os veganos e `vegan=false` só os não veganos. Página a partir de 0, 20 por padrão e até 50.
+- Ordem pelo nome; no empate, o próprio antes da TACO. Parâmetro fora das regras responde 400 com o campo.

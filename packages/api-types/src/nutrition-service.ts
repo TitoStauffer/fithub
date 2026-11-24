@@ -25,7 +25,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Busca na TACO e nos alimentos próprios da nutricionista
+         * @description Filtros opcionais, combinados (E lógico). O nome busca por trecho, sem diferenciar maiúsculas nem acentos. Os arquivados ficam de fora. Página a partir de 0, com 20 itens por padrão e até 50.
+         */
+        get: operations["searchFoods"];
         put?: never;
         /** Cadastra um alimento ou receita própria da nutricionista */
         post: operations["createOwnFood"];
@@ -174,10 +178,41 @@ export interface components {
             /** @description De 2 a 40 caracteres. */
             name: string;
         };
+        /** @description Página da busca de alimentos. */
+        FoodPage: {
+            items?: components["schemas"]["FoodSummary"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /**
+             * Format: int64
+             * @description Quantos alimentos atendem à busca, somando todas as páginas.
+             */
+            total?: number;
+        };
         /** @description Origem do item importado, para o crédito. */
         FoodSource: {
             externalId?: string;
             name?: string;
+        };
+        /** @description Alimento no resultado da busca, com os valores por 100. */
+        FoodSummary: {
+            /** @enum {string} */
+            baseUnit?: "G" | "ML";
+            carbsG?: number;
+            energyKcal?: number;
+            fatG?: number;
+            fiberG?: number;
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            kind?: "TACO" | "OWN";
+            name?: string;
+            proteinG?: number;
+            /** @description Se é uma receita da nutricionista. */
+            recipe?: boolean;
+            vegan?: boolean;
         };
         /** @description Dados básicos do cliente vinculado. */
         LinkedClient: {
@@ -264,6 +299,53 @@ export interface operations {
             };
             /** @description Sem vínculo ativo com o cliente (ou ele não existe). */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    searchFoods: {
+        parameters: {
+            query?: {
+                /** @description Trecho do nome. */
+                name?: string;
+                /** @description true para só os veganos; false para só os não veganos. */
+                vegan?: string;
+                /** @description Página, a partir de 0. */
+                page?: string;
+                /** @description Itens por página, de 1 a 50. */
+                size?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Página da busca. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FoodPage"];
+                };
+            };
+            /** @description Filtro fora das regras, página negativa ou tamanho fora de 1 a 50; o campo vem em errors. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é nutricionista. */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
