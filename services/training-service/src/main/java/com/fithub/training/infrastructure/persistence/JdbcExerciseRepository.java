@@ -36,10 +36,10 @@ class JdbcExerciseRepository implements ExerciseRepository {
         jdbc.sql("""
                         insert into exercise (id, kind, owner_id, name, equipment, instructions, media_url,
                             external_source, external_id, license, license_author, media_license, media_author,
-                            created_at, updated_at)
+                            created_at, updated_at, archived_at)
                         values (:id, :kind, :ownerId, :name, :equipment, :instructions, :mediaUrl,
                             :externalSource, :externalId, :license, :licenseAuthor, :mediaLicense, :mediaAuthor,
-                            :createdAt, :updatedAt)
+                            :createdAt, :updatedAt, :archivedAt)
                         on conflict (id) do update set
                             name = excluded.name,
                             equipment = excluded.equipment,
@@ -51,7 +51,8 @@ class JdbcExerciseRepository implements ExerciseRepository {
                             license_author = excluded.license_author,
                             media_license = excluded.media_license,
                             media_author = excluded.media_author,
-                            updated_at = excluded.updated_at
+                            updated_at = excluded.updated_at,
+                            archived_at = excluded.archived_at
                         """)
                 .param("id", exercise.id())
                 .param("kind", exercise.kind().name())
@@ -68,6 +69,7 @@ class JdbcExerciseRepository implements ExerciseRepository {
                 .param("mediaAuthor", attribution == null ? null : attribution.mediaAuthor())
                 .param("createdAt", Timestamp.from(exercise.createdAt()))
                 .param("updatedAt", Timestamp.from(exercise.updatedAt()))
+                .param("archivedAt", exercise.archivedAt() == null ? null : Timestamp.from(exercise.archivedAt()))
                 .update();
         jdbc.sql("delete from exercise_muscle_group where exercise_id = :id")
                 .param("id", exercise.id())
@@ -85,7 +87,7 @@ class JdbcExerciseRepository implements ExerciseRepository {
     private static final String SELECT = """
             select e.id, e.kind, e.owner_id, e.name, e.equipment, e.instructions, e.media_url,
                 e.external_source, e.external_id, e.license, e.license_author, e.media_license, e.media_author,
-                e.created_at, e.updated_at, array_remove(array_agg(g.muscle_group), null) as muscle_groups
+                e.created_at, e.updated_at, e.archived_at, array_remove(array_agg(g.muscle_group), null) as muscle_groups
             from exercise e
             left join exercise_muscle_group g on g.exercise_id = e.id
             """;
@@ -113,6 +115,7 @@ class JdbcExerciseRepository implements ExerciseRepository {
         String matching = """
                 from exercise e
                 where (e.kind = 'CATALOG' or e.owner_id = :personalId)
+                    and e.archived_at is null
                     and (cast(:name as text) is null
                         or e.search_name like '%' || fold_search(cast(:name as text)) || '%' escape '\\')
                     and (cast(:equipment as text) is null or e.equipment = cast(:equipment as text))
@@ -177,6 +180,9 @@ class JdbcExerciseRepository implements ExerciseRepository {
                                 row.getString("media_license"),
                                 row.getString("media_author")),
                 row.getTimestamp("created_at").toInstant(),
-                row.getTimestamp("updated_at").toInstant());
+                row.getTimestamp("updated_at").toInstant(),
+                row.getTimestamp("archived_at") == null
+                        ? null
+                        : row.getTimestamp("archived_at").toInstant());
     }
 }

@@ -17,6 +17,8 @@ import java.util.UUID;
  * @param ownerId o {@code sub} do personal dono (ADR-009); {@code null} no catálogo
  * @param mediaUrl vídeo ou imagem da execução, ou {@code null}
  * @param attribution origem e licença do item importado (ADR-010), ou {@code null}
+ * @param archivedAt quando o dono arquivou o exercício próprio (DEV-0056), ou {@code null}; arquivado continua
+ *     legível por id, para as fichas antigas, mas sai da busca e não muda mais
  */
 public record Exercise(
         UUID id,
@@ -29,7 +31,8 @@ public record Exercise(
         String mediaUrl,
         Attribution attribution,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        Instant archivedAt) {
 
     /** Catálogo comum ou exercício próprio de um personal. */
     public enum Kind {
@@ -66,6 +69,125 @@ public record Exercise(
             throw new InvalidExerciseException("instructions", "As instruções podem ter até 4000 caracteres.");
         }
         mediaUrl = checkedMedia(blankToNull(mediaUrl), attribution);
+        requireArchivable(kind, archivedAt);
+    }
+
+    /** Exercício ativo (sem arquivamento). */
+    public Exercise(
+            UUID id,
+            Kind kind,
+            UUID ownerId,
+            String name,
+            Set<MuscleGroup> muscleGroups,
+            Equipment equipment,
+            String instructions,
+            String mediaUrl,
+            Attribution attribution,
+            Instant createdAt,
+            Instant updatedAt) {
+        this(
+                id,
+                kind,
+                ownerId,
+                name,
+                muscleGroups,
+                equipment,
+                instructions,
+                mediaUrl,
+                attribution,
+                createdAt,
+                updatedAt,
+                null);
+    }
+
+    /** Novo exercício próprio do personal (DEV-0056, FR-24). */
+    public static Exercise newOwn(
+            UUID ownerId,
+            String name,
+            Set<MuscleGroup> muscleGroups,
+            Equipment equipment,
+            String instructions,
+            String mediaUrl,
+            Instant now) {
+        return new Exercise(
+                UUID.randomUUID(),
+                Kind.OWN,
+                ownerId,
+                name,
+                muscleGroups,
+                equipment,
+                instructions,
+                mediaUrl,
+                null,
+                now,
+                now,
+                null);
+    }
+
+    /** Só o exercício próprio pode ser arquivado; o do catálogo é de todos. */
+    private static void requireArchivable(Kind kind, Instant archivedAt) {
+        if (archivedAt != null && kind != Kind.OWN) {
+            throw new InvalidExerciseException("archivedAt", "Só exercício próprio pode ser arquivado.");
+        }
+    }
+
+    /** Se o personal é o dono: só ele edita e arquiva; o catálogo não é de ninguém (BR-13). */
+    public boolean ownedBy(UUID personalId) {
+        return kind == Kind.OWN && ownerId.equals(personalId);
+    }
+
+    public boolean archived() {
+        return archivedAt != null;
+    }
+
+    /**
+     * O mesmo exercício com os campos novos, validados como na criação.
+     *
+     * @throws ExerciseArchivedException se ele já foi arquivado
+     */
+    public Exercise edit(
+            String name,
+            Set<MuscleGroup> muscleGroups,
+            Equipment equipment,
+            String instructions,
+            String mediaUrl,
+            Instant now) {
+        if (archived()) {
+            throw new ExerciseArchivedException();
+        }
+        return new Exercise(
+                id,
+                kind,
+                ownerId,
+                name,
+                muscleGroups,
+                equipment,
+                instructions,
+                mediaUrl,
+                attribution,
+                createdAt,
+                now,
+                null);
+    }
+
+    /** Arquiva; arquivar de novo não muda nada (a data fica a da primeira vez). */
+    public Exercise archive(Instant now) {
+        if (archived()) {
+            return this;
+        }
+        return new Exercise(
+                id,
+                kind,
+                ownerId,
+                name,
+                muscleGroups,
+                equipment,
+                instructions,
+                mediaUrl,
+                attribution,
+                createdAt,
+                now,
+                now);
     }
 
     private static String checkedMedia(String mediaUrl, Attribution attribution) {

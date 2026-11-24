@@ -4,6 +4,11 @@
       "Exercise" : {
         "description" : "Exercício do catálogo ou próprio do personal.",
         "properties" : {
+          "archivedAt" : {
+            "description" : "Quando o dono arquivou o exercício próprio; presente só se arquivado.",
+            "format" : "date-time",
+            "type" : "string"
+          },
           "attribution" : {
             "$ref" : "#/components/schemas/ExerciseAttribution",
             "description" : "Presente só em exercício importado; a tela mostra o crédito."
@@ -62,6 +67,37 @@
             "type" : "string"
           }
         },
+        "type" : "object"
+      },
+      "ExerciseInput" : {
+        "description" : "Exercício próprio, com as mesmas regras do modelo.",
+        "properties" : {
+          "equipment" : {
+            "enum" : [ "BARBELL", "DUMBBELL", "KETTLEBELL", "MACHINE", "CABLE", "BAND", "BODYWEIGHT", "OTHER" ],
+            "type" : "string"
+          },
+          "instructions" : {
+            "description" : "Até 4000 caracteres.",
+            "type" : [ "string", "null" ]
+          },
+          "mediaUrl" : {
+            "description" : "Vídeo ou imagem da execução, https de até 500 caracteres.",
+            "type" : [ "string", "null" ]
+          },
+          "muscleGroups" : {
+            "description" : "Um ou mais grupos musculares.",
+            "items" : {
+              "enum" : [ "CHEST", "BACK", "LOWER_BACK", "SHOULDERS", "BICEPS", "TRICEPS", "FOREARMS", "ABS", "GLUTES", "QUADRICEPS", "HAMSTRINGS", "ADDUCTORS", "CALVES", "NECK", "FULL_BODY" ],
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "name" : {
+            "description" : "De 2 a 120 caracteres.",
+            "type" : "string"
+          }
+        },
+        "required" : [ "equipment", "muscleGroups", "name" ],
         "type" : "object"
       },
       "ExercisePage" : {
@@ -315,9 +351,116 @@
         },
         "summary" : "Busca no catálogo e nos exercícios próprios do personal",
         "tags" : [ "Exercícios" ]
+      },
+      "post" : {
+        "operationId" : "create",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ExerciseInput"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Exercise"
+                }
+              }
+            },
+            "description" : "Exercício criado; o endereço vem em Location."
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Campo fora das regras; o campo vem em errors."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é personal."
+          }
+        },
+        "summary" : "Cria um exercício próprio do personal",
+        "tags" : [ "Exercícios" ]
       }
     },
     "/exercises/{exerciseId}" : {
+      "delete" : {
+        "description" : "Não apaga: as fichas antigas continuam mostrando o exercício, que sai da busca. Arquivar de novo não muda nada.",
+        "operationId" : "archive",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "exerciseId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Exercício arquivado."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é personal."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O exercício não existe, é de outro personal ou do catálogo."
+          }
+        },
+        "summary" : "Arquiva um exercício próprio do personal",
+        "tags" : [ "Exercícios" ]
+      },
       "get" : {
         "operationId" : "exercise",
         "parameters" : [ {
@@ -372,6 +515,92 @@
           }
         },
         "summary" : "Um exercício do catálogo ou próprio do personal",
+        "tags" : [ "Exercícios" ]
+      },
+      "put" : {
+        "operationId" : "update",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "exerciseId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ExerciseInput"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Exercise"
+                }
+              }
+            },
+            "description" : "Exercício editado."
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Campo fora das regras; o campo vem em errors."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é personal."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O exercício não existe, é de outro personal ou do catálogo."
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O exercício foi arquivado e não muda mais."
+          }
+        },
+        "summary" : "Edita um exercício próprio do personal",
         "tags" : [ "Exercícios" ]
       }
     }

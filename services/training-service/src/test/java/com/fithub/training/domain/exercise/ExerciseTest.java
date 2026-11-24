@@ -186,4 +186,55 @@ class ExerciseTest {
                 "attribution.mediaLicense",
                 () -> new Attribution("wger", "192", "CC-BY-SA 3", "wger.de", null, "autor"));
     }
+
+    /** DEV-0056: só o dono edita e arquiva; o catálogo não é de ninguém e não se arquiva. */
+    @Test
+    void soODonoAlteraEOCatalogoNaoEDeNinguem() {
+        Exercise own = own("Rosca direta", Set.of(MuscleGroup.BICEPS), null, null);
+
+        assertThat(own.ownedBy(OWNER)).isTrue();
+        assertThat(own.ownedBy(UUID.randomUUID())).isFalse();
+        assertThat(own.ownedBy(null)).isFalse();
+        assertThat(catalog(null).ownedBy(OWNER)).isFalse();
+        assertThat(catalog(null).ownedBy(null)).isFalse();
+    }
+
+    @Test
+    void arquivadoNaoMudaMaisEArquivarDeNovoMantemAData() {
+        Exercise own = own("Rosca direta", Set.of(MuscleGroup.BICEPS), null, null);
+        Instant later = NOW.plusSeconds(3600);
+
+        Exercise edited =
+                own.edit("Rosca martelo", Set.of(MuscleGroup.FOREARMS), Equipment.DUMBBELL, null, null, later);
+        assertThat(edited.name()).isEqualTo("Rosca martelo");
+        assertThat(edited.updatedAt()).isEqualTo(later);
+        assertThat(edited.createdAt()).isEqualTo(NOW);
+        assertInvalid("name", () -> own.edit("a", Set.of(MuscleGroup.BICEPS), Equipment.DUMBBELL, null, null, later));
+
+        Exercise archived = edited.archive(later);
+        assertThat(archived.archived()).isTrue();
+        assertThat(archived.archive(later.plusSeconds(60)).archivedAt()).isEqualTo(later);
+        assertThatThrownBy(
+                        () -> archived.edit("Outro", Set.of(MuscleGroup.BICEPS), Equipment.DUMBBELL, null, null, later))
+                .isInstanceOf(ExerciseArchivedException.class);
+    }
+
+    @Test
+    void soExercicioProprioPodeSerArquivado() {
+        assertInvalid(
+                "archivedAt",
+                () -> new Exercise(
+                        UUID.randomUUID(),
+                        Exercise.Kind.CATALOG,
+                        null,
+                        "Supino reto",
+                        Set.of(MuscleGroup.CHEST),
+                        Equipment.BARBELL,
+                        null,
+                        null,
+                        null,
+                        NOW,
+                        NOW,
+                        NOW));
+    }
 }

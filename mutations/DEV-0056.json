@@ -1,0 +1,165 @@
+{
+    "issue": "DEV-0056",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Qualquer personal passa a alterar exercício próprio de outro",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/exercise/Exercise.java",
+            "find": "return kind == Kind.OWN && ownerId.equals(personalId);",
+            "replace": "return kind == Kind.OWN;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=OwnExerciseApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Exercício do catálogo passa a ser alterável por personal",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/exercise/Exercise.java",
+            "find": "return kind == Kind.OWN && ownerId.equals(personalId);",
+            "replace": "return kind == Kind.CATALOG || ownerId.equals(personalId);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=OwnExerciseApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Exercício arquivado volta a aparecer na busca",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcExerciseRepository.java",
+            "find": "and e.archived_at is null",
+            "replace": "and true",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=OwnExerciseApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Exercício arquivado passa a aceitar edição",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/exercise/Exercise.java",
+            "find": "throw new ExerciseArchivedException();",
+            "replace": ";",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=Exercise*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Arquivar de novo passa a trocar a data do arquivamento",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/exercise/Exercise.java",
+            "find": "            return this;\n",
+            "replace": "            ;\n",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=Exercise*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Arquivar deixa de gravar o arquivamento",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ManageOwnExercises.java",
+            "find": "exercises.save(exercise.archive(clock.instant()));",
+            "replace": "exercise.archive(clock.instant());",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=OwnExerciseApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Banco passa a aceitar exercício do catálogo arquivado",
+            "area": "java",
+            "file": "services/training-service/src/main/resources/db/migration/V6__arquivamento_de_exercicio.sql",
+            "find": "check (archived_at is null or kind = 'OWN')",
+            "replace": "check (true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=OwnExerciseApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "Domínio passa a aceitar exercício do catálogo arquivado",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/exercise/Exercise.java",
+            "find": "if (archivedAt != null && kind != Kind.OWN) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=Exercise*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}
