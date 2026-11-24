@@ -36,6 +36,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clients/{clientId}/records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Os recordes do aluno vinculado por exercício */
+        get: operations["listClientRecords"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/clients/{clientId}/restrictions": {
         parameters: {
             query?: never;
@@ -161,6 +178,41 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Os recordes do aluno por exercício: maior carga e 1RM estimado */
+        get: operations["listMyRecords"];
+        put?: never;
+        /** Lança um recorde à mão */
+        post: operations["addManualRecord"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/records/{recordId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Apaga um recorde lançado à mão */
+        delete: operations["removeManualRecord"];
         options?: never;
         head?: never;
         patch?: never;
@@ -485,6 +537,15 @@ export interface components {
              */
             total?: number;
         };
+        /** @description Recordes de um exercício. */
+        ExerciseRecords: {
+            /** @description Por Epley, só de 1 a 12 repetições; ausente sem marca nessa faixa. */
+            estimatedOneRepMax?: components["schemas"]["RecordMark"];
+            /** Format: uuid */
+            exerciseId?: string;
+            exerciseName?: string;
+            maxLoad?: components["schemas"]["RecordMark"];
+        };
         /** @description Ficha publicada que vence no período ou já venceu. */
         ExpiringPlan: {
             /** Format: uuid */
@@ -505,6 +566,35 @@ export interface components {
             clientId?: string;
             gender?: string | null;
             name?: string;
+        };
+        /** @description Recorde lançado à mão. */
+        ManualRecord: {
+            /** Format: uuid */
+            exerciseId?: string;
+            /** Format: uuid */
+            id?: string;
+            loadKg?: number;
+            /** Format: date */
+            performedOn?: string;
+            /** Format: int32 */
+            reps?: number;
+        };
+        /** @description Uma marca feita fora das séries registradas. */
+        ManualRecordInput: {
+            /** Format: uuid */
+            exerciseId: string;
+            /** @description De 0,25 a 1000 kg, em passos de 0,25. */
+            loadKg: number;
+            /**
+             * Format: date
+             * @description Não pode ser no futuro.
+             */
+            performedOn: string;
+            /**
+             * Format: int32
+             * @description De 1 a 300.
+             */
+            reps: number;
         };
         /** @description Restrição de mobilidade do aluno. */
         MobilityRestriction: {
@@ -542,6 +632,23 @@ export interface components {
         ProblemFieldError: {
             field?: string;
             message?: string;
+        };
+        /** @description O valor do recorde e a marca que o deu. */
+        RecordMark: {
+            /** Format: date */
+            date?: string;
+            loadKg?: number;
+            /** Format: int32 */
+            reps?: number;
+            /** @enum {string} */
+            source?: "SET" | "MANUAL";
+            /**
+             * Format: uuid
+             * @description A série ou o lançamento manual de origem.
+             */
+            sourceId?: string;
+            /** @description A carga (maior carga) ou o 1RM estimado, em kg. */
+            valueKg?: number;
         };
         /** @description Série registrada. */
         RecordedSet: {
@@ -972,6 +1079,46 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é personal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem vínculo ativo com o aluno. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listClientRecords: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recordes (a lista pode ser vazia). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExerciseRecords"][];
                 };
             };
             /** @description A conta não é personal. */
@@ -1552,6 +1699,115 @@ export interface operations {
                 };
             };
             /** @description A ficha ou a versão não existe, é de outro aluno ou não foi publicada. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listMyRecords: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recordes (a lista pode ser vazia). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExerciseRecords"][];
+                };
+            };
+            /** @description A conta não é de cliente. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    addManualRecord: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManualRecordInput"];
+            };
+        };
+        responses: {
+            /** @description Recorde lançado; o endereço vem em Location. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManualRecord"];
+                };
+            };
+            /** @description Campo fora das regras, data no futuro ou exercício fora do catálogo e das fichas. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é de cliente. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    removeManualRecord: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recorde apagado. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A conta não é de cliente. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O recorde não existe ou é de outro aluno. */
             404: {
                 headers: {
                     [name: string]: unknown;

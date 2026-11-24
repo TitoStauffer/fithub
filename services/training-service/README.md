@@ -166,3 +166,16 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   `alternativesLast` (do último treino com cada alternativa).
 - `PUT /me/sessions/{sessionId}/feedback`: comentário até 500 caracteres e sensação de 1 (muito fácil) a 5
   (exaustivo), opcionais, no mesmo prazo da correção das séries (migration V12). O treino devolve os dois.
+
+## Recordes pessoais (DEV-0068)
+
+- Calculados na leitura, das séries registradas e dos recordes manuais; não há tabela derivada para manter, e apagar a
+  série ou o lançamento desfaz o recorde.
+- Por exercício: **maior carga** (com ao menos 1 repetição) e **1RM estimado** por Epley (`carga × (1 + reps/30)`),
+  só de 1 a 12 repetições; com 1 repetição vale a própria carga. No empate, vale a marca mais antiga. Cada recorde traz
+  a marca que o deu (carga, repetições, data, origem `SET` ou `MANUAL` e o id).
+- `GET /me/records`, `POST /me/records` (201) e `DELETE /me/records/{recordId}` (204, 404 se for de outro aluno):
+  o aluno lê e lança à mão (carga de 0,25 a 1000 kg em passos de 0,25, 1 a 300 repetições, data não futura, exercício
+  do catálogo ou de uma ficha que recebeu; migration V13).
+- `GET /clients/{clientId}/records`: o personal com vínculo ativo lê os recordes do aluno (404 sem vínculo). A
+  nutricionista não tem rota (BR-03).

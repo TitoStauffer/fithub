@@ -624,4 +624,142 @@ class SessionSetsApiTest extends ServiceIntegrationTest {
                 .isInstanceOf(DataIntegrityViolationException.class)
                 .hasMessageContaining("uq_workout_set_slot");
     }
+
+    private String manualRecord(UUID exercise, String load, int reps, LocalDate date) {
+        return "{\"exerciseId\": \"%s\", \"loadKg\": %s, \"reps\": %d, \"performedOn\": \"%s\"}"
+                .formatted(exercise, load, reps, date);
+    }
+
+    @Test
+    void recordesDasSeriesEDoLancamentoManual() throws Exception {
+        UUID session = startSession(publishedPlan());
+        UUID heaviest = UUID.randomUUID();
+        record(session, heaviest, set(0, 1, "100", 1));
+        record(session, UUID.randomUUID(), set(0, 2, "90", 5));
+        record(session, UUID.randomUUID(), set(0, 3, "50", 15));
+
+        mvc.perform(get("/me/records").header("Authorization", clientToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].exerciseId").value(squat.toString()))
+                .andExpect(jsonPath("$[0].exerciseName").value("Agachamento livre"))
+                .andExpect(jsonPath("$[0].maxLoad.valueKg").value(100.0))
+                .andExpect(jsonPath("$[0].maxLoad.source").value("SET"))
+                .andExpect(jsonPath("$[0].maxLoad.sourceId").value(heaviest.toString()))
+                .andExpect(jsonPath("$[0].maxLoad.date").value(TODAY.toString()))
+                .andExpect(jsonPath("$[0].estimatedOneRepMax.valueKg").value(105.0))
+                .andExpect(jsonPath("$[0].estimatedOneRepMax.loadKg").value(90.0))
+                .andExpect(jsonPath("$[0].estimatedOneRepMax.reps").value(5));
+
+        // O lançamento manual entra no cálculo, marcado como manual.
+        String location = mvc.perform(post("/me/records")
+                        .header("Authorization", clientToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(manualRecord(squat, "110", 1, TODAY.minusDays(3))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.loadKg").value(110.0))
+                .andReturn()
+                .getResponse()
+                .getHeader("Location");
+        mvc.perform(get("/me/records").header("Authorization", clientToken()))
+                .andExpect(jsonPath("$[0].maxLoad.valueKg").value(110.0))
+                .andExpect(jsonPath("$[0].maxLoad.source").value("MANUAL"))
+                .andExpect(jsonPath("$[0].estimatedOneRepMax.valueKg").value(110.0));
+
+        // Apagar o lançamento e a série do recorde (no mesmo dia) desfaz o recorde.
+        mvc.perform(delete(location).header("Authorization", clientToken())).andExpect(status().isNoContent());
+        mvc.perform(delete("/me/sessions/" + session + "/sets/" + heaviest).header("Authorization", clientToken()))
+                .andExpect(status().isNoContent());
+        mvc.perform(get("/me/records").header("Authorization", clientToken()))
+                .andExpect(jsonPath("$[0].maxLoad.valueKg").value(90.0))
+                .andExpect(jsonPath("$[0].estimatedOneRepMax.valueKg").value(105.0));
+    }
+
+    @Test
+    void recordeSoComMaisDe12RepeticoesNaoTem1rm() throws Exception {
+        UUID session = startSession(publishedPlan());
+        record(session, UUID.randomUUID(), set(0, 1, "50", 15));
+
+        mvc.perform(get("/me/records").header("Authorization", clientToken()))
+                .andExpect(jsonPath("$[0].maxLoad.valueKg").value(50.0))
+                .andExpect(jsonPath("$[0].estimatedOneRepMax").doesNotExist());
+    }
+
+    @Test
+    void lancamentoManualForaDasRegrasEDeOutroAluno() throws Exception {
+        mvc.perform(post("/me/records")
+                        .header("Authorization", clientToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(manualRecord(squat, "100", 1, TODAY.plusDays(1))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("performedOn"));
+        // Exercício que não é do catálogo nem de ficha do aluno.
+        mvc.perform(post("/me/records")
+                        .header("Authorization", clientToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(manualRecord(UUID.randomUUID(), "100", 1, TODAY)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("exerciseId"));
+
+        String location = mvc.perform(post("/me/records")
+                        .header("Authorization", clientToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(manualRecord(squat, "100", 1, TODAY)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getHeader("Location");
+        mvc.perform(delete(location).header("Authorization", "Bearer conta-" + UUID.randomUUID()))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/me/records").header("Authorization", clientToken()))
+                .andExpect(jsonPath("$[0].maxLoad.source").value("MANUAL"));
+    }
+
+    @Test
+    void personalVinculadoLeOsRecordesDoAluno() throws Exception {
+        mvc.perform(post("/me/records")
+                        .header("Authorization", clientToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(manualRecord(squat, "80", 3, TODAY)))
+                .andExpect(status().isCreated());
+
+        mvc.perform(get("/clients/" + client + "/records").header("Authorization", "Bearer personal-" + personal))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].maxLoad.valueKg").value(80.0))
+                .andExpect(jsonPath("$[0].estimatedOneRepMax.valueKg").value(88.0));
+        // Sem vínculo, o aluno não existe para o personal.
+        mvc.perform(get("/clients/" + client + "/records")
+                        .header("Authorization", "Bearer personal-" + UUID.randomUUID()))
+                .andExpect(status().isNotFound());
+        // A rota é só de personal.
+        mvc.perform(get("/clients/" + client + "/records").header("Authorization", clientToken()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void bancoRecusaRecordeManualForaDasRegras() {
+        record Row(String load, int reps, String constraint) {}
+        for (Row row : new Row[] {
+            new Row("0", 1, "ck_manual_record_load"),
+            new Row("1000.25", 1, "ck_manual_record_load"),
+            new Row("10.1", 1, "ck_manual_record_load"),
+            new Row("10", 0, "ck_manual_record_reps"),
+            new Row("10", 301, "ck_manual_record_reps")
+        }) {
+            assertThatThrownBy(() -> jdbc.sql("""
+                                    insert into manual_record
+                                        (id, client_id, exercise_id, load_kg, reps, performed_on, created_at)
+                                    values (:id, :client, :exercise, :load, :reps, current_date, now())
+                                    """)
+                            .param("id", UUID.randomUUID())
+                            .param("client", client)
+                            .param("exercise", squat)
+                            .param("load", new BigDecimal(row.load()))
+                            .param("reps", row.reps())
+                            .update())
+                    .as(row.constraint())
+                    .isInstanceOf(DataIntegrityViolationException.class)
+                    .hasMessageContaining(row.constraint());
+        }
+    }
 }
