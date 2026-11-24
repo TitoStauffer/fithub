@@ -33,3 +33,12 @@ caso, escreva `coluna IS NOT NULL AND coluna IN (...)`, e teste a constraint com
   - **Prevenção:** mutantes M8 a M18 de `mutations/DEV-0077.json`. A regra vale para toda guarda, não só para
     CHECK: antes do PR, listar cada condição nova (CHECK, faixa, limite, regra de posse) e conferir que o
     manifesto tem um mutante dela; a seção de banco do PR só afirma "cada CHECK tem teste" depois disso.
+- **Revisão:** Code Review do PR #265, no SHA `5ec51aa` (MEDIUM) — DEV-0080 (#72) · **PR:** #265
+  - **Impacto:** a guarda de vínculo do `PUT` da restrição alimentar (dado de saúde) não tinha teste nem mutante:
+    sem ela, uma nutricionista sem vínculo editaria a restrição do paciente e nenhum teste falharia (BR-02). Outras
+    guardas tinham teste mas não mutante, de novo com o PR afirmando o contrário.
+  - **Correção:** teste do `PUT` sem vínculo e um mutante por guarda: o vínculo em cada operação (list, create,
+    update, remove), cada faixa (termos, descrição), o tipo vazio e cada CHECK (M9 a M19 de
+    `mutations/DEV-0080.json`).
+  - **Prevenção:** a guarda repetida em vários métodos (o `requireActiveLink` em cada operação) conta como uma guarda
+    por método: cada uma tem o seu teste (a mesma chamada sem vínculo, por verbo) e o seu mutante.

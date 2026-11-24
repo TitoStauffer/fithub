@@ -161,6 +161,63 @@
         },
         "type" : "object"
       },
+      "FoodRestriction" : {
+        "description" : "Restrição alimentar ou preferência do paciente.",
+        "properties" : {
+          "clientId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "kind" : {
+            "description" : "ALLERGY e INTOLERANCE geram alerta no plano; PREFERENCE não.",
+            "enum" : [ "ALLERGY", "INTOLERANCE", "PREFERENCE" ],
+            "type" : "string"
+          },
+          "terms" : {
+            "description" : "Termos procurados no nome dos alimentos.",
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "updatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "FoodRestrictionInput" : {
+        "description" : "Tipo, descrição (2 a 200) e de 1 a 10 termos (2 a 40 cada).",
+        "properties" : {
+          "description" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "ALLERGY", "INTOLERANCE", "PREFERENCE" ],
+            "type" : "string"
+          },
+          "terms" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "description", "kind", "terms" ],
+        "type" : "object"
+      },
       "FoodSource" : {
         "description" : "Origem do item importado, para o crédito.",
         "properties" : {
@@ -377,6 +434,246 @@
         },
         "summary" : "Dados básicos de um cliente com vínculo ativo",
         "tags" : [ "Clientes" ]
+      }
+    },
+    "/clients/{clientId}/food-restrictions" : {
+      "get" : {
+        "operationId" : "listFoodRestrictions",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/FoodRestriction"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "Restrições (a lista pode ser vazia)."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é nutricionista."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem vínculo ativo com o paciente."
+          }
+        },
+        "summary" : "As restrições alimentares do paciente vinculado",
+        "tags" : [ "Restrições alimentares" ]
+      },
+      "post" : {
+        "operationId" : "createFoodRestriction",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FoodRestrictionInput"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FoodRestriction"
+                }
+              }
+            },
+            "description" : "Restrição registrada; o endereço vem em Location."
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Campo fora das regras ou mais de 30 restrições; o campo vem em errors."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é nutricionista."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem vínculo ativo com o paciente."
+          }
+        },
+        "summary" : "Registra uma restrição alimentar ou preferência do paciente",
+        "tags" : [ "Restrições alimentares" ]
+      }
+    },
+    "/clients/{clientId}/food-restrictions/{restrictionId}" : {
+      "delete" : {
+        "operationId" : "removeFoodRestriction",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "restrictionId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Restrição apagada."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é nutricionista."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem vínculo ativo, ou a restrição não existe ou é de outro paciente."
+          }
+        },
+        "summary" : "Apaga a restrição alimentar do paciente",
+        "tags" : [ "Restrições alimentares" ]
+      },
+      "put" : {
+        "operationId" : "updateFoodRestriction",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "restrictionId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FoodRestrictionInput"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FoodRestriction"
+                }
+              }
+            },
+            "description" : "Restrição editada."
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Campo fora das regras; o campo vem em errors."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é nutricionista."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem vínculo ativo, ou a restrição não existe ou é de outro paciente."
+          }
+        },
+        "summary" : "Edita a restrição alimentar do paciente",
+        "tags" : [ "Restrições alimentares" ]
       }
     },
     "/foods" : {
@@ -779,6 +1076,38 @@
         "summary" : "Apaga uma medida caseira da nutricionista",
         "tags" : [ "Alimentos" ]
       }
+    },
+    "/me/food-restrictions" : {
+      "get" : {
+        "operationId" : "listMyFoodRestrictions",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/FoodRestriction"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "Restrições (a lista pode ser vazia)."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é de cliente."
+          }
+        },
+        "summary" : "As restrições alimentares do paciente autenticado",
+        "tags" : [ "Restrições alimentares" ]
+      }
     }
   },
   "security" : [ {
@@ -789,6 +1118,9 @@
     "url" : "http://localhost"
   } ],
   "tags" : [ {
+    "description" : "Alergias, intolerâncias e preferências do paciente",
+    "name" : "Restrições alimentares"
+  }, {
     "description" : "Clientes vinculados ao nutricionista",
     "name" : "Clientes"
   }, {
