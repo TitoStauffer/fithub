@@ -84,3 +84,11 @@ suba o Keycloak pelo compose de `infra/`). A decisão dos papéis e dos clients 
 - **`/app/convites`:** convida por e-mail ou gera link e código para compartilhar (só aparecem na resposta da
   criação); lista e cancela os convites pendentes; mostra e troca o código pessoal.
 - **Configuração:** `VITE_CLIENT_API_URL` (padrão `http://localhost:8082`); a origem entra em `apiOrigins()`.
+
+## Avaliação presencial e histórico (DEV-0049)
+
+- Na tela do cliente vinculado, o histórico de avaliações mostra cada % de gordura com a origem (Pollock 3 e 7
+  dobras, Marinha, bioimpedância), porque os métodos não são comparáveis (FR-19).
+- **`/app/clientes/:clientId/avaliacoes/nova`:** avaliação presencial com peso, circunferências, dobras, sexo para as
+  fórmulas e bioimpedância, com a validação da API espelhada. O cálculo do % é da API. Vínculo encerrado ao salvar
+  mostra que o acesso acabou.

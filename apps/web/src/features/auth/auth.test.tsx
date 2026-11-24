@@ -21,6 +21,7 @@ vi.mock('@/features/onboarding/OnboardingPage', () => ({ OnboardingPage: () => <
 vi.mock('@/features/clients/ClientsPage', () => ({ ClientsPage: () => null }));
 vi.mock('@/features/clients/InvitationsPage', () => ({ InvitationsPage: () => null }));
 vi.mock('@/features/clients/ClientDetailPage', () => ({ ClientDetailPage: () => null }));
+vi.mock('@/features/assessments/AssessmentFormPage', () => ({ AssessmentFormPage: () => null }));
 
 let auth: AuthState;
 function AuthProbe() {

@@ -10,6 +10,8 @@ export type Invitation = Schemas['Invitation'];
 export type ProfessionalClient = Schemas['ProfessionalClient'];
 export type ClientProfile = Schemas['ClientProfile'];
 export type HealthProfile = Schemas['HealthProfile'];
+export type Assessment = Schemas['Assessment'];
+export type AssessmentRequest = Schemas['AssessmentRequest'];
 
 /**
  * O profissional não tem (mais) vínculo ativo com o cliente: a API responde 404 sem revelar o motivo (BR-02). A
@@ -91,6 +93,21 @@ export function clientApi(apiFetch: ApiFetch, baseUrl: string) {
                 if (error.message.startsWith('O cliente ainda não informou')) return null;
                 throw new AccessEndedError();
             }
+            return json(response);
+        },
+        /** Histórico de avaliações do cliente vinculado (DEV-0044). */
+        async clientAssessments(clientId: string): Promise<Assessment[]> {
+            return readLinked<Assessment[]>(
+                url(`/professionals/me/clients/${encodeURIComponent(clientId)}/assessments`),
+            );
+        },
+        /** Registra a avaliação presencial do cliente vinculado (DEV-0044 a 0047). */
+        async recordPresential(clientId: string, body: AssessmentRequest): Promise<Assessment> {
+            const response = await apiFetch(
+                url(`/professionals/me/clients/${encodeURIComponent(clientId)}/assessments`),
+                { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(body) },
+            );
+            if (response.status === 404) throw new AccessEndedError();
             return json(response);
         },
         async endLink(linkId: string): Promise<void> {
