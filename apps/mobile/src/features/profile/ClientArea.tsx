@@ -11,14 +11,16 @@ import { AcceptInvitationScreen } from '../links/AcceptInvitationScreen';
 import { linksApiFrom, tokenFromUrl, type LinksApi } from '../links/linksApi';
 import { LinksScreen } from '../links/LinksScreen';
 import { TodayWorkoutScreen } from '../workouts/TodayWorkoutScreen';
-import { workoutsApiFrom, type WorkoutsApi } from '../workouts/workoutsApi';
+import { sessionApiFrom, workoutsApiFrom, type SessionApi, type WorkoutsApi } from '../workouts/workoutsApi';
+import { WorkoutSessionScreen } from '../workouts/WorkoutSessionScreen';
 import { HealthFormScreen } from './HealthFormScreen';
 import { messageOf, profileApiFrom, type ProfileApi } from './profileApi';
 import { fromProfile } from './profileForm';
 import { ProfileFormScreen } from './ProfileFormScreen';
 import { Alert, Button } from './ui';
 
-type Screen = 'home' | 'editProfile' | 'health' | 'accept' | 'links' | 'assessment' | 'compare' | 'workout';
+type Screen =
+    'home' | 'editProfile' | 'health' | 'accept' | 'links' | 'assessment' | 'compare' | 'workout' | 'session';
 
 /** De onde chegam os links abertos pelo sistema (`fithub://convite/<token>`); injetável nos testes. */
 export interface LinkSource {
@@ -37,6 +39,7 @@ export function ClientArea({
     assessmentApi: injectedAssessments,
     photoSource = expoPhotoSource,
     workoutsApi: injectedWorkouts,
+    sessionApi: injectedSessions,
 }: {
     api?: ProfileApi;
     linksApi?: LinksApi;
@@ -44,6 +47,7 @@ export function ClientArea({
     assessmentApi?: AssessmentApi;
     photoSource?: PhotoSource;
     workoutsApi?: WorkoutsApi;
+    sessionApi?: SessionApi;
 }) {
     const { apiFetch } = useSession();
     const api = useMemo(() => injected ?? profileApiFrom(apiFetch), [injected, apiFetch]);
@@ -56,6 +60,12 @@ export function ClientArea({
         () => injectedWorkouts ?? workoutsApiFrom(apiFetch),
         [injectedWorkouts, apiFetch],
     );
+    const sessionApi = useMemo(
+        () => injectedSessions ?? sessionApiFrom(apiFetch),
+        [injectedSessions, apiFetch],
+    );
+    // Treino aberto no registro por série (DEV-0071).
+    const [sessionId, setSessionId] = useState<string>();
     // Token do convite aberto pelo link (DEV-0042): vale depois do perfil, que o aceite exige.
     const [invitationToken, setInvitationToken] = useState<string>();
     const [profile, setProfile] = useState<ClientProfile | null>();
@@ -134,8 +144,29 @@ export function ClientArea({
         );
     }
     if (screen === 'links') return <LinksScreen api={linksApi} onDone={() => setScreen('home')} />;
-    if (screen === 'workout')
-        return <TodayWorkoutScreen api={workoutsApi} onDone={() => setScreen('home')} />;
+    if (screen === 'workout') {
+        return (
+            <TodayWorkoutScreen
+                api={workoutsApi}
+                onOpenSession={(opened) => {
+                    setSessionId(opened);
+                    setScreen('session');
+                }}
+                onDone={() => setScreen('home')}
+            />
+        );
+    }
+    if (screen === 'session' && sessionId) {
+        // Ao finalizar, volta ao treino de hoje, que relê a ficha e mostra o próximo treino.
+        return (
+            <WorkoutSessionScreen
+                api={sessionApi}
+                sessionId={sessionId}
+                onFinished={() => setScreen('workout')}
+                onBack={() => setScreen('workout')}
+            />
+        );
+    }
     if (screen === 'compare') {
         return <PhotoComparisonScreen api={assessmentApi} onDone={() => setScreen('home')} />;
     }

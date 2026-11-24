@@ -111,3 +111,16 @@ está no ADR-007.
 - O app fala com o training-service em `EXPO_PUBLIC_TRAINING_API_URL` (padrão `http://localhost:8083`), que passa a
   receber o token junto com o client-service.
 - Sem conexão, a tela avisa e mantém o que já estava carregado.
+
+## Registro por série (DEV-0071)
+
+- "Começar" ou "Continuar treino" abre o registro: cada série vem preenchida com o último treino do exercício (a mesma
+  série, ou a última feita) ou, sem ele, com o prescrito (na faixa 8–12, o mínimo; sem carga sugerida, 0). "Confirmar"
+  grava com um toque; os campos permitem ajustar antes.
+- O id da série nasce no aparelho no primeiro toque e vale para o toque duplo e os reenvios: nunca duplica.
+- "Trocar por" uma alternativa prevista muda o exercício das próximas séries do item, preenchidas com o último treino
+  da alternativa; a série grava o exercício feito.
+- Comentário (até 500 caracteres) e sensação de 1 a 5 antes de "Finalizar treino", que avança a sequência e volta ao
+  treino de hoje já com o próximo.
+- No mesmo dia, a série registrada pode ser corrigida ou apagada; no dia seguinte, a tela avisa e não deixa registrar.
+- Sem conexão, avisa e mantém o que foi digitado (sem modo offline no MVP, PRD §14).

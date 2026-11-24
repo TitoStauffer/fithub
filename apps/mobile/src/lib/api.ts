@@ -12,6 +12,11 @@ export type ActivePlan = TrainingSchemas['ActivePlan'];
 export type ClientWorkoutItem = TrainingSchemas['ClientWorkoutItem'];
 export type ClientExercise = TrainingSchemas['ClientExercise'];
 export type WorkoutSession = TrainingSchemas['WorkoutSession'];
+export type SessionView = TrainingSchemas['SessionView'];
+export type SessionItem = TrainingSchemas['SessionItem'];
+export type RecordedSet = TrainingSchemas['RecordedSet'];
+export type RecordedSetInput = TrainingSchemas['RecordedSetInput'];
+export type SessionFeedback = TrainingSchemas['SessionFeedback'];
 
 /** Perfil do cliente como a API devolve (com a idade calculada). */
 export type ClientProfile = Schemas['ClientProfile'];
@@ -254,4 +259,62 @@ export function startWorkoutSession(
     return write<WorkoutSession>(apiFetch, `${baseUrl}/me/sessions/${encodeURIComponent(sessionId)}`, {
         planId,
     });
+}
+
+function sessionPath(baseUrl: string, sessionId: string) {
+    return `${baseUrl}/me/sessions/${encodeURIComponent(sessionId)}`;
+}
+
+/** O treino na versão da ficha da sessão, com o prescrito, o feito e o último treino (DEV-0066). */
+export async function fetchWorkoutSession(apiFetch: ApiFetch, sessionId: string, baseUrl = trainingApiUrl()) {
+    const session = await read<SessionView>(apiFetch, sessionPath(baseUrl, sessionId));
+    if (!session) throw new ApiProblemError(404, 'Treino não encontrado.', {});
+    return session;
+}
+
+/** Registra ou corrige a série pelo id gerado no aparelho: repetir não duplica (DEV-0066). */
+export function recordWorkoutSet(
+    apiFetch: ApiFetch,
+    sessionId: string,
+    setId: string,
+    body: RecordedSetInput,
+    baseUrl = trainingApiUrl(),
+) {
+    return write<RecordedSet>(
+        apiFetch,
+        `${sessionPath(baseUrl, sessionId)}/sets/${encodeURIComponent(setId)}`,
+        body,
+    );
+}
+
+/** Apaga a série, no mesmo prazo da correção (DEV-0066). */
+export async function removeWorkoutSet(
+    apiFetch: ApiFetch,
+    sessionId: string,
+    setId: string,
+    baseUrl = trainingApiUrl(),
+): Promise<void> {
+    const response = await send(
+        apiFetch,
+        `${sessionPath(baseUrl, sessionId)}/sets/${encodeURIComponent(setId)}`,
+        {
+            method: 'DELETE',
+        },
+    );
+    if (!response.ok) throw await problem(response);
+}
+
+/** Comentário e sensação do treino (DEV-0067). */
+export function saveSessionFeedback(
+    apiFetch: ApiFetch,
+    sessionId: string,
+    body: SessionFeedback,
+    baseUrl = trainingApiUrl(),
+) {
+    return write<SessionView>(apiFetch, `${sessionPath(baseUrl, sessionId)}/feedback`, body);
+}
+
+/** Finaliza o treino: a sequência avança para o próximo (DEV-0065). */
+export function finishWorkoutSession(apiFetch: ApiFetch, sessionId: string, baseUrl = trainingApiUrl()) {
+    return post<WorkoutSession>(apiFetch, `${sessionPath(baseUrl, sessionId)}/finish`);
 }
