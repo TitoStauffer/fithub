@@ -156,6 +156,7 @@ class MySessionController {
 
     @GetMapping(path = "/me/sessions/{sessionId}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
+            operationId = "viewSession",
             summary = "O treino com o prescrito, as séries feitas e o último treino de cada exercício",
             responses = {
                 @ApiResponse(responseCode = "200", description = "Treino."),
@@ -183,6 +184,7 @@ class MySessionController {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
+            operationId = "recordSet",
             summary = "Registra ou corrige uma série",
             description = "O id é gerado pelo app: repetir corrige a mesma série em vez de criar outra.",
             responses = {
@@ -232,6 +234,7 @@ class MySessionController {
 
     @DeleteMapping(path = "/me/sessions/{sessionId}/sets/{setId}")
     @Operation(
+            operationId = "removeSet",
             summary = "Apaga uma série, no mesmo prazo da correção",
             responses = {
                 @ApiResponse(responseCode = "204", description = "Série apagada.", content = @Content()),

@@ -149,7 +149,8 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
 
 - `PUT /me/sessions/{sessionId}/sets/{setId}` (papel `client`): carga (0 a 1000 kg, passos de 0,25) e repetições (0 a
   300) reais de uma série de um item da divisão (FR-48; migration V11). O id é gerado pelo app: repetir corrige a
-  mesma série; outra série no mesmo lugar (item e número) responde 409. `DELETE` apaga.
+  mesma série (só carga e repetições: outro item ou número com o mesmo id responde 409); outra série no mesmo lugar
+  (item e número) responde 409. O id de uma série de outro treino não é corrigido (409) nem apagado (404). `DELETE` apaga.
 - A série fica na sessão, que guarda a versão da ficha: depois de o personal editar a ficha, os registros feitos ficam
   na versão anterior e o próximo treino usa a nova (BR-09).
 - **Correção no mesmo dia** (BR-08, QUESTÃO-04): até o fim do dia em que o treino começou, em `America/Sao_Paulo`; depois,

@@ -14,6 +14,8 @@ import com.fithub.training.domain.exercise.Equipment;
 import com.fithub.training.domain.exercise.Exercise;
 import com.fithub.training.domain.exercise.ExerciseRepository;
 import com.fithub.training.domain.exercise.MuscleGroup;
+import com.fithub.training.domain.session.SetRepository;
+import com.fithub.training.domain.session.WorkoutSet;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -52,6 +54,9 @@ class SessionSetsApiTest extends ServiceIntegrationTest {
 
     @Autowired
     MockMvc mvc;
+
+    @Autowired
+    SetRepository sets;
 
     private UUID personal;
     private UUID client;
@@ -138,6 +143,46 @@ class SessionSetsApiTest extends ServiceIntegrationTest {
         mvc.perform(post("/plans/" + planId + "/publish").header("Authorization", "Bearer personal-" + personal))
                 .andExpect(status().isOk());
         return planId;
+    }
+
+    /** Ficha de uma divisão com dois exercícios (agachamento e leg press), publicada, para o aluno informado. */
+    private String twoItemPlan(UUID student) throws Exception {
+        jdbc.sql("""
+                        insert into client_link (link_id, client_id, professional_id, status, activated_at)
+                        values (:id, :client, :personal, 'ACTIVE', now())
+                        on conflict do nothing
+                        """)
+                .param("id", UUID.randomUUID())
+                .param("client", student)
+                .param("personal", personal)
+                .update();
+        String body = """
+                {"name": "Pernas", "startsOn": "%s", "validityWeeks": 8,
+                 "divisions": [{"items": [{"exerciseId": "%s", "sets": 3, "repsMin": 10},
+                                          {"exerciseId": "%s", "sets": 3, "repsMin": 10}]}]}
+                """.formatted(TODAY, squat, legPress);
+        String location = mvc.perform(post("/clients/" + student + "/plans")
+                        .header("Authorization", "Bearer personal-" + personal)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getHeader("Location");
+        String planId = location.substring("/plans/".length());
+        mvc.perform(post("/plans/" + planId + "/publish").header("Authorization", "Bearer personal-" + personal))
+                .andExpect(status().isOk());
+        return planId;
+    }
+
+    private UUID startSessionAs(UUID student, String planId) throws Exception {
+        UUID session = UUID.randomUUID();
+        mvc.perform(put("/me/sessions/" + session)
+                        .header("Authorization", "Bearer conta-" + student)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"planId\": \"" + planId + "\"}"))
+                .andExpect(status().isOk());
+        return session;
     }
 
     private UUID startSession(String planId) throws Exception {
@@ -324,6 +369,79 @@ class SessionSetsApiTest extends ServiceIntegrationTest {
         mvc.perform(delete("/me/sessions/" + session + "/sets/" + setId).header("Authorization", stranger))
                 .andExpect(status().isNotFound());
         assertThat(setsIn(session)).isEqualTo(1);
+    }
+
+    /** Code Review do PR #249: o mesmo id não muda a série de item nem de número. */
+    @Test
+    void corrigirPeloMesmoIdNaoMudaASerieDeExercicioNemDeNumero() throws Exception {
+        UUID session = startSession(twoItemPlan(client));
+        UUID setId = UUID.randomUUID();
+        record(session, setId, set(0, 1, "40", 10));
+
+        for (String moved : new String[] {set(1, 1, "120", 8), set(0, 2, "40", 10)}) {
+            mvc.perform(put("/me/sessions/" + session + "/sets/" + setId)
+                            .header("Authorization", clientToken())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(moved))
+                    .andExpect(status().isConflict());
+        }
+        mvc.perform(get("/me/sessions/" + session).header("Authorization", clientToken()))
+                .andExpect(jsonPath("$.items[0].recorded.length()").value(1))
+                .andExpect(jsonPath("$.items[0].recorded[0].exerciseId").value(squat.toString()))
+                .andExpect(jsonPath("$.items[0].recorded[0].setNumber").value(1))
+                .andExpect(jsonPath("$.items[0].recorded[0].loadKg").value(40.0))
+                .andExpect(jsonPath("$.items[1].recorded").isEmpty());
+    }
+
+    /** Code Review do PR #249: o id de uma série de outro treino (do próprio aluno ou de outro) não a altera. */
+    @Test
+    void serieDeOutroTreinoNaoECorrigidaNemApagadaPeloId() throws Exception {
+        String planId = twoItemPlan(client);
+        UUID mine = startSession(planId);
+        UUID setId = UUID.randomUUID();
+        record(mine, setId, set(0, 1, "40", 10));
+        mvc.perform(post("/me/sessions/" + mine + "/finish").header("Authorization", clientToken()))
+                .andExpect(status().isOk());
+        UUID myNext = startSession(planId);
+        UUID other = UUID.randomUUID();
+        UUID theirs = startSessionAs(other, twoItemPlan(other));
+
+        record Attempt(UUID session, String token) {}
+        for (Attempt attempt :
+                new Attempt[] {new Attempt(myNext, clientToken()), new Attempt(theirs, "Bearer conta-" + other)}) {
+            mvc.perform(put("/me/sessions/" + attempt.session() + "/sets/" + setId)
+                            .header("Authorization", attempt.token())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(set(0, 1, "200", 1)))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.detail").value("Esse id já é de uma série de outro treino."));
+            mvc.perform(delete("/me/sessions/" + attempt.session() + "/sets/" + setId)
+                            .header("Authorization", attempt.token()))
+                    .andExpect(status().isNotFound());
+        }
+        mvc.perform(get("/me/sessions/" + mine).header("Authorization", clientToken()))
+                .andExpect(jsonPath("$.items[0].recorded.length()").value(1))
+                .andExpect(jsonPath("$.items[0].recorded[0].loadKg").value(40.0))
+                .andExpect(jsonPath("$.items[0].recorded[0].reps").value(10));
+    }
+
+    /** O upsert não toca série de outra sessão, mesmo se a leitura da aplicação for driblada (concorrência). */
+    @Test
+    void gravacaoNoBancoNaoSobrescreveSerieDeOutraSessao() throws Exception {
+        String planId = twoItemPlan(client);
+        UUID first = startSession(planId);
+        UUID setId = UUID.randomUUID();
+        record(first, setId, set(0, 1, "40", 10));
+        mvc.perform(post("/me/sessions/" + first + "/finish").header("Authorization", clientToken()))
+                .andExpect(status().isOk());
+        UUID second = startSession(planId);
+
+        boolean saved = sets.save(
+                new WorkoutSet(setId, second, 0, 1, squat, new BigDecimal("200"), 1, Instant.now(), Instant.now()));
+
+        assertThat(saved).isFalse();
+        assertThat(sets.findById(setId).orElseThrow().sessionId()).isEqualTo(first);
+        assertThat(sets.findById(setId).orElseThrow().loadKg()).isEqualByComparingTo("40");
     }
 
     /** As CHECKs e a unicidade da V11 recusam sem passar pelo domínio. */

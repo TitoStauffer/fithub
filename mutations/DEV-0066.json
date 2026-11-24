@@ -120,6 +120,106 @@
                 "-Dtest=WorkoutSet*Test",
                 "-Dsurefire.failIfNoSpecifiedTests=false"
             ]
+        },
+        {
+            "id": "M7",
+            "description": "Série de outro treino passa a ser aceita no registro (guarda da aplicação)",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/SessionSets.java",
+            "find": "if (existing.isPresent() && !existing.get().sessionId().equals(sessionId)) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=SessionSetsApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "Gravação passa a sobrescrever série de outra sessão (guarda do banco)",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcSetRepository.java",
+            "find": "where workout_set.session_id = excluded.session_id",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=SessionSetsApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "Série de outro treino passa a ser apagada pelo id",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/SessionSets.java",
+            "find": ".filter(found -> found.sessionId().equals(sessionId))",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=SessionSetsApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "Corrigir pelo mesmo id passa a aceitar outro exercício do treino",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/SessionSets.java",
+            "find": "existing.get().itemPosition() != draft.itemPosition()",
+            "replace": "false",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=SessionSetsApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "Corrigir pelo mesmo id passa a aceitar outro número de série",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/SessionSets.java",
+            "find": "!Integer.valueOf(existing.get().setNumber()).equals(draft.setNumber())",
+            "replace": "false",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=SessionSetsApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
         }
     ]
 }

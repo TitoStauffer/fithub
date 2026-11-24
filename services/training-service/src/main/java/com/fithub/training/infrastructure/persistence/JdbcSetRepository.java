@@ -28,8 +28,9 @@ class JdbcSetRepository implements SetRepository {
     }
 
     @Override
-    public void save(WorkoutSet set) {
-        jdbc.sql("""
+    public boolean save(WorkoutSet set) {
+        // A correção só vale dentro da mesma sessão: um id de outra sessão não atualiza nada.
+        return jdbc.sql("""
                         insert into workout_set (id, session_id, item_position, set_number, exercise_id, load_kg, reps,
                             recorded_at, updated_at)
                         values (:id, :sessionId, :item, :setNumber, :exerciseId, :loadKg, :reps, :recordedAt,
@@ -39,17 +40,19 @@ class JdbcSetRepository implements SetRepository {
                             load_kg = excluded.load_kg,
                             reps = excluded.reps,
                             updated_at = excluded.updated_at
+                        where workout_set.session_id = excluded.session_id
                         """)
-                .param("id", set.id())
-                .param("sessionId", set.sessionId())
-                .param("item", set.itemPosition())
-                .param("setNumber", set.setNumber())
-                .param("exerciseId", set.exerciseId())
-                .param("loadKg", set.loadKg())
-                .param("reps", set.reps())
-                .param("recordedAt", Timestamp.from(set.recordedAt()))
-                .param("updatedAt", Timestamp.from(set.updatedAt()))
-                .update();
+                        .param("id", set.id())
+                        .param("sessionId", set.sessionId())
+                        .param("item", set.itemPosition())
+                        .param("setNumber", set.setNumber())
+                        .param("exerciseId", set.exerciseId())
+                        .param("loadKg", set.loadKg())
+                        .param("reps", set.reps())
+                        .param("recordedAt", Timestamp.from(set.recordedAt()))
+                        .param("updatedAt", Timestamp.from(set.updatedAt()))
+                        .update()
+                == 1;
     }
 
     @Override

@@ -106,6 +106,12 @@ public class SessionSets {
         if (existing.isPresent() && !existing.get().sessionId().equals(sessionId)) {
             throw new SessionConflictException("Esse id já é de uma série de outro treino.");
         }
+        // Corrigir pelo mesmo id só troca carga e repetições: a série continua no mesmo item e número.
+        if (existing.isPresent()
+                && (existing.get().itemPosition() != draft.itemPosition()
+                        || !Integer.valueOf(existing.get().setNumber()).equals(draft.setNumber()))) {
+            throw new SessionConflictException("Esse id já é de outra série deste treino (outro exercício ou número).");
+        }
         WorkoutSet set = existing.map(
                         found -> found.correct(item.exerciseId(), draft.loadKg(), required("reps", draft.reps()), now))
                 .orElseGet(() -> new WorkoutSet(
@@ -118,10 +124,15 @@ public class SessionSets {
                         required("reps", draft.reps()),
                         now,
                         now));
+        boolean saved;
         try {
-            sets.save(set);
+            saved = sets.save(set);
         } catch (DataIntegrityViolationException sameSlot) {
             throw new SessionConflictException("Essa série já foi registrada com outro id.");
+        }
+        if (!saved) {
+            // O id passou a ser de outra sessão entre a leitura e a gravação (o upsert não toca outra sessão).
+            throw new SessionConflictException("A série foi gravada em outro treino ao mesmo tempo; tente de novo.");
         }
         return set;
     }

@@ -66,7 +66,7 @@ export interface paths {
         put: operations["update_2"];
         post?: never;
         /** Remove uma restrição de mobilidade do aluno vinculado */
-        delete: operations["remove_1"];
+        delete: operations["remove"];
         options?: never;
         head?: never;
         patch?: never;
@@ -191,7 +191,7 @@ export interface paths {
             cookie?: never;
         };
         /** O treino com o prescrito, as séries feitas e o último treino de cada exercício */
-        get: operations["view_1"];
+        get: operations["viewSession"];
         /**
          * Inicia o próximo treino da ficha
          * @description O id é gerado pelo app: repetir com o mesmo id devolve a mesma sessão.
@@ -233,10 +233,10 @@ export interface paths {
          * Registra ou corrige uma série
          * @description O id é gerado pelo app: repetir corrige a mesma série em vez de criar outra.
          */
-        put: operations["record"];
+        put: operations["recordSet"];
         post?: never;
         /** Apaga uma série, no mesmo prazo da correção */
-        delete: operations["remove"];
+        delete: operations["removeSet"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1091,7 +1091,7 @@ export interface operations {
             };
         };
     };
-    remove_1: {
+    remove: {
         parameters: {
             query?: never;
             header?: never;
@@ -1541,7 +1541,7 @@ export interface operations {
             };
         };
     };
-    view_1: {
+    viewSession: {
         parameters: {
             query?: never;
             header?: never;
@@ -1683,7 +1683,7 @@ export interface operations {
             };
         };
     };
-    record: {
+    recordSet: {
         parameters: {
             query?: never;
             header?: never;
@@ -1746,7 +1746,7 @@ export interface operations {
             };
         };
     };
-    remove: {
+    removeSet: {
         parameters: {
             query?: never;
             header?: never;

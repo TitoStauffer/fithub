@@ -1210,7 +1210,7 @@
     },
     "/clients/{clientId}/restrictions/{restrictionId}" : {
       "delete" : {
-        "operationId" : "remove_1",
+        "operationId" : "remove",
         "parameters" : [ {
           "in" : "path",
           "name" : "clientId",
@@ -1849,7 +1849,7 @@
     },
     "/me/sessions/{sessionId}" : {
       "get" : {
-        "operationId" : "view_1",
+        "operationId" : "viewSession",
         "parameters" : [ {
           "in" : "path",
           "name" : "sessionId",
@@ -2022,7 +2022,7 @@
     },
     "/me/sessions/{sessionId}/sets/{setId}" : {
       "delete" : {
-        "operationId" : "remove",
+        "operationId" : "removeSet",
         "parameters" : [ {
           "in" : "path",
           "name" : "sessionId",
@@ -2080,7 +2080,7 @@
       },
       "put" : {
         "description" : "O id é gerado pelo app: repetir corrige a mesma série em vez de criar outra.",
-        "operationId" : "record",
+        "operationId" : "recordSet",
         "parameters" : [ {
           "in" : "path",
           "name" : "sessionId",

@@ -7,8 +7,12 @@ import java.util.UUID;
 /** Séries registradas (DEV-0066). */
 public interface SetRepository {
 
-    /** Grava ou corrige a série pelo id; outra série no mesmo lugar (item e número) bate na unicidade. */
-    void save(WorkoutSet set);
+    /**
+     * Grava ou corrige a série pelo id; outra série no mesmo lugar (item e número) bate na unicidade.
+     *
+     * @return {@code false} se o id já é de uma série de outra sessão (nada é gravado)
+     */
+    boolean save(WorkoutSet set);
 
     Optional<WorkoutSet> findById(UUID id);
 
