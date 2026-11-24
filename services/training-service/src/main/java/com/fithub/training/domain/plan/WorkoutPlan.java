@@ -7,11 +7,12 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Ficha de treino que o personal monta para o aluno (DEV-0059, FR-28, FR-32, FR-34). Começa em rascunho, é
- * publicada e fica substituída quando o personal publica outra para o mesmo aluno: uma ficha ativa por vez.
+ * Ficha de treino que o personal monta para o aluno (DEV-0059, FR-28, FR-32, FR-34), ou que o próprio aluno monta
+ * (DEV-0069, FR-52). Começa em rascunho, é publicada e fica substituída quando o mesmo autor publica outra para o
+ * aluno: uma ficha ativa por autor. A do personal e a própria coexistem (QUESTÃO-03).
  *
  * @param clientId o {@code sub} do aluno (ADR-009)
- * @param personalId o {@code sub} do personal autor; só ele edita e publica
+ * @param personalId o {@code sub} do personal autor; só ele edita e publica. Nulo na ficha própria, que só o aluno vê
  * @param current a versão atual do conteúdo
  */
 public record WorkoutPlan(
@@ -33,7 +34,6 @@ public record WorkoutPlan(
     public WorkoutPlan {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(clientId, "clientId");
-        Objects.requireNonNull(personalId, "personalId");
         Objects.requireNonNull(status, "status");
         Objects.requireNonNull(current, "current");
         Objects.requireNonNull(createdAt, "createdAt");
@@ -57,8 +57,30 @@ public record WorkoutPlan(
         return new WorkoutPlan(UUID.randomUUID(), clientId, personalId, Status.DRAFT, first, now, now);
     }
 
+    /** Nova ficha própria do aluno em rascunho, na versão 1 (DEV-0069). */
+    public static WorkoutPlan newOwnDraft(
+            UUID clientId,
+            String name,
+            LocalDate startsOn,
+            int validityWeeks,
+            List<PlanVersion.DivisionDraft> divisions,
+            Instant now) {
+        return newDraft(clientId, null, name, startsOn, validityWeeks, divisions, now);
+    }
+
+    /** Se a ficha é a própria do aluno, sem personal. */
+    public boolean own() {
+        return personalId == null;
+    }
+
+    /** Se o personal é o autor; a ficha própria não tem personal e nunca é dele. */
     public boolean authoredBy(UUID personal) {
-        return personalId.equals(personal);
+        return personal != null && personal.equals(personalId);
+    }
+
+    /** Se é a ficha própria desse aluno. */
+    public boolean ownedBy(UUID client) {
+        return own() && clientId.equals(client);
     }
 
     /**

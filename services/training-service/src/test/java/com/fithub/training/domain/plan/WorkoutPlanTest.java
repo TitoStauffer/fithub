@@ -157,4 +157,22 @@ class WorkoutPlanTest {
         assertThatThrownBy(() -> draft.edit(2, "Base errada", START, 8, named(List.of("A")), later))
                 .isInstanceOf(PlanConflictException.class);
     }
+
+    @Test
+    void fichaPropriaNaoTemPersonalESoODonoAMexe() {
+        WorkoutPlan own = WorkoutPlan.newOwnDraft(CLIENT, "Minha", START, 4, List.of(withExercise("Pernas")), NOW);
+        WorkoutPlan fromPersonal = draft(List.of("Pernas"));
+
+        assertThat(own.own()).isTrue();
+        assertThat(own.personalId()).isNull();
+        assertThat(own.ownedBy(CLIENT)).isTrue();
+        assertThat(own.ownedBy(UUID.randomUUID())).isFalse();
+        assertThat(own.authoredBy(PERSONAL)).isFalse();
+        assertThat(own.authoredBy(null)).isFalse();
+        // A ficha do personal não é a própria do aluno, mesmo sendo dele.
+        assertThat(fromPersonal.own()).isFalse();
+        assertThat(fromPersonal.ownedBy(CLIENT)).isFalse();
+        assertThat(fromPersonal.authoredBy(PERSONAL)).isTrue();
+        assertThat(own.publish(NOW).status()).isEqualTo(WorkoutPlan.Status.PUBLISHED);
+    }
 }

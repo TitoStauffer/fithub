@@ -14,6 +14,7 @@ import com.fithub.training.domain.exercise.Equipment;
 import com.fithub.training.domain.exercise.Exercise;
 import com.fithub.training.domain.exercise.ExerciseRepository;
 import com.fithub.training.domain.exercise.MuscleGroup;
+import java.sql.Types;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -335,5 +337,162 @@ class ClientWorkoutApiTest extends ServiceIntegrationTest {
                         .update())
                 .isInstanceOf(DataIntegrityViolationException.class)
                 .hasMessageContaining("ux_workout_session_open");
+    }
+
+    private String ownPlanBody(Integer baseVersion, String name, UUID exercise) {
+        return "{\"baseVersion\": " + baseVersion + ", \"name\": \"" + name + "\", \"startsOn\": \"" + TODAY
+                + "\", \"validityWeeks\": 4, \"divisions\": [{\"items\": [" + item(exercise, "") + "]}]}";
+    }
+
+    /** Ficha própria do aluno com o agachamento do catálogo; publicada se {@code publish}. */
+    private String ownPlan(String token, String name, boolean publish) throws Exception {
+        String location = mvc.perform(post("/me/own-plans")
+                        .header("Authorization", token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(ownPlanBody(null, name, squat)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getHeader("Location");
+        String planId = location.substring("/me/own-plans/".length());
+        if (publish) {
+            mvc.perform(post("/me/own-plans/" + planId + "/publish").header("Authorization", token))
+                    .andExpect(status().isOk());
+        }
+        return planId;
+    }
+
+    @Test
+    void alunoCriaEditaEPublicaAFichaPropriaSoComExercicioDoCatalogo() throws Exception {
+        // Exercício próprio do personal não entra na ficha do aluno.
+        mvc.perform(post("/me/own-plans")
+                        .header("Authorization", clientToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(ownPlanBody(null, "Minha", mine)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("divisions[0].items[0].exerciseId"));
+
+        String planId = ownPlan(clientToken(), "Minha", false);
+        mvc.perform(get("/me/own-plans/" + planId).header("Authorization", clientToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("DRAFT"))
+                .andExpect(jsonPath("$.clientId").value(client.toString()))
+                .andExpect(jsonPath("$.alerts").isEmpty());
+        mvc.perform(put("/me/own-plans/" + planId)
+                        .header("Authorization", clientToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(ownPlanBody(null, "Minha ficha", squat)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Minha ficha"))
+                .andExpect(jsonPath("$.version").value(1));
+        mvc.perform(post("/me/own-plans/" + planId + "/publish").header("Authorization", clientToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PUBLISHED"));
+        // Editar a publicada gera a versão seguinte, também só com o catálogo.
+        mvc.perform(put("/me/own-plans/" + planId)
+                        .header("Authorization", clientToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(ownPlanBody(1, "Minha ficha", mine)))
+                .andExpect(status().isBadRequest());
+        mvc.perform(put("/me/own-plans/" + planId)
+                        .header("Authorization", clientToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(ownPlanBody(1, "Minha ficha 2", squat)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.version").value(2));
+        mvc.perform(get("/me/own-plans").header("Authorization", clientToken()))
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(planId));
+    }
+
+    @Test
+    void fichaPropriaConviveComADoPersonalEAceitaSessaoESeries() throws Exception {
+        String personalPlan = publishedPlan(TODAY, 8);
+        String first = ownPlan(clientToken(), "Minha", true);
+
+        mvc.perform(get("/me/plans/active").header("Authorization", clientToken()))
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[*].planId").value(Matchers.containsInAnyOrder(personalPlan, first)));
+        // A lista das próprias não traz a do personal.
+        mvc.perform(get("/me/own-plans").header("Authorization", clientToken()))
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(first));
+
+        UUID session = UUID.randomUUID();
+        start(session, first);
+        mvc.perform(put("/me/sessions/" + session + "/sets/" + UUID.randomUUID())
+                        .header("Authorization", clientToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"itemPosition\": 0, \"setNumber\": 1, \"loadKg\": 40, \"reps\": 10}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.exerciseId").value(squat.toString()));
+        finish(session);
+
+        // Outra própria publicada substitui a primeira; a do personal continua ativa.
+        String second = ownPlan(clientToken(), "Outra", true);
+        mvc.perform(get("/me/plans/active").header("Authorization", clientToken()))
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[*].planId").value(Matchers.containsInAnyOrder(personalPlan, second)));
+        mvc.perform(get("/me/own-plans/" + first).header("Authorization", clientToken()))
+                .andExpect(jsonPath("$.status").value("REPLACED"));
+    }
+
+    @Test
+    void fichaPropriaESoDoAluno() throws Exception {
+        String personalPlan = publishedPlan(TODAY, 8);
+        String own = ownPlan(clientToken(), "Minha", true);
+
+        // O personal não vê nem altera a ficha própria, nem a encontra na lista do aluno.
+        mvc.perform(get("/plans/" + own).header("Authorization", personalToken()))
+                .andExpect(status().isNotFound());
+        mvc.perform(post("/plans/" + own + "/publish").header("Authorization", personalToken()))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/clients/" + client + "/plans").header("Authorization", personalToken()))
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(personalPlan));
+        mvc.perform(get("/me/own-plans/" + own).header("Authorization", personalToken()))
+                .andExpect(status().isNotFound());
+        // O aluno não mexe na ficha do personal pelas rotas da própria; outro aluno não vê a dele.
+        mvc.perform(get("/me/own-plans/" + personalPlan).header("Authorization", clientToken()))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/me/own-plans/" + own).header("Authorization", "Bearer conta-" + UUID.randomUUID()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void bancoRecusaAutorInconsistenteEDuasPropriasAtivas() {
+        String insert = """
+                insert into workout_plan (id, client_id, personal_id, author, status, created_at, updated_at)
+                values (:id, :client, :personal, :author, :status, now(), now())
+                """;
+        record Row(UUID personal, String author) {}
+        for (Row row : new Row[] {new Row(null, "PERSONAL"), new Row(personal, "CLIENT")}) {
+            assertThatThrownBy(() -> jdbc.sql(insert)
+                            .param("id", UUID.randomUUID())
+                            .param("client", client)
+                            .param("personal", row.personal(), Types.OTHER)
+                            .param("author", row.author())
+                            .param("status", "DRAFT")
+                            .update())
+                    .as(row.author())
+                    .isInstanceOf(DataIntegrityViolationException.class)
+                    .hasMessageContaining("ck_workout_plan_author");
+        }
+        jdbc.sql(insert)
+                .param("id", UUID.randomUUID())
+                .param("client", client)
+                .param("personal", null, Types.OTHER)
+                .param("author", "CLIENT")
+                .param("status", "PUBLISHED")
+                .update();
+        assertThatThrownBy(() -> jdbc.sql(insert)
+                        .param("id", UUID.randomUUID())
+                        .param("client", client)
+                        .param("personal", null, Types.OTHER)
+                        .param("author", "CLIENT")
+                        .param("status", "PUBLISHED")
+                        .update())
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("ux_workout_plan_own_published");
     }
 }

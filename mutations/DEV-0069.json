@@ -1,0 +1,185 @@
+{
+    "issue": "DEV-0069",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O personal passa a ser autor da ficha própria do aluno",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/plan/WorkoutPlan.java",
+            "find": "return personal != null && personal.equals(personalId);",
+            "replace": "return personal != null && (personal.equals(personalId) || personalId == null);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientWorkoutApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "A rota da ficha própria passa a abrir a ficha do personal",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/plan/WorkoutPlan.java",
+            "find": "return own() && clientId.equals(client);",
+            "replace": "return clientId.equals(client);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientWorkoutApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "A consulta sem personal passa a trazer as fichas de qualquer autor",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcPlanRepository.java",
+            "find": "\"p.personal_id is not distinct from cast(:personalId as uuid)\"",
+            "replace": "\"(cast(:personalId as uuid) is null or p.personal_id = cast(:personalId as uuid))\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientWorkoutApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "A ficha própria passa a aceitar exercício próprio de personal",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ManagePlans.java",
+            "find": ".filter(exercise -> exercise.visibleTo(plan.personalId()))",
+            "replace": ".filter(exercise -> true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientWorkoutApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Publicar a própria deixa de substituir a própria ativa",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ManageOwnPlans.java",
+            "find": "plans.findPublished(plan.clientId(), null)",
+            "replace": "plans.findPublished(plan.clientId(), UUID.randomUUID())",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientWorkoutApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "A nutricionista passa a ler os exercícios",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/interfaces/rest/ExerciseController.java",
+            "find": "@PreAuthorize(\"hasAnyRole('PERSONAL', 'CLIENT')\")",
+            "replace": "@PreAuthorize(\"hasAnyRole('PERSONAL', 'CLIENT', 'NUTRITIONIST')\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ExerciseApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "O banco passa a aceitar autor inconsistente com o personal",
+            "area": "java",
+            "file": "services/training-service/src/main/resources/db/migration/V14__ficha_propria.sql",
+            "find": "(author = 'PERSONAL' and personal_id is not null) or (author = 'CLIENT' and personal_id is null)",
+            "replace": "author in ('PERSONAL', 'CLIENT')",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientWorkoutApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "O banco passa a aceitar duas fichas próprias ativas",
+            "area": "java",
+            "file": "services/training-service/src/main/resources/db/migration/V14__ficha_propria.sql",
+            "find": "where status = 'PUBLISHED' and personal_id is null;",
+            "replace": "where status = 'PUBLISHED' and personal_id is null and client_id is null;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientWorkoutApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "O aluno passa a ser tratado como autor da ficha do personal",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/plan/WorkoutPlan.java",
+            "find": "public boolean own() {\n        return personalId == null;",
+            "replace": "public boolean own() {\n        return true;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=WorkoutPlanTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

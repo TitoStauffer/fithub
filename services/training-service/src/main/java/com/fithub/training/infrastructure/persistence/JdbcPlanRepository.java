@@ -31,6 +31,9 @@ class JdbcPlanRepository implements PlanRepository {
                 and v.number = (select max(number) from workout_plan_version where plan_id = p.id)
             """;
 
+    /** O mesmo autor: o personal informado, ou nenhum (a ficha própria do aluno) quando ele é {@code null}. */
+    private static final String SAME_AUTHOR = "p.personal_id is not distinct from cast(:personalId as uuid)";
+
     private final JdbcClient jdbc;
 
     JdbcPlanRepository(JdbcClient jdbc) {
@@ -42,13 +45,14 @@ class JdbcPlanRepository implements PlanRepository {
     @Transactional
     public void save(WorkoutPlan plan) {
         jdbc.sql("""
-                        insert into workout_plan (id, client_id, personal_id, status, created_at, updated_at)
-                        values (:id, :clientId, :personalId, :status, :createdAt, :updatedAt)
+                        insert into workout_plan (id, client_id, personal_id, author, status, created_at, updated_at)
+                        values (:id, :clientId, :personalId, :author, :status, :createdAt, :updatedAt)
                         on conflict (id) do update set status = excluded.status, updated_at = excluded.updated_at
                         """)
                 .param("id", plan.id())
                 .param("clientId", plan.clientId())
                 .param("personalId", plan.personalId())
+                .param("author", plan.own() ? "CLIENT" : "PERSONAL")
                 .param("status", plan.status().name())
                 .param("createdAt", Timestamp.from(plan.createdAt()))
                 .param("updatedAt", Timestamp.from(plan.updatedAt()))
@@ -141,7 +145,7 @@ class JdbcPlanRepository implements PlanRepository {
 
     @Override
     public List<WorkoutPlan> findByClientAndPersonal(UUID clientId, UUID personalId) {
-        return jdbc.sql(SELECT + "where p.client_id = :clientId and p.personal_id = :personalId"
+        return jdbc.sql(SELECT + "where p.client_id = :clientId and " + SAME_AUTHOR
                         + " order by p.created_at desc, p.id")
                 .param("clientId", clientId)
                 .param("personalId", personalId)
@@ -160,8 +164,7 @@ class JdbcPlanRepository implements PlanRepository {
 
     @Override
     public Optional<WorkoutPlan> findPublished(UUID clientId, UUID personalId) {
-        return jdbc.sql(SELECT + "where p.client_id = :clientId and p.personal_id = :personalId"
-                        + " and p.status = 'PUBLISHED'")
+        return jdbc.sql(SELECT + "where p.client_id = :clientId and " + SAME_AUTHOR + " and p.status = 'PUBLISHED'")
                 .param("clientId", clientId)
                 .param("personalId", personalId)
                 .query(this::toPlan)

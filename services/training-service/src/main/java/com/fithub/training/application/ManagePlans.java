@@ -174,9 +174,10 @@ public class ManagePlans {
 
     /**
      * Cada exercício da ficha (principal e alternativas) precisa ser do catálogo ou próprio do autor, e não pode estar
-     * arquivado, a menos que já estivesse na ficha (caso de borda: exercício arquivado depois continua nela).
+     * arquivado, a menos que já estivesse na ficha (caso de borda: exercício arquivado depois continua nela). A ficha
+     * própria do aluno não tem personal: só o catálogo serve (DEV-0069).
      */
-    private void requireUsableExercises(WorkoutPlan plan, Set<UUID> alreadyInPlan) {
+    void requireUsableExercises(WorkoutPlan plan, Set<UUID> alreadyInPlan) {
         List<PlanVersion.Division> divisions = plan.current().divisions();
         for (int division = 0; division < divisions.size(); division++) {
             List<PlanItem> items = divisions.get(division).items();
