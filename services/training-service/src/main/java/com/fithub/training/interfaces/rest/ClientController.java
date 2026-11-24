@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -51,7 +52,14 @@ class ClientController {
             String title,
             int status,
             String detail,
-            @Schema(nullable = true) String instance) {}
+            @Schema(nullable = true) String instance,
+
+            @Schema(nullable = true, description = "Campos inválidos; presente só nas respostas 400.")
+            List<FieldError> errors) {
+
+        @Schema(name = "ProblemFieldError")
+        record FieldError(String field, String message) {}
+    }
 
     @GetMapping(path = "/{clientId}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
