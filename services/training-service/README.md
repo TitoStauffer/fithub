@@ -81,7 +81,7 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
 - Estados: `DRAFT` → `PUBLISHED` → `REPLACED`. Publicar uma ficha deixa a que estava ativa para o mesmo aluno como
   `REPLACED`: uma ativa por vez (FR-34, índice único parcial `ux_workout_plan_published`).
 - O conteúdo fica numa versão (`workout_plan_version` → `workout_division`) desde o rascunho.
-- Rotas do personal (papel `personal`): `POST` e `GET /clients/{clientId}/plans`, `GET` e `PUT /plans/{planId}` , `POST /plans/{planId}/publish` e `GET /plans/expiring?withinDays=`
+- Rotas do personal (papel `personal`): `POST` e `GET /clients/{clientId}/plans`, `GET` e `PUT /plans/{planId}`, `POST /plans/{planId}/publish` e `GET /plans/expiring?withinDays=`
   (padrão 7, de 0 a 60; fichas publicadas de alunos com vínculo ativo que vencem no período ou já venceram, com o
   "hoje" de `America/Sao_Paulo`).
 - Criar, listar, editar e publicar exigem vínculo ativo (404 sem ele). O autor continua lendo as fichas que criou depois
