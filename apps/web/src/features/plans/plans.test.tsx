@@ -199,7 +199,11 @@ describe('editor de ficha', () => {
             ],
         });
 
-        await user.click(screen.getByRole('button', { name: 'Publicar' }));
+        // Depois de criar, a tela vai para o endereço da ficha e busca o nome do exercício antes de mostrar o editor
+        // (DEV-0157). Essa busca só sai da tela nova: depois dela, o editor de criação já saiu, e o botão encontrado
+        // é o do editor carregado. Sem esperar, o clique às vezes caía na tela em "Carregando a ficha…".
+        await waitFor(() => expect(sent(`GET /exercises/${SQUAT}`).length).toBeGreaterThan(0));
+        await user.click(await screen.findByRole('button', { name: 'Publicar' }));
         expect(screen.getByRole('group', { name: 'Confirmar publicação' })).toBeInTheDocument();
         expect(sent(`POST /plans/${PLAN}/publish`)).toHaveLength(0);
         await user.click(screen.getByRole('button', { name: 'Confirmar publicação' }));
