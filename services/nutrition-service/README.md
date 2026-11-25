@@ -95,8 +95,12 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   macros da alternativa e a diferença para o principal (alternativa menos principal, com sinal). Só o principal entra
   na soma da refeição e do dia.
 - Rascunho, publicado e substituído: publicar exige alimento em cada refeição (BR-10) e deixa substituído o plano ativo
-  anterior do paciente (um ativo por vez, garantido pelo índice `ux_meal_plan_published`). Editar o publicado responde
-  409 até a DEV-0083.
+  anterior do paciente (um ativo por vez, garantido pelo índice `ux_meal_plan_published`).
+- Versões (DEV-0083, FR-46, BR-09): o rascunho muda no lugar; editar o publicado cria a versão seguinte, já publicada,
+  e a anterior nunca muda. No publicado, `baseVersion` é obrigatória (400 sem ela); base desatualizada ou plano
+  substituído, 409. A gravação é otimista pelo `updated_at` lido, e a do rascunho só vale enquanto ele é rascunho.
+  A autora lê `GET /meal-plans/{id}/versions` e `/versions/{n}`; o paciente lê as do plano que recebeu em
+  `GET /me/meal-plans/{id}/versions` e `/versions/{n}` (o rascunho nunca aparece).
 - Nutricionista com vínculo ativo (BR-02): `GET`/`POST /clients/{clientId}/meal-plans`, `PUT /meal-plans/{id}` e
   `POST /meal-plans/{id}/publish`. `GET /meal-plans/{id}` só para a autora, mesmo sem vínculo (BR-05). Sem vínculo ou
   plano de outra nutricionista, 404; campo fora das regras ou alimento indisponível, 400 com o caminho

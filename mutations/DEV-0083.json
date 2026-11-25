@@ -1,0 +1,225 @@
+{
+    "issue": "DEV-0083",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O plano substituído passa a ganhar versão nova",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealPlan.java",
+            "find": "if (status == Status.REPLACED) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "A edição de versão base desatualizada passa a ser aceita",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealPlan.java",
+            "find": "if (baseVersion != null && baseVersion != current.number()) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O publicado passa a ganhar versão sem a versão base",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealPlan.java",
+            "find": "if (baseVersion == null) {\n            throw new InvalidMealPlanException(\"baseVersion\"",
+            "replace": "if (false) {\n            throw new InvalidMealPlanException(\"baseVersion\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "A versão nova passa a aceitar refeição sem alimento (BR-10)",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealPlan.java",
+            "find": "        requireFoodInEveryMeal(next);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "A versão nova deixa de ser a seguinte",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/plan/MealPlan.java",
+            "find": "nextVersionId, current.number() + 1, name",
+            "replace": "nextVersionId, current.number(), name",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlan*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "A versão publicada passa a ser regravada no lugar",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/JdbcMealPlanRepository.java",
+            "find": "where id = :id and status = 'DRAFT' and updated_at = :readUpdatedAt",
+            "replace": "where id = :id and updated_at = :readUpdatedAt",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "A versão nova lida antes de outra edição passa a ser gravada sem o conflito",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/JdbcMealPlanRepository.java",
+            "find": "where id = :id and updated_at = :baseUpdatedAt",
+            "replace": "where id = :id",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "A versão nova desatualizada deixa de responder conflito",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/JdbcMealPlanRepository.java",
+            "find": "if (changed == 0) {\n            throw changedMeanwhile();\n        }\n        insertVersion(plan.id(), plan.current());",
+            "replace": "if (false) {\n            throw changedMeanwhile();\n        }\n        insertVersion(plan.id(), plan.current());",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "A edição do publicado passa a regravar a versão atual em vez de criar a seguinte",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": "if (edited.current().number() == plan.current().number()) {",
+            "replace": "if (true) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "O paciente passa a ler o plano de outro paciente",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": ".filter(plan -> plan.clientId().equals(clientId))",
+            "replace": ".filter(plan -> true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "O paciente passa a ler o plano em rascunho",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": ".filter(plan -> plan.status() != MealPlan.Status.DRAFT)",
+            "replace": ".filter(plan -> true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

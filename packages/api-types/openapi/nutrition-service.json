@@ -518,6 +518,11 @@
       "MealPlanInput" : {
         "description" : "Nome (2 a 80), início, observação (até 500) e de 1 a 10 refeições.",
         "properties" : {
+          "baseVersion" : {
+            "description" : "A versão em que a edição se baseou; obrigatória para editar o plano publicado.",
+            "format" : "int32",
+            "type" : "integer"
+          },
           "meals" : {
             "items" : {
               "$ref" : "#/components/schemas/MealInput"
@@ -536,6 +541,24 @@
           }
         },
         "required" : [ "meals", "name", "startsOn" ],
+        "type" : "object"
+      },
+      "MealPlanVersionSummary" : {
+        "description" : "Uma versão do plano: número, nome e publicação.",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "number" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "publishedAt" : {
+            "description" : "Ausente no rascunho.",
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
         "type" : "object"
       },
       "NutrientAmounts" : {
@@ -1493,6 +1516,113 @@
         "tags" : [ "Restrições alimentares" ]
       }
     },
+    "/me/meal-plans/{planId}/versions" : {
+      "get" : {
+        "operationId" : "listMyMealPlanVersions",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "planId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/MealPlanVersionSummary"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "Versões publicadas, da primeira para a última."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é de cliente."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O plano não existe, é de outro paciente ou ainda é rascunho."
+          }
+        },
+        "summary" : "As versões publicadas do plano alimentar que o paciente recebeu",
+        "tags" : [ "Meu plano alimentar" ]
+      }
+    },
+    "/me/meal-plans/{planId}/versions/{number}" : {
+      "get" : {
+        "operationId" : "getMyMealPlanVersion",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "planId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "number",
+          "required" : true,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MealPlan"
+                }
+              }
+            },
+            "description" : "A versão, com as refeições e os macros."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é de cliente."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O plano ou a versão não existe, é de outro paciente ou ainda é rascunho."
+          }
+        },
+        "summary" : "Uma versão publicada do plano alimentar que o paciente recebeu, com os macros",
+        "tags" : [ "Meu plano alimentar" ]
+      }
+    },
     "/meal-plans/{planId}" : {
       "get" : {
         "operationId" : "getMealPlan",
@@ -1570,7 +1700,7 @@
                 }
               }
             },
-            "description" : "Rascunho editado."
+            "description" : "Plano editado (no publicado, já na versão nova)."
           },
           "400" : {
             "content" : {
@@ -1610,10 +1740,10 @@
                 }
               }
             },
-            "description" : "O plano já foi publicado."
+            "description" : "O plano foi substituído, outra edição chegou antes ou ele mudou desde a leitura."
           }
         },
-        "summary" : "Edita o rascunho do plano alimentar",
+        "summary" : "Edita o plano alimentar: o rascunho no lugar; o publicado vira a versão seguinte",
         "tags" : [ "Planos alimentares" ]
       }
     },
@@ -1684,6 +1814,113 @@
         "summary" : "Publica o rascunho; o plano ativo anterior do paciente fica substituído",
         "tags" : [ "Planos alimentares" ]
       }
+    },
+    "/meal-plans/{planId}/versions" : {
+      "get" : {
+        "operationId" : "listMealPlanVersions",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "planId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/MealPlanVersionSummary"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "Versões, da primeira para a última."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é nutricionista."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O plano não existe ou é de outra nutricionista."
+          }
+        },
+        "summary" : "As versões do plano alimentar, para a autora",
+        "tags" : [ "Planos alimentares" ]
+      }
+    },
+    "/meal-plans/{planId}/versions/{number}" : {
+      "get" : {
+        "operationId" : "getMealPlanVersion",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "planId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "number",
+          "required" : true,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MealPlan"
+                }
+              }
+            },
+            "description" : "A versão, com as refeições e os macros."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é nutricionista."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O plano ou a versão não existe, ou o plano é de outra nutricionista."
+          }
+        },
+        "summary" : "Uma versão do plano alimentar, com os macros, para a autora",
+        "tags" : [ "Planos alimentares" ]
+      }
     }
   },
   "security" : [ {
@@ -1702,6 +1939,9 @@
   }, {
     "description" : "Clientes vinculados ao nutricionista",
     "name" : "Clientes"
+  }, {
+    "description" : "O plano alimentar que o paciente recebeu",
+    "name" : "Meu plano alimentar"
   }, {
     "description" : "Base de alimentos da nutricionista: TACO e alimentos próprios",
     "name" : "Alimentos"
