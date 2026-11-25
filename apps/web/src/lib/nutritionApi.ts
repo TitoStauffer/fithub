@@ -22,6 +22,7 @@ export type MealPlanInput = Schemas['MealPlanInput'];
 export type MealItemAlert = Schemas['MealItemAlert'];
 export type NutrientAmounts = Schemas['NutrientAmounts'];
 export type DietProgress = Schemas['DietProgress'];
+export type PatientActivity = Schemas['PatientActivity'];
 
 /** Filtros da busca (DEV-0078); campo vazio não filtra. */
 export interface FoodSearch {
@@ -185,6 +186,14 @@ export function nutritionApi(apiFetch: ApiFetch, baseUrl: string) {
             );
             if (response.status === 404) throw new AccessEndedError();
             return json(response);
+        },
+        /** O último registro de refeição de cada paciente vinculado, nos planos da nutricionista (DEV-0092). */
+        async patientsActivity(): Promise<PatientActivity[]> {
+            return json(
+                await apiFetch(url('/professionals/me/clients/activity'), {
+                    headers: { Accept: 'application/json' },
+                }),
+            );
         },
         async removeMeasure(foodId: string, measureId: string): Promise<void> {
             const response = await apiFetch(`${foodUrl(foodId)}/measures/${encodeURIComponent(measureId)}`, {

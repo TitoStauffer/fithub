@@ -40,6 +40,9 @@ beforeEach(() => {
     calls = [];
     // Histórico de avaliações da tela do cliente (DEV-0049); os testes dele estão em assessments.test.tsx.
     routes.set(`GET /professionals/me/clients/${CLIENT}/assessments`, [{ status: 200, body: [] }]);
+    // Última atividade da lista de clientes (DEV-0097); os testes dela estão em inactivity.test.tsx.
+    routes.set('GET http://localhost:8083/professionals/me/clients/activity', [{ status: 200, body: [] }]);
+    routes.set('GET http://localhost:8084/professionals/me/clients/activity', [{ status: 200, body: [] }]);
     vi.stubGlobal(
         'fetch',
         vi.fn((input: RequestInfo | URL, init?: RequestInit) => {

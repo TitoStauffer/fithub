@@ -1,0 +1,155 @@
+{
+    "issue": "DEV-0097",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O personal passa a ler também a atividade da nutrição",
+            "area": "apps",
+            "file": "apps/web/src/features/clients/ClientsPage.tsx",
+            "find": "enabled: nutritionist,",
+            "replace": "enabled: true,",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "A nutricionista passa a ler também a atividade do treino",
+            "area": "apps",
+            "file": "apps/web/src/features/clients/ClientsPage.tsx",
+            "find": "enabled: personal,",
+            "replace": "enabled: true,",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Sem a atividade lida, a lista passa a marcar todos como sem registro",
+            "area": "apps",
+            "file": "apps/web/src/features/clients/ClientsPage.tsx",
+            "find": "(!personal || trainingActivity.isSuccess) && (!nutritionist || dietActivity.isSuccess)",
+            "replace": "true",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "O filtro passa a mostrar também os ativos",
+            "area": "apps",
+            "file": "apps/web/src/features/clients/ClientsPage.tsx",
+            "find": "rows.filter((row) => row.activity && row.activity.kind !== 'active')",
+            "replace": "rows",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O limite inválido digitado passa a ir para a URL",
+            "area": "apps",
+            "file": "apps/web/src/features/clients/ClientsPage.tsx",
+            "find": "if (valid === undefined) return;",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "O limite passa a aceitar zero",
+            "area": "apps",
+            "file": "apps/web/src/features/clients/inactivity.ts",
+            "find": "value >= 1 &&",
+            "replace": "value >= 0 &&",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "O limite passa a aceitar mais de 60 dias",
+            "area": "apps",
+            "file": "apps/web/src/features/clients/inactivity.ts",
+            "find": "value <= MAX_INACTIVE_DAYS ?",
+            "replace": "true ?",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "O cliente sem registro passa a contar como ativo",
+            "area": "apps",
+            "file": "apps/web/src/features/clients/inactivity.ts",
+            "find": "if (!lastActivityAt) return { kind: 'none' };",
+            "replace": "if (!lastActivityAt) return { kind: 'active', lastActivityAt: '' };",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "O cliente no limite exato passa a ser inativo",
+            "area": "apps",
+            "file": "apps/web/src/features/clients/inactivity.ts",
+            "find": "days > threshold ?",
+            "replace": "days >= threshold ?",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "A atividade mais antiga passa a vencer a mais recente",
+            "area": "apps",
+            "file": "apps/web/src/features/clients/inactivity.ts",
+            "find": "new Date(item.lastActivityAt) > new Date(current)",
+            "replace": "new Date(item.lastActivityAt) < new Date(current)",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}
