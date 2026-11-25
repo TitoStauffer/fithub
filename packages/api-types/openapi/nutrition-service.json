@@ -499,6 +499,10 @@
             "format" : "date-time",
             "type" : "string"
           },
+          "deviation" : {
+            "description" : "O desvio em texto livre.",
+            "type" : "string"
+          },
           "id" : {
             "format" : "uuid",
             "type" : "string"
@@ -511,6 +515,15 @@
           "mealPosition" : {
             "format" : "int32",
             "type" : "integer"
+          },
+          "photoUrl" : {
+            "description" : "URL temporária (5 minutos) para ver a foto do prato.",
+            "format" : "uri",
+            "type" : "string"
+          },
+          "photoUrlExpiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
           },
           "planId" : {
             "format" : "uuid",
@@ -543,6 +556,10 @@
       "MealLogInput" : {
         "description" : "Registro ou correção da refeição de hoje.",
         "properties" : {
+          "deviation" : {
+            "description" : "O desvio em texto livre, até 500 caracteres.",
+            "type" : "string"
+          },
           "mealPosition" : {
             "format" : "int32",
             "type" : "integer"
@@ -580,6 +597,43 @@
             "type" : "integer"
           }
         },
+        "type" : "object"
+      },
+      "MealPhotoConfirmation" : {
+        "description" : "O id do envio que a URL pré-assinada recebeu.",
+        "properties" : {
+          "uploadId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "uploadId" ],
+        "type" : "object"
+      },
+      "MealPhotoUpload" : {
+        "description" : "URL pré-assinada (5 minutos) para enviar a foto e o id do envio.",
+        "properties" : {
+          "expiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "uploadId" : {
+            "type" : "string"
+          },
+          "uploadUrl" : {
+            "format" : "uri",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "MealPhotoUploadRequest" : {
+        "description" : "O tipo da foto: image/jpeg ou image/png.",
+        "properties" : {
+          "contentType" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "contentType" ],
         "type" : "object"
       },
       "MealPlan" : {
@@ -1777,6 +1831,188 @@
           }
         },
         "summary" : "Registra a refeição de hoje; repetir com o mesmo id corrige o registro",
+        "tags" : [ "Registro de refeições" ]
+      }
+    },
+    "/me/meal-logs/{logId}/photo" : {
+      "delete" : {
+        "operationId" : "removeMyMealPhoto",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "logId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MealLog"
+                }
+              }
+            },
+            "description" : "Registro sem a foto."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O registro não existe ou é de outro paciente."
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O dia do registro já passou."
+          }
+        },
+        "summary" : "Tira a foto do prato do registro",
+        "tags" : [ "Registro de refeições" ]
+      },
+      "put" : {
+        "operationId" : "confirmMyMealPhoto",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "logId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MealPhotoConfirmation"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MealLog"
+                }
+              }
+            },
+            "description" : "Registro com a URL de leitura da foto."
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Envio inexistente ou a foto não é JPEG/PNG de até 10 MB."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O registro não existe ou é de outro paciente."
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O dia do registro já passou."
+          }
+        },
+        "summary" : "Confirma a foto do prato enviada; a anterior é substituída",
+        "tags" : [ "Registro de refeições" ]
+      }
+    },
+    "/me/meal-logs/{logId}/photo/upload-url" : {
+      "post" : {
+        "operationId" : "requestMyMealPhotoUpload",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "logId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MealPhotoUploadRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MealPhotoUpload"
+                }
+              }
+            },
+            "description" : "URL de envio e o id do envio."
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O tipo não é JPEG nem PNG."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O registro não existe ou é de outro paciente."
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O dia do registro já passou."
+          }
+        },
+        "summary" : "URL pré-assinada para enviar a foto do prato (JPEG ou PNG, até 10 MB)",
         "tags" : [ "Registro de refeições" ]
       }
     },

@@ -49,6 +49,16 @@ management:
         enabled: true
 
 fithub:
+  storage:
+    # Foto do prato (DEV-0088): SeaweedFS do compose pela API S3, como as fotos de evolução do client-service. As
+    # credenciais padrão são só de desenvolvimento local; fora dele, vêm de variável de ambiente.
+    endpoint: ${S3_ENDPOINT:http://localhost:8333}
+    # Endereço que o app usa nas URLs pré-assinadas (no aparelho, o IP da máquina).
+    public-endpoint: ${S3_PUBLIC_ENDPOINT:${S3_ENDPOINT:http://localhost:8333}}
+    region: ${S3_REGION:us-east-1}
+    access-key: ${S3_ACCESS_KEY:fithub-dev}
+    secret-key: ${S3_SECRET_KEY:fithub-dev-secret}
+    bucket: ${S3_MEAL_PHOTOS_BUCKET:fithub-meal-photos}
   messaging:
     # Exchange topic de origem dos eventos deste serviço (ADR-003).
     exchange: fithub.nutrition

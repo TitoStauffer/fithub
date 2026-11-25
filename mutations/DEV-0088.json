@@ -1,0 +1,465 @@
+{
+    "issue": "DEV-0088",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O desvio passa a aceitar mais de 500 caracteres",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/log/MealLog.java",
+            "find": "if (stripped.length() > MAX_DEVIATION_LENGTH) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogTest,MealLogPhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O desvio só de espaços passa a ser gravado",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/log/MealLog.java",
+            "find": "if (deviation == null || deviation.isBlank()) {",
+            "replace": "if (deviation == null) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "A foto passa a ser confirmada depois do dia",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/log/MealLog.java",
+            "find": "public MealLog withPhoto(Photo newPhoto, LocalDate today, Instant now) {\n        requireCorrectableOn(today);",
+            "replace": "public MealLog withPhoto(Photo newPhoto, LocalDate today, Instant now) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogTest,MealLogPhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "A foto passa a ser tirada depois do dia",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/log/MealLog.java",
+            "find": "public MealLog withoutPhoto(LocalDate today, Instant now) {\n        requireCorrectableOn(today);",
+            "replace": "public MealLog withoutPhoto(LocalDate today, Instant now) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogTest,MealLogPhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O pedido de envio sem tipo passa a derrubar em vez de apontar o campo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/log/MealLog.java",
+            "find": "if (contentType == null || !PHOTO_CONTENT_TYPES.contains(contentType)) {",
+            "replace": "if (!PHOTO_CONTENT_TYPES.contains(contentType)) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "A foto passa a aceitar tipo que não é JPEG nem PNG",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/log/MealLog.java",
+            "find": "if (contentType == null || !PHOTO_CONTENT_TYPES.contains(contentType)) {",
+            "replace": "if (contentType == null) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogTest,MealLogPhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "O envio da foto passa a ser pedido depois do dia",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/MealLogPhotos.java",
+            "find": "        meal.requireCorrectableOn(today());\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogPhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "O envio inválido passa a derrubar em vez de apontar o campo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/MealLogPhotos.java",
+            "find": "throw new InvalidMealLogException(\"uploadId\", \"Envio inválido.\");",
+            "replace": "throw invalid;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogPhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "A confirmação de um envio que não existe passa a gravar a foto",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/MealLogPhotos.java",
+            "find": ".orElseThrow(() -> new InvalidMealLogException(\"uploadId\", \"Envie a foto antes de confirmar.\"));",
+            "replace": ".orElse(new MealPhotoStorage.StoredObject(\"image/jpeg\", 1));",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogPhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "A foto passa a aceitar arquivo que não é JPEG nem PNG",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/MealLogPhotos.java",
+            "find": "if (!MealLog.PHOTO_CONTENT_TYPES.contains(stored.contentType())\n                || ",
+            "replace": "if (",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogPhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "A foto passa a aceitar arquivo acima de 10 MB",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/MealLogPhotos.java",
+            "find": "\n                || stored.sizeBytes() > MealLog.MAX_PHOTO_BYTES",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogPhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "O arquivo recusado passa a ficar no bucket",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/MealLogPhotos.java",
+            "find": "            storage.delete(key);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogPhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M13",
+            "description": "O arquivo do envio passa a ficar no bucket depois da confirmação",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/MealLogPhotos.java",
+            "find": "        storage.delete(uploadKey);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogPhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M14",
+            "description": "A foto anterior passa a ficar no bucket depois da nova",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/MealLogPhotos.java",
+            "find": "        deleteOthers(meal, key);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogPhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M15",
+            "description": "Tirar a foto passa a deixar os arquivos no bucket",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/MealLogPhotos.java",
+            "find": "        logs.savePhoto(without);\n        deleteOthers(meal, null);\n",
+            "replace": "        logs.savePhoto(without);\n",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogPhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M16",
+            "description": "Apagar o registro passa a deixar os arquivos no bucket",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/LogMeals.java",
+            "find": "        photos.deleteFilesOf(log);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogPhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M17",
+            "description": "Outro paciente passa a mexer na foto do registro",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/MealLogPhotos.java",
+            "find": ".filter(found -> found.clientId().equals(clientId))",
+            "replace": ".filter(found -> true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogPhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M18",
+            "description": "O expurgo passa a levar o envio recente",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/MealLogPhotos.java",
+            "find": "if (stored.lastModified().isBefore(cutoff) && !logs.existsByPhotoKey(stored.objectKey())) {",
+            "replace": "if (!logs.existsByPhotoKey(stored.objectKey())) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogPhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M19",
+            "description": "O expurgo passa a levar a foto confirmada",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/MealLogPhotos.java",
+            "find": "if (stored.lastModified().isBefore(cutoff) && !logs.existsByPhotoKey(stored.objectKey())) {",
+            "replace": "if (stored.lastModified().isBefore(cutoff)) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogPhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M20",
+            "description": "A correção que chega junto com a foto passa a tirá-la",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/JdbcMealLogRepository.java",
+            "find": "update meal_log set status = :status, deviation = :deviation, updated_at = :updatedAt where id = :id",
+            "replace": "update meal_log set status = :status, deviation = :deviation, photo_key = null, photo_uploaded_at = null, updated_at = :updatedAt where id = :id",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogPhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M21",
+            "description": "A correção deixa de gravar o desvio",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/JdbcMealLogRepository.java",
+            "find": "update meal_log set status = :status, deviation = :deviation, updated_at = :updatedAt where id = :id",
+            "replace": "update meal_log set status = :status, updated_at = :updatedAt where id = :id",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogPhotoApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M22",
+            "description": "O banco passa a aceitar o desvio só de espaços",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V11__desvio_e_foto_do_prato.sql",
+            "find": "check (deviation is null or char_length(btrim(deviation)) >= 1)",
+            "replace": "check (deviation is null or char_length(deviation) >= 0)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M23",
+            "description": "O banco passa a aceitar chave da foto sem a data",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V11__desvio_e_foto_do_prato.sql",
+            "find": "check ((photo_key is null) = (photo_uploaded_at is null))",
+            "replace": "check (photo_key is null or photo_key is not null)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

@@ -123,3 +123,20 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   (`DELETE`) só no dia (BR-08, QUESTÃO-04); depois, 409.
 - Só o plano publicado do próprio paciente: o de outro paciente e o rascunho respondem 404, e o substituído não recebe
   registro novo (409). O id de um registro não serve para outro paciente (409 ao corrigir, 404 ao apagar).
+
+## Desvio e foto do prato (DEV-0088)
+
+- O registro aceita `deviation`, o desvio em texto livre até 500 caracteres (FR-51, migration V11), em qualquer estado.
+- **Foto do prato**, no mesmo desenho das fotos de evolução do client-service (DEV-0048):
+  - fica no SeaweedFS, em bucket privado (`S3_MEAL_PHOTOS_BUCKET`, padrão `fithub-meal-photos`), e só circula por URL
+    pré-assinada de 5 minutos;
+  - `POST /me/meal-logs/{logId}/photo/upload-url` (JPEG ou PNG) devolve a URL de envio e o `uploadId`;
+  - `PUT /me/meal-logs/{logId}/photo` confirma: copia para a chave final, confere tipo e tamanho (até 10 MB) no objeto e
+    apaga a foto anterior;
+  - `DELETE /me/meal-logs/{logId}/photo` tira a foto;
+  - a leitura do registro traz `photoUrl` (5 minutos).
+- Só o paciente, só no dia do registro (409 depois). Apagar o registro leva os arquivos. Os envios nunca confirmados
+  saem pelo expurgo periódico (`fithub.storage.pending-max-age`, padrão 1 hora).
+- A correção do registro e a foto têm gravações separadas: uma não desfaz a outra quando chegam juntas.
+- **Configuração:** `S3_ENDPOINT`, `S3_PUBLIC_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` e
+  `S3_MEAL_PHOTOS_BUCKET`. Os padrões servem só para o compose local.

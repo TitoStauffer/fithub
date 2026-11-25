@@ -21,8 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 class JdbcMealLogRepository implements MealLogRepository {
 
     private static final String SELECT = """
-            select id, client_id, plan_id, version_id, version_number, meal_position, logged_on, status, created_at,
-                updated_at
+            select id, client_id, plan_id, version_id, version_number, meal_position, logged_on, status, deviation,
+                photo_key, photo_uploaded_at, created_at, updated_at
             from meal_log
             """;
 
@@ -37,9 +37,9 @@ class JdbcMealLogRepository implements MealLogRepository {
     public void add(MealLog log) {
         jdbc.sql("""
                         insert into meal_log (id, client_id, plan_id, version_id, version_number, meal_position,
-                            logged_on, status, created_at, updated_at)
+                            logged_on, status, deviation, created_at, updated_at)
                         values (:id, :clientId, :planId, :versionId, :versionNumber, :mealPosition, :loggedOn,
-                            :status, :createdAt, :updatedAt)
+                            :status, :deviation, :createdAt, :updatedAt)
                         """)
                 .param("id", log.id())
                 .param("clientId", log.clientId())
@@ -49,6 +49,7 @@ class JdbcMealLogRepository implements MealLogRepository {
                 .param("mealPosition", log.mealPosition())
                 .param("loggedOn", log.loggedOn())
                 .param("status", log.status().name())
+                .param("deviation", log.deviation())
                 .param("createdAt", Timestamp.from(log.createdAt()))
                 .param("updatedAt", Timestamp.from(log.updatedAt()))
                 .update();
@@ -58,15 +59,41 @@ class JdbcMealLogRepository implements MealLogRepository {
     @Override
     @Transactional
     public void update(MealLog log) {
-        jdbc.sql("update meal_log set status = :status, updated_at = :updatedAt where id = :id")
+        jdbc.sql("update meal_log set status = :status, deviation = :deviation, updated_at = :updatedAt where id = :id")
                 .param("id", log.id())
                 .param("status", log.status().name())
+                .param("deviation", log.deviation())
                 .param("updatedAt", Timestamp.from(log.updatedAt()))
                 .update();
         jdbc.sql("delete from meal_log_substitution where log_id = :id")
                 .param("id", log.id())
                 .update();
         insertSubstitutions(log);
+    }
+
+    @Override
+    public void savePhoto(MealLog log) {
+        jdbc.sql("""
+                        update meal_log set photo_key = :photoKey, photo_uploaded_at = :photoUploadedAt,
+                            updated_at = :updatedAt
+                        where id = :id
+                        """)
+                .param("id", log.id())
+                .param("photoKey", log.photo() == null ? null : log.photo().objectKey())
+                .param(
+                        "photoUploadedAt",
+                        log.photo() == null ? null : Timestamp.from(log.photo().uploadedAt()))
+                .param("updatedAt", Timestamp.from(log.updatedAt()))
+                .update();
+    }
+
+    @Override
+    public boolean existsByPhotoKey(String objectKey) {
+        return jdbc.sql("select count(*) from meal_log where photo_key = :key")
+                        .param("key", objectKey)
+                        .query(Long.class)
+                        .single()
+                > 0;
     }
 
     private void insertSubstitutions(MealLog log) {
@@ -133,9 +160,18 @@ class JdbcMealLogRepository implements MealLogRepository {
                         log.loggedOn(),
                         log.status(),
                         byLog.getOrDefault(log.id(), List.of()),
+                        log.deviation(),
+                        log.photo(),
                         log.createdAt(),
                         log.updatedAt()))
                 .toList();
+    }
+
+    private static MealLog.Photo photoOf(ResultSet row) throws SQLException {
+        String key = row.getString("photo_key");
+        return key == null
+                ? null
+                : new MealLog.Photo(key, row.getTimestamp("photo_uploaded_at").toInstant());
     }
 
     private static MealLog toLog(ResultSet row, int index) throws SQLException {
@@ -149,6 +185,8 @@ class JdbcMealLogRepository implements MealLogRepository {
                 row.getObject("logged_on", LocalDate.class),
                 MealLog.Status.valueOf(row.getString("status")),
                 List.of(),
+                row.getString("deviation"),
+                photoOf(row),
                 row.getTimestamp("created_at").toInstant(),
                 row.getTimestamp("updated_at").toInstant());
     }
