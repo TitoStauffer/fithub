@@ -23,6 +23,7 @@ export type MobilityRestrictionInput = Schemas['MobilityRestrictionInput'];
 export type ExpiringPlan = Schemas['ExpiringPlan'];
 export type TrainingProgress = Schemas['TrainingProgress'];
 export type ExerciseRecords = Schemas['ExerciseRecords'];
+export type ClientActivity = Schemas['ClientActivity'];
 
 /** Filtros da busca (DEV-0055); campo vazio não filtra. */
 export interface ExerciseSearch {
@@ -145,6 +146,14 @@ export function trainingApi(apiFetch: ApiFetch, baseUrl: string) {
                 url(
                     `/clients/${encodeURIComponent(clientId)}/progress/training?from=${encodeURIComponent(from)}`,
                 ),
+            );
+        },
+        /** O último treino finalizado de cada aluno vinculado, nas fichas do personal (DEV-0091). */
+        async clientsActivity(): Promise<ClientActivity[]> {
+            return json(
+                await apiFetch(url('/professionals/me/clients/activity'), {
+                    headers: { Accept: 'application/json' },
+                }),
             );
         },
         /** Recordes do aluno vinculado por exercício (DEV-0068). */

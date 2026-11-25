@@ -195,3 +195,13 @@ suba o Keycloak pelo compose de `infra/`). A decisão dos papéis e dos clients 
       da API numa nova aba;
     - a evolução corporal, a mesma do painel do personal (`BodyEvolution`).
 - Sem dados, cada bloco diz o que falta; sem vínculo, avisa que o acesso acabou.
+
+## Clientes inativos (DEV-0097)
+
+- A lista de clientes traz a última atividade de cada um (FR-59, no lugar das notificações push no MVP): o treino
+  finalizado nas fichas do personal e a refeição registrada nos planos da nutricionista. Com os dois papéis na mesma
+  conta, vale a mais recente.
+- Quem está sem atividade há mais dias que o limite aparece como "Inativo há N dias"; quem nunca registrou, como "Sem
+  atividade registrada", que também conta como inativo. O limite vai de 1 a 60 dias, com padrão 7, e fica na URL
+  (`?inativos=7`). "Só os inativos" filtra a lista.
+- Sem a atividade (erro da API), a tela avisa e não marca ninguém.
