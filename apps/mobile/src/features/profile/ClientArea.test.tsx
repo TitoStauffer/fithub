@@ -2,6 +2,7 @@ import { act, render, screen, userEvent } from '@testing-library/react-native';
 
 import { ApiProblemError, OfflineError, type ClientProfile, type HealthProfile } from '../../lib/api';
 import { ClientArea } from './ClientArea';
+import type { ProgressApi } from '../progress/progressApi';
 import type { ProfileApi } from './profileApi';
 import { ProfileFormScreen } from './ProfileFormScreen';
 
@@ -222,5 +223,35 @@ describe('HealthFormScreen', () => {
 
         expect(screen.getByText('O texto livre pode ter até 1000 caracteres.')).toBeOnTheScreen();
         expect(api.saveHealth).not.toHaveBeenCalled();
+    });
+
+    it('abre a minha evolução e vai dela para os recordes', async () => {
+        const user = userEvent.setup();
+        const progressApi: ProgressApi = {
+            training: jest.fn(async () => ({
+                adherence: { done: 1, expected: 2, percent: 50, weeks: [] },
+                exercises: [],
+            })),
+            diet: jest.fn(async () => ({})),
+            body: jest.fn(async () => ({})),
+        };
+        await render(
+            <ClientArea
+                api={fakeApi({ fetchProfile: jest.fn(async () => PROFILE) })}
+                linkSource={NO_LINK}
+                progressApi={progressApi}
+                historyApi={{
+                    history: jest.fn(),
+                    records: jest.fn(async () => []),
+                    addRecord: jest.fn(),
+                    searchExercises: jest.fn(),
+                }}
+            />,
+        );
+
+        await user.press(await screen.findByRole('button', { name: 'Minha evolução' }));
+        expect(await screen.findByText('Aderência: 1 de 2 treinos esperados (50%)')).toBeOnTheScreen();
+        await user.press(screen.getByRole('button', { name: 'Ver recordes' }));
+        expect(await screen.findByRole('header', { name: 'Recordes' })).toBeOnTheScreen();
     });
 });

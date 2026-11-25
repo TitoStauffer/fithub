@@ -3,6 +3,9 @@ import {
     OfflineError,
     confirmMealPhoto,
     fetchMealPlanToday,
+    fetchMyBodySeries,
+    fetchMyDietProgress,
+    fetchMyTrainingProgress,
     fetchMyProfile,
     logMeal,
     nutritionUrl,
@@ -162,5 +165,23 @@ describe('api do nutrition-service', () => {
         nutritionUrl(BASE, 'put', '/me/meal-log/{logId}', { logId: 'x' });
         // @ts-expect-error a rota existe, mas não aceita POST
         nutritionUrl(BASE, 'post', '/me/meal-logs/{logId}', { logId: 'x' });
+    });
+});
+
+describe('api da evolução (DEV-0096)', () => {
+    it('pede o treino, a dieta e o corpo do próprio cliente nas rotas do contrato', async () => {
+        const urls: string[] = [];
+        const capture = async (url: string) => {
+            urls.push(url);
+            return json(200, {});
+        };
+        await fetchMyTrainingProgress(capture, '2026-10-29', BASE);
+        await fetchMyDietProgress(capture, '2026-10-29', BASE);
+        await fetchMyBodySeries(capture, BASE);
+        expect(urls).toEqual([
+            `${BASE}/me/progress/training?from=2026-10-29`,
+            `${BASE}/me/progress/nutrition?from=2026-10-29`,
+            `${BASE}/clients/me/assessments/series`,
+        ]);
     });
 });

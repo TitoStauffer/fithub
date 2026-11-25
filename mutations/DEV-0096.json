@@ -1,0 +1,215 @@
+{
+    "issue": "DEV-0096",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O exercício sem treino no período passa a aparecer na escolha",
+            "area": "apps",
+            "file": "apps/mobile/src/features/progress/MyProgressScreen.tsx",
+            "find": ".filter((item) => (item.points ?? []).length > 0)",
+            "replace": ".filter(() => true)",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Sem ficha no período, o treino deixa de dizer o que falta",
+            "area": "apps",
+            "file": "apps/mobile/src/features/progress/MyProgressScreen.tsx",
+            "find": "{trainingAdherence && trainingAdherence.percent === undefined ? (",
+            "replace": "{false ? (",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Sem plano no período, a dieta deixa de dizer o que falta",
+            "area": "apps",
+            "file": "apps/mobile/src/features/progress/MyProgressScreen.tsx",
+            "find": "{dietAdherence && dietAdherence.percent === undefined ? (",
+            "replace": "{false ? (",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Trocar de exercício deixa de mudar a carga mostrada",
+            "area": "apps",
+            "file": "apps/mobile/src/features/progress/MyProgressScreen.tsx",
+            "find": "onToggle={setExerciseId}",
+            "replace": "onToggle={() => undefined}",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O erro da dieta deixa de oferecer tentar de novo",
+            "area": "apps",
+            "file": "apps/mobile/src/features/progress/MyProgressScreen.tsx",
+            "find": "Boolean(training.error ?? diet.error ?? body.error)",
+            "replace": "Boolean(training.error)",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Sem erro, a tela passa a oferecer tentar de novo; com erro, deixa de oferecer",
+            "area": "apps",
+            "file": "apps/mobile/src/features/progress/MyProgressScreen.tsx",
+            "find": "{failed ? (",
+            "replace": "{!failed ? (",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "O corpo passa a recarregar a cada troca de período",
+            "area": "apps",
+            "file": "apps/mobile/src/features/progress/MyProgressScreen.tsx",
+            "find": "useBlock<BodySeries>(() => api.body(), String(attempt))",
+            "replace": "useBlock<BodySeries>(() => api.body(), `${from}:${attempt}`)",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "O período passa a ter um dia a mais",
+            "area": "apps",
+            "file": "apps/mobile/src/features/progress/progressApi.ts",
+            "find": "weeks * 7 - 1",
+            "replace": "weeks * 7",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "A medida sem valor passa a entrar no resumo",
+            "area": "apps",
+            "file": "apps/mobile/src/features/progress/progressApi.ts",
+            "find": ".filter((row) => row.points.some((point) => point.value !== undefined))",
+            "replace": ".filter(() => true)",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "A medida com uma medição passa a mostrar variação zero",
+            "area": "apps",
+            "file": "apps/mobile/src/features/progress/progressApi.ts",
+            "find": "if (measured.length === 1) return",
+            "replace": "if (false) return",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "A variação passa a ser do último para o primeiro",
+            "area": "apps",
+            "file": "apps/mobile/src/features/progress/progressApi.ts",
+            "find": "((last.value ?? 0) - (first.value ?? 0))",
+            "replace": "((first.value ?? 0) - (last.value ?? 0))",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "A variação perde o sinal",
+            "area": "apps",
+            "file": "apps/mobile/src/features/progress/progressApi.ts",
+            "find": "delta > 0 ? '+' : delta < 0 ? '−' : ''",
+            "replace": "''",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M13",
+            "description": "O atalho dos recordes passa a voltar para o início",
+            "area": "apps",
+            "file": "apps/mobile/src/features/profile/ClientArea.tsx",
+            "find": "onRecords={() => setScreen('records')}",
+            "replace": "onRecords={() => setScreen('home')}",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M14",
+            "description": "A evolução do treino passa a ir sem o início do período",
+            "area": "apps",
+            "file": "apps/mobile/src/lib/api.ts",
+            "find": "/me/progress/training?from=${encodeURIComponent(from)}",
+            "replace": "/me/progress/training",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}
