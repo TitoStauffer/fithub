@@ -1,6 +1,7 @@
 import type { TrainingServiceComponents } from '@fithub/api-types';
 
 import { problem } from './api';
+import { AccessEndedError } from './clientApi';
 import type { ApiFetch } from './http';
 
 type Schemas = TrainingServiceComponents['schemas'];
@@ -20,6 +21,8 @@ export type BodyRegion = NonNullable<WorkoutPlanAlert['region']>;
 export type MobilityRestriction = Schemas['MobilityRestriction'];
 export type MobilityRestrictionInput = Schemas['MobilityRestrictionInput'];
 export type ExpiringPlan = Schemas['ExpiringPlan'];
+export type TrainingProgress = Schemas['TrainingProgress'];
+export type ExerciseRecords = Schemas['ExerciseRecords'];
 
 /** Filtros da busca (DEV-0055); campo vazio não filtra. */
 export interface ExerciseSearch {
@@ -136,6 +139,18 @@ export function trainingApi(apiFetch: ApiFetch, baseUrl: string) {
                 }),
             );
         },
+        /** Aderência e evolução de carga do aluno vinculado de `from` até hoje (DEV-0091); sem vínculo, acesso acabou. */
+        async clientProgress(clientId: string, from: string): Promise<TrainingProgress> {
+            return readLinked(
+                url(
+                    `/clients/${encodeURIComponent(clientId)}/progress/training?from=${encodeURIComponent(from)}`,
+                ),
+            );
+        },
+        /** Recordes do aluno vinculado por exercício (DEV-0083). */
+        async clientRecords(clientId: string): Promise<ExerciseRecords[]> {
+            return readLinked(url(`/clients/${encodeURIComponent(clientId)}/records`));
+        },
         async plan(planId: string): Promise<WorkoutPlan> {
             return json(await apiFetch(planUrl(planId), { headers: { Accept: 'application/json' } }));
         },
@@ -167,6 +182,12 @@ export function trainingApi(apiFetch: ApiFetch, baseUrl: string) {
             );
         },
     };
+
+    async function readLinked<T>(target: string): Promise<T> {
+        const response = await apiFetch(target, { headers: { Accept: 'application/json' } });
+        if (response.status === 404) throw new AccessEndedError();
+        return json(response);
+    }
 }
 
 export type TrainingApi = ReturnType<typeof trainingApi>;

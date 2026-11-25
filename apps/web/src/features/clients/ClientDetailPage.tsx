@@ -10,6 +10,7 @@ import { MealPlansSection } from '@/features/mealPlans/MealPlansSection';
 import { PlansSection } from '@/features/plans/PlansSection';
 import { RestrictionsSection } from '@/features/restrictions/RestrictionsSection';
 import { PhotoComparison } from '@/features/assessments/PhotoComparison';
+import { ClientProgressSection } from '@/features/progress/ClientProgressSection';
 import { AccessEndedError } from '@/lib/clientApi';
 
 import { CONDITIONS, GENDERS, GOALS, messageOf } from './messages';
@@ -109,6 +110,7 @@ export function ClientDetailPage() {
             {profile.data ? <PhotoComparison clientId={clientId} /> : null}
             {profile.data && personal ? <RestrictionsSection clientId={clientId} /> : null}
             {profile.data && personal ? <PlansSection clientId={clientId} /> : null}
+            {profile.data && personal ? <ClientProgressSection clientId={clientId} /> : null}
             {profile.data && nutritionist ? <FoodRestrictionsSection clientId={clientId} /> : null}
             {profile.data && nutritionist ? <MealPlansSection clientId={clientId} /> : null}
             {profile.data && linkId ? (
