@@ -47,12 +47,14 @@ export function DeleteAccountScreen({
             </Text>
             <Text>
                 Isto apaga de vez seu perfil, seu perfil de saúde, suas avaliações e fotos, seus treinos,
-                refeições e recordes, suas restrições, sua ficha própria, seus vínculos e seu login. Não há
-                como desfazer nem recuperar a conta.
+                refeições e recordes, suas restrições, sua ficha própria, seus vínculos e seu login (a menos
+                que você também use o FitHub como profissional: aí o login fica, para o lado profissional).
+                Não há como desfazer nem recuperar a conta.
             </Text>
             <Text>
                 As fichas e os planos que seus profissionais criaram continuam com eles, sem nada que
-                identifique você.
+                identifique você. O registro de quais profissionais leram seus dados de saúde, sem o conteúdo,
+                fica guardado por 6 meses, como exige a lei.
             </Text>
             <Field
                 label={`Para confirmar, digite ${CONFIRMATION_WORD}`}

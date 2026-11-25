@@ -105,6 +105,36 @@
                 "run",
                 "test"
             ]
+        },
+        {
+            "id": "M8",
+            "description": "Sem outro destino, a exclusão deixa de encerrar a sessão",
+            "area": "apps",
+            "file": "apps/mobile/src/features/profile/ClientArea.tsx",
+            "find": "onDeleted={onAccountDeleted ?? (() => void session.signOut())}",
+            "replace": "onDeleted={onAccountDeleted ?? (() => undefined)}",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "A tela deixa de avisar que o login fica para quem também é profissional",
+            "area": "apps",
+            "file": "apps/mobile/src/features/account/DeleteAccountScreen.tsx",
+            "find": "aí o login fica",
+            "replace": "o login sai",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
         }
     ]
 }

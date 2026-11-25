@@ -182,7 +182,8 @@ está no ADR-007.
 
 - Na tela inicial, **Excluir minha conta** abre a explicação do [ADR-012](../../docs/00-oficial/adr/ADR-012-retencao-e-exclusao.md):
   o que é apagado de vez, que não há volta e que as fichas e os planos dos profissionais ficam sem identificar o
-  cliente.
+  cliente. Avisa também que, na conta que também é de profissional, o login fica, e que o registro de leituras da
+  saúde fica 6 meses.
 - O botão só habilita depois que o cliente digita **EXCLUIR** (sem diferenciar maiúsculas nem espaços nas pontas).
 - Chama `DELETE /clients/me` (DEV-0105). Com sucesso, encerra a sessão (`signOut`: apaga a local e tenta revogar
   no Keycloak, sem falhar se o login já saiu). Com erro, mostra a mensagem e deixa tentar de novo.

@@ -6,7 +6,11 @@ import type { ProfileApi } from '../profile/profileApi';
 import { isConfirmed, type AccountApi } from './accountApi';
 import { DeleteAccountScreen } from './DeleteAccountScreen';
 
-jest.mock('../auth/SessionProvider', () => ({ useSession: () => ({ apiFetch: jest.fn() }) }));
+// A sessão do mock registra o signOut: é ele que encerra a sessão depois da exclusão, quando a tela não recebe outro.
+const mockSignOut = jest.fn(async () => undefined);
+jest.mock('../auth/SessionProvider', () => ({
+    useSession: () => ({ apiFetch: jest.fn(), session: { signOut: mockSignOut } }),
+}));
 jest.mock('expo-secure-store', () => ({ __esModule: true }));
 jest.mock('expo-auth-session', () => ({ __esModule: true }));
 
@@ -62,6 +66,8 @@ describe('DeleteAccountScreen', () => {
         expect(screen.getByText(/apaga de vez seu perfil, seu perfil de saúde/)).toBeOnTheScreen();
         expect(screen.getByText(/Não há como desfazer nem recuperar a conta/)).toBeOnTheScreen();
         expect(screen.getByText(/continuam com eles, sem nada que identifique você/)).toBeOnTheScreen();
+        expect(screen.getByText(/também use o FitHub como profissional: aí o login fica/)).toBeOnTheScreen();
+        expect(screen.getByText(/fica guardado por 6 meses/)).toBeOnTheScreen();
     });
 
     it('só exclui depois que o cliente digita a confirmação', async () => {
@@ -145,5 +151,19 @@ describe('ClientArea', () => {
 
         expect(api.deleteAccount).toHaveBeenCalledTimes(1);
         expect(onAccountDeleted).toHaveBeenCalledTimes(1);
+    });
+
+    it('sem outro destino, encerra a sessão pelo signOut depois da exclusão', async () => {
+        const user = userEvent.setup();
+        mockSignOut.mockClear();
+        const api = account();
+        await render(<ClientArea api={profileApi} linkSource={noLinks} accountApi={api} />);
+
+        await user.press(await screen.findByRole('button', { name: 'Excluir minha conta' }));
+        await user.type(screen.getByLabelText(CONFIRM_LABEL), 'EXCLUIR');
+        await user.press(deleteButton());
+
+        expect(api.deleteAccount).toHaveBeenCalledTimes(1);
+        expect(mockSignOut).toHaveBeenCalledTimes(1);
     });
 });
