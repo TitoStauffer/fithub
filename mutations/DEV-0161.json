@@ -1,0 +1,145 @@
+{
+    "issue": "DEV-0161",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "A conta que também é de profissional passa a perder o login",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/RemoveDeletedLogin.java",
+            "find": "if (professionals.findByAccountId(clientId.toString()).isPresent()) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletedConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O login deixa de ser apagado",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/RemoveDeletedLogin.java",
+            "find": "        logins.delete(clientId);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletedConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "A reentrega passa a apagar de novo",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/messaging/ClientEventsListener.java",
+            "find": "processedEvents.processOnce(QUEUE, message, () -> removeDeletedLogin.accountDeleted(event.clientId()));",
+            "replace": "removeDeletedLogin.accountDeleted(event.clientId());",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletedConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "O evento de outra routing key passa a ser consumido",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/messaging/ClientEventsListener.java",
+            "find": "if (!ACCOUNT_DELETED.equals(message.getMessageProperties().getReceivedRoutingKey())) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsListenerGuardsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O evento sem clientId passa a ser consumido",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/messaging/ClientEventsListener.java",
+            "find": "event.clientId() == null || ",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsListenerGuardsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "O evento sem occurredAt passa a ser consumido",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/messaging/ClientEventsListener.java",
+            "find": " || event.occurredAt() == null",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsListenerGuardsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Usuário já ausente no Keycloak passa a falhar o consumo",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/keycloak/KeycloakProfessionalRoles.java",
+            "find": "catch (HttpClientErrorException.NotFound alreadyGone)",
+            "replace": "catch (HttpClientErrorException.Conflict alreadyGone)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=KeycloakProfessionalRolesTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

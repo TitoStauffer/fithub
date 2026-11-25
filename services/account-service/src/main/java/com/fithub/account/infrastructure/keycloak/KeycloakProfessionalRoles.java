@@ -1,6 +1,7 @@
 package com.fithub.account.infrastructure.keycloak;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fithub.account.domain.login.LoginAccounts;
 import com.fithub.account.domain.professional.Professional;
 import com.fithub.account.domain.professional.ProfessionalRoles;
 import java.net.http.HttpClient;
@@ -14,18 +15,21 @@ import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
 /**
- * Atribui o papel de profissional pela API de administração do Keycloak (DEV-0029, ADR-008), com o
- * client confidencial {@code fithub-account-service} em client credentials.
+ * Atribui o papel de profissional (DEV-0029, ADR-008) e apaga o login de quem excluiu a conta (DEV-0161, ADR-012)
+ * pela API de administração do Keycloak, com o client confidencial {@code fithub-account-service} em client
+ * credentials.
  *
  * <p>O Keycloak deixa esse client atribuir qualquer papel do realm. A trava está aqui: o único papel que
  * este adaptador atribui é o do tipo de profissional pedido, e o id da conta precisa ser um UUID (o
- * {@code sub} do Keycloak), para não montar caminho arbitrário na API.
+ * {@code sub} do Keycloak), para não montar caminho arbitrário na API. A exclusão só chega aqui pelo
+ * {@code ContaExcluida} do client-service, e nunca para conta de profissional.
  */
 @Component
-class KeycloakProfessionalRoles implements ProfessionalRoles {
+class KeycloakProfessionalRoles implements ProfessionalRoles, LoginAccounts {
 
     /** Os únicos papéis que o account-service pode atribuir (ADR-007). */
     static final Map<Professional.Type, String> ROLE_BY_TYPE =
@@ -94,6 +98,20 @@ class KeycloakProfessionalRoles implements ProfessionalRoles {
                 .body(List.of(new RoleRepresentation(representation.id(), role)))
                 .retrieve()
                 .toBodilessEntity();
+    }
+
+    @Override
+    public void delete(UUID accountId) {
+        String token = accessToken();
+        try {
+            http.delete()
+                    .uri("/admin/realms/{realm}/users/{userId}", settings.realm(), accountId)
+                    .header("Authorization", "Bearer " + token)
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (HttpClientErrorException.NotFound alreadyGone) {
+            // Já apagada (reentrega, ou a pessoa nunca chegou a existir no Keycloak): nada a fazer.
+        }
     }
 
     private String accessToken() {

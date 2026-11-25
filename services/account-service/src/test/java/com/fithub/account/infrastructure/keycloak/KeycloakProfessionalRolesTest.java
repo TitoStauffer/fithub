@@ -127,4 +127,40 @@ class KeycloakProfessionalRolesTest {
                 .isInstanceOf(RestClientException.class);
         keycloak.verify();
     }
+
+    @Test
+    void excluirApagaOUsuarioDaContaNoRealm() {
+        expectToken();
+        keycloak.expect(requestTo(BASE + "/admin/realms/fithub/users/" + USER))
+                .andExpect(method(HttpMethod.DELETE))
+                .andExpect(header("Authorization", "Bearer token-da-service-account"))
+                .andRespond(withNoContent());
+
+        roles.delete(java.util.UUID.fromString(USER));
+
+        keycloak.verify();
+    }
+
+    @Test
+    void usuarioQueJaNaoExisteContaComoApagado() {
+        expectToken();
+        keycloak.expect(requestTo(BASE + "/admin/realms/fithub/users/" + USER))
+                .andExpect(method(HttpMethod.DELETE))
+                .andRespond(withStatus(HttpStatus.NOT_FOUND));
+
+        roles.delete(java.util.UUID.fromString(USER));
+
+        keycloak.verify();
+    }
+
+    @Test
+    void falhaDoKeycloakNaExclusaoSobeParaOConsumoTentarDeNovo() {
+        expectToken();
+        keycloak.expect(requestTo(BASE + "/admin/realms/fithub/users/" + USER))
+                .andExpect(method(HttpMethod.DELETE))
+                .andRespond(withServerError());
+
+        assertThatThrownBy(() -> roles.delete(java.util.UUID.fromString(USER))).isInstanceOf(RestClientException.class);
+        keycloak.verify();
+    }
 }
