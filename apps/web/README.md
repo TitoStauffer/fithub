@@ -147,6 +147,16 @@ suba o Keycloak pelo compose de `infra/`). A decisão dos papéis e dos clients 
   campo continua só o rótulo para o leitor de tela).
 - **Configuração:** `VITE_NUTRITION_API_URL` (padrão `http://localhost:8084`); a origem entra em `apiOrigins()`.
 
+## Restrições alimentares do paciente (DEV-0086)
+
+- Na tela do paciente vinculado, a seção **Restrições alimentares** (só para o papel `nutritionist`) lista as
+  restrições com o tipo (alergia, intolerância ou preferência), a descrição e os termos, e permite adicionar, editar
+  e apagar com confirmação.
+- Os termos são digitados separados por vírgula. A validação espelha a da API: tipo obrigatório, descrição de 2 a 200
+  caracteres e de 1 a 10 termos de 2 a 40, sem repetir. O erro de campo da API (inclusive `terms[i]` e o limite de
+  30 restrições) aparece no formulário.
+- O personal não vê a seção (BR-03). O plano alimentar alerta o alimento com o termo de uma alergia ou intolerância.
+
 ## Editor de plano alimentar (DEV-0085)
 
 - Na tela do paciente vinculado, a seção **Planos alimentares** (só para o papel `nutritionist`) lista os planos com o

@@ -5,6 +5,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { AssessmentHistory } from '@/features/assessments/AssessmentHistory';
 import { useAuth } from '@/features/auth/authContext';
+import { FoodRestrictionsSection } from '@/features/foodRestrictions/FoodRestrictionsSection';
 import { MealPlansSection } from '@/features/mealPlans/MealPlansSection';
 import { PlansSection } from '@/features/plans/PlansSection';
 import { RestrictionsSection } from '@/features/restrictions/RestrictionsSection';
@@ -108,6 +109,7 @@ export function ClientDetailPage() {
             {profile.data ? <PhotoComparison clientId={clientId} /> : null}
             {profile.data && personal ? <RestrictionsSection clientId={clientId} /> : null}
             {profile.data && personal ? <PlansSection clientId={clientId} /> : null}
+            {profile.data && nutritionist ? <FoodRestrictionsSection clientId={clientId} /> : null}
             {profile.data && nutritionist ? <MealPlansSection clientId={clientId} /> : null}
             {profile.data && linkId ? (
                 <div className="space-y-2">

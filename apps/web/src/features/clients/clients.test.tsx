@@ -59,11 +59,11 @@ afterEach(() => {
     vi.unstubAllGlobals();
 });
 
-function renderAt(path: string) {
+function renderAt(path: string, role: 'personal' | 'nutritionist' = 'personal') {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     return render(
         <QueryClientProvider client={queryClient}>
-            <AuthProvider client={fakeAuthClient({ user: userWith('personal') })}>
+            <AuthProvider client={fakeAuthClient({ user: userWith(role) })}>
                 <MemoryRouter initialEntries={[path]}>
                     <Routes>
                         <Route path="/app" element={<ClientsPage />} />
@@ -203,6 +203,20 @@ describe('clientes', () => {
         expect(screen.getByText('Objetivo: Hipertrofia')).toBeInTheDocument();
         expect(await screen.findByText('Condições: Hipertensão')).toBeInTheDocument();
         expect(screen.getByText('Observações: joelho')).toBeInTheDocument();
+        // As restrições alimentares e os planos alimentares são só da nutricionista (BR-03).
+        expect(screen.queryByRole('region', { name: 'Restrições alimentares' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('region', { name: 'Planos alimentares' })).not.toBeInTheDocument();
+    });
+
+    it('a nutricionista vê as restrições alimentares e os planos alimentares do paciente', async () => {
+        reply('GET', '/professionals/me/clients', { status: 200, body: CLIENTS });
+        reply('GET', `/professionals/me/clients/${CLIENT}/profile`, { status: 200, body: PROFILE });
+        reply('GET', `/professionals/me/clients/${CLIENT}/health`, { status: 200, body: HEALTH });
+        renderAt(`/app/clientes/${CLIENT}`, 'nutritionist');
+
+        expect(await screen.findByRole('region', { name: 'Restrições alimentares' })).toBeInTheDocument();
+        expect(screen.getByRole('region', { name: 'Planos alimentares' })).toBeInTheDocument();
+        expect(screen.queryByRole('region', { name: 'Restrições de mobilidade' })).not.toBeInTheDocument();
     });
 
     it('cliente que ainda não informou a saúde não é confundido com acesso encerrado', async () => {
