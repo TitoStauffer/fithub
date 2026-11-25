@@ -28,6 +28,7 @@ Código, migrations, workflows e testes continuam sendo a evidência executável
 | [adr/](adr/README.md) | Decisões de arquitetura (ADR-001 a ADR-005: microsserviços, Java 25/Boot 4, RabbitMQ + outbox, Keycloak, deploy) |
 | [revisao-automatizada.md](revisao-automatizada.md) | Como os bots decidem trilho, contexto e merge, com links para o código |
 | [aprendizados/](aprendizados/README.md) | Problemas confirmados em Code Review e como evitá-los |
+| [legal/](legal/README.md) | Termos de uso, política de privacidade e termo de consentimento, versionados (rascunho para revisão jurídica) |
 
 As regras de trabalho (git, PR, merge, papéis, revisão) estão no
 `AGENTS.md` da raiz.
