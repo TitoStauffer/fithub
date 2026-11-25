@@ -180,6 +180,66 @@
                 "-Dtest=SubscriptionMigrationTest",
                 "-Dsurefire.failIfNoSpecifiedTests=false"
             ]
+        },
+        {
+            "id": "M10",
+            "description": "O banco passa a aceitar plano fora da lista",
+            "area": "java",
+            "file": "services/account-service/src/main/resources/db/migration/V5__assinatura.sql",
+            "find": "constraint ck_subscription_plan check (plan in ('PROFESSIONAL_MONTHLY')),",
+            "replace": "constraint ck_subscription_plan check (true),",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "O banco passa a aceitar teste que acaba no instante do cadastro",
+            "area": "java",
+            "file": "services/account-service/src/main/resources/db/migration/V5__assinatura.sql",
+            "find": "check (trial_ends_at > created_at)",
+            "replace": "check (trial_ends_at >= created_at)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "O teste grátis configurado com zero dias passa a subir",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/RegisterProfessional.java",
+            "find": "if (trialDays < 1) {",
+            "replace": "if (trialDays < 0) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=RegisterProfessionalSettingsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
         }
     ]
 }

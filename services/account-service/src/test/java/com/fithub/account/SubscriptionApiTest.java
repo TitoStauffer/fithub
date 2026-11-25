@@ -1,6 +1,7 @@
 package com.fithub.account;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -16,11 +17,13 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.security.oauth2.jwt.BadJwtException;
@@ -107,7 +110,8 @@ class SubscriptionApiTest extends ServiceIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.plan").value("PROFESSIONAL_MONTHLY"))
                 .andExpect(jsonPath("$.status").value("TRIAL"))
-                .andExpect(jsonPath("$.paidUntil").doesNotExist())
+                // Nulo, não ausente: o campo vem no corpo (Code Review do PR #285).
+                .andExpect(jsonPath("$.paidUntil").value(Matchers.nullValue()))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
@@ -135,6 +139,38 @@ class SubscriptionApiTest extends ServiceIntegrationTest {
         mvc.perform(get("/professionals/me/subscription").header("Authorization", "Bearer conta-" + account))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("TRIAL"));
+    }
+
+    @Test
+    void bancoRecusaPlanoForaDaListaETesteQueNaoPassaDoCadastroMesmoPorEscritaDireta() throws Exception {
+        UUID professional = UUID.fromString(registered());
+        jdbc.sql("delete from subscription where professional_id = :id")
+                .param("id", professional)
+                .update();
+        String insert = """
+                insert into subscription (professional_id, plan, trial_ends_at, paid_until, created_at)
+                values (:id, :plan, now() + make_interval(days => :days), null, now())
+                """;
+        assertThatThrownBy(() -> jdbc.sql(insert)
+                        .param("id", professional)
+                        .param("plan", "PROFESSIONAL_YEARLY")
+                        .param("days", 14)
+                        .update())
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("ck_subscription_plan");
+        // O fim do teste precisa ser depois do cadastro: no mesmo instante, recusa.
+        assertThatThrownBy(() -> jdbc.sql(insert)
+                        .param("id", professional)
+                        .param("plan", "PROFESSIONAL_MONTHLY")
+                        .param("days", 0)
+                        .update())
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("ck_subscription_trial");
+        jdbc.sql(insert)
+                .param("id", professional)
+                .param("plan", "PROFESSIONAL_MONTHLY")
+                .param("days", 1)
+                .update();
     }
 
     @Test

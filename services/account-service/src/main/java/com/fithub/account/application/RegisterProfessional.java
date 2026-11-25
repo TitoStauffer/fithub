@@ -52,6 +52,10 @@ public class RegisterProfessional {
         this.transaction = transaction;
         this.clock = clock;
         this.subscriptions = subscriptions;
+        // Configuração errada falha na subida, não como 500 em cada cadastro (Code Review do PR #285).
+        if (trialDays < 1) {
+            throw new IllegalArgumentException("fithub.subscription.trial-days precisa ser de pelo menos 1 dia.");
+        }
         this.trial = Duration.ofDays(trialDays);
     }
 

@@ -37,7 +37,7 @@ class SubscriptionController {
 
             Instant trialEndsAt,
 
-            @Schema(description = "Até quando o período pago vale; ausente enquanto nada foi pago.", nullable = true)
+            @Schema(description = "Até quando o período pago vale; nulo enquanto nada foi pago.", nullable = true)
             Instant paidUntil,
 
             @Schema(description = "Até quando o profissional pode prescrever: o maior entre o teste e o pago.")

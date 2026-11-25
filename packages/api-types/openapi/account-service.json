@@ -126,7 +126,7 @@
       "Subscription" : {
         "properties" : {
           "paidUntil" : {
-            "description" : "Até quando o período pago vale; ausente enquanto nada foi pago.",
+            "description" : "Até quando o período pago vale; nulo enquanto nada foi pago.",
             "format" : "date-time",
             "type" : [ "string", "null" ]
           },

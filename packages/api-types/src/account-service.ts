@@ -104,7 +104,7 @@ export interface components {
         Subscription: {
             /**
              * Format: date-time
-             * @description Até quando o período pago vale; ausente enquanto nada foi pago.
+             * @description Até quando o período pago vale; nulo enquanto nada foi pago.
              */
             paidUntil?: string | null;
             /** @enum {string} */
