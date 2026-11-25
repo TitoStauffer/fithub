@@ -166,3 +166,14 @@ está no ADR-007.
   não duplicam. Depois do dia, o 409 da API aparece como aviso.
 - A foto vai direto à URL pré-assinada, sem o token. A foto tirada pela câmera é apagada do aparelho depois do envio; a
   da galeria é da pessoa e fica.
+
+## Minha evolução (DEV-0096)
+
+- "Minha evolução", na tela inicial, mostra no período de 4, 8 ou 12 semanas até hoje:
+    - **treino:** a aderência (feitos contra esperados) e, do exercício escolhido entre os que têm treino no período,
+      a maior carga e o volume de cada treino, com o atalho "Ver recordes";
+    - **dieta:** a aderência (refeições feitas contra prescritas, a parcial vale meia);
+    - **corpo**, de todo o histórico: o primeiro valor, o último e a variação do peso, de cada circunferência e do
+      % de gordura de cada método, sem comparar métodos entre si (BR-12).
+- Sem ficha, sem plano ou sem avaliação, o bloco diz o que falta. O erro de um bloco não derruba os outros, e
+  "Tentar de novo" recarrega.

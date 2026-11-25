@@ -14,6 +14,8 @@ import { MealLogScreen } from '../meals/MealLogScreen';
 import { expoMealPhotoSource, type MealPhotoSource } from '../meals/mealPhotoSource';
 import { TodayMealsScreen } from '../meals/TodayMealsScreen';
 import { mealsApiFrom, type MealsApi } from '../meals/mealsApi';
+import { MyProgressScreen } from '../progress/MyProgressScreen';
+import { progressApiFrom, type ProgressApi } from '../progress/progressApi';
 import { HistoryScreen } from '../workouts/HistoryScreen';
 import { OwnPlanScreen } from '../workouts/OwnPlanScreen';
 import { ownPlanApiFrom, type OwnPlanApi } from '../workouts/ownPlanForm';
@@ -48,7 +50,8 @@ type Screen =
     | 'records'
     | 'ownPlan'
     | 'meals'
-    | 'mealLog';
+    | 'mealLog'
+    | 'progress';
 
 /** De onde chegam os links abertos pelo sistema (`fithub://convite/<token>`); injetável nos testes. */
 export interface LinkSource {
@@ -72,6 +75,7 @@ export function ClientArea({
     ownPlanApi: injectedOwnPlans,
     mealsApi: injectedMeals,
     mealPhotoSource = expoMealPhotoSource,
+    progressApi: injectedProgress,
 }: {
     api?: ProfileApi;
     linksApi?: LinksApi;
@@ -84,6 +88,7 @@ export function ClientArea({
     ownPlanApi?: OwnPlanApi;
     mealsApi?: MealsApi;
     mealPhotoSource?: MealPhotoSource;
+    progressApi?: ProgressApi;
 }) {
     const { apiFetch } = useSession();
     const api = useMemo(() => injected ?? profileApiFrom(apiFetch), [injected, apiFetch]);
@@ -109,6 +114,10 @@ export function ClientArea({
         [injectedOwnPlans, apiFetch],
     );
     const mealsApi = useMemo(() => injectedMeals ?? mealsApiFrom(apiFetch), [injectedMeals, apiFetch]);
+    const progressApi = useMemo(
+        () => injectedProgress ?? progressApiFrom(apiFetch),
+        [injectedProgress, apiFetch],
+    );
     // Refeição aberta no registro (DEV-0090): o plano de hoje como estava na tela e a posição da refeição.
     const [mealToLog, setMealToLog] = useState<{ today: MealPlanToday; position: number }>();
     // Treino aberto no registro por série (DEV-0071).
@@ -243,6 +252,15 @@ export function ClientArea({
         return <HistoryScreen api={historyApi} sessionApi={sessionApi} onDone={() => setScreen('home')} />;
     }
     if (screen === 'records') return <RecordsScreen api={historyApi} onDone={() => setScreen('home')} />;
+    if (screen === 'progress') {
+        return (
+            <MyProgressScreen
+                api={progressApi}
+                onRecords={() => setScreen('records')}
+                onDone={() => setScreen('home')}
+            />
+        );
+    }
     if (screen === 'compare') {
         return <PhotoComparisonScreen api={assessmentApi} onDone={() => setScreen('home')} />;
     }
@@ -266,6 +284,7 @@ export function ClientArea({
             <Button onPress={() => setScreen('meals')}>Refeições de hoje</Button>
             <Button onPress={() => setScreen('history')}>Histórico de treinos</Button>
             <Button onPress={() => setScreen('records')}>Recordes</Button>
+            <Button onPress={() => setScreen('progress')}>Minha evolução</Button>
             <Button onPress={() => setScreen('ownPlan')}>Minha ficha</Button>
             <Button onPress={() => setScreen('editProfile')}>Editar perfil</Button>
             <Button onPress={() => setScreen('health')}>Perfil de saúde</Button>

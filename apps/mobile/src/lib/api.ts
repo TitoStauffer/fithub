@@ -22,6 +22,13 @@ export type MealLog = NutritionSchemas['MealLog'];
 export type NutrientAmounts = NutritionSchemas['NutrientAmounts'];
 export type MealLogInput = NutritionSchemas['MealLogInput'];
 export type MealPhotoUpload = NutritionSchemas['MealPhotoUpload'];
+/** Evolução da dieta do próprio paciente (DEV-0092). */
+export type DietProgress = NutritionSchemas['DietProgress'];
+/** Evolução do treino do próprio aluno (DEV-0091). */
+export type TrainingProgress = TrainingSchemas['TrainingProgress'];
+/** Série da evolução corporal do próprio cliente (DEV-0093). */
+export type BodySeries = Schemas['BodySeries'];
+export type BodySeriesPoint = Schemas['BodySeriesPoint'];
 
 /** Ficha ativa do aluno com o próximo treino (DEV-0065), como o training-service devolve. */
 export type ActivePlan = TrainingSchemas['ActivePlan'];
@@ -463,4 +470,33 @@ export function fetchCatalogExercise(apiFetch: ApiFetch, exerciseId: string, bas
         apiFetch,
         `${baseUrl}/exercises/${encodeURIComponent(exerciseId)}`,
     );
+}
+
+/** Aderência e evolução de carga do próprio aluno de `from` (aaaa-mm-dd) até hoje (DEV-0091). */
+export async function fetchMyTrainingProgress(
+    apiFetch: ApiFetch,
+    from: string,
+    baseUrl = trainingApiUrl(),
+): Promise<TrainingProgress> {
+    return (
+        (await read<TrainingProgress>(
+            apiFetch,
+            `${baseUrl}/me/progress/training?from=${encodeURIComponent(from)}`,
+        )) ?? {}
+    );
+}
+
+/** Aderência à dieta do próprio paciente de `from` (aaaa-mm-dd) até hoje, em todos os planos (DEV-0092). */
+export async function fetchMyDietProgress(
+    apiFetch: ApiFetch,
+    from: string,
+    baseUrl = nutritionApiUrl(),
+): Promise<DietProgress> {
+    const url = `${nutritionUrl(baseUrl, 'get', '/me/progress/nutrition')}?from=${encodeURIComponent(from)}`;
+    return (await read<DietProgress>(apiFetch, url)) ?? {};
+}
+
+/** Peso, circunferências e % de gordura por método, de todo o histórico do próprio cliente (DEV-0093). */
+export async function fetchMyBodySeries(apiFetch: ApiFetch, baseUrl = clientApiUrl()): Promise<BodySeries> {
+    return (await read<BodySeries>(apiFetch, `${baseUrl}/clients/me/assessments/series`)) ?? {};
 }
