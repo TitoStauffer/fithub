@@ -14,6 +14,7 @@ que fazemos para não repeti-los.
 | Testes de integração (Testcontainers, contexto do Spring) | [testes-de-integracao.md](testes-de-integracao.md) |
 | Idempotência e posse de registros (id do cliente, upsert) | [idempotencia-e-posse.md](idempotencia-e-posse.md) |
 | Métricas sobre períodos (aderência, janelas de vigência) | [metricas-e-periodos.md](metricas-e-periodos.md) |
+| Política de privacidade e termos (o que listar) | [documentacao-legal.md](documentacao-legal.md) |
 
 Regras de registro: [AGENTS.md](../../../AGENTS.md), seção **Aprendizados**.
 

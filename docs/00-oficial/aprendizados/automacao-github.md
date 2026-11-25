@@ -127,6 +127,10 @@ confirmável se uma nota ligada pelo `context-map.json` citar esse código. Sem 
   - **Correção:** nota `docs/00-oficial/revisao-automatizada.md` cita o código do reviewer e entra pela
     rota de `AGENTS.md`/`tools/**` no `context-map.json`.
   - **Prevenção:** regra registrada na própria nota (seção "Contexto dos agentes").
+- **Revisão:** relatório INCONCLUSIVE do Code Review no PR #287 (SHA `237b51e`) — DEV-0103 (#95) · **PR:** #287
+  - **Impacto:** o PR afirmava que o termo de consentimento é idêntico ao `ConsentTerms.CURRENT_TEXT`, mas nenhuma nota citava o arquivo; o critério ficou sem evidência no trilho leve, onde o Code Review é a única conferência.
+  - **Correção:** o `termo-de-consentimento.md` cita o `ConsentTerms.java` por link relativo.
+  - **Prevenção:** documento do vault que afirma igualdade com código cita esse código por link relativo.
 
 ## aprovacao-vale-so-para-o-head
 
