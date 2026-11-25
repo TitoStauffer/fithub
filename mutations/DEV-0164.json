@@ -1,0 +1,110 @@
+{
+    "issue": "DEV-0164",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "A confirmação passa a valer com qualquer texto",
+            "area": "apps",
+            "file": "apps/mobile/src/features/account/accountApi.ts",
+            "find": "return typed.trim().toUpperCase() === CONFIRMATION_WORD;",
+            "replace": "return true;",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "A confirmação passa a exigir o texto sem espaços nas pontas",
+            "area": "apps",
+            "file": "apps/mobile/src/features/account/accountApi.ts",
+            "find": "typed.trim().toUpperCase()",
+            "replace": "typed.toUpperCase()",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "A confirmação passa a diferenciar maiúsculas",
+            "area": "apps",
+            "file": "apps/mobile/src/features/account/accountApi.ts",
+            "find": "typed.trim().toUpperCase()",
+            "replace": "typed.trim()",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "O botão de excluir passa a ficar habilitado sem a confirmação",
+            "area": "apps",
+            "file": "apps/mobile/src/features/account/DeleteAccountScreen.tsx",
+            "find": "disabled={!confirmed || deleting}",
+            "replace": "disabled={deleting}",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "A exclusão deixa de encerrar a sessão",
+            "area": "apps",
+            "file": "apps/mobile/src/features/account/DeleteAccountScreen.tsx",
+            "find": "            onDeleted();\n",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Depois de um erro, o botão continua travado",
+            "area": "apps",
+            "file": "apps/mobile/src/features/account/DeleteAccountScreen.tsx",
+            "find": "            setDeleting(false);\n",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "A tela inicial deixa de levar à exclusão",
+            "area": "apps",
+            "file": "apps/mobile/src/features/profile/ClientArea.tsx",
+            "find": "            <Button onPress={() => setScreen('deleteAccount')}>Excluir minha conta</Button>\n",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}
