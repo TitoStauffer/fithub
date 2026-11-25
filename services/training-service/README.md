@@ -227,3 +227,16 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   para o profissional e para o cliente (FR-06, BR-14).
 - Profissional de quem nenhum evento chegou não é bloqueado. Isso vale para quem se cadastrou antes desta entrega,
   porque o account-service só publica o evento no cadastro.
+
+## Exclusão do cliente (DEV-0162)
+
+O consumidor dos eventos do client-service também recebe o `ContaExcluida` (`client.account-deleted.v1`) e aplica o
+[ADR-012](../../docs/00-oficial/adr/ADR-012-retencao-e-exclusao.md), na transação do consumo idempotente:
+
+- **Sai de vez:** sessões e séries registradas (com os comentários), recordes manuais, restrições de mobilidade, a ficha própria e as projeções do cliente e dos vínculos.
+- **Fica:** as fichas dos personais, com todas as versões, com o id do cliente trocado por um id aleatório (o mesmo para todas
+  as prescrições dessa pessoa).
+- **Lista de contas excluídas** (`deleted_account`): só o id e a data, com expurgo a cada
+  `fithub.deleted-accounts.purge-interval` (padrão 6 h) do que passou de 30 dias.
+- O `VinculoEncerrado` da exclusão chega antes do `ContaExcluida` (mesma fila, ordem do outbox) e corta o acesso
+  mesmo que o consumo do segundo atrase.

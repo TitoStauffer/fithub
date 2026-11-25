@@ -1,0 +1,325 @@
+{
+    "issue": "DEV-0162",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "As séries registradas deixam de ser apagadas",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcClientErasure.java",
+            "find": "\"delete from workout_set where session_id in",
+            "replace": "\"select count(*) from workout_set where session_id in",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "As sessões deixam de ser apagadas",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcClientErasure.java",
+            "find": "jdbc.sql(\"delete from workout_session where client_id = :c\")",
+            "replace": "jdbc.sql(\"select count(*) from workout_session where client_id = :c\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Os recordes manuais deixam de ser apagados",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcClientErasure.java",
+            "find": "jdbc.sql(\"delete from manual_record where client_id = :c\")",
+            "replace": "jdbc.sql(\"select count(*) from manual_record where client_id = :c\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "As restrições de mobilidade deixam de ser apagadas",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcClientErasure.java",
+            "find": "jdbc.sql(\"delete from mobility_restriction where client_id = :c\")",
+            "replace": "jdbc.sql(\"select count(*) from mobility_restriction where client_id = :c\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "A ficha própria deixa de ser apagada",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcClientErasure.java",
+            "find": "\"delete from workout_plan where client_id = :c and author = 'CLIENT'\"",
+            "replace": "\"select count(*) from workout_plan where client_id = :c and author = 'CLIENT'\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "A exclusão passa a apagar também as fichas do personal",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcClientErasure.java",
+            "find": "\"delete from workout_plan where client_id = :c and author = 'CLIENT'\"",
+            "replace": "\"delete from workout_plan where client_id = :c and author = 'CLIENT' or personal_id is not null\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "As fichas do personal mantêm o id do cliente",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcClientErasure.java",
+            "find": "\"update workout_plan set client_id = :anonymous where client_id = :c\"",
+            "replace": "\"update workout_plan set client_id = client_id where client_id = :c and :anonymous is not null\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "A anonimização passa a alcançar as fichas de todos os clientes",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcClientErasure.java",
+            "find": "\"update workout_plan set client_id = :anonymous where client_id = :c\"",
+            "replace": "\"update workout_plan set client_id = :anonymous where client_id = :c or true\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "A projeção dos vínculos deixa de ser apagada",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcClientErasure.java",
+            "find": "jdbc.sql(\"delete from client_link where client_id = :c\")",
+            "replace": "jdbc.sql(\"select count(*) from client_link where client_id = :c\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "A projeção do cliente deixa de ser apagada",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcClientErasure.java",
+            "find": "jdbc.sql(\"delete from client where client_id = :c\")",
+            "replace": "jdbc.sql(\"select count(*) from client where client_id = :c\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "O id deixa de entrar na lista de contas excluídas",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcClientErasure.java",
+            "find": "insert into deleted_account (client_id, deleted_at) values (:c, :at)",
+            "replace": "select :c, :at",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "Outro evento da mesma conta passa a falhar no id já listado",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcClientErasure.java",
+            "find": "\n                        on conflict (client_id) do update set deleted_at = excluded.deleted_at",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M13",
+            "description": "O expurgo passa a ignorar o prazo de 30 dias",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/EraseDeletedClient.java",
+            "find": "clock.instant().minus(DELETED_ACCOUNT_RETENTION)",
+            "replace": "clock.instant()",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M14",
+            "description": "O ContaExcluida deixa de apagar o cliente",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/EraseDeletedClient.java",
+            "find": "        erasure.erase(clientId, occurredAt);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M15",
+            "description": "O ContaExcluida sem clientId passa a ser consumido",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/messaging/ClientEventsListener.java",
+            "find": "if (event.clientId() == null || event.occurredAt() == null) {\n            throw new AmqpRejectAndDontRequeueException(\"ContaExcluida",
+            "replace": "if (event.occurredAt() == null) {\n            throw new AmqpRejectAndDontRequeueException(\"ContaExcluida",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsListenerGuardsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M16",
+            "description": "O ContaExcluida sem occurredAt passa a ser consumido",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/messaging/ClientEventsListener.java",
+            "find": "if (event.clientId() == null || event.occurredAt() == null) {\n            throw new AmqpRejectAndDontRequeueException(\"ContaExcluida",
+            "replace": "if (event.clientId() == null) {\n            throw new AmqpRejectAndDontRequeueException(\"ContaExcluida",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsListenerGuardsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}
