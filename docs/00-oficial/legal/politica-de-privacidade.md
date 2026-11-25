@@ -16,6 +16,7 @@ Esta política explica como o FitHub trata dados pessoais, de acordo com a Lei G
 | Quem | Dados | Para quê |
 |---|---|---|
 | Todos | Nome e e-mail da conta | Login, recuperação de senha e avisos da conta |
+| Convidado | E-mail informado pelo profissional no convite, mesmo sem conta | Enviar o convite (vale 7 dias) |
 | Cliente | Data de nascimento, gênero, altura e objetivo | Perfil e cálculos (idade, % de gordura) |
 | Cliente | Perfil de saúde: condições e observações (dado sensível) | Orientar o profissional vinculado com segurança |
 | Cliente | Avaliações corporais e fotos de evolução (dado sensível) | Acompanhar a evolução |
@@ -55,13 +56,22 @@ Não coletamos IP nem identificador do aparelho no consentimento.
 - A comunicação é cifrada (HTTPS).
 - No celular, o app guarda a sessão só no cofre do sistema. A foto do prato escolhida da galeria continua na
   galeria, como antes.
-- Os acessos de profissionais a dados sensíveis são registrados.
+- As leituras do perfil de saúde pelo profissional são registradas, sem o conteúdo lido. O registro das leituras
+  de avaliações e fotos vem com a DEV-0106.
 
 ## 6. Por quanto tempo guardamos
 
-- Enquanto a conta existir.
-- Depois da exclusão da conta: **[prazo e o que é anonimizado a definir na DEV-0107, QUESTÃO-06]**.
-- Ficam apenas os registros exigidos por lei, pelo prazo legal.
+- **Enquanto a conta existir.**
+- **Quando você exclui a conta,** apagamos de vez, em minutos, tudo o que é seu: perfil, saúde, avaliações, fotos,
+  treinos e refeições registrados, recordes, restrições, ficha própria, vínculos, consentimentos e o login. Não há
+  prazo para desistir nem como recuperar a conta.
+- **As fichas e os planos que o profissional criou** continuam com ele, sem nada que identifique você.
+- **Cópias de segurança** guardam o dado apagado por no máximo 30 dias, até expirarem. Nesse prazo guardamos só o
+  identificador da conta excluída, para refazer a exclusão se uma cópia for restaurada.
+- **Registros técnicos** (logs) não levam dado pessoal e ficam 30 dias.
+- **Registros de acesso de profissionais** aos seus dados de saúde ficam 6 meses, como exige o Marco Civil da
+  Internet (art. 15), mesmo depois da exclusão. Eles guardam só quem acessou, o quê e quando, nunca o conteúdo.
+- Os detalhes estão no [ADR-012](../adr/ADR-012-retencao-e-exclusao.md).
 
 ## 7. Seus direitos
 

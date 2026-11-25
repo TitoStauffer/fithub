@@ -25,6 +25,8 @@ Estes pontos dependem do Tito e não travam o desenvolvimento:
 
 - **Revisão jurídica** dos três textos.
 - **Dados da empresa:** razão social, CNPJ, endereço e contato do encarregado (DPO). Estão marcados como `[a definir]`.
-- **Prazo de retenção** depois da exclusão da conta (QUESTÃO-06, DEV-0107).
+- **Retenção** depois da exclusão da conta: decidida pelo Agent na ausência do Tito, para revisão
+  ([ADR-012](../adr/ADR-012-retencao-e-exclusao.md), DEV-0107).
+- **Base legal das restrições** e do dado de saúde registrado pelo próprio cliente (débito DEV-0160, #288).
 - **Clientes menores de idade** (QUESTÃO-05). Enquanto ela estiver aberta, o produto exige 18 anos ou mais.
 - **Meio de pagamento** (QUESTÃO-01, DEV-0098), que entra como operador na política de privacidade.
