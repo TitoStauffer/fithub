@@ -65,6 +65,21 @@
         },
         "type" : "object"
       },
+      "ClientActivity" : {
+        "description" : "A última atividade de um aluno vinculado.",
+        "properties" : {
+          "clientId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "lastActivityAt" : {
+            "description" : "O último treino finalizado nas fichas do personal; ausente se não houver.",
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "ClientExercise" : {
         "description" : "O exercício como o aluno vê: nome, mídia e crédito.",
         "properties" : {
@@ -269,6 +284,43 @@
             "description" : "Quantos exercícios atendem à busca, somando todas as páginas.",
             "format" : "int64",
             "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "ExerciseProgress" : {
+        "description" : "A evolução de carga e volume de um exercício no período.",
+        "properties" : {
+          "exerciseId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "points" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ExerciseProgressPoint"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "ExerciseProgressPoint" : {
+        "description" : "Um treino com o exercício: a maior carga e o volume.",
+        "properties" : {
+          "date" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "maxLoadKg" : {
+            "description" : "Ausente se só houve série sem repetição.",
+            "type" : "number"
+          },
+          "volumeKg" : {
+            "description" : "Soma de carga vezes repetições.",
+            "type" : "number"
           }
         },
         "type" : "object"
@@ -759,6 +811,74 @@
           "versionNumber" : {
             "format" : "int32",
             "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "TrainingAdherence" : {
+        "description" : "Treinos finalizados contra esperados no período.",
+        "properties" : {
+          "done" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "expected" : {
+            "description" : "Treinos esperados: as divisões da ficha por semana, na proporção dos dias.",
+            "type" : "number"
+          },
+          "percent" : {
+            "description" : "Ausente sem treino esperado.",
+            "type" : "number"
+          },
+          "weeks" : {
+            "items" : {
+              "$ref" : "#/components/schemas/TrainingAdherenceWeek"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "TrainingAdherenceWeek" : {
+        "description" : "Uma semana do período: treinos feitos e esperados.",
+        "properties" : {
+          "done" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "end" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "expected" : {
+            "type" : "number"
+          },
+          "start" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "TrainingProgress" : {
+        "description" : "A evolução do treino no período (FR-56, FR-58).",
+        "properties" : {
+          "adherence" : {
+            "$ref" : "#/components/schemas/TrainingAdherence"
+          },
+          "exercises" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ExerciseProgress"
+            },
+            "type" : "array"
+          },
+          "from" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "to" : {
+            "format" : "date",
+            "type" : "string"
           }
         },
         "type" : "object"
@@ -1312,6 +1432,80 @@
         },
         "summary" : "Cria uma ficha em rascunho para o aluno vinculado",
         "tags" : [ "Fichas de treino" ]
+      }
+    },
+    "/clients/{clientId}/progress/training" : {
+      "get" : {
+        "operationId" : "getClientTrainingProgress",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "clientId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TrainingProgress"
+                }
+              }
+            },
+            "description" : "Aderência e evolução de carga e volume."
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Período invertido ou maior que 26 semanas; o campo vem em errors."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é de personal."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem vínculo ativo com o aluno."
+          }
+        },
+        "summary" : "A evolução do treino do aluno vinculado no período (padrão: últimas 4 semanas)",
+        "tags" : [ "Evolução do treino" ]
       }
     },
     "/clients/{clientId}/records" : {
@@ -2360,6 +2554,62 @@
         "tags" : [ "Fichas de treino" ]
       }
     },
+    "/me/progress/training" : {
+      "get" : {
+        "operationId" : "getMyTrainingProgress",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TrainingProgress"
+                }
+              }
+            },
+            "description" : "Aderência e evolução de carga e volume."
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Período invertido ou maior que 26 semanas; o campo vem em errors."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é de cliente."
+          }
+        },
+        "summary" : "A evolução do treino do aluno no período (padrão: últimas 4 semanas)",
+        "tags" : [ "Minha evolução" ]
+      }
+    },
     "/me/records" : {
       "get" : {
         "operationId" : "listMyRecords",
@@ -3310,6 +3560,38 @@
         "summary" : "Uma versão da ficha, pelo número",
         "tags" : [ "Fichas de treino" ]
       }
+    },
+    "/professionals/me/clients/activity" : {
+      "get" : {
+        "operationId" : "listClientTrainingActivity",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ClientActivity"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "Um item por aluno vinculado."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não é de personal."
+          }
+        },
+        "summary" : "A última atividade de cada aluno com vínculo ativo, nas fichas do personal",
+        "tags" : [ "Evolução do treino" ]
+      }
     }
   },
   "security" : [ {
@@ -3326,11 +3608,17 @@
     "description" : "Catálogo de exercícios e exercícios próprios do personal",
     "name" : "Exercícios"
   }, {
+    "description" : "A evolução do treino do aluno",
+    "name" : "Minha evolução"
+  }, {
     "description" : "Restrições de mobilidade do aluno",
     "name" : "Restrições de mobilidade"
   }, {
     "description" : "Fichas ativas, próximo treino e sessões do aluno",
     "name" : "Treino do aluno"
+  }, {
+    "description" : "Aderência, carga e volume, e a última atividade dos alunos",
+    "name" : "Evolução do treino"
   }, {
     "description" : "Fichas que o aluno monta para si",
     "name" : "Ficha própria"

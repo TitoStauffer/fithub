@@ -36,6 +36,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clients/{clientId}/progress/training": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A evolução do treino do aluno vinculado no período (padrão: últimas 4 semanas) */
+        get: operations["getClientTrainingProgress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/clients/{clientId}/records": {
         parameters: {
             query?: never;
@@ -228,6 +245,23 @@ export interface paths {
         };
         /** Uma versão publicada da ficha que o aluno recebeu */
         get: operations["version_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/progress/training": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A evolução do treino do aluno no período (padrão: últimas 4 semanas) */
+        get: operations["getMyTrainingProgress"];
         put?: never;
         post?: never;
         delete?: never;
@@ -479,6 +513,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/professionals/me/clients/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A última atividade de cada aluno com vínculo ativo, nas fichas do personal */
+        get: operations["listClientTrainingActivity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -514,6 +565,16 @@ export interface components {
             /** Format: uuid */
             exerciseId?: string;
             sets?: components["schemas"]["RecordedSet"][];
+        };
+        /** @description A última atividade de um aluno vinculado. */
+        ClientActivity: {
+            /** Format: uuid */
+            clientId?: string;
+            /**
+             * Format: date-time
+             * @description O último treino finalizado nas fichas do personal; ausente se não houver.
+             */
+            lastActivityAt?: string;
         };
         /** @description O exercício como o aluno vê: nome, mídia e crédito. */
         ClientExercise: {
@@ -609,6 +670,22 @@ export interface components {
              * @description Quantos exercícios atendem à busca, somando todas as páginas.
              */
             total?: number;
+        };
+        /** @description A evolução de carga e volume de um exercício no período. */
+        ExerciseProgress: {
+            /** Format: uuid */
+            exerciseId?: string;
+            name?: string;
+            points?: components["schemas"]["ExerciseProgressPoint"][];
+        };
+        /** @description Um treino com o exercício: a maior carga e o volume. */
+        ExerciseProgressPoint: {
+            /** Format: date */
+            date?: string;
+            /** @description Ausente se só houve série sem repetição. */
+            maxLoadKg?: number;
+            /** @description Soma de carga vezes repetições. */
+            volumeKg?: number;
         };
         /** @description Recordes de um exercício. */
         ExerciseRecords: {
@@ -864,6 +941,35 @@ export interface components {
             startedAt?: string;
             /** Format: int32 */
             versionNumber?: number;
+        };
+        /** @description Treinos finalizados contra esperados no período. */
+        TrainingAdherence: {
+            /** Format: int32 */
+            done?: number;
+            /** @description Treinos esperados: as divisões da ficha por semana, na proporção dos dias. */
+            expected?: number;
+            /** @description Ausente sem treino esperado. */
+            percent?: number;
+            weeks?: components["schemas"]["TrainingAdherenceWeek"][];
+        };
+        /** @description Uma semana do período: treinos feitos e esperados. */
+        TrainingAdherenceWeek: {
+            /** Format: int32 */
+            done?: number;
+            /** Format: date */
+            end?: string;
+            expected?: number;
+            /** Format: date */
+            start?: string;
+        };
+        /** @description A evolução do treino no período (FR-56, FR-58). */
+        TrainingProgress: {
+            adherence?: components["schemas"]["TrainingAdherence"];
+            exercises?: components["schemas"]["ExerciseProgress"][];
+            /** Format: date */
+            from?: string;
+            /** Format: date */
+            to?: string;
         };
         /** @description Divisão da ficha, na ordem da sequência. */
         WorkoutDivision: {
@@ -1195,6 +1301,58 @@ export interface operations {
                 };
             };
             /** @description A conta não é personal. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem vínculo ativo com o aluno. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getClientTrainingProgress: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path: {
+                clientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Aderência e evolução de carga e volume. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainingProgress"];
+                };
+            };
+            /** @description Período invertido ou maior que 26 semanas; o campo vem em errors. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é de personal. */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2053,6 +2211,47 @@ export interface operations {
             };
         };
     };
+    getMyTrainingProgress: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Aderência e evolução de carga e volume. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainingProgress"];
+                };
+            };
+            /** @description Período invertido ou maior que 26 semanas; o campo vem em errors. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é de cliente. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     listMyRecords: {
         parameters: {
             query?: never;
@@ -2820,6 +3019,35 @@ export interface operations {
             };
             /** @description A ficha ou a versão não existe, ou a ficha é de outro personal. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listClientTrainingActivity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Um item por aluno vinculado. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientActivity"][];
+                };
+            };
+            /** @description A conta não é de personal. */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -3,6 +3,7 @@ package com.fithub.training.infrastructure.persistence;
 import com.fithub.training.domain.access.LinkProjection;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -59,5 +60,17 @@ class JdbcLinkProjection implements LinkProjection {
                 .param("clientId", clientId)
                 .query(Boolean.class)
                 .single();
+    }
+
+    @Override
+    public List<UUID> activeClients(UUID professionalId) {
+        return jdbc.sql("""
+                        select client_id from client_link
+                        where professional_id = :professionalId and status = 'ACTIVE'
+                        order by activated_at
+                        """)
+                .param("professionalId", professionalId)
+                .query(UUID.class)
+                .list();
     }
 }
