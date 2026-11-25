@@ -14,6 +14,9 @@ export type FoodMeasure = Schemas['FoodMeasure'];
 export type FoodMeasureInput = Schemas['FoodMeasureInput'];
 export type BaseUnit = NonNullable<Food['baseUnit']>;
 export type MealPlan = Schemas['MealPlan'];
+export type FoodRestriction = Schemas['FoodRestriction'];
+export type FoodRestrictionInput = Schemas['FoodRestrictionInput'];
+export type FoodRestrictionKind = FoodRestrictionInput['kind'];
 export type MealPlanInput = Schemas['MealPlanInput'];
 export type MealItemAlert = Schemas['MealItemAlert'];
 export type NutrientAmounts = Schemas['NutrientAmounts'];
@@ -33,11 +36,16 @@ async function json<T>(response: Response): Promise<T> {
 
 const JSON_HEADERS = { Accept: 'application/json', 'Content-Type': 'application/json' };
 
-/** Base de alimentos (DEV-0074 a DEV-0078) e planos alimentares (DEV-0081 a DEV-0084) no nutrition-service. */
+/**
+ * Base de alimentos (DEV-0074 a DEV-0078), restrições alimentares (DEV-0080) e planos alimentares (DEV-0081 a DEV-0084)
+ * no nutrition-service.
+ */
 export function nutritionApi(apiFetch: ApiFetch, baseUrl: string) {
     const url = (path: string) => `${baseUrl}${path}`;
     const foodUrl = (id: string) => url(`/foods/${encodeURIComponent(id)}`);
     const mealPlanUrl = (id: string) => url(`/meal-plans/${encodeURIComponent(id)}`);
+    const restrictionsUrl = (clientId: string) =>
+        url(`/clients/${encodeURIComponent(clientId)}/food-restrictions`);
     return {
         async searchFoods(search: FoodSearch): Promise<FoodPage> {
             const params = new URLSearchParams();
@@ -89,6 +97,42 @@ export function nutritionApi(apiFetch: ApiFetch, baseUrl: string) {
                     body: JSON.stringify(body),
                 }),
             );
+        },
+        async listFoodRestrictions(clientId: string): Promise<FoodRestriction[]> {
+            return json(
+                await apiFetch(restrictionsUrl(clientId), { headers: { Accept: 'application/json' } }),
+            );
+        },
+        async createFoodRestriction(clientId: string, body: FoodRestrictionInput): Promise<FoodRestriction> {
+            return json(
+                await apiFetch(restrictionsUrl(clientId), {
+                    method: 'POST',
+                    headers: JSON_HEADERS,
+                    body: JSON.stringify(body),
+                }),
+            );
+        },
+        async updateFoodRestriction(
+            clientId: string,
+            restrictionId: string,
+            body: FoodRestrictionInput,
+        ): Promise<FoodRestriction> {
+            return json(
+                await apiFetch(`${restrictionsUrl(clientId)}/${encodeURIComponent(restrictionId)}`, {
+                    method: 'PUT',
+                    headers: JSON_HEADERS,
+                    body: JSON.stringify(body),
+                }),
+            );
+        },
+        async removeFoodRestriction(clientId: string, restrictionId: string): Promise<void> {
+            const response = await apiFetch(
+                `${restrictionsUrl(clientId)}/${encodeURIComponent(restrictionId)}`,
+                {
+                    method: 'DELETE',
+                },
+            );
+            if (!response.ok) throw await problem(response);
         },
         async listMealPlans(clientId: string): Promise<MealPlan[]> {
             return json(

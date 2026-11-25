@@ -1,0 +1,155 @@
+{
+    "issue": "DEV-0086",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Web: apagar a restrição deixa de pedir confirmação",
+            "area": "apps",
+            "file": "apps/web/src/features/foodRestrictions/FoodRestrictionsSection.tsx",
+            "find": "onClick={() => setConfirming(true)}>",
+            "replace": "onClick={() => remove.mutate()}>",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Web: a restrição sem tipo passa na validação espelhada",
+            "area": "apps",
+            "file": "apps/web/src/features/foodRestrictions/restrictionForm.ts",
+            "find": "if (!form.kind) errors.kind = 'Escolha o tipo.';",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Web: a descrição fora de 2 a 200 passa na validação espelhada",
+            "area": "apps",
+            "file": "apps/web/src/features/foodRestrictions/restrictionForm.ts",
+            "find": "if (description.length < LIMITS.minDescription || description.length > LIMITS.maxDescription) {",
+            "replace": "if (false) {",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Web: a restrição sem termo ou com mais de 10 passa na validação espelhada",
+            "area": "apps",
+            "file": "apps/web/src/features/foodRestrictions/restrictionForm.ts",
+            "find": "if (terms.length < 1 || terms.length > LIMITS.maxTerms) {",
+            "replace": "if (false) {",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Web: o termo fora de 2 a 40 passa na validação espelhada",
+            "area": "apps",
+            "file": "apps/web/src/features/foodRestrictions/restrictionForm.ts",
+            "find": "if (term.length < LIMITS.minTerm || term.length > LIMITS.maxTerm) {",
+            "replace": "if (false) {",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Web: o termo repetido passa na validação espelhada",
+            "area": "apps",
+            "file": "apps/web/src/features/foodRestrictions/restrictionForm.ts",
+            "find": "} else if (seen.has(term.toLowerCase())) {",
+            "replace": "} else if (false) {",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Web: a vírgula sobrando passa a virar termo vazio",
+            "area": "apps",
+            "file": "apps/web/src/features/foodRestrictions/restrictionForm.ts",
+            "find": ".filter((term) => term.length > 0);",
+            "replace": ";",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "Web: o erro da API num termo deixa de aparecer no campo dos termos",
+            "area": "apps",
+            "file": "apps/web/src/features/foodRestrictions/FoodRestrictionsSection.tsx",
+            "find": "key === 'terms' || key.startsWith('terms[')",
+            "replace": "key === 'terms'",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "Web: o limite de 30 restrições da API deixa de aparecer",
+            "area": "apps",
+            "file": "apps/web/src/features/foodRestrictions/FoodRestrictionsSection.tsx",
+            "find": "{errors.restrictions ? <p className=\"text-sm text-red-700\">{errors.restrictions}</p> : null}",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "Web: o personal passa a ver as restrições alimentares",
+            "area": "apps",
+            "file": "apps/web/src/features/clients/ClientDetailPage.tsx",
+            "find": "{profile.data && nutritionist ? <FoodRestrictionsSection clientId={clientId} /> : null}",
+            "replace": "{profile.data ? <FoodRestrictionsSection clientId={clientId} /> : null}",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}
