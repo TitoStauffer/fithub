@@ -83,7 +83,14 @@ const today: MealPlanToday = {
 };
 
 function api(overrides: Partial<MealsApi> = {}): MealsApi {
-    return { today: jest.fn(async () => today), ...overrides };
+    return {
+        today: jest.fn(async () => today),
+        log: jest.fn(),
+        requestPhotoUpload: jest.fn(),
+        uploadPhoto: jest.fn(),
+        confirmPhoto: jest.fn(),
+        ...overrides,
+    };
 }
 
 describe('refeições de hoje', () => {

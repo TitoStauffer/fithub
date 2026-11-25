@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Linking, StyleSheet, Text, View } from 'react-native';
 
-import type { ClientProfile } from '../../lib/api';
+import type { ClientProfile, MealPlanToday } from '../../lib/api';
 import { assessmentApiFrom, type AssessmentApi, type PhotoSource } from '../assessments/assessmentApi';
 import { expoPhotoSource } from '../assessments/expoPhotoSource';
 import { OnlineAssessmentScreen } from '../assessments/OnlineAssessmentScreen';
@@ -10,6 +10,8 @@ import { useSession } from '../auth/SessionProvider';
 import { AcceptInvitationScreen } from '../links/AcceptInvitationScreen';
 import { linksApiFrom, tokenFromUrl, type LinksApi } from '../links/linksApi';
 import { LinksScreen } from '../links/LinksScreen';
+import { MealLogScreen } from '../meals/MealLogScreen';
+import { expoMealPhotoSource, type MealPhotoSource } from '../meals/mealPhotoSource';
 import { TodayMealsScreen } from '../meals/TodayMealsScreen';
 import { mealsApiFrom, type MealsApi } from '../meals/mealsApi';
 import { HistoryScreen } from '../workouts/HistoryScreen';
@@ -45,7 +47,8 @@ type Screen =
     | 'history'
     | 'records'
     | 'ownPlan'
-    | 'meals';
+    | 'meals'
+    | 'mealLog';
 
 /** De onde chegam os links abertos pelo sistema (`fithub://convite/<token>`); injetável nos testes. */
 export interface LinkSource {
@@ -68,6 +71,7 @@ export function ClientArea({
     historyApi: injectedHistory,
     ownPlanApi: injectedOwnPlans,
     mealsApi: injectedMeals,
+    mealPhotoSource = expoMealPhotoSource,
 }: {
     api?: ProfileApi;
     linksApi?: LinksApi;
@@ -79,6 +83,7 @@ export function ClientArea({
     historyApi?: HistoryApi;
     ownPlanApi?: OwnPlanApi;
     mealsApi?: MealsApi;
+    mealPhotoSource?: MealPhotoSource;
 }) {
     const { apiFetch } = useSession();
     const api = useMemo(() => injected ?? profileApiFrom(apiFetch), [injected, apiFetch]);
@@ -104,6 +109,8 @@ export function ClientArea({
         [injectedOwnPlans, apiFetch],
     );
     const mealsApi = useMemo(() => injectedMeals ?? mealsApiFrom(apiFetch), [injectedMeals, apiFetch]);
+    // Refeição aberta no registro (DEV-0090): o plano de hoje como estava na tela e a posição da refeição.
+    const [mealToLog, setMealToLog] = useState<{ today: MealPlanToday; position: number }>();
     // Treino aberto no registro por série (DEV-0071).
     const [sessionId, setSessionId] = useState<string>();
     // Token do convite aberto pelo link (DEV-0042): vale depois do perfil, que o aceite exige.
@@ -197,7 +204,29 @@ export function ClientArea({
             />
         );
     }
-    if (screen === 'meals') return <TodayMealsScreen api={mealsApi} onDone={() => setScreen('home')} />;
+    if (screen === 'meals') {
+        return (
+            <TodayMealsScreen
+                api={mealsApi}
+                onLog={(today, position) => {
+                    setMealToLog({ today, position });
+                    setScreen('mealLog');
+                }}
+                onDone={() => setScreen('home')}
+            />
+        );
+    }
+    if (screen === 'mealLog' && mealToLog) {
+        return (
+            <MealLogScreen
+                api={mealsApi}
+                photos={mealPhotoSource}
+                today={mealToLog.today}
+                mealPosition={mealToLog.position}
+                onDone={() => setScreen('meals')}
+            />
+        );
+    }
     if (screen === 'ownPlan') return <OwnPlanScreen api={ownPlanApi} onDone={() => setScreen('home')} />;
     if (screen === 'session' && sessionId) {
         // Ao finalizar, volta ao treino de hoje, que relê a ficha e mostra o próximo treino.

@@ -1,0 +1,170 @@
+{
+    "issue": "DEV-0090",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Mobile: a correção passa a gerar outro id em vez de reaproveitar o do registro",
+            "area": "apps",
+            "file": "apps/mobile/src/features/meals/MealLogScreen.tsx",
+            "find": "existing?.id ?? newId()",
+            "replace": "newId()",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Mobile: escolher de novo o principal deixa de tirar a alternativa",
+            "area": "apps",
+            "file": "apps/mobile/src/features/meals/MealLogScreen.tsx",
+            "find": "if (alternative === undefined) delete next[item];",
+            "replace": "if (alternative === undefined) next[item] = alternative as never;",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Mobile: a refeição não feita passa a levar a alternativa escolhida antes",
+            "area": "apps",
+            "file": "apps/mobile/src/features/meals/MealLogScreen.tsx",
+            "find": "status === 'SKIPPED'\n",
+            "replace": "false\n",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Mobile: a foto tirada pela câmera passa a ficar no aparelho depois do envio",
+            "area": "apps",
+            "file": "apps/mobile/src/features/meals/MealLogScreen.tsx",
+            "find": "            if (shot?.fromCamera) await photos.discard(shot.uri).catch(() => undefined);\n            onDone(true);",
+            "replace": "            onDone(true);",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Mobile: a foto da galeria passa a ser apagada do aparelho",
+            "area": "apps",
+            "file": "apps/mobile/src/features/meals/MealLogScreen.tsx",
+            "find": "            if (shot?.fromCamera) await photos.discard(shot.uri).catch(() => undefined);\n            onDone(true);",
+            "replace": "            if (shot) await photos.discard(shot.uri).catch(() => undefined);\n            onDone(true);",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Mobile: o registro sem estado deixa de avisar o campo",
+            "area": "apps",
+            "file": "apps/mobile/src/features/meals/MealLogScreen.tsx",
+            "find": "        if (!status) found.status = 'Escolha como foi a refeição.';\n",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Mobile: o desvio acima de 500 passa na validação",
+            "area": "apps",
+            "file": "apps/mobile/src/features/meals/MealLogScreen.tsx",
+            "find": "if (deviation.trim().length > MAX_DEVIATION)",
+            "replace": "if (false)",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "Mobile: o 409 deixa de aparecer como aviso",
+            "area": "apps",
+            "file": "apps/mobile/src/features/meals/MealLogScreen.tsx",
+            "find": "failure.status === 409",
+            "replace": "failure.status === 999",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "Mobile: o erro de campo da API deixa de aparecer no formulário",
+            "area": "apps",
+            "file": "apps/mobile/src/features/meals/MealLogScreen.tsx",
+            "find": "Object.keys(failure.fieldErrors).length > 0",
+            "replace": "false",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "Mobile: o pedido de envio da foto passa a chamar uma rota que não é a do contrato",
+            "area": "apps",
+            "file": "apps/mobile/src/lib/api.ts",
+            "find": "'/me/meal-logs/{logId}/photo/upload-url'",
+            "replace": "'/me/meal-logs/{logId}/upload-url' as never",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "Mobile: o id do registro deixa de ser codificado na rota",
+            "area": "apps",
+            "file": "apps/mobile/src/lib/api.ts",
+            "find": "encodeURIComponent(params[name] ?? '')",
+            "replace": "params[name] ?? ''",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}

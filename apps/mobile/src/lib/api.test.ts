@@ -1,4 +1,15 @@
-import { ApiProblemError, OfflineError, fetchMyProfile, putToPresignedUrl, saveMyHealth } from './api';
+import {
+    ApiProblemError,
+    OfflineError,
+    confirmMealPhoto,
+    fetchMealPlanToday,
+    fetchMyProfile,
+    logMeal,
+    nutritionUrl,
+    putToPresignedUrl,
+    requestMealPhotoUpload,
+    saveMyHealth,
+} from './api';
 import { InvalidSessionError } from '../features/auth/session';
 
 jest.mock('expo-secure-store', () => ({ __esModule: true }));
@@ -102,5 +113,54 @@ describe('envio da foto para a URL pré-assinada (DEV-0050)', () => {
         await expect(
             putToPresignedUrl('https://fotos.example/put', file, 'image/png', refused),
         ).rejects.toBeInstanceOf(ApiProblemError);
+    });
+});
+
+describe('api do nutrition-service', () => {
+    /** Guarda o método e o endereço de cada chamada e responde 200 com um corpo vazio. */
+    function recorder() {
+        const calls: { method: string; url: string; body?: unknown }[] = [];
+        const apiFetch = async (url: string, init?: RequestInit) => {
+            calls.push({
+                method: init?.method ?? 'GET',
+                url,
+                body: typeof init?.body === 'string' ? (JSON.parse(init.body) as unknown) : undefined,
+            });
+            return json(200, {});
+        };
+        return { calls, apiFetch };
+    }
+
+    it('chama as rotas do contrato, com o método e o id codificado', async () => {
+        const { calls, apiFetch } = recorder();
+        await fetchMealPlanToday(apiFetch, BASE);
+        await logMeal(apiFetch, 'id 1', { planId: 'mp-1', mealPosition: 0, status: 'DONE' }, BASE);
+        await requestMealPhotoUpload(apiFetch, 'id 1', 'image/jpeg', BASE);
+        await confirmMealPhoto(apiFetch, 'id 1', 'u-1', BASE);
+
+        expect(calls.map(({ method, url }) => `${method} ${url}`)).toEqual([
+            'GET http://api.test/me/meal-plan/today',
+            'PUT http://api.test/me/meal-logs/id%201',
+            'POST http://api.test/me/meal-logs/id%201/photo/upload-url',
+            'PUT http://api.test/me/meal-logs/id%201/photo',
+        ]);
+        expect(calls[2]?.body).toEqual({ contentType: 'image/jpeg' });
+        expect(calls[3]?.body).toEqual({ uploadId: 'u-1' });
+    });
+
+    it('sem plano publicado, as refeições de hoje voltam null', async () => {
+        await expect(
+            fetchMealPlanToday(async () => new Response(null, { status: 404 }), BASE),
+        ).resolves.toBeNull();
+    });
+
+    it('a rota vem do contrato gerado: rota ou método que não existem não compilam', () => {
+        expect(nutritionUrl(BASE, 'delete', '/me/meal-logs/{logId}/photo', { logId: 'x' })).toBe(
+            'http://api.test/me/meal-logs/x/photo',
+        );
+        // @ts-expect-error a rota não existe no OpenAPI do nutrition-service
+        nutritionUrl(BASE, 'put', '/me/meal-log/{logId}', { logId: 'x' });
+        // @ts-expect-error a rota existe, mas não aceita POST
+        nutritionUrl(BASE, 'post', '/me/meal-logs/{logId}', { logId: 'x' });
     });
 });
