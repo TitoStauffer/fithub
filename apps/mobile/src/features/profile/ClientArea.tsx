@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Linking, StyleSheet, Text, View } from 'react-native';
 
 import type { ClientProfile, MealPlanToday } from '../../lib/api';
+import { accountApiFrom, type AccountApi } from '../account/accountApi';
+import { DeleteAccountScreen } from '../account/DeleteAccountScreen';
 import { assessmentApiFrom, type AssessmentApi, type PhotoSource } from '../assessments/assessmentApi';
 import { expoPhotoSource } from '../assessments/expoPhotoSource';
 import { OnlineAssessmentScreen } from '../assessments/OnlineAssessmentScreen';
@@ -51,7 +53,8 @@ type Screen =
     | 'ownPlan'
     | 'meals'
     | 'mealLog'
-    | 'progress';
+    | 'progress'
+    | 'deleteAccount';
 
 /** De onde chegam os links abertos pelo sistema (`fithub://convite/<token>`); injetável nos testes. */
 export interface LinkSource {
@@ -76,6 +79,8 @@ export function ClientArea({
     mealsApi: injectedMeals,
     mealPhotoSource = expoMealPhotoSource,
     progressApi: injectedProgress,
+    accountApi: injectedAccount,
+    onAccountDeleted,
 }: {
     api?: ProfileApi;
     linksApi?: LinksApi;
@@ -89,8 +94,11 @@ export function ClientArea({
     mealsApi?: MealsApi;
     mealPhotoSource?: MealPhotoSource;
     progressApi?: ProgressApi;
+    accountApi?: AccountApi;
+    /** Depois da exclusão da conta (DEV-0164); por padrão, encerra a sessão. */
+    onAccountDeleted?: () => void;
 }) {
-    const { apiFetch } = useSession();
+    const { apiFetch, session } = useSession();
     const api = useMemo(() => injected ?? profileApiFrom(apiFetch), [injected, apiFetch]);
     const linksApi = useMemo(() => injectedLinks ?? linksApiFrom(apiFetch), [injectedLinks, apiFetch]);
     const assessmentApi = useMemo(
@@ -114,6 +122,10 @@ export function ClientArea({
         [injectedOwnPlans, apiFetch],
     );
     const mealsApi = useMemo(() => injectedMeals ?? mealsApiFrom(apiFetch), [injectedMeals, apiFetch]);
+    const accountApi = useMemo(
+        () => injectedAccount ?? accountApiFrom(apiFetch),
+        [injectedAccount, apiFetch],
+    );
     const progressApi = useMemo(
         () => injectedProgress ?? progressApiFrom(apiFetch),
         [injectedProgress, apiFetch],
@@ -182,6 +194,17 @@ export function ClientArea({
                 api={api}
                 initial={fromProfile(profile)}
                 onSaved={saved}
+                onCancel={() => setScreen('home')}
+            />
+        );
+    }
+    if (screen === 'deleteAccount') {
+        return (
+            <DeleteAccountScreen
+                api={accountApi}
+                // Encerra a sessão: apaga a local primeiro e tenta revogar no Keycloak, sem falhar se o login já saiu
+                // (DEV-0161); na conta que também é de profissional, o login fica e o refresh token é revogado.
+                onDeleted={onAccountDeleted ?? (() => void session.signOut())}
                 onCancel={() => setScreen('home')}
             />
         );
@@ -292,6 +315,7 @@ export function ClientArea({
             <Button onPress={() => setScreen('links')}>Meus vínculos</Button>
             <Button onPress={() => setScreen('assessment')}>Avaliação online</Button>
             <Button onPress={() => setScreen('compare')}>Comparar fotos</Button>
+            <Button onPress={() => setScreen('deleteAccount')}>Excluir minha conta</Button>
         </View>
     );
 }

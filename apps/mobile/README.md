@@ -177,3 +177,13 @@ está no ADR-007.
       % de gordura de cada método, sem comparar métodos entre si (BR-12).
 - Sem ficha, sem plano ou sem avaliação, o bloco diz o que falta. O erro de um bloco não derruba os outros, e
   "Tentar de novo" recarrega.
+
+## Excluir minha conta (DEV-0164)
+
+- Na tela inicial, **Excluir minha conta** abre a explicação do [ADR-012](../../docs/00-oficial/adr/ADR-012-retencao-e-exclusao.md):
+  o que é apagado de vez, que não há volta e que as fichas e os planos dos profissionais ficam sem identificar o
+  cliente. Avisa também que, na conta que também é de profissional, o login fica, e que o registro de leituras da
+  saúde fica 6 meses.
+- O botão só habilita depois que o cliente digita **EXCLUIR** (sem diferenciar maiúsculas nem espaços nas pontas).
+- Chama `DELETE /clients/me` (DEV-0105). Com sucesso, encerra a sessão (`signOut`: apaga a local e tenta revogar
+  no Keycloak, sem falhar se o login já saiu). Com erro, mostra a mensagem e deixa tentar de novo.

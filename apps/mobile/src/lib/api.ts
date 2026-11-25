@@ -177,6 +177,12 @@ export async function fetchMyLinks(apiFetch: ApiFetch, baseUrl = clientApiUrl())
     return (await read<ClientLink[]>(apiFetch, `${baseUrl}/links`)) ?? [];
 }
 
+/** Exclui a conta do cliente e todos os dados dele, sem volta (DEV-0105, DEV-0164). Repetir também responde 204. */
+export async function deleteMyAccount(apiFetch: ApiFetch, baseUrl = clientApiUrl()): Promise<void> {
+    const response = await send(apiFetch, `${baseUrl}/clients/me`, { method: 'DELETE' });
+    if (!response.ok) throw await problem(response);
+}
+
 /** Encerra o vínculo; encerrar de novo devolve o primeiro encerramento (DEV-0037). */
 export function endLink(apiFetch: ApiFetch, linkId: string, baseUrl = clientApiUrl()) {
     return post<LinkStatus>(apiFetch, `${baseUrl}/links/${encodeURIComponent(linkId)}/end`);
