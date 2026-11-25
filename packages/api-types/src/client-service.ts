@@ -141,6 +141,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clients/me/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Exporta todos os dados que o client-service tem do cliente
+         * @description Perfil, saúde, avaliações com as fotos (URL temporária de 5 minutos), vínculos com o consentimento de cada um e as leituras da saúde pelos profissionais, sem o conteúdo. O app junta com a exportação do training e do nutrition.
+         */
+        get: operations["export"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/clients/me/health": {
         parameters: {
             query?: never;
@@ -476,6 +496,57 @@ export interface components {
             neck?: number | null;
             thigh?: number | null;
             waist?: number | null;
+        };
+        /** @description Todos os dados que o client-service tem do cliente. */
+        ClientExport: {
+            assessments?: components["schemas"]["ClientExportAssessment"][];
+            /** Format: date-time */
+            exportedAt?: string;
+            /** @description Vazio se o cliente nunca preencheu o perfil de saúde. */
+            health?: components["schemas"]["HealthProfile"];
+            healthReads?: components["schemas"]["ClientExportHealthRead"][];
+            links?: components["schemas"]["ClientExportLink"][];
+            /** @description Vazio se a conta ainda não tem perfil. */
+            profile?: components["schemas"]["ClientProfile"];
+        };
+        /** @description Avaliação com as fotos, cada uma com a URL temporária. */
+        ClientExportAssessment: {
+            assessment?: components["schemas"]["Assessment"];
+            photos?: components["schemas"]["Photo"][];
+        };
+        /** @description Consentimento dado no aceite do vínculo. */
+        ClientExportConsent: {
+            /** Format: date-time */
+            grantedAt?: string;
+            scope?: ("PROFILE" | "HEALTH" | "ASSESSMENTS" | "PHOTOS")[];
+            termsVersion?: string;
+        };
+        /** @description Leitura do perfil de saúde pelo profissional, sem o conteúdo. */
+        ClientExportHealthRead: {
+            /** Format: date-time */
+            accessedAt?: string;
+            /** Format: uuid */
+            professionalId?: string;
+            professionalName?: string;
+        };
+        /** @description Vínculo, ativo ou encerrado, com o consentimento. */
+        ClientExportLink: {
+            consent?: components["schemas"]["ClientExportConsent"];
+            /** Format: date-time */
+            endedAt?: string;
+            /** @enum {string} */
+            endedBy?: "CLIENT" | "PROFESSIONAL";
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            professionalId?: string;
+            professionalName?: string;
+            /** @enum {string} */
+            professionalType?: "PERSONAL_TRAINER" | "NUTRITIONIST";
+            /** Format: date-time */
+            startedAt?: string;
+            /** @enum {string} */
+            status?: "ACTIVE" | "ENDED";
         };
         /** @description Vínculo visto pelo cliente. */
         ClientLink: {
@@ -1054,6 +1125,44 @@ export interface operations {
             };
             /** @description Avaliação não encontrada (ou de outra pessoa). */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    export: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Os dados do cliente. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientExport"];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não tem o papel de cliente. */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

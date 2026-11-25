@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
  * explícita fica na tela do app (DEV-0164).
  */
 @RestController
-@Tag(name = "Conta do cliente", description = "Exclusão da conta do cliente autenticado")
+@Tag(name = "Conta do cliente", description = "Exclusão e exportação dos dados do cliente autenticado")
 class ClientAccountController {
 
     private static final String PROBLEM = MediaType.APPLICATION_PROBLEM_JSON_VALUE;
