@@ -19,7 +19,9 @@ Esta política explica como o FitHub trata dados pessoais, de acordo com a Lei G
 | Cliente | Data de nascimento, gênero, altura e objetivo | Perfil e cálculos (idade, % de gordura) |
 | Cliente | Perfil de saúde: condições e observações (dado sensível) | Orientar o profissional vinculado com segurança |
 | Cliente | Avaliações corporais e fotos de evolução (dado sensível) | Acompanhar a evolução |
-| Cliente | Treinos, refeições, desvios e fotos do prato | Acompanhar a aderência |
+| Cliente | Restrições de mobilidade (região do corpo e descrição), registradas pelo personal (dado sensível) | Alertar o personal na ficha sobre exercícios que envolvem a região |
+| Cliente | Restrições alimentares (alergias, intolerâncias e preferências), registradas pela nutricionista (dado sensível) | Alertar a nutricionista no plano sobre alimentos com o termo |
+| Cliente | Treinos, recordes (calculados e lançados), refeições, desvios e fotos do prato | Acompanhar a aderência e a evolução |
 | Profissional | Tipo e número do registro no conselho (declarado) | Identificar o profissional |
 | Profissional | Assinatura: plano e datas | Liberar o lado profissional |
 
@@ -30,7 +32,7 @@ Não coletamos IP nem identificador do aparelho no consentimento.
 | Tratamento | Base legal |
 |---|---|
 | Conta e funcionamento do app | Execução do contrato (art. 7º, V) |
-| Dados de saúde, avaliações e fotos compartilhados com o profissional | Consentimento específico e destacado do cliente, no [termo de consentimento](termo-de-consentimento.md) de cada vínculo (art. 11, I) |
+| Dados de saúde, avaliações, fotos e restrições compartilhados com o profissional, ou registrados por ele | Consentimento específico e destacado do cliente, no [termo de consentimento](termo-de-consentimento.md) de cada vínculo (art. 11, I) |
 | Assinatura e cobrança do profissional | Execução do contrato e cumprimento de obrigação legal |
 | Registros de acesso de profissionais a dados sensíveis | Legítimo interesse e segurança (NFR-03) |
 
@@ -51,7 +53,8 @@ Não coletamos IP nem identificador do aparelho no consentimento.
 - Fotos e dados de saúde ficam com acesso restrito. As fotos são servidas só por link temporário de 5 minutos e
   nunca são públicas.
 - A comunicação é cifrada (HTTPS).
-- No aparelho, só o token de sessão fica guardado, no cofre do sistema.
+- No celular, o app guarda a sessão só no cofre do sistema. A foto do prato escolhida da galeria continua na
+  galeria, como antes.
 - Os acessos de profissionais a dados sensíveis são registrados.
 
 ## 6. Por quanto tempo guardamos

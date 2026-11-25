@@ -5,7 +5,9 @@
 **Status:** rascunho para revisão jurídica
 
 Este é o texto que o cliente lê no app antes de aceitar o convite de um profissional. O aceite registra a data, o
-escopo e esta versão (NFR-01). O texto é o mesmo de `ConsentTerms.CURRENT_TEXT`, no client-service.
+escopo e esta versão (NFR-01). O texto é o mesmo de `CURRENT_TEXT` em
+[`ConsentTerms.java`](../../../services/client-service/src/main/java/com/fithub/client/domain/link/ConsentTerms.java),
+no client-service. Mudar um exige mudar o outro, com versão nova.
 
 > Ao aceitar, você autoriza este profissional a ver, enquanto o vínculo estiver ativo: seu perfil (nome, data de
 > nascimento, gênero, altura e objetivo), seu perfil de saúde, suas avaliações corporais e suas fotos de evolução.
@@ -21,10 +23,16 @@ escopo e esta versão (NFR-01). O texto é o mesmo de `ConsentTerms.CURRENT_TEXT
 
 ## Além do escopo do termo
 
-- O personal também vê os treinos registrados nas fichas dele.
-- A nutricionista também vê as refeições registradas nos planos dela, com os desvios e as fotos do prato.
+- **Personal:**
+  - vê os treinos registrados nas fichas dele e os recordes do cliente;
+  - registra e vê as restrições de mobilidade do cliente (região do corpo e descrição).
+- **Nutricionista:**
+  - vê as refeições registradas nos planos dela, com os desvios e as fotos do prato;
+  - registra e vê as restrições alimentares do paciente (alergias, intolerâncias e preferências).
+- O cliente vê as próprias restrições, e elas só aparecem para o profissional com o vínculo ativo.
 
-O personal nunca vê dados de nutrição (BR-03).
+O personal nunca vê dados de nutrição, nem as restrições alimentares, e a nutricionista não vê as restrições de
+mobilidade (BR-03).
 
 ## Revogação
 
