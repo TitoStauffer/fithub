@@ -184,3 +184,14 @@ suba o Keycloak pelo compose de `infra/`). A decisão dos papéis e dos clients 
       métodos numa linha (BR-12).
 - Os gráficos são uma linha em SVG próprio, sem biblioteca, e a tabela logo abaixo traz os mesmos valores para o
   leitor de tela. Sem dados, cada bloco diz o que falta; sem vínculo, avisa que o acesso acabou.
+
+## Evolução do paciente (DEV-0095)
+
+- Na tela do paciente vinculado, a seção **Evolução da dieta** (só para o papel `nutritionist`) traz, no período de 4,
+  8 ou 12 semanas até hoje:
+    - a aderência (refeições feitas contra prescritas, com o percentual) e as refeições feitas por dia;
+    - as alternativas mais usadas, com quantas vezes;
+    - os desvios, do mais novo para o mais antigo, com o texto e o link para a foto do prato, que abre a URL temporária
+      da API numa nova aba;
+    - a evolução corporal, a mesma do painel do personal (`BodyEvolution`).
+- Sem dados, cada bloco diz o que falta; sem vínculo, avisa que o acesso acabou.

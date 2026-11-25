@@ -147,7 +147,7 @@ export function trainingApi(apiFetch: ApiFetch, baseUrl: string) {
                 ),
             );
         },
-        /** Recordes do aluno vinculado por exercício (DEV-0083). */
+        /** Recordes do aluno vinculado por exercício (DEV-0068). */
         async clientRecords(clientId: string): Promise<ExerciseRecords[]> {
             return readLinked(url(`/clients/${encodeURIComponent(clientId)}/records`));
         },

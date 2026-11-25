@@ -95,7 +95,7 @@
             "id": "M7",
             "description": "Os métodos de % de gordura passam a se misturar na escolha (BR-12)",
             "area": "apps",
-            "file": "apps/web/src/features/progress/ClientProgressSection.tsx",
+            "file": "apps/web/src/features/progress/BodyEvolution.tsx",
             "find": "key: `fat:${series.origin ?? ''}`,",
             "replace": "key: 'fat',",
             "command": [
@@ -110,7 +110,7 @@
             "id": "M8",
             "description": "Sem peso, a evolução corporal passa a mostrar a linha vazia",
             "area": "apps",
-            "file": "apps/web/src/features/progress/ClientProgressSection.tsx",
+            "file": "apps/web/src/features/progress/BodyEvolution.tsx",
             "find": "...((body.data.weightKg ?? []).length > 0",
             "replace": "...(true",
             "command": [
@@ -125,9 +125,9 @@
             "id": "M9",
             "description": "Trocar o período deixa de mudar a consulta",
             "area": "apps",
-            "file": "apps/web/src/features/progress/ClientProgressSection.tsx",
-            "find": "setWeeks(Number(event.target.value) as PeriodWeeks)",
-            "replace": "setWeeks(4)",
+            "file": "apps/web/src/features/progress/PeriodSelect.tsx",
+            "find": "onChange(Number(event.target.value) as PeriodWeeks)",
+            "replace": "onChange(4)",
             "command": [
                 "pnpm",
                 "--filter",
