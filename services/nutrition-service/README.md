@@ -96,6 +96,10 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   na soma da refeição e do dia.
 - Rascunho, publicado e substituído: publicar exige alimento em cada refeição (BR-10) e deixa substituído o plano ativo
   anterior do paciente (um ativo por vez, garantido pelo índice `ux_meal_plan_published`).
+- Alertas (DEV-0084, FR-41, BR-11): cada item e cada alternativa trazem as alergias e intolerâncias do paciente cujo
+  termo aparece no nome do alimento ou de um ingrediente da receita, sem diferenciar maiúsculas nem acentos. A
+  preferência não alerta. O alerta é calculado na leitura, com as restrições atuais, só para a autora com vínculo
+  ativo; nunca bloqueia salvar nem publicar, e o paciente não o recebe.
 - Versões (DEV-0083, FR-46, BR-09): o rascunho muda no lugar; editar o publicado cria a versão seguinte, já publicada,
   e a anterior nunca muda. No publicado, `baseVersion` é obrigatória (400 sem ela); base desatualizada ou plano
   substituído, 409. A gravação é otimista pelo `updated_at` lido, e a do rascunho só vale enquanto ele é rascunho.

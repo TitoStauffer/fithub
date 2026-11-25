@@ -705,6 +705,92 @@ class MealPlanApiTest extends ServiceIntegrationTest {
                 .andExpect(jsonPath("$[1].name").value("Primeira edição"));
     }
 
+    private void restrict(String kind, String description, String term) throws Exception {
+        mvc.perform(post("/clients/" + client + "/food-restrictions")
+                        .header("Authorization", nutri())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"kind\": \"" + kind + "\", \"description\": \"" + description + "\", \"terms\": [\""
+                                + term + "\"]}"))
+                .andExpect(status().isCreated());
+    }
+
+    private UUID shakeWith(UUID milk, UUID banana) throws Exception {
+        String location = mvc.perform(post("/foods")
+                        .header("Authorization", nutri())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"Vitamina da casa\", \"recipe\": {\"yieldGrams\": 300, \"ingredients\": ["
+                                + "{\"foodId\": \"" + milk + "\", \"amount\": 200}, "
+                                + "{\"foodId\": \"" + banana + "\", \"amount\": 100}]}}"))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getHeader("Location");
+        return UUID.fromString(location.substring(location.lastIndexOf('/') + 1));
+    }
+
+    private Food milk() {
+        return food(Food.Kind.TACO, null, "Leite, de vaca, integral", "61", "3.2", "4.6", "3.3", null);
+    }
+
+    @Test
+    void alergiaEIntoleranciaAlertamOAlimentoEAReceitaSemBloquearAPublicacao() throws Exception {
+        Food milk = milk();
+        Food banana = food(Food.Kind.TACO, null, "Banana, prata, crua", "98", "1.3", "26", "0.1", "2");
+        UUID shake = shakeWith(milk.id(), banana.id());
+        restrict("ALLERGY", "Alergia à proteína do leite", "leite");
+        restrict("INTOLERANCE", "Não tolera feijão", "feijao");
+        restrict("PREFERENCE", "Não gosta de arroz", "arroz");
+        String location = locationOf(create(
+                nutri(),
+                client,
+                plan(
+                        "Plano com alerta",
+                        meal("Café", item(milk.id(), "200"), item(shake, "300")),
+                        meal(
+                                "Almoço",
+                                withAlternatives(rice.id(), "100", alternative(milk.id(), "100")),
+                                item(beans.id(), "50")))));
+
+        publish(nutri(), location)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PUBLISHED"))
+                .andExpect(jsonPath("$.meals[0].items[0].alerts.length()").value(1))
+                .andExpect(jsonPath("$.meals[0].items[0].alerts[0].kind").value("ALLERGY"))
+                .andExpect(jsonPath("$.meals[0].items[0].alerts[0].description").value("Alergia à proteína do leite"))
+                // A receita alerta pelo ingrediente: o nome dela não tem o termo.
+                .andExpect(jsonPath("$.meals[0].items[1].alerts.length()").value(1))
+                .andExpect(jsonPath("$.meals[0].items[1].alerts[0].kind").value("ALLERGY"))
+                // A preferência não alerta.
+                .andExpect(jsonPath("$.meals[1].items[0].alerts.length()").value(0))
+                .andExpect(jsonPath("$.meals[1].items[0].alternatives[0].alerts[0].kind")
+                        .value("ALLERGY"))
+                // Sem diferenciar acento: "feijao" alerta "Feijão, carioca, cozido".
+                .andExpect(jsonPath("$.meals[1].items[1].alerts[0].kind").value("INTOLERANCE"));
+    }
+
+    @Test
+    void semVinculoOuParaOPacienteNaoHaAlerta() throws Exception {
+        Food milk = milk();
+        restrict("ALLERGY", "Alergia à proteína do leite", "leite");
+        String location =
+                locationOf(create(nutri(), client, plan("Plano com leite", meal("Café", item(milk.id(), "200")))));
+        publish(nutri(), location)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.meals[0].items[0].alerts.length()").value(1));
+        String planId = location.substring(location.lastIndexOf('/') + 1);
+
+        mvc.perform(get("/me/meal-plans/" + planId + "/versions/1").header("Authorization", "Bearer conta-" + client))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.meals[0].items[0].alerts.length()").value(0));
+
+        jdbc.sql("update client_link set status = 'ENDED', ended_at = now() where client_id = :client")
+                .param("client", client)
+                .update();
+        mvc.perform(get(location).header("Authorization", nutri()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.meals[0].items[0].alerts.length()").value(0));
+    }
+
     @Test
     void bancoRecusaPlanoForaDasRegras() {
         UUID plan = UUID.randomUUID();

@@ -13,6 +13,7 @@ import com.fithub.nutrition.domain.plan.MealPlanNotFoundException;
 import com.fithub.nutrition.domain.plan.MealPlanRepository;
 import com.fithub.nutrition.domain.plan.MealPlanStateException;
 import com.fithub.nutrition.domain.plan.MealPlanVersion;
+import com.fithub.nutrition.domain.restriction.FoodRestriction;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -24,6 +25,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -42,6 +44,7 @@ public class ManageMealPlans {
     private final MealPlanRepository plans;
     private final FoodRepository foods;
     private final FoodMeasureRepository measures;
+    private final MealPlanAlerts alerts;
     private final Clock clock;
 
     public ManageMealPlans(
@@ -49,11 +52,13 @@ public class ManageMealPlans {
             MealPlanRepository plans,
             FoodRepository foods,
             FoodMeasureRepository measures,
+            MealPlanAlerts alerts,
             Clock clock) {
         this.clientAccess = clientAccess;
         this.plans = plans;
         this.foods = foods;
         this.measures = measures;
+        this.alerts = alerts;
         this.clock = clock;
     }
 
@@ -87,14 +92,19 @@ public class ManageMealPlans {
             Food food,
             FoodMeasure measure,
             Food.Amounts nutrients,
-            List<AlternativeView> alternatives) {}
+            List<AlternativeView> alternatives,
+            List<FoodRestriction> alerts) {}
 
     /**
      * A alternativa com o alimento, os macros da quantidade dela e a diferença em relação ao principal (alternativa
      * menos principal, com sinal).
      */
     public record AlternativeView(
-            MealItem.Alternative alternative, Food food, Food.Amounts nutrients, Food.Amounts difference) {}
+            MealItem.Alternative alternative,
+            Food food,
+            Food.Amounts nutrients,
+            Food.Amounts difference,
+            List<FoodRestriction> alerts) {}
 
     public PlanView create(String nutritionistAccount, UUID clientId, Draft draft) {
         clientAccess.requireActiveLink(nutritionistAccount, clientId);
@@ -158,7 +168,10 @@ public class ManageMealPlans {
     /** Uma versão do plano, com os macros, para a autora. */
     public PlanView version(String nutritionistAccount, UUID planId, int number) {
         MealPlan plan = authored(nutritionistAccount, planId);
-        return view(plan, plans.findVersion(plan.id(), number).orElseThrow(MealPlanNotFoundException::new));
+        return view(
+                plan,
+                plans.findVersion(plan.id(), number).orElseThrow(MealPlanNotFoundException::new),
+                alerts.of(plan));
     }
 
     /**
@@ -172,10 +185,13 @@ public class ManageMealPlans {
         return plans.findVersions(received(clientAccount, planId).id());
     }
 
-    /** Uma versão do plano que o paciente recebeu, com os macros. */
+    /** Uma versão do plano que o paciente recebeu, com os macros; o alerta é para a nutricionista, não vem aqui. */
     public PlanView clientVersion(String clientAccount, UUID planId, int number) {
         MealPlan plan = received(clientAccount, planId);
-        return view(plan, plans.findVersion(plan.id(), number).orElseThrow(MealPlanNotFoundException::new));
+        return view(
+                plan,
+                plans.findVersion(plan.id(), number).orElseThrow(MealPlanNotFoundException::new),
+                MealPlanAlerts.NONE);
     }
 
     /** O plano do paciente, já publicado alguma vez; o de outro paciente e o rascunho respondem como inexistentes. */
@@ -294,11 +310,12 @@ public class ManageMealPlans {
     }
 
     /** Os macros do plano: cada item pela quantidade, a refeição pela soma dos itens e o dia pela soma das refeições. */
+    /** A versão atual, com os alertas para a autora com vínculo ativo (DEV-0084). */
     PlanView view(MealPlan plan) {
-        return view(plan, plan.current());
+        return view(plan, plan.current(), alerts.of(plan));
     }
 
-    private PlanView view(MealPlan plan, MealPlanVersion version) {
+    private PlanView view(MealPlan plan, MealPlanVersion version, Function<Food, List<FoodRestriction>> alertsFor) {
         Map<UUID, Food> foodCache = new HashMap<>();
         Map<UUID, Optional<FoodMeasure>> measureCache = new HashMap<>();
         List<MealView> meals = new ArrayList<>();
@@ -320,11 +337,15 @@ public class ManageMealPlans {
                     Food other = foodCache.computeIfAbsent(
                             alternative.foodId(), id -> foods.findById(id).orElseThrow());
                     Food.Amounts otherNutrients = other.nutrientsIn(alternative.amount());
-                    alternatives.add(
-                            new AlternativeView(alternative, other, otherNutrients, otherNutrients.minus(nutrients)));
+                    alternatives.add(new AlternativeView(
+                            alternative,
+                            other,
+                            otherNutrients,
+                            otherNutrients.minus(nutrients),
+                            alertsFor.apply(other)));
                 }
                 // Só o principal entra na soma da refeição: a alternativa é uma troca, não um acréscimo.
-                items.add(new ItemView(item, food, measure, nutrients, alternatives));
+                items.add(new ItemView(item, food, measure, nutrients, alternatives, alertsFor.apply(food)));
                 total = total.plus(nutrients);
             }
             meals.add(new MealView(meal, items, total));

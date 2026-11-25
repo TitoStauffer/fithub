@@ -349,6 +349,13 @@
       "MealItem" : {
         "description" : "Alimento da refeição, com a quantidade e os macros dela.",
         "properties" : {
+          "alerts" : {
+            "description" : "Alergias e intolerâncias do paciente que o alimento dispara; nunca bloqueia (BR-11).",
+            "items" : {
+              "$ref" : "#/components/schemas/MealItemAlert"
+            },
+            "type" : "array"
+          },
           "alternatives" : {
             "description" : "Até 2 trocas possíveis: a secundária e a terciária, na ordem.",
             "items" : {
@@ -389,9 +396,34 @@
         },
         "type" : "object"
       },
+      "MealItemAlert" : {
+        "description" : "Restrição do paciente cujo termo aparece no alimento ou num ingrediente da receita.",
+        "properties" : {
+          "description" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "description" : "ALLERGY ou INTOLERANCE.",
+            "enum" : [ "ALLERGY", "INTOLERANCE", "PREFERENCE" ],
+            "type" : "string"
+          },
+          "restrictionId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "MealItemAlternative" : {
         "description" : "Troca possível do alimento, com a diferença para o principal.",
         "properties" : {
+          "alerts" : {
+            "description" : "Alergias e intolerâncias do paciente que a alternativa dispara.",
+            "items" : {
+              "$ref" : "#/components/schemas/MealItemAlert"
+            },
+            "type" : "array"
+          },
           "amount" : {
             "description" : "Quantidade na unidade base.",
             "type" : "number"

@@ -10,6 +10,7 @@ import com.fithub.nutrition.domain.plan.MealPlanNotFoundException;
 import com.fithub.nutrition.domain.plan.MealPlanRepository;
 import com.fithub.nutrition.domain.plan.MealPlanStateException;
 import com.fithub.nutrition.domain.plan.MealPlanVersion;
+import com.fithub.nutrition.domain.restriction.FoodRestriction;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -97,7 +98,12 @@ class MealPlanController {
             AmountsResponse nutrients,
 
             @Schema(description = "Até 2 trocas possíveis: a secundária e a terciária, na ordem.")
-            List<AlternativeResponse> alternatives) {
+            List<AlternativeResponse> alternatives,
+
+            @Schema(
+                    description =
+                            "Alergias e intolerâncias do paciente que o alimento dispara; nunca bloqueia (BR-11).")
+            List<AlertResponse> alerts) {
 
         static ItemResponse of(ManageMealPlans.ItemView view) {
             return new ItemResponse(
@@ -109,7 +115,26 @@ class MealPlanController {
                     view.measure() == null ? null : view.measure().name(),
                     view.measure() == null ? null : view.item().measureCount(),
                     AmountsResponse.of(view.nutrients()),
-                    view.alternatives().stream().map(AlternativeResponse::of).toList());
+                    view.alternatives().stream().map(AlternativeResponse::of).toList(),
+                    AlertResponse.of(view.alerts()));
+        }
+    }
+
+    @Schema(
+            name = "MealItemAlert",
+            description = "Restrição do paciente cujo termo aparece no alimento ou num ingrediente da receita.")
+    record AlertResponse(
+            UUID restrictionId,
+
+            @Schema(description = "ALLERGY ou INTOLERANCE.") FoodRestriction.Kind kind,
+
+            String description) {
+
+        static List<AlertResponse> of(List<FoodRestriction> restrictions) {
+            return restrictions.stream()
+                    .map(restriction ->
+                            new AlertResponse(restriction.id(), restriction.kind(), restriction.description()))
+                    .toList();
         }
     }
 
@@ -127,7 +152,10 @@ class MealPlanController {
             AmountsResponse nutrients,
 
             @Schema(description = "Alternativa menos principal, com sinal: positivo é a mais na alternativa.")
-            AmountsResponse difference) {
+            AmountsResponse difference,
+
+            @Schema(description = "Alergias e intolerâncias do paciente que a alternativa dispara.")
+            List<AlertResponse> alerts) {
 
         static AlternativeResponse of(ManageMealPlans.AlternativeView view) {
             return new AlternativeResponse(
@@ -136,7 +164,8 @@ class MealPlanController {
                     view.food().baseUnit(),
                     view.alternative().amount(),
                     AmountsResponse.of(view.nutrients()),
-                    AmountsResponse.of(view.difference()));
+                    AmountsResponse.of(view.difference()),
+                    AlertResponse.of(view.alerts()));
         }
     }
 

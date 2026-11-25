@@ -55,6 +55,25 @@ class FoodRestrictionTest {
     }
 
     @Test
+    void alertaPeloTermoNoNomeSemDiferenciarMaiusculasNemAcentos() {
+        FoodRestriction allergy =
+                restriction(FoodRestriction.Kind.ALLERGY, "Alergia ao leite", List.of("LEITE", "lactose"));
+        assertThat(allergy.alertsFor("Leite, de vaca, integral")).isTrue();
+        assertThat(allergy.alertsFor("Iogurte com lactose")).isTrue();
+        assertThat(allergy.alertsFor("Arroz, tipo 1, cozido")).isFalse();
+        assertThat(allergy.alertsFor(null)).isFalse();
+        FoodRestriction intolerance =
+                restriction(FoodRestriction.Kind.INTOLERANCE, "Não tolera feijão", List.of("feijao"));
+        assertThat(intolerance.alertsFor("Feijão, carioca, cozido")).isTrue();
+        FoodRestriction accentedTerm =
+                restriction(FoodRestriction.Kind.INTOLERANCE, "Não tolera feijão", List.of("FEIJÃO"));
+        assertThat(accentedTerm.alertsFor("feijao preto")).isTrue();
+        FoodRestriction preference =
+                restriction(FoodRestriction.Kind.PREFERENCE, "Não gosta de arroz", List.of("arroz"));
+        assertThat(preference.alertsFor("Arroz, tipo 1, cozido")).isFalse();
+    }
+
+    @Test
     void soAlergiaEIntoleranciaAlertam() {
         assertThat(FoodRestriction.Kind.ALLERGY.alerts()).isTrue();
         assertThat(FoodRestriction.Kind.INTOLERANCE.alerts()).isTrue();
