@@ -179,6 +179,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/meal-logs/{logId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Registra a refeição de hoje; repetir com o mesmo id corrige o registro */
+        put: operations["logMyMeal"];
+        post?: never;
+        /** Apaga o registro da refeição, só no dia em que foi feito */
+        delete: operations["removeMyMealLog"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/meal-plan/today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** As refeições de hoje: o plano publicado do paciente, com os macros, e os registros do dia */
+        get: operations["getMyMealPlanToday"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/meal-plans/{planId}/versions": {
         parameters: {
             query?: never;
@@ -516,6 +551,60 @@ export interface components {
             /** Format: uuid */
             measureId?: string;
         };
+        /** @description Registro de uma refeição do plano num dia. */
+        MealLog: {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: uuid */
+            id?: string;
+            /**
+             * Format: date
+             * @description O dia do registro (America/Sao_Paulo).
+             */
+            loggedOn?: string;
+            /** Format: int32 */
+            mealPosition?: number;
+            /** Format: uuid */
+            planId?: string;
+            /**
+             * @description DONE (feita), PARTIAL (parcial) ou SKIPPED (não feita).
+             * @enum {string}
+             */
+            status?: "DONE" | "PARTIAL" | "SKIPPED";
+            /** @description As alternativas usadas; o alimento ausente aqui foi o principal. */
+            substitutions?: components["schemas"]["MealLogSubstitution"][];
+            /** Format: date-time */
+            updatedAt?: string;
+            /**
+             * Format: int32
+             * @description A versão do plano em que o registro foi feito.
+             */
+            version?: number;
+        };
+        /** @description Registro ou correção da refeição de hoje. */
+        MealLogInput: {
+            /** Format: int32 */
+            mealPosition: number;
+            /** Format: uuid */
+            planId: string;
+            /** @enum {string} */
+            status: "DONE" | "PARTIAL" | "SKIPPED";
+            /** @description Só na refeição feita ou parcial. */
+            substitutions?: components["schemas"]["MealLogSubstitution"][];
+        };
+        /** @description A alternativa usada num alimento da refeição. */
+        MealLogSubstitution: {
+            /**
+             * Format: int32
+             * @description 0 para a secundária, 1 para a terciária.
+             */
+            alternative?: number;
+            /**
+             * Format: int32
+             * @description A posição do alimento na refeição.
+             */
+            itemPosition?: number;
+        };
         /** @description Plano alimentar, com as refeições e os macros do dia. */
         MealPlan: {
             /** Format: uuid */
@@ -555,6 +644,11 @@ export interface components {
             note?: string;
             /** Format: date */
             startsOn: string;
+        };
+        /** @description O plano publicado do paciente e os registros de hoje. */
+        MealPlanToday: {
+            logs?: components["schemas"]["MealLog"][];
+            plan?: components["schemas"]["MealPlan"];
         };
         /** @description Uma versão do plano: número, nome e publicação. */
         MealPlanVersionSummary: {
@@ -1274,6 +1368,153 @@ export interface operations {
             };
             /** @description A conta não é de cliente. */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    logMyMeal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                logId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MealLogInput"];
+            };
+        };
+        responses: {
+            /** @description Registro gravado. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MealLog"];
+                };
+            };
+            /** @description Refeição, alimento ou alternativa inexistentes, ou troca na refeição não feita. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é de cliente. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O plano não existe, é de outro paciente ou ainda é rascunho. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O dia já passou, a refeição já foi registrada hoje, o id é de outro registro ou o plano foi substituído. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    removeMyMealLog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                logId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Registro apagado. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A conta não é de cliente. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O registro não existe ou é de outro paciente. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O dia do registro já passou. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getMyMealPlanToday: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O plano e os registros de hoje. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MealPlanToday"];
+                };
+            };
+            /** @description A conta não é de cliente. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O paciente não tem plano alimentar publicado. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

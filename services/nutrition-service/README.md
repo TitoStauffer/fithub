@@ -109,3 +109,17 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   `POST /meal-plans/{id}/publish`. `GET /meal-plans/{id}` só para a autora, mesmo sem vínculo (BR-05). Sem vínculo ou
   plano de outra nutricionista, 404; campo fora das regras ou alimento indisponível, 400 com o caminho
   (`meals[1].items[0].foodId`). O personal não tem rota (BR-03).
+
+## Registro de refeição (DEV-0087)
+
+- `GET /me/meal-plan/today` (papel `client`): o plano publicado do paciente, na versão atual, com os macros (sem os
+  alertas, que são da nutricionista) e os registros de hoje. Sem plano publicado, 404.
+- `PUT /me/meal-logs/{logId}` (FR-50, migration V10): a refeição (`mealPosition`) como `DONE`, `PARTIAL` ou
+  `SKIPPED` e as trocas `[{itemPosition, alternative}]` (0 é a secundária, 1 a terciária; o alimento sem troca foi o
+  principal). O id vem do app: repetir corrige o mesmo registro. O dia (America/Sao_Paulo) e a versão vêm do servidor;
+  uma refeição por dia (outro id, 409). Refeição, alimento ou alternativa que não existem na versão, ou troca na
+  refeição não feita, respondem 400 no campo.
+- O registro fica na versão em que foi feito (BR-09): a correção é conferida contra ela. Corrigir e apagar
+  (`DELETE`) só no dia (BR-08, QUESTÃO-04); depois, 409.
+- Só o plano publicado do próprio paciente: o de outro paciente e o rascunho respondem 404, e o substituído não recebe
+  registro novo (409). O id de um registro não serve para outro paciente (409 ao corrigir, 404 ao apagar).

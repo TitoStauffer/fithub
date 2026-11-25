@@ -310,6 +310,11 @@ public class ManageMealPlans {
     }
 
     /** Os macros do plano: cada item pela quantidade, a refeição pela soma dos itens e o dia pela soma das refeições. */
+    /** A versão atual do plano para o paciente (DEV-0087): os macros sem os alertas, que são da nutricionista. */
+    PlanView clientView(MealPlan plan) {
+        return view(plan, plan.current(), MealPlanAlerts.NONE);
+    }
+
     /** A versão atual, com os alertas para a autora com vínculo ativo (DEV-0084). */
     PlanView view(MealPlan plan) {
         return view(plan, plan.current(), alerts.of(plan));
