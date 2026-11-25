@@ -64,3 +64,19 @@ deixa de funcionar.
   - **Impacto:** eventos publicados e registros de consumo ficariam guardados para sempre.
   - **Correção:** `OutboxPublisher.purgeExpired` a cada hora: publicados com mais de 7 dias e consumos com mais de 30 dias (configuráveis); pendentes nunca são expurgados.
   - **Prevenção:** teste `purgeRemovesOnlyRowsOlderThanTheRetention`, provado por mutação (N3, N4).
+
+## apagar-o-agregado-nao-dispensa-o-evento-de-estado
+
+**Regra:** quem apaga um agregado cujo estado outros serviços projetam (vínculo ativo, assinatura) publica antes o
+evento que fecha esse estado (ex.: `VinculoEncerrado`), na mesma transação. Não conte com o consumo de um evento
+mais amplo (ex.: `ContaExcluida`) para cortar acesso: o consumidor pode ainda não existir, estar atrasado ou cair na
+`.dlq`, e a projeção continua liberando o acesso.
+
+### Ocorrências
+
+- **Revisão:** Code Review CHANGES_REQUESTED do PR #294 (SHA `e43fcf2`, HIGH) — DEV-0105 (#97) · **PR:** #294
+  - **Impacto:** a exclusão da conta apagava os vínculos ativos sem `VinculoEncerrado`; training e nutrition
+    continuariam liberando ao personal e à nutricionista os dados do cliente excluído.
+  - **Correção:** `DeleteClientAccount` encerra cada vínculo ativo pelo cliente e grava o `VinculoEncerrado` antes de
+    apagar, como o encerramento comum.
+  - **Prevenção:** teste `osVinculosAtivosSaoEncerrados…` e mutantes M23 a M25 de `mutations/DEV-0105.json`.

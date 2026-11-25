@@ -66,8 +66,9 @@ DEV-0105), e cada serviço trata o que tem.
 
 ## Consequências
 
-- A DEV-0105 implementa os itens 1 a 4: o evento, o consumidor em cada serviço, a anonimização das prescrições, a
-  lista de ids e o seu expurgo.
+- A DEV-0105 implementa os itens 1 a 4 no client-service: o evento, o encerramento dos vínculos ativos com o
+  `VinculoEncerrado`, a lista de ids e o seu expurgo. O login sai na DEV-0161, e os consumidores do training e do
+  nutrition, com a anonimização das prescrições, ficam na DEV-0162 e na DEV-0163.
 - A DEV-0106 e o registro da DEV-0040 ganham o expurgo de 6 meses.
 - A DEV-0108 precisa de backups com retenção de 30 dias, e o teste de restauração reaplica as exclusões da lista.
 - A política de privacidade (seção 6) passa a citar estes prazos.

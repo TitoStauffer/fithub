@@ -205,13 +205,14 @@ class AccountDeletionTest extends ServiceIntegrationTest {
                         .content("{\"token\": \"%s\", \"consent\": true, \"termsVersion\": \"v1\"}"
                                 .formatted(link.substring(link.lastIndexOf('/') + 1))))
                 .andExpect(status().isCreated());
-        // O convite aceito ganha o e-mail, como se tivesse sido enviado por e-mail.
+        // O convite aceito foi enviado para outro e-mail do cliente: sai pelo vínculo, não pelo e-mail do token.
         jdbc.sql(
                         "update invitation set email = :email where id = (select invitation_id from client_link where client_id = :c)")
-                .param("email", client + "@teste.fithub")
+                .param("email", "aceito-" + client + "@teste.fithub")
                 .param("c", UUID.fromString(client))
                 .update();
-        pendingInvitation(professional, client.toUpperCase() + "@TESTE.FITHUB");
+        invitation(professional, client.toUpperCase() + "@TESTE.FITHUB", "PENDING");
+        invitation(professional, client + "@teste.fithub", "CANCELLED");
         jdbc.sql(
                         "insert into health_access_log (id, professional_id, client_id, accessed_at) values (:id, :p, :c, now())")
                 .param("id", UUID.randomUUID())
@@ -221,15 +222,17 @@ class AccountDeletionTest extends ServiceIntegrationTest {
         return client;
     }
 
-    private void pendingInvitation(String professional, String email) {
+    private void invitation(String professional, String email, String invitationStatus) {
         jdbc.sql("""
                         insert into invitation (id, professional_id, email, token_hash, code_hash, status, expires_at,
-                                                created_at)
-                        values (:id, :p, :email, :token, :code, 'PENDING', now() + interval '7 days', now())
+                                                created_at, cancelled_at)
+                        values (:id, :p, :email, :token, :code, :status, now() + interval '7 days', now(),
+                                case when :status = 'CANCELLED' then now() end)
                         """)
                 .param("id", UUID.randomUUID())
                 .param("p", UUID.fromString(professional))
                 .param("email", email)
+                .param("status", invitationStatus)
                 .param("token", hash())
                 .param("code", hash())
                 .update();
@@ -267,7 +270,7 @@ class AccountDeletionTest extends ServiceIntegrationTest {
                 count("select count(*) from assessment_photo where client_id = :id", id),
                 count("select count(*) from client_link where client_id = :id", id),
                 count("select count(*) from consent where client_id = :id", id),
-                count("select count(*) from invitation where lower(email) = lower(:id)", client + "@teste.fithub"));
+                count("select count(*) from invitation where position(lower(:id) in lower(email)) > 0", client));
     }
 
     private List<String> outboxPayloads(String client) {
@@ -281,6 +284,14 @@ class AccountDeletionTest extends ServiceIntegrationTest {
                 .list();
     }
 
+    /** VinculoEncerrado gravados no outbox para o cliente. */
+    private List<String> linkEndedPayloads(String client) {
+        return jdbc.sql("""
+                        select payload::text from fithub_outbox_event
+                         where routing_key = 'client.link-ended.v1' and payload ->> 'clientId' = :client
+                        """).param("client", client).query(String.class).list();
+    }
+
     private int deletedAccounts(String client) {
         return count("select count(*) from deleted_account where client_id = :id", UUID.fromString(client));
     }
@@ -288,7 +299,7 @@ class AccountDeletionTest extends ServiceIntegrationTest {
     @Test
     void excluirApagaTudoDoClienteGravaOEventoEApagaOsArquivosDoBucket() throws Exception {
         String client = fullClient(professional());
-        assertThat(leftovers(client)).containsExactly(1, 1, 1, 1, 1, 1, 2);
+        assertThat(leftovers(client)).containsExactly(1, 1, 1, 1, 1, 1, 3);
 
         deleteAccount("conta-" + client).andExpect(status().isNoContent());
 
@@ -300,6 +311,28 @@ class AccountDeletionTest extends ServiceIntegrationTest {
                 .isEmpty();
         assertThat(payloads.getFirst()).contains("\"occurredAt\": \"2026-11-23T12:00:00Z\"");
         assertThat(storage.deletedPrefixes).containsExactly("clients/" + client + "/");
+    }
+
+    @Test
+    void osVinculosAtivosSaoEncerradosPeloClienteComOVinculoEncerradoAntesDeSumir() throws Exception {
+        String professional = professional();
+        String client = fullClient(professional);
+        String linkId = jdbc.sql("select id::text from client_link where client_id = :c")
+                .param("c", UUID.fromString(client))
+                .query(String.class)
+                .single();
+
+        deleteAccount("conta-" + client).andExpect(status().isNoContent());
+
+        List<String> ended = linkEndedPayloads(client);
+        assertThat(ended).hasSize(1);
+        assertThat(EventContracts.validate(EventContract.LINK_ENDED_V1, ended.getFirst()))
+                .isEmpty();
+        assertThat(ended.getFirst())
+                .contains("\"linkId\": \"" + linkId + "\"")
+                .contains("\"professionalId\": \"" + professional + "\"")
+                .contains("\"endedBy\": \"client\"")
+                .contains("\"occurredAt\": \"2026-11-23T12:00:00Z\"");
     }
 
     @Test
@@ -325,15 +358,19 @@ class AccountDeletionTest extends ServiceIntegrationTest {
 
         deleteAccount("personal-" + client).andExpect(status().isNoContent());
 
-        assertThat(leftovers(other)).containsExactly(1, 1, 1, 1, 1, 1, 2);
+        assertThat(leftovers(other)).containsExactly(1, 1, 1, 1, 1, 1, 3);
         assertThat(count("select count(*) from professional where id = :id", UUID.fromString(client)))
                 .isEqualTo(1);
-        assertThat(count("select count(*) from client_link where professional_id = :id", UUID.fromString(client)))
+        assertThat(count(
+                        "select count(*) from client_link where professional_id = :id and status = 'ACTIVE'",
+                        UUID.fromString(client)))
                 .isEqualTo(1);
+        assertThat(linkEndedPayloads(ownClient)).isEmpty();
+        assertThat(linkEndedPayloads(other)).isEmpty();
         assertThat(count("select count(*) from health_access_log where client_id = :id", UUID.fromString(client)))
                 .isEqualTo(1);
         assertThat(count("select count(*) from invitation where professional_id = :id", UUID.fromString(professional)))
-                .isEqualTo(4);
+                .isEqualTo(6);
         assertThat(deletedAccounts(other)).isZero();
     }
 
@@ -344,8 +381,13 @@ class AccountDeletionTest extends ServiceIntegrationTest {
 
         deleteAccount("conta-" + client).andExpect(status().isInternalServerError());
 
-        assertThat(leftovers(client)).containsExactly(1, 1, 1, 1, 1, 1, 2);
+        assertThat(leftovers(client)).containsExactly(1, 1, 1, 1, 1, 1, 3);
         assertThat(outboxPayloads(client)).isEmpty();
+        assertThat(linkEndedPayloads(client)).isEmpty();
+        assertThat(count(
+                        "select count(*) from client_link where client_id = :id and status = 'ACTIVE'",
+                        UUID.fromString(client)))
+                .isEqualTo(1);
         assertThat(deletedAccounts(client)).isZero();
         assertThat(storage.deletedPrefixes).isEmpty();
     }
@@ -370,7 +412,7 @@ class AccountDeletionTest extends ServiceIntegrationTest {
         mvc.perform(delete("/clients/me")).andExpect(status().isUnauthorized());
         deleteAccount("sempapel-" + client).andExpect(status().isForbidden());
 
-        assertThat(leftovers(client)).containsExactly(1, 1, 1, 1, 1, 1, 2);
+        assertThat(leftovers(client)).containsExactly(1, 1, 1, 1, 1, 1, 3);
         assertThat(outboxPayloads(client)).isEmpty();
     }
 

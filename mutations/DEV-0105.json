@@ -46,8 +46,8 @@
             "description": "O convite pendente para o e-mail do cliente mantém o e-mail",
             "area": "java",
             "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
-            "find": "update invitation set email = null where status",
-            "replace": "update invitation set email = email where status",
+            "find": "update invitation set email = null where lower",
+            "replace": "update invitation set email = email where lower",
             "command": [
                 "mvn",
                 "-B",
@@ -366,8 +366,8 @@
             "description": "Os arquivos passam a ser apagados antes da transação",
             "area": "java",
             "file": "services/client-service/src/main/java/com/fithub/client/application/DeleteClientAccount.java",
-            "find": "        transaction.executeWithoutResult(status -> {\n            erasure.erase(clientId, inviteEmail, now);",
-            "replace": "        photos.deleteFilesOfClient(clientId);\n        transaction.executeWithoutResult(status -> {\n            erasure.erase(clientId, inviteEmail, now);",
+            "find": "        transaction.executeWithoutResult(status -> {\n",
+            "replace": "        photos.deleteFilesOfClient(clientId);\n        transaction.executeWithoutResult(status -> {\n",
             "command": [
                 "mvn",
                 "-B",
@@ -403,6 +403,86 @@
         },
         {
             "id": "M21",
+            "description": "O e-mail volta a ficar nos convites cancelados",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
+            "find": "update invitation set email = null where lower(email)",
+            "replace": "update invitation set email = null where status = 'PENDING' and lower(email)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M22",
+            "description": "A exclusão deixa de encerrar os vínculos ativos",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/DeleteClientAccount.java",
+            "find": "            endActiveLinks(clientId, now);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M23",
+            "description": "O encerramento deixa de publicar o VinculoEncerrado",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/DeleteClientAccount.java",
+            "find": "                    linkEvents.ended(ended);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M24",
+            "description": "O vínculo passa a ser encerrado pelo profissional",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/DeleteClientAccount.java",
+            "find": "link.end(Link.Party.CLIENT, now)",
+            "replace": "link.end(Link.Party.PROFESSIONAL, now)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M25",
             "description": "A rota deixa de exigir o papel de cliente",
             "area": "java",
             "file": "services/client-service/src/main/java/com/fithub/client/interfaces/rest/ClientAccountController.java",

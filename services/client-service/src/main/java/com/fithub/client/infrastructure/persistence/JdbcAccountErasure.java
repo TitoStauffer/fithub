@@ -31,7 +31,7 @@ class JdbcAccountErasure implements AccountErasure {
                          where id in (select invitation_id from client_link where client_id = :clientId)
                         """).param("clientId", clientId).update();
         if (email != null) {
-            jdbc.sql("update invitation set email = null where status = 'PENDING' and lower(email) = lower(:email)")
+            jdbc.sql("update invitation set email = null where lower(email) = lower(:email)")
                     .param("email", email)
                     .update();
         }
