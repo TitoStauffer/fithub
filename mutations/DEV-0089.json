@@ -1,0 +1,80 @@
+{
+    "issue": "DEV-0089",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Mobile: o token deixa de ir para o nutrition-service",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/authConfig.ts",
+            "find": "originOf(trainingApiUrl()), originOf(nutritionApiUrl())]",
+            "replace": "originOf(trainingApiUrl())]",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Mobile: o registro de outra refeição passa a aparecer na refeição",
+            "area": "apps",
+            "file": "apps/mobile/src/features/meals/TodayMealsScreen.tsx",
+            "find": "logs.find((each) => each.mealPosition === meal.position)",
+            "replace": "logs[0]",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Mobile: o registro passa a abrir sempre a primeira refeição",
+            "area": "apps",
+            "file": "apps/mobile/src/features/meals/TodayMealsScreen.tsx",
+            "find": "onLog(today, meal.position ?? 0)",
+            "replace": "onLog(today, 0)",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Mobile: a medida caseira deixa de aparecer na quantidade",
+            "area": "apps",
+            "file": "apps/mobile/src/features/meals/mealsApi.ts",
+            "find": "return item.measureName ?",
+            "replace": "return false ?",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Mobile: a diferença positiva perde o sinal",
+            "area": "apps",
+            "file": "apps/mobile/src/features/meals/mealsApi.ts",
+            "find": "number > 0 ? '+' : ''",
+            "replace": "''",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}

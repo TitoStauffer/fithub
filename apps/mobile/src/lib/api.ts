@@ -1,11 +1,24 @@
-import type { ClientServiceComponents, TrainingServiceComponents } from '@fithub/api-types';
+import type {
+    ClientServiceComponents,
+    NutritionServiceComponents,
+    TrainingServiceComponents,
+} from '@fithub/api-types';
 
-import { clientApiUrl, trainingApiUrl } from '../features/auth/authConfig';
+import { clientApiUrl, nutritionApiUrl, trainingApiUrl } from '../features/auth/authConfig';
 import { InvalidSessionError } from '../features/auth/session';
 import type { ApiFetch } from './apiFetch';
 
 type Schemas = ClientServiceComponents['schemas'];
 type TrainingSchemas = TrainingServiceComponents['schemas'];
+type NutritionSchemas = NutritionServiceComponents['schemas'];
+
+/** As refeições de hoje: o plano publicado com os macros e os registros do dia (DEV-0087). */
+export type MealPlanToday = NutritionSchemas['MealPlanToday'];
+export type MealPlanView = NutritionSchemas['MealPlan'];
+export type Meal = NutritionSchemas['Meal'];
+export type MealItem = NutritionSchemas['MealItem'];
+export type MealLog = NutritionSchemas['MealLog'];
+export type NutrientAmounts = NutritionSchemas['NutrientAmounts'];
 
 /** Ficha ativa do aluno com o próximo treino (DEV-0065), como o training-service devolve. */
 export type ActivePlan = TrainingSchemas['ActivePlan'];
@@ -248,6 +261,11 @@ export async function fetchMyPhotos(
             `${baseUrl}/clients/me/assessments/${encodeURIComponent(assessmentId)}/photos`,
         )) ?? []
     );
+}
+
+/** As refeições de hoje do plano publicado e os registros do dia (DEV-0087); `null` sem plano publicado. */
+export function fetchMealPlanToday(apiFetch: ApiFetch, baseUrl = nutritionApiUrl()) {
+    return read<MealPlanToday>(apiFetch, `${baseUrl}/me/meal-plan/today`);
 }
 
 /** As fichas publicadas do aluno, cada uma com o próximo treino da sequência (DEV-0065). */

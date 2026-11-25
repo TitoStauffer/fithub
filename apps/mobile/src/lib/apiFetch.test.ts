@@ -90,6 +90,10 @@ describe('originOf', () => {
 
 describe('apiOrigins', () => {
     it('o token vai só para o client-service e o training-service', () => {
-        expect(apiOrigins()).toEqual(['http://localhost:8082', 'http://localhost:8083']);
+        expect(apiOrigins()).toEqual([
+            'http://localhost:8082',
+            'http://localhost:8083',
+            'http://localhost:8084',
+        ]);
     });
 });

@@ -142,3 +142,15 @@ está no ADR-007.
 - A validação espelha a da API e o erro aparece no campo do item, inclusive o que a API devolver.
 - "Salvar ficha" grava o rascunho; "Publicar" exige exercício em cada treino, pede confirmação e a ficha passa a
   aparecer no treino de hoje. Na ficha publicada, a tela avisa que salvar gera a versão seguinte.
+
+## Refeições de hoje (DEV-0089)
+
+- "Refeições de hoje", na tela inicial, mostra o plano alimentar publicado (`GET /me/meal-plan/today`, DEV-0087):
+  - cada refeição na ordem, com o horário e a observação;
+  - os alimentos com a quantidade ou a medida caseira (ex.: "2 Concha (50 g)");
+  - as alternativas, com a diferença de macros para o principal;
+  - os macros da refeição e do dia;
+  - o registro de hoje de cada refeição (feita, parcial, não feita ou ainda não registrada).
+- Sem plano publicado, a tela avisa. Sem conexão, avisa e deixa tentar de novo.
+- O app fala com o nutrition-service em `EXPO_PUBLIC_NUTRITION_API_URL` (padrão `http://localhost:8084`), que passa a
+  receber o token junto com o client-service e o training-service.
