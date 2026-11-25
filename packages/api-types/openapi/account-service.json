@@ -122,6 +122,34 @@
         },
         "required" : [ "registrationNumber", "registrationState", "type" ],
         "type" : "object"
+      },
+      "Subscription" : {
+        "properties" : {
+          "paidUntil" : {
+            "description" : "Até quando o período pago vale; nulo enquanto nada foi pago.",
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "plan" : {
+            "enum" : [ "PROFESSIONAL_MONTHLY" ],
+            "type" : "string"
+          },
+          "status" : {
+            "description" : "TRIAL no teste grátis, ACTIVE com período pago, EXPIRED sem nenhum dos dois.",
+            "enum" : [ "TRIAL", "ACTIVE", "EXPIRED" ],
+            "type" : "string"
+          },
+          "trialEndsAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "validUntil" : {
+            "description" : "Até quando o profissional pode prescrever: o maior entre o teste e o pago.",
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
       }
     },
     "securitySchemes" : {
@@ -246,6 +274,45 @@
         "summary" : "Cadastra a conta autenticada como profissional",
         "tags" : [ "Profissional" ]
       }
+    },
+    "/professionals/me/subscription" : {
+      "get" : {
+        "operationId" : "getMySubscription",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Subscription"
+                }
+              }
+            },
+            "description" : "A assinatura, com o estado agora."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta ainda não tem cadastro de profissional."
+          }
+        },
+        "summary" : "Plano e estado da assinatura do profissional da conta autenticada",
+        "tags" : [ "Assinatura" ]
+      }
     }
   },
   "security" : [ {
@@ -256,6 +323,9 @@
     "url" : "http://localhost"
   } ],
   "tags" : [ {
+    "description" : "Plano e estado da assinatura do profissional",
+    "name" : "Assinatura"
+  }, {
     "description" : "Cadastro do profissional da conta autenticada",
     "name" : "Profissional"
   } ]

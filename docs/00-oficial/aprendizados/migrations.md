@@ -42,3 +42,13 @@ caso, escreva `coluna IS NOT NULL AND coluna IN (...)`, e teste a constraint com
     `mutations/DEV-0080.json`).
   - **Prevenção:** a guarda repetida em vários métodos (o `requireActiveLink` em cada operação) conta como uma guarda
     por método: cada uma tem o seu teste (a mesma chamada sem vínculo, por verbo) e o seu mutante.
+- **Revisão:** Code Review do PR #285, no SHA `ac66c4e` (MEDIUM) — DEV-0099 (#91) · **PR:** #285
+  - **Impacto:** as CHECKs novas da V5 do account-service (`ck_subscription_plan` e `ck_subscription_trial`) não
+    tinham teste de escrita direta nem mutante, e o PR afirmava "mutante para cada guarda". O manifesto cobria as
+    guardas do domínio e o preenchimento da migration, mas esqueceu as constraints da própria tabela nova.
+  - **Correção:** `bancoRecusaPlanoForaDaListaETesteQueNaoPassaDoCadastroMesmoPorEscritaDireta` grava direto na
+    tabela um plano fora da lista e um teste que acaba no instante do cadastro, esperando a recusa pelo nome da
+    constraint; mutantes M10 e M11 de `mutations/DEV-0099.json`.
+  - **Prevenção:** quarta ocorrência do mesmo padrão. Ao escrever uma migration, abrir o arquivo e listar cada
+    `constraint` e cada `check` dele no manifesto antes de rodar os mutantes; a tabela nova conta inteira, não só a
+    regra que motivou a migration.

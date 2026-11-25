@@ -25,6 +25,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/professionals/me/subscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Plano e estado da assinatura do profissional da conta autenticada */
+        get: operations["getMySubscription"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -83,6 +100,27 @@ export interface components {
             registrationState: string;
             /** @enum {string} */
             type: "PERSONAL" | "NUTRITIONIST";
+        };
+        Subscription: {
+            /**
+             * Format: date-time
+             * @description Até quando o período pago vale; nulo enquanto nada foi pago.
+             */
+            paidUntil?: string | null;
+            /** @enum {string} */
+            plan?: "PROFESSIONAL_MONTHLY";
+            /**
+             * @description TRIAL no teste grátis, ACTIVE com período pago, EXPIRED sem nenhum dos dois.
+             * @enum {string}
+             */
+            status?: "TRIAL" | "ACTIVE" | "EXPIRED";
+            /** Format: date-time */
+            trialEndsAt?: string;
+            /**
+             * Format: date-time
+             * @description Até quando o profissional pode prescrever: o maior entre o teste e o pago.
+             */
+            validUntil?: string;
         };
     };
     responses: never;
@@ -182,6 +220,44 @@ export interface operations {
             };
             /** @description A conta já tem um cadastro com outros dados. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getMySubscription: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A assinatura, com o estado agora. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Subscription"];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta ainda não tem cadastro de profissional. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
