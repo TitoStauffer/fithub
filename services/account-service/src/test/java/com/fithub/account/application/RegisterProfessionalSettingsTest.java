@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 class RegisterProfessionalSettingsTest {
 
     private static RegisterProfessional withTrialDays(int days) {
-        return new RegisterProfessional(null, null, null, null, Clock.systemUTC(), null, days);
+        return new RegisterProfessional(null, null, null, null, Clock.systemUTC(), null, null, days);
     }
 
     @Test

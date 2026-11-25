@@ -37,5 +37,8 @@ Esqueleto da DEV-0015 (estrutura, execução e testes em [services/README.md](..
   `fithub.subscription.trial-days` (padrão 14). Os cadastros anteriores à V5 ganharam 14 dias a partir da migration.
 - O estado não é guardado: sai das datas na leitura. Período pago no futuro é `ACTIVE`; senão, teste no futuro é
   `TRIAL`; senão, `EXPIRED`. `validUntil` é a maior das duas datas.
+- O cadastro grava o `AssinaturaAlterada` (`account.subscription-changed.v1`) no outbox, na mesma transação, com
+  `active` e o `validUntil` do teste (DEV-0101). Com a data, training e nutrition bloqueiam sozinhos quando ela passa,
+  sem rotina agendada aqui.
 - Um plano no MVP (`PROFESSIONAL_MONTHLY`). O preço e o meio de pagamento esperam a decisão da DEV-0098; o período
   pago só muda pelo pagamento (DEV-0100), que estende e nunca encurta.

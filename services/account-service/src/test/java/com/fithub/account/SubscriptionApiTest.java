@@ -2,6 +2,7 @@ package com.fithub.account;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.within;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -9,11 +10,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fithub.account.domain.professional.Professional;
 import com.fithub.account.domain.professional.ProfessionalRoles;
+import com.fithub.eventcontracts.EventContract;
+import com.fithub.eventcontracts.EventContracts;
 import com.fithub.testing.service.ServiceIntegrationTest;
 import com.jayway.jsonpath.JsonPath;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -118,6 +122,29 @@ class SubscriptionApiTest extends ServiceIntegrationTest {
         Instant trialEndsAt = Instant.parse(JsonPath.read(body, "$.trialEndsAt"));
         assertThat(Duration.between(createdAt, trialEndsAt)).isEqualTo(Duration.ofDays(10));
         assertThat(Instant.parse(JsonPath.read(body, "$.validUntil"))).isEqualTo(trialEndsAt);
+    }
+
+    @Test
+    void cadastroGravaAAssinaturaAlteradaNoOutboxPeloContrato() throws Exception {
+        String account = registered();
+        List<String> payloads =
+                jdbc.sql("""
+                        select payload::text from fithub_outbox_event
+                         where routing_key = 'account.subscription-changed.v1' and payload ->> 'professionalId' = :id
+                        """).param("id", account).query(String.class).list();
+        assertThat(payloads).hasSize(1);
+        String payload = payloads.getFirst();
+        assertThat(EventContracts.validate(EventContract.SUBSCRIPTION_CHANGED_V1, payload))
+                .isEmpty();
+        Instant trialEndsAt = jdbc.sql("select trial_ends_at from subscription where professional_id = :id")
+                .param("id", UUID.fromString(account))
+                .query(java.sql.Timestamp.class)
+                .single()
+                .toInstant();
+        assertThat(payload).contains("\"active\": true");
+        // O banco arredonda para microssegundos; o evento leva o instante inteiro.
+        assertThat(Instant.parse(JsonPath.read(payload, "$.validUntil")))
+                .isCloseTo(trialEndsAt, within(1, ChronoUnit.MICROS));
     }
 
     @Test

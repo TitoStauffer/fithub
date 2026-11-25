@@ -156,3 +156,14 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
 - `GET /professionals/me/clients/activity` (nutricionista): cada paciente com vínculo ativo e o último registro de refeição
   nos planos dela, base da lista de inativos (FR-59).
 - Tudo é calculado na leitura, sem tabela derivada. O personal não tem rota (BR-03).
+
+
+## Assinatura do profissional (DEV-0101)
+
+- Consome o `AssinaturaAlterada` (`account.subscription-changed.v1`, fila `nutrition.account-events`, com fila de
+  mensagens mortas) e guarda em `professional_subscription` o `active` e o `validUntil` de cada profissional. O evento
+  mais novo por `occurredAt` vence, inclusive fora de ordem.
+- Sem assinatura válida (`validUntil` no passado ou, sem ele, `active` falso), criar, editar e publicar plano alimentar
+  respondem 403 ("Sua assinatura venceu. Renove para criar ou editar prescrições."). Ler o que já existe continua,
+  para o profissional e para o cliente (FR-06, BR-14).
+- Profissional de quem nenhum evento chegou não é bloqueado.

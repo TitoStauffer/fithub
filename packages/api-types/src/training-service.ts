@@ -1300,7 +1300,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description A conta não é personal. */
+            /** @description A conta não é personal, ou a assinatura venceu (DEV-0101). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2860,7 +2860,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description A conta não é personal. */
+            /** @description A conta não é personal, ou a assinatura venceu (DEV-0101). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2918,7 +2918,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description A conta não é personal. */
+            /** @description A conta não é personal, ou a assinatura venceu (DEV-0101). */
             403: {
                 headers: {
                     [name: string]: unknown;

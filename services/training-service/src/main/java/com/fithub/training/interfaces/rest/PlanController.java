@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fithub.training.application.ManagePlans;
 import com.fithub.training.application.PlanAlerts;
 import com.fithub.training.domain.access.ClientNotFoundException;
+import com.fithub.training.domain.access.SubscriptionRequiredException;
 import com.fithub.training.domain.plan.InvalidPlanException;
 import com.fithub.training.domain.plan.PlanConflictException;
 import com.fithub.training.domain.plan.PlanItem;
@@ -360,7 +361,7 @@ class PlanController {
                                         schema = @Schema(implementation = ClientController.ApiProblem.class))),
                 @ApiResponse(
                         responseCode = "403",
-                        description = "A conta não é personal.",
+                        description = "A conta não é personal, ou a assinatura venceu (DEV-0101).",
                         content =
                                 @Content(
                                         mediaType = PROBLEM,
@@ -478,7 +479,7 @@ class PlanController {
                                         schema = @Schema(implementation = ClientController.ApiProblem.class))),
                 @ApiResponse(
                         responseCode = "403",
-                        description = "A conta não é personal.",
+                        description = "A conta não é personal, ou a assinatura venceu (DEV-0101).",
                         content =
                                 @Content(
                                         mediaType = PROBLEM,
@@ -517,7 +518,7 @@ class PlanController {
                                         schema = @Schema(implementation = ClientController.ApiProblem.class))),
                 @ApiResponse(
                         responseCode = "403",
-                        description = "A conta não é personal.",
+                        description = "A conta não é personal, ou a assinatura venceu (DEV-0101).",
                         content =
                                 @Content(
                                         mediaType = PROBLEM,
@@ -547,6 +548,13 @@ class PlanController {
                 ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Um ou mais campos são inválidos.");
         problem.setTitle("Dados inválidos");
         problem.setProperty("errors", List.of(Map.of("field", exception.field(), "message", exception.getMessage())));
+        return problem;
+    }
+
+    @ExceptionHandler(SubscriptionRequiredException.class)
+    ProblemDetail subscriptionRequired(SubscriptionRequiredException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, exception.getMessage());
+        problem.setTitle("Assinatura vencida");
         return problem;
     }
 

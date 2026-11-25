@@ -1193,7 +1193,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description A conta não é nutricionista. */
+            /** @description A conta não é nutricionista, ou a assinatura venceu (DEV-0101). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2096,7 +2096,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description A conta não é nutricionista. */
+            /** @description A conta não é nutricionista, ou a assinatura venceu (DEV-0101). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2154,7 +2154,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description A conta não é nutricionista. */
+            /** @description A conta não é nutricionista, ou a assinatura venceu (DEV-0101). */
             403: {
                 headers: {
                     [name: string]: unknown;

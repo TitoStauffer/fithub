@@ -1394,7 +1394,7 @@
                 }
               }
             },
-            "description" : "A conta não é nutricionista."
+            "description" : "A conta não é nutricionista, ou a assinatura venceu (DEV-0101)."
           },
           "404" : {
             "content" : {
@@ -2526,7 +2526,7 @@
                 }
               }
             },
-            "description" : "A conta não é nutricionista."
+            "description" : "A conta não é nutricionista, ou a assinatura venceu (DEV-0101)."
           },
           "404" : {
             "content" : {
@@ -2594,7 +2594,7 @@
                 }
               }
             },
-            "description" : "A conta não é nutricionista."
+            "description" : "A conta não é nutricionista, ou a assinatura venceu (DEV-0101)."
           },
           "404" : {
             "content" : {

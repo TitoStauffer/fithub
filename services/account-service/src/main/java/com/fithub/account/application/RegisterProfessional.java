@@ -7,6 +7,7 @@ import com.fithub.account.domain.professional.ProfessionalRepository;
 import com.fithub.account.domain.professional.ProfessionalRoles;
 import com.fithub.account.domain.professional.Registration;
 import com.fithub.account.domain.subscription.Subscription;
+import com.fithub.account.domain.subscription.SubscriptionEvents;
 import com.fithub.account.domain.subscription.SubscriptionRepository;
 import com.fithub.commons.ids.UuidV7;
 import java.time.Clock;
@@ -36,6 +37,7 @@ public class RegisterProfessional {
     private final TransactionOperations transaction;
     private final Clock clock;
     private final SubscriptionRepository subscriptions;
+    private final SubscriptionEvents subscriptionEvents;
     private final Duration trial;
 
     public RegisterProfessional(
@@ -45,6 +47,7 @@ public class RegisterProfessional {
             TransactionOperations transaction,
             Clock clock,
             SubscriptionRepository subscriptions,
+            SubscriptionEvents subscriptionEvents,
             @Value("${fithub.subscription.trial-days:14}") int trialDays) {
         this.repository = repository;
         this.roles = roles;
@@ -52,6 +55,7 @@ public class RegisterProfessional {
         this.transaction = transaction;
         this.clock = clock;
         this.subscriptions = subscriptions;
+        this.subscriptionEvents = subscriptionEvents;
         // Configuração errada falha na subida, não como 500 em cada cadastro (Code Review do PR #285).
         if (trialDays < 1) {
             throw new IllegalArgumentException("fithub.subscription.trial-days precisa ser de pelo menos 1 dia.");
@@ -87,7 +91,10 @@ public class RegisterProfessional {
             transaction.executeWithoutResult(status -> {
                 repository.saveNew(professional, organization);
                 // Todo profissional novo nasce em teste grátis (DEV-0099).
-                subscriptions.add(Subscription.startTrial(professional.id(), now, trial));
+                Subscription subscription = Subscription.startTrial(professional.id(), now, trial);
+                subscriptions.add(subscription);
+                // Training e nutrition passam a saber até quando o profissional prescreve (DEV-0101).
+                subscriptionEvents.changed(subscription, now);
                 events.registered(professional);
             });
         } catch (ProfessionalRepository.AlreadyRegisteredException race) {
