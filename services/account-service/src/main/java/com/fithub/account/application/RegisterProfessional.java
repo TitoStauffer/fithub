@@ -6,12 +6,16 @@ import com.fithub.account.domain.professional.ProfessionalEvents;
 import com.fithub.account.domain.professional.ProfessionalRepository;
 import com.fithub.account.domain.professional.ProfessionalRoles;
 import com.fithub.account.domain.professional.Registration;
+import com.fithub.account.domain.subscription.Subscription;
+import com.fithub.account.domain.subscription.SubscriptionRepository;
 import com.fithub.commons.ids.UuidV7;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionOperations;
 
@@ -31,18 +35,24 @@ public class RegisterProfessional {
     private final ProfessionalEvents events;
     private final TransactionOperations transaction;
     private final Clock clock;
+    private final SubscriptionRepository subscriptions;
+    private final Duration trial;
 
     public RegisterProfessional(
             ProfessionalRepository repository,
             ProfessionalRoles roles,
             ProfessionalEvents events,
             TransactionOperations transaction,
-            Clock clock) {
+            Clock clock,
+            SubscriptionRepository subscriptions,
+            @Value("${fithub.subscription.trial-days:14}") int trialDays) {
         this.repository = repository;
         this.roles = roles;
         this.events = events;
         this.transaction = transaction;
         this.clock = clock;
+        this.subscriptions = subscriptions;
+        this.trial = Duration.ofDays(trialDays);
     }
 
     /** O que a pessoa pediu. {@code accountId} vem sempre do token, nunca do corpo da requisição. */
@@ -72,6 +82,8 @@ public class RegisterProfessional {
             // O evento vai para o outbox na mesma transação do cadastro (DEV-0030, ADR-003).
             transaction.executeWithoutResult(status -> {
                 repository.saveNew(professional, organization);
+                // Todo profissional novo nasce em teste grátis (DEV-0099).
+                subscriptions.add(Subscription.startTrial(professional.id(), now, trial));
                 events.registered(professional);
             });
         } catch (ProfessionalRepository.AlreadyRegisteredException race) {

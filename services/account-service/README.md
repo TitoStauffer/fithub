@@ -26,3 +26,16 @@ Esqueleto da DEV-0015 (estrutura, execução e testes em [services/README.md](..
   `FITHUB_ACCOUNT_SERVICE_SECRET`; no compose local o padrão já casa com o realm. A retentativa roda a
   cada `fithub.professional.role-retry.interval` (30 s) e desliga com
   `fithub.professional.role-retry.enabled=false`.
+
+## Assinatura (DEV-0099)
+
+| Rota | Quem | Resultado |
+|---|---|---|
+| `GET /professionals/me/subscription` | profissional | Plano, estado (`TRIAL`, `ACTIVE`, `EXPIRED`), fim do teste, período pago e `validUntil`; 404 sem cadastro |
+
+- Todo profissional novo nasce em teste grátis, na mesma transação do cadastro. A duração vem de
+  `fithub.subscription.trial-days` (padrão 14). Os cadastros anteriores à V5 ganharam 14 dias a partir da migration.
+- O estado não é guardado: sai das datas na leitura. Período pago no futuro é `ACTIVE`; senão, teste no futuro é
+  `TRIAL`; senão, `EXPIRED`. `validUntil` é a maior das duas datas.
+- Um plano no MVP (`PROFESSIONAL_MONTHLY`). O preço e o meio de pagamento esperam a decisão da DEV-0098; o período
+  pago só muda pelo pagamento (DEV-0100), que estende e nunca encurta.

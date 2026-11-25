@@ -1,0 +1,185 @@
+{
+    "issue": "DEV-0099",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O teste grátis passa a aceitar duração zero",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/domain/subscription/Subscription.java",
+            "find": "if (trial.isNegative() || trial.isZero()) {",
+            "replace": "if (trial.isNegative()) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O teste grátis passa a aceitar duração negativa",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/domain/subscription/Subscription.java",
+            "find": "if (trial.isNegative() || trial.isZero()) {",
+            "replace": "if (trial.isZero()) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O período pago vencido passa a deixar a assinatura ativa",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/domain/subscription/Subscription.java",
+            "find": "if (paidUntil != null && now.isBefore(paidUntil)) {",
+            "replace": "if (paidUntil != null) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionTest,SubscriptionApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "O teste vencido passa a valer como teste",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/domain/subscription/Subscription.java",
+            "find": "if (now.isBefore(trialEndsAt)) {",
+            "replace": "if (true) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionTest,SubscriptionApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O validUntil passa a ignorar o período pago",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/domain/subscription/Subscription.java",
+            "find": "return paidUntil != null && paidUntil.isAfter(trialEndsAt) ? paidUntil : trialEndsAt;",
+            "replace": "return trialEndsAt;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "O validUntil passa a encurtar para o pago menor que o teste",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/domain/subscription/Subscription.java",
+            "find": "return paidUntil != null && paidUntil.isAfter(trialEndsAt) ? paidUntil : trialEndsAt;",
+            "replace": "return paidUntil != null ? paidUntil : trialEndsAt;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Um pagamento mais antigo passa a encurtar o período pago",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/domain/subscription/Subscription.java",
+            "find": "Instant next = paidUntil != null && paidUntil.isAfter(until) ? paidUntil : until;",
+            "replace": "Instant next = until;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "O profissional novo passa a nascer sem assinatura",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/RegisterProfessional.java",
+            "find": "                subscriptions.add(Subscription.startTrial(professional.id(), now, trial));\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "Os cadastros existentes deixam de ganhar o teste na migration",
+            "area": "java",
+            "file": "services/account-service/src/main/resources/db/migration/V5__assinatura.sql",
+            "find": "insert into subscription (professional_id, plan, trial_ends_at, paid_until, created_at)\nselect id, 'PROFESSIONAL_MONTHLY', now() + interval '14 days', null, now()\n  from professional;",
+            "replace": "select 1;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionMigrationTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}
