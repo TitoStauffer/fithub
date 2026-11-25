@@ -5,6 +5,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { AssessmentHistory } from '@/features/assessments/AssessmentHistory';
 import { useAuth } from '@/features/auth/authContext';
+import { MealPlansSection } from '@/features/mealPlans/MealPlansSection';
 import { PlansSection } from '@/features/plans/PlansSection';
 import { RestrictionsSection } from '@/features/restrictions/RestrictionsSection';
 import { PhotoComparison } from '@/features/assessments/PhotoComparison';
@@ -26,6 +27,7 @@ export function ClientDetailPage() {
     // Restrições de mobilidade e fichas de treino são do personal (BR-03): a nutricionista não vê as seções.
     const { user } = useAuth();
     const personal = user?.roles.includes('personal') ?? false;
+    const nutritionist = user?.roles.includes('nutritionist') ?? false;
 
     const profile = useQuery({
         queryKey: ['professional', 'client', clientId, 'profile'],
@@ -106,6 +108,7 @@ export function ClientDetailPage() {
             {profile.data ? <PhotoComparison clientId={clientId} /> : null}
             {profile.data && personal ? <RestrictionsSection clientId={clientId} /> : null}
             {profile.data && personal ? <PlansSection clientId={clientId} /> : null}
+            {profile.data && nutritionist ? <MealPlansSection clientId={clientId} /> : null}
             {profile.data && linkId ? (
                 <div className="space-y-2">
                     {!confirming ? (

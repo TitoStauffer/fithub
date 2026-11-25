@@ -146,3 +146,19 @@ suba o Keycloak pelo compose de `infra/`). A decisão dos papéis e dos clients 
 - A validação espelha a do nutrition-service, e o erro de campo da API aparece no campo, fora do rótulo (o nome do
   campo continua só o rótulo para o leitor de tela).
 - **Configuração:** `VITE_NUTRITION_API_URL` (padrão `http://localhost:8084`); a origem entra em `apiOrigins()`.
+
+## Editor de plano alimentar (DEV-0085)
+
+- Na tela do paciente vinculado, a seção **Planos alimentares** (só para o papel `nutritionist`) lista os planos com o
+  estado (rascunho, publicado, substituído), a versão e o início, e leva ao editor.
+- **Editor** (`/app/clientes/:clientId/planos/novo` e `.../planos/:planId`): nome, início, observação geral e até 10
+  refeições, cada uma com nome, horário (HH:MM), observação e ordem por subir e descer. Os alimentos vêm da busca da
+  base, com a quantidade em g (ou ml) ou a medida caseira da nutricionista e quantas; cada um tem até 2 alternativas
+  com quantidade própria, sem repetir o principal.
+- Os macros do item, da refeição e do dia, a diferença de cada alternativa para o principal (com sinal) e os alertas de
+  alergia e intolerância vêm da API no plano salvo; com edição pendente, somem até salvar. O alerta não impede salvar
+  nem publicar (BR-11).
+- A validação da API fica espelhada no navegador, e o erro de campo da API aparece no item
+  (`meals[i].items[j]...`). **Publicar** pede confirmação e exige o rascunho salvo e um alimento em cada refeição. No
+  plano publicado, a tela avisa que salvar cria a versão seguinte e manda a versão base; se outra edição chegou antes
+  (409), o plano é recarregado com aviso. Vínculo encerrado mostra que o acesso acabou.

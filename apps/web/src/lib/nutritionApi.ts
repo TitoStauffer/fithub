@@ -13,6 +13,10 @@ export type FoodInput = Schemas['FoodInput'];
 export type FoodMeasure = Schemas['FoodMeasure'];
 export type FoodMeasureInput = Schemas['FoodMeasureInput'];
 export type BaseUnit = NonNullable<Food['baseUnit']>;
+export type MealPlan = Schemas['MealPlan'];
+export type MealPlanInput = Schemas['MealPlanInput'];
+export type MealItemAlert = Schemas['MealItemAlert'];
+export type NutrientAmounts = Schemas['NutrientAmounts'];
 
 /** Filtros da busca (DEV-0078); campo vazio não filtra. */
 export interface FoodSearch {
@@ -29,10 +33,11 @@ async function json<T>(response: Response): Promise<T> {
 
 const JSON_HEADERS = { Accept: 'application/json', 'Content-Type': 'application/json' };
 
-/** Base de alimentos da nutricionista no nutrition-service (DEV-0074 a DEV-0078). */
+/** Base de alimentos (DEV-0074 a DEV-0078) e planos alimentares (DEV-0081 a DEV-0084) no nutrition-service. */
 export function nutritionApi(apiFetch: ApiFetch, baseUrl: string) {
     const url = (path: string) => `${baseUrl}${path}`;
     const foodUrl = (id: string) => url(`/foods/${encodeURIComponent(id)}`);
+    const mealPlanUrl = (id: string) => url(`/meal-plans/${encodeURIComponent(id)}`);
     return {
         async searchFoods(search: FoodSearch): Promise<FoodPage> {
             const params = new URLSearchParams();
@@ -82,6 +87,42 @@ export function nutritionApi(apiFetch: ApiFetch, baseUrl: string) {
                     method: 'POST',
                     headers: JSON_HEADERS,
                     body: JSON.stringify(body),
+                }),
+            );
+        },
+        async listMealPlans(clientId: string): Promise<MealPlan[]> {
+            return json(
+                await apiFetch(url(`/clients/${encodeURIComponent(clientId)}/meal-plans`), {
+                    headers: { Accept: 'application/json' },
+                }),
+            );
+        },
+        async mealPlan(id: string): Promise<MealPlan> {
+            return json(await apiFetch(mealPlanUrl(id), { headers: { Accept: 'application/json' } }));
+        },
+        async createMealPlan(clientId: string, body: MealPlanInput): Promise<MealPlan> {
+            return json(
+                await apiFetch(url(`/clients/${encodeURIComponent(clientId)}/meal-plans`), {
+                    method: 'POST',
+                    headers: JSON_HEADERS,
+                    body: JSON.stringify(body),
+                }),
+            );
+        },
+        async updateMealPlan(id: string, body: MealPlanInput): Promise<MealPlan> {
+            return json(
+                await apiFetch(mealPlanUrl(id), {
+                    method: 'PUT',
+                    headers: JSON_HEADERS,
+                    body: JSON.stringify(body),
+                }),
+            );
+        },
+        async publishMealPlan(id: string): Promise<MealPlan> {
+            return json(
+                await apiFetch(`${mealPlanUrl(id)}/publish`, {
+                    method: 'POST',
+                    headers: { Accept: 'application/json' },
                 }),
             );
         },
