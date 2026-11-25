@@ -1,6 +1,7 @@
 package com.fithub.nutrition.infrastructure.messaging;
 
 import com.fithub.commons.messaging.ProcessedEvents;
+import com.fithub.nutrition.application.EraseDeletedClient;
 import com.fithub.nutrition.application.ProjectClientEvents;
 import com.fithub.nutrition.domain.access.ClientDirectory;
 import java.time.Instant;
@@ -22,7 +23,9 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Consumidor dos eventos do client-service (DEV-0151): {@code VinculoAtivado}, {@code VinculoEncerrado} e
- * {@code ClienteAtualizado}. Fila durável própria, consumo idempotente pela {@code java-commons} e fila de
+ * {@code ClienteAtualizado}, e o {@code ContaExcluida} (DEV-0163), que apaga o cliente. Os eventos do mesmo cliente
+ * chegam na ordem do outbox (publicador único): o {@code VinculoEncerrado} da exclusão vem antes do
+ * {@code ContaExcluida}. Fila durável própria, consumo idempotente pela {@code java-commons} e fila de
  * mensagens mortas para payload fora do contrato ou falha depois das tentativas. Nada do payload vai para log.
  */
 @Configuration(proxyBeanMethods = false)
@@ -32,16 +35,22 @@ class ClientEventsListener {
     static final String LINK_ACTIVATED = "client.link-activated.v1";
     static final String LINK_ENDED = "client.link-ended.v1";
     static final String CLIENT_UPDATED = "client.client-updated.v1";
+    static final String ACCOUNT_DELETED = "client.account-deleted.v1";
     static final String QUEUE = "nutrition.client-events";
     static final String DEAD_LETTER_QUEUE = QUEUE + ".dlq";
 
     private final ProjectClientEvents projectClientEvents;
+    private final EraseDeletedClient eraseDeletedClient;
     private final ProcessedEvents processedEvents;
     private final JsonMapper jsonMapper;
 
     ClientEventsListener(
-            ProjectClientEvents projectClientEvents, ProcessedEvents processedEvents, JsonMapper jsonMapper) {
+            ProjectClientEvents projectClientEvents,
+            EraseDeletedClient eraseDeletedClient,
+            ProcessedEvents processedEvents,
+            JsonMapper jsonMapper) {
         this.projectClientEvents = projectClientEvents;
+        this.eraseDeletedClient = eraseDeletedClient;
         this.processedEvents = processedEvents;
         this.jsonMapper = jsonMapper;
     }
@@ -51,6 +60,9 @@ class ClientEventsListener {
 
     /** ClienteAtualizado v1. */
     record ClientUpdated(UUID clientId, String name, LocalDate birthDate, String gender, Instant occurredAt) {}
+
+    /** ContaExcluida v1. */
+    record AccountDeleted(UUID clientId, Instant occurredAt) {}
 
     @Bean
     Declarables clientEventsTopology() {
@@ -62,8 +74,9 @@ class ClientEventsListener {
         Binding activated = BindingBuilder.bind(queue).to(exchange).with(LINK_ACTIVATED);
         Binding ended = BindingBuilder.bind(queue).to(exchange).with(LINK_ENDED);
         Binding updated = BindingBuilder.bind(queue).to(exchange).with(CLIENT_UPDATED);
+        Binding deleted = BindingBuilder.bind(queue).to(exchange).with(ACCOUNT_DELETED);
         return new Declarables(
-                exchange, queue, QueueBuilder.durable(DEAD_LETTER_QUEUE).build(), activated, ended, updated);
+                exchange, queue, QueueBuilder.durable(DEAD_LETTER_QUEUE).build(), activated, ended, updated, deleted);
     }
 
     @RabbitListener(queues = QUEUE)
@@ -93,6 +106,10 @@ class ClientEventsListener {
                 yield () -> projectClientEvents.clientUpdated(new ClientDirectory.ProjectedClient(
                         event.clientId(), event.name(), event.birthDate(), event.gender(), event.occurredAt()));
             }
+            case ACCOUNT_DELETED -> {
+                AccountDeleted event = parseDeleted(message);
+                yield () -> eraseDeletedClient.accountDeleted(event.clientId(), event.occurredAt());
+            }
             default -> throw new AmqpRejectAndDontRequeueException("Routing key fora do que esta fila consome.");
         };
         processedEvents.processOnce(QUEUE, message, handler);
@@ -115,6 +132,14 @@ class ClientEventsListener {
         ClientUpdated event = read(message, ClientUpdated.class);
         if (event.clientId() == null || event.name() == null || event.name().isBlank() || event.occurredAt() == null) {
             throw new AmqpRejectAndDontRequeueException("ClienteAtualizado fora do contrato.");
+        }
+        return event;
+    }
+
+    private AccountDeleted parseDeleted(Message message) {
+        AccountDeleted event = read(message, AccountDeleted.class);
+        if (event.clientId() == null || event.occurredAt() == null) {
+            throw new AmqpRejectAndDontRequeueException("ContaExcluida fora do contrato.");
         }
         return event;
     }

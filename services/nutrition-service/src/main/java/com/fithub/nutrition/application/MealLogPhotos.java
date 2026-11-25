@@ -117,6 +117,24 @@ public class MealLogPhotos {
     }
 
     /**
+     * Apaga do bucket as fotos do prato do cliente que excluiu a conta (DEV-0163), pelo prefixo dele. Com o
+     * armazenamento fora do ar, a exclusão não é desfeita: nenhum registro aponta mais para os objetos, e o expurgo
+     * ({@link #purgeUnconfirmed}) os leva.
+     */
+    public void deleteFilesOfClient(UUID clientId) {
+        try {
+            storage.list(ROOT_PREFIX + clientId + "/").stream()
+                    .map(MealPhotoStorage.StoredKey::objectKey)
+                    .forEach(storage::delete);
+        } catch (RuntimeException failure) {
+            // Só o tipo da falha: a mensagem do S3 pode trazer a chave do objeto.
+            log.warn(
+                    "Fotos da conta excluída ficam para o expurgo ({})",
+                    failure.getClass().getSimpleName());
+        }
+    }
+
+    /**
      * Expurgo dos envios que nunca foram confirmados: apaga os objetos gravados antes de {@code cutoff} que não são
      * a foto de nenhum registro. Devolve quantos saíram.
      */
