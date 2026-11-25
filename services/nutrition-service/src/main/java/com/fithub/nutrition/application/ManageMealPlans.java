@@ -46,6 +46,7 @@ public class ManageMealPlans {
     private final FoodMeasureRepository measures;
     private final MealPlanAlerts alerts;
     private final Clock clock;
+    private final PrescriptionAccess prescriptionAccess;
 
     public ManageMealPlans(
             ClientAccess clientAccess,
@@ -53,7 +54,9 @@ public class ManageMealPlans {
             FoodRepository foods,
             FoodMeasureRepository measures,
             MealPlanAlerts alerts,
-            Clock clock) {
+            Clock clock,
+            PrescriptionAccess prescriptionAccess) {
+        this.prescriptionAccess = prescriptionAccess;
         this.clientAccess = clientAccess;
         this.plans = plans;
         this.foods = foods;
@@ -108,6 +111,8 @@ public class ManageMealPlans {
 
     public PlanView create(String nutritionistAccount, UUID clientId, Draft draft) {
         clientAccess.requireActiveLink(nutritionistAccount, clientId);
+        // Sem assinatura válida, não cria prescrição; o que já entregou continua (FR-06, DEV-0101).
+        prescriptionAccess.requireSubscription(nutritionistAccount);
         UUID nutritionistId = UUID.fromString(nutritionistAccount);
         MealPlan plan = MealPlan.newDraft(
                 UuidV7.next(clock),
@@ -144,6 +149,7 @@ public class ManageMealPlans {
     public PlanView update(String nutritionistAccount, UUID planId, Draft draft) {
         MealPlan plan = authored(nutritionistAccount, planId);
         clientAccess.requireActiveLink(nutritionistAccount, plan.clientId());
+        prescriptionAccess.requireSubscription(nutritionistAccount);
         MealPlan edited = plan.edit(
                 draft.baseVersion(),
                 UuidV7.next(clock),
@@ -212,6 +218,7 @@ public class ManageMealPlans {
     public PlanView publish(String nutritionistAccount, UUID planId) {
         MealPlan plan = authored(nutritionistAccount, planId);
         clientAccess.requireActiveLink(nutritionistAccount, plan.clientId());
+        prescriptionAccess.requireSubscription(nutritionistAccount);
         MealPlan published = plan.publish(clock.instant());
         plans.findPublished(plan.clientId())
                 .ifPresent(active -> plans.saveStatus(active.replace(clock.instant()), active.updatedAt()));

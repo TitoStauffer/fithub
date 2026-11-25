@@ -36,8 +36,15 @@ public class ManagePlans {
     private final PlanRepository plans;
     private final ExerciseRepository exercises;
     private final Clock clock;
+    private final PrescriptionAccess prescriptionAccess;
 
-    public ManagePlans(ClientAccess clientAccess, PlanRepository plans, ExerciseRepository exercises, Clock clock) {
+    public ManagePlans(
+            ClientAccess clientAccess,
+            PlanRepository plans,
+            ExerciseRepository exercises,
+            Clock clock,
+            PrescriptionAccess prescriptionAccess) {
+        this.prescriptionAccess = prescriptionAccess;
         this.clientAccess = clientAccess;
         this.plans = plans;
         this.exercises = exercises;
@@ -62,6 +69,8 @@ public class ManagePlans {
 
     public WorkoutPlan create(String personalAccount, UUID clientId, Draft draft) {
         clientAccess.requireActiveLink(personalAccount, clientId);
+        // Sem assinatura válida, não cria prescrição; o que já entregou continua (FR-06, DEV-0101).
+        prescriptionAccess.requireSubscription(personalAccount);
         WorkoutPlan plan = WorkoutPlan.newDraft(
                 clientId,
                 UUID.fromString(personalAccount),
@@ -94,6 +103,7 @@ public class ManagePlans {
     public WorkoutPlan update(String personalAccount, UUID planId, Draft draft) {
         WorkoutPlan plan = authored(personalAccount, planId);
         clientAccess.requireActiveLink(personalAccount, plan.clientId());
+        prescriptionAccess.requireSubscription(personalAccount);
         WorkoutPlan edited = plan.edit(
                 draft.baseVersion(), draft.name(), draft.startsOn(), draft.weeks(), draft.divisions(), clock.instant());
         requireUsableExercises(edited, plan.current().exerciseIds());
@@ -149,6 +159,7 @@ public class ManagePlans {
     public WorkoutPlan publish(String personalAccount, UUID planId) {
         WorkoutPlan plan = authored(personalAccount, planId);
         clientAccess.requireActiveLink(personalAccount, plan.clientId());
+        prescriptionAccess.requireSubscription(personalAccount);
         WorkoutPlan published = plan.publish(clock.instant());
         plans.findPublished(plan.clientId(), plan.personalId())
                 .ifPresent(active -> plans.save(active.replace(clock.instant())));

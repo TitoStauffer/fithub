@@ -1,0 +1,505 @@
+{
+    "issue": "DEV-0101",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O cadastro deixa de publicar a AssinaturaAlterada",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/RegisterProfessional.java",
+            "find": "                subscriptionEvents.changed(subscription, now);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O evento passa a dizer que o teste em curso está inativo",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/messaging/OutboxSubscriptionEvents.java",
+            "find": "subscription.status(now) != Subscription.Status.EXPIRED,",
+            "replace": "subscription.status(now) == Subscription.Status.EXPIRED,",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O evento deixa de levar o validUntil",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/messaging/OutboxSubscriptionEvents.java",
+            "find": "                        subscription.validUntil()));",
+            "replace": "                        null));",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "training: a assinatura vencida passa a permitir prescrever",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/access/SubscriptionState.java",
+            "find": "validUntil != null ? now.isBefore(validUntil) : active",
+            "replace": "validUntil != null ? true : active",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionBlockApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "training: sem validUntil, o active falso passa a permitir",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/access/SubscriptionState.java",
+            "find": "validUntil != null ? now.isBefore(validUntil) : active",
+            "replace": "validUntil != null ? now.isBefore(validUntil) : true",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionBlockApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "training: o profissional sem evento recebido passa a ser bloqueado",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/PrescriptionAccess.java",
+            "find": ".orElse(true);",
+            "replace": ".orElse(false);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionBlockApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "training: criar passa a não exigir assinatura",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ManagePlans.java",
+            "find": "        // Sem assinatura válida, não cria prescrição; o que já entregou continua (FR-06, DEV-0101).\n        prescriptionAccess.requireSubscription(personalAccount);",
+            "replace": "        // Sem assinatura válida, não cria prescrição; o que já entregou continua (FR-06, DEV-0101).",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionBlockApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "training: editar passa a não exigir assinatura",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ManagePlans.java",
+            "find": "    public WorkoutPlan update(String personalAccount, UUID planId, Draft draft) {\n        WorkoutPlan plan = authored(personalAccount, planId);\n        clientAccess.requireActiveLink(personalAccount, plan.clientId());\n        prescriptionAccess.requireSubscription(personalAccount);",
+            "replace": "    public WorkoutPlan update(String personalAccount, UUID planId, Draft draft) {\n        WorkoutPlan plan = authored(personalAccount, planId);\n        clientAccess.requireActiveLink(personalAccount, plan.clientId());",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionBlockApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "training: publicar passa a não exigir assinatura",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ManagePlans.java",
+            "find": "    public WorkoutPlan publish(String personalAccount, UUID planId) {\n        WorkoutPlan plan = authored(personalAccount, planId);\n        clientAccess.requireActiveLink(personalAccount, plan.clientId());\n        prescriptionAccess.requireSubscription(personalAccount);",
+            "replace": "    public WorkoutPlan publish(String personalAccount, UUID planId) {\n        WorkoutPlan plan = authored(personalAccount, planId);\n        clientAccess.requireActiveLink(personalAccount, plan.clientId());",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionBlockApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "training: um evento mais antigo passa a sobrescrever o mais novo",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcSubscriptionProjection.java",
+            "find": "\n                         where professional_subscription.occurred_at < excluded.occurred_at",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionBlockApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "nutrition: a assinatura vencida passa a permitir prescrever",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/access/SubscriptionState.java",
+            "find": "validUntil != null ? now.isBefore(validUntil) : active",
+            "replace": "validUntil != null ? true : active",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionBlockApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "nutrition: sem validUntil, o active falso passa a permitir",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/access/SubscriptionState.java",
+            "find": "validUntil != null ? now.isBefore(validUntil) : active",
+            "replace": "validUntil != null ? now.isBefore(validUntil) : true",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionBlockApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M13",
+            "description": "nutrition: o profissional sem evento recebido passa a ser bloqueado",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/PrescriptionAccess.java",
+            "find": ".orElse(true);",
+            "replace": ".orElse(false);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionBlockApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M14",
+            "description": "nutrition: criar passa a não exigir assinatura",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": "        // Sem assinatura válida, não cria prescrição; o que já entregou continua (FR-06, DEV-0101).\n        prescriptionAccess.requireSubscription(nutritionistAccount);",
+            "replace": "        // Sem assinatura válida, não cria prescrição; o que já entregou continua (FR-06, DEV-0101).",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionBlockApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M15",
+            "description": "nutrition: editar passa a não exigir assinatura",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": "    public PlanView update(String nutritionistAccount, UUID planId, Draft draft) {\n        MealPlan plan = authored(nutritionistAccount, planId);\n        clientAccess.requireActiveLink(nutritionistAccount, plan.clientId());\n        prescriptionAccess.requireSubscription(nutritionistAccount);",
+            "replace": "    public PlanView update(String nutritionistAccount, UUID planId, Draft draft) {\n        MealPlan plan = authored(nutritionistAccount, planId);\n        clientAccess.requireActiveLink(nutritionistAccount, plan.clientId());",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionBlockApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M16",
+            "description": "nutrition: publicar passa a não exigir assinatura",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": "    public PlanView publish(String nutritionistAccount, UUID planId) {\n        MealPlan plan = authored(nutritionistAccount, planId);\n        clientAccess.requireActiveLink(nutritionistAccount, plan.clientId());\n        prescriptionAccess.requireSubscription(nutritionistAccount);",
+            "replace": "    public PlanView publish(String nutritionistAccount, UUID planId) {\n        MealPlan plan = authored(nutritionistAccount, planId);\n        clientAccess.requireActiveLink(nutritionistAccount, plan.clientId());",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionBlockApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M17",
+            "description": "nutrition: um evento mais antigo passa a sobrescrever o mais novo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/JdbcSubscriptionProjection.java",
+            "find": "\n                         where professional_subscription.occurred_at < excluded.occurred_at",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionBlockApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M18",
+            "description": "training: o evento de outra routing key passa a ser consumido",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/messaging/AccountEventsListener.java",
+            "find": "if (!SUBSCRIPTION_CHANGED.equals(message.getMessageProperties().getReceivedRoutingKey())) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=AccountEventsListenerGuardsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M19",
+            "description": "training: o evento sem professionalId passa a ser consumido",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/messaging/AccountEventsListener.java",
+            "find": "event.professionalId() == null || ",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=AccountEventsListenerGuardsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M20",
+            "description": "training: o evento sem active passa a ser consumido",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/messaging/AccountEventsListener.java",
+            "find": "event.active() == null || ",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=AccountEventsListenerGuardsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M21",
+            "description": "training: o evento sem occurredAt passa a ser consumido",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/messaging/AccountEventsListener.java",
+            "find": " || event.occurredAt() == null",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=AccountEventsListenerGuardsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M22",
+            "description": "nutrition: o evento de outra routing key passa a ser consumido",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/messaging/AccountEventsListener.java",
+            "find": "if (!SUBSCRIPTION_CHANGED.equals(message.getMessageProperties().getReceivedRoutingKey())) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=AccountEventsListenerGuardsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M23",
+            "description": "nutrition: o evento sem professionalId passa a ser consumido",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/messaging/AccountEventsListener.java",
+            "find": "event.professionalId() == null || ",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=AccountEventsListenerGuardsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M24",
+            "description": "nutrition: o evento sem active passa a ser consumido",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/messaging/AccountEventsListener.java",
+            "find": "event.active() == null || ",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=AccountEventsListenerGuardsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M25",
+            "description": "nutrition: o evento sem occurredAt passa a ser consumido",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/messaging/AccountEventsListener.java",
+            "find": " || event.occurredAt() == null",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=AccountEventsListenerGuardsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

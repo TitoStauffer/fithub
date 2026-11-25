@@ -3,6 +3,7 @@ package com.fithub.nutrition.interfaces.rest;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fithub.nutrition.application.ManageMealPlans;
 import com.fithub.nutrition.domain.access.ClientNotFoundException;
+import com.fithub.nutrition.domain.access.SubscriptionRequiredException;
 import com.fithub.nutrition.domain.food.Food;
 import com.fithub.nutrition.domain.plan.InvalidMealPlanException;
 import com.fithub.nutrition.domain.plan.MealPlan;
@@ -582,6 +583,13 @@ class MealPlanController {
                 ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Um ou mais campos são inválidos.");
         problem.setTitle("Dados inválidos");
         problem.setProperty("errors", List.of(Map.of("field", exception.field(), "message", exception.getMessage())));
+        return problem;
+    }
+
+    @ExceptionHandler(SubscriptionRequiredException.class)
+    ProblemDetail subscriptionRequired(SubscriptionRequiredException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, exception.getMessage());
+        problem.setTitle("Assinatura vencida");
         return problem;
     }
 
