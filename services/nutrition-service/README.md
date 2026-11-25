@@ -140,3 +140,19 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
 - A correção do registro e a foto têm gravações separadas: uma não desfaz a outra quando chegam juntas.
 - **Configuração:** `S3_ENDPOINT`, `S3_PUBLIC_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` e
   `S3_MEAL_PHOTOS_BUCKET`. Os padrões servem só para o compose local.
+
+## Evolução da dieta (DEV-0092)
+
+- `GET /clients/{clientId}/progress/nutrition` (nutricionista com vínculo ativo; sem vínculo, 404) e
+  `GET /me/progress/nutrition` (paciente), com `from` e `to` opcionais: padrão das últimas 4 semanas, até 26 semanas
+  (FR-57, FR-58).
+- **Aderência:** cada refeição prescrita num dia conta 1.
+    - A refeição feita vale 1, a parcial 0,5, e a não feita ou sem registro vale 0.
+    - As prescritas de um dia são as refeições da versão do plano em vigor nele, da publicação até a substituição.
+    - A série é diária, e o percentual tem uma casa.
+- **Alternativas mais usadas:** as 10 mais escolhidas no período, com o alimento e quantas vezes.
+- **Desvios:** os registros do período com desvio ou foto, com o texto e a URL temporária da foto (5 minutos).
+- A nutricionista vê só os planos dela; o paciente vê todos.
+- `GET /professionals/me/clients/activity` (nutricionista): cada paciente com vínculo ativo e o último registro de refeição
+  nos planos dela, base da lista de inativos (FR-59).
+- Tudo é calculado na leitura, sem tabela derivada. O personal não tem rota (BR-03).

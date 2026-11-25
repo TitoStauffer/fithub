@@ -1,6 +1,7 @@
 package com.fithub.nutrition.domain.access;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -17,4 +18,7 @@ public interface LinkProjection {
 
     /** Se o profissional tem vínculo ativo com o cliente. */
     boolean hasActiveLink(UUID professionalId, UUID clientId);
+
+    /** Os pacientes com vínculo ativo com a nutricionista (DEV-0092). */
+    List<UUID> activeClients(UUID professionalId);
 }
