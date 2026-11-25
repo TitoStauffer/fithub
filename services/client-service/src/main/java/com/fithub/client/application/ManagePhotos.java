@@ -134,6 +134,22 @@ public class ManagePhotos {
     }
 
     /**
+     * Apaga do bucket tudo do cliente que excluiu a conta (DEV-0105), pelo prefixo dele. Com o armazenamento fora do
+     * ar, a exclusão da conta não é desfeita: nenhuma foto registrada aponta mais para os objetos, e o expurgo
+     * ({@link #purgeUnconfirmed}) os apaga.
+     */
+    void deleteFilesOfClient(UUID clientId) {
+        try {
+            storage.deleteAll(clientPrefix(clientId));
+        } catch (RuntimeException failure) {
+            // Só o tipo da falha: a mensagem do S3 pode trazer a chave do objeto.
+            log.warn(
+                    "Arquivos da conta excluída ficam para o expurgo ({})",
+                    failure.getClass().getSimpleName());
+        }
+    }
+
+    /**
      * Expurgo dos envios que nunca foram confirmados (o app falhou, fechou ou tentou de novo com outro envio): apaga
      * os objetos gravados antes de {@code cutoff} que não são de nenhuma foto confirmada. Devolve quantos saíram.
      */
@@ -175,8 +191,12 @@ public class ManagePhotos {
     /** Todos os objetos das fotos ficam abaixo deste prefixo. */
     static final String ROOT_PREFIX = "clients/";
 
+    private static String clientPrefix(UUID clientId) {
+        return ROOT_PREFIX + clientId + "/";
+    }
+
     private static String assessmentPrefix(Assessment assessment) {
-        return ROOT_PREFIX + "%s/assessments/%s/".formatted(assessment.clientId(), assessment.id());
+        return clientPrefix(assessment.clientId()) + "assessments/%s/".formatted(assessment.id());
     }
 
     private static String posePrefix(Assessment assessment, Photo.Pose pose) {

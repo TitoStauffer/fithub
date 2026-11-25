@@ -16,8 +16,8 @@ Três regras do PRD orientam a decisão:
 - **BR-05:** encerrado o vínculo, o profissional mantém só as prescrições que ele mesmo criou.
 - **BR-06:** o cliente mantém o histórico depois do vínculo.
 
-O mecanismo já existe no contrato: o client-service publica o `ContaExcluida` (`client.account-deleted.v1`), e cada
-serviço trata o que tem.
+O mecanismo está no contrato: o client-service publica o `ContaExcluida` (`client.account-deleted.v1`, desde a
+DEV-0105), e cada serviço trata o que tem.
 
 ## Decisão
 

@@ -155,3 +155,24 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
 - Configuração: `S3_ENDPOINT` (padrão `http://localhost:8333`, o SeaweedFS do compose), `S3_PUBLIC_ENDPOINT` (o endereço
   que o app alcança, usado nas URLs assinadas), `S3_REGION`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` e `S3_PHOTOS_BUCKET`
   (padrão `fithub-photos`, criado no primeiro envio se não existir).
+
+## Exclusão da conta (DEV-0105)
+
+| Rota | Quem | Resposta |
+|---|---|---|
+| `DELETE /clients/me` | cliente | 204; repetir também responde 204 |
+
+Aplica o [ADR-012](../../docs/00-oficial/adr/ADR-012-retencao-e-exclusao.md):
+
+- **Sai de vez, em uma transação:** perfil, saúde, avaliações e fotos registradas, vínculos e consentimentos, e o
+  e-mail dos convites que o cliente aceitou ou que estavam pendentes para o e-mail do token.
+- **Na mesma transação:** o `ContaExcluida` (`client.account-deleted.v1`, só o id) vai para o outbox, e o id entra na
+  lista `deleted_account` (V13). O evento sai sempre, mesmo sem nada aqui, porque training e nutrition podem ter
+  dado do cliente.
+- **Depois do commit:** saem do bucket os objetos sob `clients/<id>/`. Com o armazenamento fora do ar, o expurgo de
+  envios não confirmados os apaga, porque nenhuma foto registrada aponta mais para eles.
+- **Fica:** o registro de leitura da saúde (DEV-0040, 6 meses pela DEV-0106) e o lado profissional da mesma conta.
+- **Expurgo da lista:** a cada `fithub.deleted-accounts.purge-interval` (padrão 6 h), saem os ids excluídos há mais
+  de 30 dias. O log traz só a quantidade.
+- O login no Keycloak e os dados de training e nutrition saem nos consumidores do evento (DEV-0161, DEV-0162 e
+  DEV-0163).
