@@ -116,6 +116,8 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
 | `DELETE /clients/me/assessments/{id}` | cliente | 204; 404 se não for dele |
 | `POST /professionals/me/clients/{clientId}/assessments` | profissional com vínculo ativo | 201, avaliação `PRESENTIAL` com o profissional como autor; 404 sem vínculo |
 | `GET /professionals/me/clients/{clientId}/assessments` | idem | Histórico do cliente |
+| `GET /clients/me/assessments/series` | cliente | Série da evolução corporal (DEV-0093); `from` e `to` opcionais, 400 se invertidos |
+| `GET /professionals/me/clients/{clientId}/assessments/series` | profissional com vínculo ativo | A mesma série do cliente; 404 sem vínculo |
 
 - Peso de 20 a 400 kg; circunferências (pescoço, tórax, cintura, abdômen, quadril, braço, antebraço, coxa e
   panturrilha) de 10 a 300 cm, opcionais; até 1 casa decimal; medição não pode estar no futuro.
@@ -128,6 +130,10 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
 - **Marinha (DEV-0046):** na avaliação online, com `sexForFormulas`, pescoço, cintura, quadril (mulher) e a altura do
   perfil, a gravação estima o % de gordura pela fórmula da Marinha dos EUA (origem `NAVY`) e grava a altura usada.
   Medida faltando: avaliação gravada sem a estimativa (fluxo alternativo do PRD).
+- **Série da evolução (DEV-0093, FR-56 a FR-58):** o peso, uma série por circunferência medida (na ordem do formulário)
+  e uma série de % de gordura por método (`POLLOCK_3`, `POLLOCK_7`, `NAVY`, `BIOIMPEDANCE`), em ordem de data da
+  medição. Métodos nunca se misturam numa série (BR-12); valor não medido não vira ponto. Sem `from` e `to`, todo o
+  histórico.
 - **Bioimpedância (DEV-0047):** `bioimpedanceBodyFatPercent` (3 a 70%) em qualquer avaliação, sem cálculo, devolvido com a
   origem `BIOIMPEDANCE`, separado dos calculados.
 

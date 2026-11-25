@@ -352,4 +352,63 @@ class AssessmentApiTest extends ServiceIntegrationTest {
                     .hasMessageContaining("ck_body_assessment_bioimpedance");
         }
     }
+
+    @Test
+    void serieDaEvolucaoCorporalParaOClienteEOProfissionalVinculado() throws Exception {
+        String client = client();
+        String personal = linkedPersonal(client);
+        recordOnline(client, BODY).andExpect(status().isCreated());
+        recordOnline(
+                        client,
+                        BODY.replace("2026-11-20", "2026-11-10")
+                                .replace("72.5", "74.0")
+                                .replace(", \"hip\": 98.0", ""))
+                .andExpect(status().isCreated());
+        recordOnline(
+                        client,
+                        BODY.replace("2026-11-20", "2026-11-22")
+                                .replace(
+                                        "\"weightKg\": 72.5,",
+                                        "\"weightKg\": 71.0, \"bioimpedanceBodyFatPercent\": 24.8,"))
+                .andExpect(status().isCreated());
+
+        mvc.perform(get("/clients/me/assessments/series").header("Authorization", "Bearer conta-" + client))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.weightKg.length()").value(3))
+                .andExpect(jsonPath("$.weightKg[0].date").value("2026-11-10"))
+                .andExpect(jsonPath("$.weightKg[0].value").value(74.0))
+                .andExpect(jsonPath("$.circumferences.waist.length()").value(3))
+                .andExpect(jsonPath("$.circumferences.hip.length()").value(2))
+                .andExpect(jsonPath("$.circumferences.chest").doesNotExist())
+                // A Marinha e a bioimpedância ficam em séries separadas (BR-12).
+                .andExpect(jsonPath("$.bodyFat.length()").value(2))
+                .andExpect(jsonPath("$.bodyFat[0].origin").value("NAVY"))
+                .andExpect(jsonPath("$.bodyFat[0].points.length()").value(2))
+                .andExpect(jsonPath("$.bodyFat[1].origin").value("BIOIMPEDANCE"))
+                .andExpect(jsonPath("$.bodyFat[1].points.length()").value(1));
+        mvc.perform(get("/professionals/me/clients/" + client + "/assessments/series?from=2026-11-15&to=2026-11-22")
+                        .header("Authorization", "Bearer personal-" + personal))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.weightKg.length()").value(2))
+                .andExpect(jsonPath("$.weightKg[0].date").value("2026-11-20"));
+    }
+
+    @Test
+    void serieSemVinculoOuComPeriodoInvertido() throws Exception {
+        String client = client();
+        mvc.perform(get("/professionals/me/clients/" + client + "/assessments/series")
+                        .header("Authorization", "Bearer conta-" + client))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/professionals/me/clients/" + client + "/assessments/series")
+                        .header("Authorization", "Bearer personal-" + UUID.randomUUID()))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/clients/me/assessments/series?from=2026-11-20&to=2026-11-10")
+                        .header("Authorization", "Bearer conta-" + client))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("from"));
+        mvc.perform(get("/clients/me/assessments/series").header("Authorization", "Bearer conta-" + client))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.weightKg.length()").value(0))
+                .andExpect(jsonPath("$.bodyFat.length()").value(0));
+    }
 }

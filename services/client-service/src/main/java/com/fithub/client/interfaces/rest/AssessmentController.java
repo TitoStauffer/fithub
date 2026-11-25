@@ -3,6 +3,7 @@ package com.fithub.client.interfaces.rest;
 import com.fithub.client.application.ManageAssessments;
 import com.fithub.client.domain.assessment.Assessment;
 import com.fithub.client.domain.assessment.BodyFat;
+import com.fithub.client.domain.assessment.BodySeries;
 import com.fithub.client.domain.assessment.Circumferences;
 import com.fithub.client.domain.assessment.InvalidAssessmentException;
 import com.fithub.client.domain.assessment.Skinfolds;
@@ -15,9 +16,11 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
@@ -31,6 +34,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -292,6 +296,97 @@ class AssessmentController {
         return manageAssessments.listForClient(jwt.getSubject(), clientId).stream()
                 .map(AssessmentResponse::of)
                 .toList();
+    }
+
+    @Schema(name = "BodySeriesPoint", description = "Um valor numa data de medição.")
+    record PointResponse(LocalDate date, BigDecimal value) {}
+
+    @Schema(
+            name = "BodyFatSeries",
+            description = "A série do % de gordura de um método; métodos não se misturam (BR-12).")
+    record FatSeriesResponse(BodySeries.FatMethod origin, List<PointResponse> points) {}
+
+    @Schema(name = "BodySeries", description = "A série histórica de peso, circunferências e % de gordura por método.")
+    record SeriesResponse(
+            List<PointResponse> weightKg,
+
+            @Schema(
+                    description = "Uma série por circunferência medida (neck, chest, waist, abdomen, hip, arm, forearm,"
+                            + " thigh, calf), em cm.")
+            Map<String, List<PointResponse>> circumferences,
+
+            @Schema(description = "Uma série por método de % de gordura, sem misturar métodos.")
+            List<FatSeriesResponse> bodyFat) {
+
+        static SeriesResponse of(BodySeries series) {
+            Map<String, List<PointResponse>> circumferences = new LinkedHashMap<>();
+            series.circumferences().forEach((name, points) -> circumferences.put(name, points(points)));
+            return new SeriesResponse(
+                    points(series.weightKg()),
+                    circumferences,
+                    series.bodyFat().entrySet().stream()
+                            .map(entry -> new FatSeriesResponse(entry.getKey(), points(entry.getValue())))
+                            .toList());
+        }
+
+        private static List<PointResponse> points(List<BodySeries.Point> points) {
+            return points.stream()
+                    .map(point -> new PointResponse(point.date(), point.value()))
+                    .toList();
+        }
+    }
+
+    @GetMapping(path = "/clients/me/assessments/series", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasRole('CLIENT')")
+    @Operation(
+            operationId = "getMyBodySeries",
+            summary = "A série histórica da evolução corporal do cliente (todo o histórico, ou de from a to)",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "Peso, circunferências e % de gordura por método."),
+                @ApiResponse(
+                        responseCode = "400",
+                        description = "Período invertido; o campo vem em errors.",
+                        content = @Content(mediaType = PROBLEM, schema = @Schema(implementation = ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "401",
+                        description = "Sem token válido.",
+                        content = @Content(mediaType = PROBLEM, schema = @Schema(implementation = ApiProblem.class)))
+            })
+    SeriesResponse mySeries(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return SeriesResponse.of(manageAssessments.seriesMine(jwt.getSubject(), from, to));
+    }
+
+    @GetMapping(
+            path = "/professionals/me/clients/{clientId}/assessments/series",
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasAnyRole('PERSONAL', 'NUTRITIONIST')")
+    @Operation(
+            operationId = "getClientBodySeries",
+            summary = "A série histórica da evolução corporal de um cliente com vínculo ativo",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "Peso, circunferências e % de gordura por método."),
+                @ApiResponse(
+                        responseCode = "400",
+                        description = "Período invertido; o campo vem em errors.",
+                        content = @Content(mediaType = PROBLEM, schema = @Schema(implementation = ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "403",
+                        description = "A conta não é profissional.",
+                        content = @Content(mediaType = PROBLEM, schema = @Schema(implementation = ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "404",
+                        description = "Sem vínculo ativo com o cliente.",
+                        content = @Content(mediaType = PROBLEM, schema = @Schema(implementation = ApiProblem.class)))
+            })
+    SeriesResponse clientSeries(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID clientId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return SeriesResponse.of(manageAssessments.seriesForClient(jwt.getSubject(), clientId, from, to));
     }
 
     @ExceptionHandler(InvalidAssessmentException.class)
