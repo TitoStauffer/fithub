@@ -31,26 +31,41 @@ public class LogMeals {
     private final MealPlanRepository plans;
     private final MealLogRepository logs;
     private final ManageMealPlans managePlans;
+    private final MealLogPhotos photos;
     private final Clock clock;
 
-    public LogMeals(MealPlanRepository plans, MealLogRepository logs, ManageMealPlans managePlans, Clock clock) {
+    public LogMeals(
+            MealPlanRepository plans,
+            MealLogRepository logs,
+            ManageMealPlans managePlans,
+            MealLogPhotos photos,
+            Clock clock) {
         this.plans = plans;
         this.logs = logs;
         this.managePlans = managePlans;
+        this.photos = photos;
         this.clock = clock;
     }
 
     /** O plano publicado, na versão atual e sem os alertas (que são da nutricionista), e os registros de hoje. */
-    public record Today(ManageMealPlans.PlanView plan, List<MealLog> logs) {}
+    public record Today(ManageMealPlans.PlanView plan, List<MealLogPhotos.LogView> logs) {}
 
     /** O que o app manda para registrar ou corrigir uma refeição. */
     public record LogDraft(
-            UUID planId, Integer mealPosition, MealLog.Status status, List<MealLog.Substitution> substitutions) {}
+            UUID planId,
+            Integer mealPosition,
+            MealLog.Status status,
+            List<MealLog.Substitution> substitutions,
+            String deviation) {}
 
     public Today today(String clientAccount) {
         UUID clientId = client(clientAccount);
         MealPlan plan = plans.findPublished(clientId).orElseThrow(MealPlanNotFoundException::new);
-        return new Today(managePlans.clientView(plan), logs.findByPlanAndDay(clientId, plan.id(), today()));
+        return new Today(
+                managePlans.clientView(plan),
+                logs.findByPlanAndDay(clientId, plan.id(), today()).stream()
+                        .map(photos::view)
+                        .toList());
     }
 
     /**
@@ -59,14 +74,14 @@ public class LogMeals {
      * @throws MealLogConflictException se o id é de outro paciente, de outro plano ou de outro dia, se a refeição já foi
      *     registrada hoje ou se o plano foi substituído
      */
-    public MealLog record(String clientAccount, UUID logId, LogDraft draft) {
+    public MealLogPhotos.LogView record(String clientAccount, UUID logId, LogDraft draft) {
         UUID clientId = client(clientAccount);
         if (draft.planId() == null) {
             throw new InvalidMealLogException("planId", "Informe o plano.");
         }
         Optional<MealLog> existing = logs.findById(logId);
         if (existing.isPresent()) {
-            return correct(existing.get(), clientId, draft);
+            return photos.view(correct(existing.get(), clientId, draft));
         }
         MealPlan plan = plans.findById(draft.planId())
                 .filter(found -> found.clientId().equals(clientId))
@@ -83,6 +98,7 @@ public class LogMeals {
                 draft.mealPosition(),
                 draft.status(),
                 draft.substitutions(),
+                draft.deviation(),
                 today(),
                 clock.instant());
         try {
@@ -91,7 +107,7 @@ public class LogMeals {
             // A refeição já tem registro hoje (unicidade no banco), inclusive quando dois envios chegam juntos.
             throw new MealLogConflictException("Esta refeição já foi registrada hoje.");
         }
-        return log;
+        return photos.view(log);
     }
 
     private MealLog correct(MealLog log, UUID clientId, LogDraft draft) {
@@ -101,7 +117,13 @@ public class LogMeals {
         MealPlanVersion version =
                 plans.findVersion(log.planId(), log.versionNumber()).orElseThrow(MealPlanNotFoundException::new);
         MealLog corrected = log.correct(
-                version, draft.mealPosition(), draft.status(), draft.substitutions(), today(), clock.instant());
+                version,
+                draft.mealPosition(),
+                draft.status(),
+                draft.substitutions(),
+                draft.deviation(),
+                today(),
+                clock.instant());
         logs.update(corrected);
         return corrected;
     }
@@ -114,6 +136,7 @@ public class LogMeals {
                 .orElseThrow(MealLogNotFoundException::new);
         log.requireCorrectableOn(today());
         logs.delete(log.id());
+        photos.deleteFilesOf(log);
     }
 
     private LocalDate today() {

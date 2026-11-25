@@ -53,6 +53,7 @@ class MealLogTest {
                 meal,
                 status,
                 substitutions,
+                null,
                 TODAY,
                 NOW);
     }
@@ -79,6 +80,7 @@ class MealLogTest {
                 0,
                 MealLog.Status.PARTIAL,
                 List.of(use(0, 1)),
+                null,
                 TODAY,
                 NOW);
         assertThat(log.versionId()).isEqualTo(version.id());
@@ -122,26 +124,84 @@ class MealLogTest {
                 0,
                 MealLog.Status.DONE,
                 List.of(use(0, 0)),
+                null,
                 TODAY,
                 NOW);
         Instant later = NOW.plusSeconds(60);
-        MealLog corrected = log.correct(version, 0, MealLog.Status.SKIPPED, List.of(), TODAY, later);
+        MealLog corrected = log.correct(version, 0, MealLog.Status.SKIPPED, List.of(), null, TODAY, later);
         assertThat(corrected.status()).isEqualTo(MealLog.Status.SKIPPED);
         assertThat(corrected.substitutions()).isEmpty();
         assertThat(corrected.createdAt()).isEqualTo(NOW);
         assertThat(corrected.updatedAt()).isEqualTo(later);
         assertThat(corrected.loggedOn()).isEqualTo(TODAY);
 
-        assertThatThrownBy(() -> log.correct(version, 0, MealLog.Status.DONE, List.of(), TODAY.plusDays(1), later))
+        assertThatThrownBy(
+                        () -> log.correct(version, 0, MealLog.Status.DONE, List.of(), null, TODAY.plusDays(1), later))
                 .isInstanceOf(MealLogConflictException.class);
-        assertThatThrownBy(() -> log.correct(version, 1, MealLog.Status.DONE, List.of(), TODAY, later))
+        assertThatThrownBy(() -> log.correct(version, 1, MealLog.Status.DONE, List.of(), null, TODAY, later))
                 .isInstanceOf(MealLogConflictException.class);
-        assertThatThrownBy(() -> log.correct(version, null, MealLog.Status.DONE, List.of(), TODAY, later))
+        assertThatThrownBy(() -> log.correct(version, null, MealLog.Status.DONE, List.of(), null, TODAY, later))
                 .isInstanceOf(MealLogConflictException.class);
         assertField(
-                () -> log.correct(version, 0, MealLog.Status.DONE, List.of(use(0, 2)), TODAY, later),
+                () -> log.correct(version, 0, MealLog.Status.DONE, List.of(use(0, 2)), null, TODAY, later),
                 "substitutions[0].alternative");
         assertThatThrownBy(() -> log.requireCorrectableOn(TODAY.plusDays(1)))
                 .isInstanceOf(MealLogConflictException.class);
+    }
+
+    private static MealLog withDeviation(String deviation) {
+        return MealLog.record(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                version(),
+                0,
+                MealLog.Status.SKIPPED,
+                List.of(),
+                deviation,
+                TODAY,
+                NOW);
+    }
+
+    @Test
+    void desvioAte500SemEspacosNasPontas() {
+        assertThat(withDeviation("  Comi pizza no lugar  ").deviation()).isEqualTo("Comi pizza no lugar");
+        assertThat(withDeviation("   ").deviation()).isNull();
+        assertThat(withDeviation(null).deviation()).isNull();
+        assertThat(withDeviation("a".repeat(500)).deviation()).hasSize(500);
+        assertField(() -> withDeviation("a".repeat(501)), "deviation");
+        MealLog log = withDeviation("Pulei");
+        MealPlanVersion version = version();
+        assertThat(log.correct(version, 0, MealLog.Status.DONE, List.of(), "Comi tudo", TODAY, NOW)
+                        .deviation())
+                .isEqualTo("Comi tudo");
+        assertField(
+                () -> log.correct(version, 0, MealLog.Status.DONE, List.of(), "a".repeat(501), TODAY, NOW),
+                "deviation");
+    }
+
+    @Test
+    void fotoSoNoDiaDoRegistroEACorrecaoNaoATira() {
+        MealLog log = withDeviation(null);
+        MealLog.Photo photo = new MealLog.Photo("meal-logs/x/y/photo-1", NOW);
+        MealLog withPhoto = log.withPhoto(photo, TODAY, NOW);
+        assertThat(withPhoto.photo()).isEqualTo(photo);
+        assertThat(withPhoto
+                        .correct(version(), 0, MealLog.Status.DONE, List.of(), null, TODAY, NOW)
+                        .photo())
+                .isEqualTo(photo);
+        assertThat(withPhoto.withoutPhoto(TODAY, NOW).photo()).isNull();
+        assertThatThrownBy(() -> log.withPhoto(photo, TODAY.plusDays(1), NOW))
+                .isInstanceOf(MealLogConflictException.class);
+        assertThatThrownBy(() -> withPhoto.withoutPhoto(TODAY.plusDays(1), NOW))
+                .isInstanceOf(MealLogConflictException.class);
+    }
+
+    @Test
+    void fotoSoJpegOuPng() {
+        assertThat(MealLog.requirePhotoContentType("image/jpeg")).isEqualTo("image/jpeg");
+        assertThat(MealLog.requirePhotoContentType("image/png")).isEqualTo("image/png");
+        assertField(() -> MealLog.requirePhotoContentType("image/gif"), "contentType");
+        assertField(() -> MealLog.requirePhotoContentType(null), "contentType");
     }
 }

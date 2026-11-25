@@ -16,6 +16,26 @@
   <name>FitHub Nutrition Service</name>
 
   <dependencies>
+    <!-- Foto do prato no SeaweedFS pela API S3, com URL pré-assinada (DEV-0088), como as fotos de evolução do
+         client-service (DEV-0048). O cliente HTTP é o do próprio JDK (url-connection-client), sem netty nem Apache. -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>s3</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>software.amazon.awssdk</groupId>
+          <artifactId>netty-nio-client</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>software.amazon.awssdk</groupId>
+          <artifactId>apache-client</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>url-connection-client</artifactId>
+    </dependency>
     <!-- Segurança, Problem Details, logging JSON, outbox, Flyway, Actuator e RabbitMQ. -->
     <dependency>
       <groupId>com.fithub</groupId>

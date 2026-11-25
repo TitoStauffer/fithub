@@ -197,6 +197,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/meal-logs/{logId}/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Confirma a foto do prato enviada; a anterior é substituída */
+        put: operations["confirmMyMealPhoto"];
+        post?: never;
+        /** Tira a foto do prato do registro */
+        delete: operations["removeMyMealPhoto"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/meal-logs/{logId}/photo/upload-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** URL pré-assinada para enviar a foto do prato (JPEG ou PNG, até 10 MB) */
+        post: operations["requestMyMealPhotoUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/meal-plan/today": {
         parameters: {
             query?: never;
@@ -555,6 +590,8 @@ export interface components {
         MealLog: {
             /** Format: date-time */
             createdAt?: string;
+            /** @description O desvio em texto livre. */
+            deviation?: string;
             /** Format: uuid */
             id?: string;
             /**
@@ -564,6 +601,13 @@ export interface components {
             loggedOn?: string;
             /** Format: int32 */
             mealPosition?: number;
+            /**
+             * Format: uri
+             * @description URL temporária (5 minutos) para ver a foto do prato.
+             */
+            photoUrl?: string;
+            /** Format: date-time */
+            photoUrlExpiresAt?: string;
             /** Format: uuid */
             planId?: string;
             /**
@@ -583,6 +627,8 @@ export interface components {
         };
         /** @description Registro ou correção da refeição de hoje. */
         MealLogInput: {
+            /** @description O desvio em texto livre, até 500 caracteres. */
+            deviation?: string;
             /** Format: int32 */
             mealPosition: number;
             /** Format: uuid */
@@ -604,6 +650,22 @@ export interface components {
              * @description A posição do alimento na refeição.
              */
             itemPosition?: number;
+        };
+        /** @description O id do envio que a URL pré-assinada recebeu. */
+        MealPhotoConfirmation: {
+            uploadId: string;
+        };
+        /** @description URL pré-assinada (5 minutos) para enviar a foto e o id do envio. */
+        MealPhotoUpload: {
+            /** Format: date-time */
+            expiresAt?: string;
+            uploadId?: string;
+            /** Format: uri */
+            uploadUrl?: string;
+        };
+        /** @description O tipo da foto: image/jpeg ou image/png. */
+        MealPhotoUploadRequest: {
+            contentType: string;
         };
         /** @description Plano alimentar, com as refeições e os macros do dia. */
         MealPlan: {
@@ -1459,6 +1521,152 @@ export interface operations {
             };
             /** @description A conta não é de cliente. */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O registro não existe ou é de outro paciente. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O dia do registro já passou. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    confirmMyMealPhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                logId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MealPhotoConfirmation"];
+            };
+        };
+        responses: {
+            /** @description Registro com a URL de leitura da foto. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MealLog"];
+                };
+            };
+            /** @description Envio inexistente ou a foto não é JPEG/PNG de até 10 MB. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O registro não existe ou é de outro paciente. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O dia do registro já passou. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    removeMyMealPhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                logId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Registro sem a foto. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MealLog"];
+                };
+            };
+            /** @description O registro não existe ou é de outro paciente. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O dia do registro já passou. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    requestMyMealPhotoUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                logId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MealPhotoUploadRequest"];
+            };
+        };
+        responses: {
+            /** @description URL de envio e o id do envio. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MealPhotoUpload"];
+                };
+            };
+            /** @description O tipo não é JPEG nem PNG. */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -334,6 +334,16 @@ class MealLogApiTest extends ServiceIntegrationTest {
         expectViolation(() -> insertLog(UUID.randomUUID(), version, 0, "SKIPPED"), "uq_meal_log_slot");
         expectViolation(() -> insertSubstitution(existing, 30, 0), "ck_meal_log_substitution_item");
         expectViolation(() -> insertSubstitution(existing, 0, 2), "ck_meal_log_substitution_alternative");
+        expectViolation(
+                () -> jdbc.sql("update meal_log set deviation = '  ' where id = :id")
+                        .param("id", existing)
+                        .update(),
+                "ck_meal_log_deviation");
+        expectViolation(
+                () -> jdbc.sql("update meal_log set photo_key = 'meal-logs/x' where id = :id")
+                        .param("id", existing)
+                        .update(),
+                "ck_meal_log_photo");
     }
 
     private static void expectViolation(Runnable insert, String constraint) {

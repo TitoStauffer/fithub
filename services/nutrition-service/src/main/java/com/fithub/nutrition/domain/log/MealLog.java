@@ -18,6 +18,8 @@ import java.util.UUID;
  *
  * @param clientId o {@code sub} do paciente (ADR-009), dono do registro (BR-01)
  * @param loggedOn o dia do registro em America/Sao_Paulo
+ * @param deviation o desvio em texto livre (DEV-0088, FR-51), até 500 caracteres
+ * @param photo a foto do prato, se houver
  */
 public record MealLog(
         UUID id,
@@ -29,8 +31,17 @@ public record MealLog(
         LocalDate loggedOn,
         Status status,
         List<Substitution> substitutions,
+        String deviation,
+        Photo photo,
         Instant createdAt,
         Instant updatedAt) {
+
+    public static final int MAX_DEVIATION_LENGTH = 500;
+    public static final long MAX_PHOTO_BYTES = 10L * 1024 * 1024;
+    public static final Set<String> PHOTO_CONTENT_TYPES = Set.of("image/jpeg", "image/png");
+
+    /** A foto do prato confirmada (DEV-0088): a chave do objeto no bucket privado e quando foi confirmada. */
+    public record Photo(String objectKey, Instant uploadedAt) {}
 
     /** Feita, parcial ou não feita. */
     public enum Status {
@@ -68,11 +79,24 @@ public record MealLog(
             Integer mealPosition,
             Status status,
             List<Substitution> substitutions,
+            String deviation,
             LocalDate today,
             Instant now) {
         List<Substitution> checked = checked(version, mealPosition, status, substitutions);
         return new MealLog(
-                id, clientId, planId, version.id(), version.number(), mealPosition, today, status, checked, now, now);
+                id,
+                clientId,
+                planId,
+                version.id(),
+                version.number(),
+                mealPosition,
+                today,
+                status,
+                checked,
+                checkedDeviation(deviation),
+                null,
+                now,
+                now);
     }
 
     /**
@@ -85,6 +109,7 @@ public record MealLog(
             Integer meal,
             Status newStatus,
             List<Substitution> newSubstitutions,
+            String newDeviation,
             LocalDate today,
             Instant now) {
         requireCorrectableOn(today);
@@ -102,8 +127,76 @@ public record MealLog(
                 loggedOn,
                 newStatus,
                 checked,
+                checkedDeviation(newDeviation),
+                photo,
                 createdAt,
                 now);
+    }
+
+    /**
+     * O registro com a foto do prato confirmada.
+     *
+     * @throws MealLogConflictException se o dia do registro já passou
+     */
+    public MealLog withPhoto(Photo newPhoto, LocalDate today, Instant now) {
+        requireCorrectableOn(today);
+        return new MealLog(
+                id,
+                clientId,
+                planId,
+                versionId,
+                versionNumber,
+                mealPosition,
+                loggedOn,
+                status,
+                substitutions,
+                deviation,
+                Objects.requireNonNull(newPhoto, "newPhoto"),
+                createdAt,
+                now);
+    }
+
+    /**
+     * O registro sem a foto do prato.
+     *
+     * @throws MealLogConflictException se o dia do registro já passou
+     */
+    public MealLog withoutPhoto(LocalDate today, Instant now) {
+        requireCorrectableOn(today);
+        return new MealLog(
+                id,
+                clientId,
+                planId,
+                versionId,
+                versionNumber,
+                mealPosition,
+                loggedOn,
+                status,
+                substitutions,
+                deviation,
+                null,
+                createdAt,
+                now);
+    }
+
+    /** O desvio sem espaços nas pontas; vazio é sem desvio. */
+    private static String checkedDeviation(String deviation) {
+        if (deviation == null || deviation.isBlank()) {
+            return null;
+        }
+        String stripped = deviation.strip();
+        if (stripped.length() > MAX_DEVIATION_LENGTH) {
+            throw new InvalidMealLogException("deviation", "O desvio pode ter até 500 caracteres.");
+        }
+        return stripped;
+    }
+
+    /** A foto precisa ser JPEG ou PNG. */
+    public static String requirePhotoContentType(String contentType) {
+        if (contentType == null || !PHOTO_CONTENT_TYPES.contains(contentType)) {
+            throw new InvalidMealLogException("contentType", "A foto precisa ser JPEG ou PNG.");
+        }
+        return contentType;
     }
 
     /** O registro só muda no dia em que foi feito (BR-08, QUESTÃO-04). */
