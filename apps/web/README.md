@@ -172,3 +172,15 @@ suba o Keycloak pelo compose de `infra/`). A decisão dos papéis e dos clients 
   (`meals[i].items[j]...`). **Publicar** pede confirmação e exige o rascunho salvo e um alimento em cada refeição. No
   plano publicado, a tela avisa que salvar cria a versão seguinte e manda a versão base; se outra edição chegou antes
   (409), o plano é recarregado com aviso. Vínculo encerrado mostra que o acesso acabou.
+
+## Evolução do aluno (DEV-0094)
+
+- Na tela do aluno vinculado, a seção **Evolução** (só para o papel `personal`) traz, no período de 4, 8 ou 12
+  semanas até hoje:
+    - a aderência (treinos feitos contra os esperados, com o percentual) e os treinos finalizados por semana;
+    - a maior carga e o volume do exercício escolhido, entre os que têm treino no período;
+    - os recordes por exercício (maior carga e 1RM estimado), de todo o histórico;
+    - a evolução corporal de todo o histórico: peso, cada circunferência e o % de gordura de cada método, sem misturar
+      métodos numa linha (BR-12).
+- Os gráficos são uma linha em SVG próprio, sem biblioteca, e a tabela logo abaixo traz os mesmos valores para o
+  leitor de tela. Sem dados, cada bloco diz o que falta; sem vínculo, avisa que o acesso acabou.

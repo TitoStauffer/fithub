@@ -1,0 +1,140 @@
+{
+    "issue": "DEV-0094",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "A nutricionista passa a ver a evolução do aluno",
+            "area": "apps",
+            "file": "apps/web/src/features/clients/ClientDetailPage.tsx",
+            "find": "{profile.data && personal ? <ClientProgressSection",
+            "replace": "{profile.data ? <ClientProgressSection",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Sem vínculo, a evolução do treino deixa de avisar que o acesso acabou",
+            "area": "apps",
+            "file": "apps/web/src/lib/trainingApi.ts",
+            "find": "if (response.status === 404) throw new AccessEndedError();",
+            "replace": "if (false) throw new AccessEndedError();",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O exercício sem treino no período passa a aparecer na escolha",
+            "area": "apps",
+            "file": "apps/web/src/features/progress/ClientProgressSection.tsx",
+            "find": "(exercise) => (exercise.points ?? []).length > 0,",
+            "replace": "() => true,",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Sem ficha no período, a aderência deixa de dizer o que falta",
+            "area": "apps",
+            "file": "apps/web/src/features/progress/ClientProgressSection.tsx",
+            "find": "{adherence && adherence.percent === undefined ? (",
+            "replace": "{false ? (",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O período passa a ter um dia a mais",
+            "area": "apps",
+            "file": "apps/web/src/features/progress/progressPeriod.ts",
+            "find": "weeks * 7 - 1",
+            "replace": "weeks * 7",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "O gráfico passa a pôr o maior valor embaixo",
+            "area": "apps",
+            "file": "apps/web/src/features/progress/chartGeometry.ts",
+            "find": "(max - point.value)",
+            "replace": "(point.value - min)",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Os métodos de % de gordura passam a se misturar na escolha (BR-12)",
+            "area": "apps",
+            "file": "apps/web/src/features/progress/ClientProgressSection.tsx",
+            "find": "key: `fat:${series.origin ?? ''}`,",
+            "replace": "key: 'fat',",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "Sem peso, a evolução corporal passa a mostrar a linha vazia",
+            "area": "apps",
+            "file": "apps/web/src/features/progress/ClientProgressSection.tsx",
+            "find": "...((body.data.weightKg ?? []).length > 0",
+            "replace": "...(true",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "Trocar o período deixa de mudar a consulta",
+            "area": "apps",
+            "file": "apps/web/src/features/progress/ClientProgressSection.tsx",
+            "find": "setWeeks(Number(event.target.value) as PeriodWeeks)",
+            "replace": "setWeeks(4)",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}

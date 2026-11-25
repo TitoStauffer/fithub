@@ -14,6 +14,10 @@ import { InvitationsPage } from './InvitationsPage';
 // As seções de fichas e de restrições têm os testes delas (plans.test.tsx e restrictions.test.tsx).
 vi.mock('@/features/plans/PlansSection', () => ({ PlansSection: () => null }));
 vi.mock('@/features/restrictions/RestrictionsSection', () => ({ RestrictionsSection: () => null }));
+// A evolução tem os testes dela (progress.test.tsx); aqui só importa quem vê a seção.
+vi.mock('@/features/progress/ClientProgressSection', () => ({
+    ClientProgressSection: () => <section aria-label="Evolução" />,
+}));
 
 const API = 'http://localhost:8082';
 const CLIENT = '0193a1b2-0000-7000-8000-00000000000c';
@@ -203,6 +207,7 @@ describe('clientes', () => {
         expect(screen.getByText('Objetivo: Hipertrofia')).toBeInTheDocument();
         expect(await screen.findByText('Condições: Hipertensão')).toBeInTheDocument();
         expect(screen.getByText('Observações: joelho')).toBeInTheDocument();
+        expect(screen.getByRole('region', { name: 'Evolução' })).toBeInTheDocument();
         // As restrições alimentares e os planos alimentares são só da nutricionista (BR-03).
         expect(screen.queryByRole('region', { name: 'Restrições alimentares' })).not.toBeInTheDocument();
         expect(screen.queryByRole('region', { name: 'Planos alimentares' })).not.toBeInTheDocument();
@@ -217,6 +222,8 @@ describe('clientes', () => {
         expect(await screen.findByRole('region', { name: 'Restrições alimentares' })).toBeInTheDocument();
         expect(screen.getByRole('region', { name: 'Planos alimentares' })).toBeInTheDocument();
         expect(screen.queryByRole('region', { name: 'Restrições de mobilidade' })).not.toBeInTheDocument();
+        // A evolução do treino é do personal (DEV-0094).
+        expect(screen.queryByRole('region', { name: 'Evolução' })).not.toBeInTheDocument();
     });
 
     it('cliente que ainda não informou a saúde não é confundido com acesso encerrado', async () => {
