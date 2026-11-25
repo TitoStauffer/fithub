@@ -447,6 +447,8 @@ export interface components {
         };
         /** @description Alimento da refeição, com a quantidade e os macros dela. */
         MealItem: {
+            /** @description Alergias e intolerâncias do paciente que o alimento dispara; nunca bloqueia (BR-11). */
+            alerts?: components["schemas"]["MealItemAlert"][];
             /** @description Até 2 trocas possíveis: a secundária e a terciária, na ordem. */
             alternatives?: components["schemas"]["MealItemAlternative"][];
             /** @description Quantidade na unidade base. */
@@ -468,8 +470,21 @@ export interface components {
             measureName?: string;
             nutrients?: components["schemas"]["NutrientAmounts"];
         };
+        /** @description Restrição do paciente cujo termo aparece no alimento ou num ingrediente da receita. */
+        MealItemAlert: {
+            description?: string;
+            /**
+             * @description ALLERGY ou INTOLERANCE.
+             * @enum {string}
+             */
+            kind?: "ALLERGY" | "INTOLERANCE" | "PREFERENCE";
+            /** Format: uuid */
+            restrictionId?: string;
+        };
         /** @description Troca possível do alimento, com a diferença para o principal. */
         MealItemAlternative: {
+            /** @description Alergias e intolerâncias do paciente que a alternativa dispara. */
+            alerts?: components["schemas"]["MealItemAlert"][];
             /** @description Quantidade na unidade base. */
             amount?: number;
             /**

@@ -1,5 +1,6 @@
 package com.fithub.nutrition.domain.restriction;
 
+import java.text.Normalizer;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +43,24 @@ public record FoodRestriction(
         public boolean alerts() {
             return this != PREFERENCE;
         }
+    }
+
+    /**
+     * Se o alimento com esse nome dispara o alerta desta restrição (DEV-0084, FR-41): só alergia e intolerância, e
+     * algum termo aparece no nome, sem diferenciar maiúsculas nem acentos ("feijao" acha "Feijão, carioca").
+     */
+    public boolean alertsFor(String foodName) {
+        if (!kind.alerts() || foodName == null) {
+            return false;
+        }
+        String name = folded(foodName);
+        return terms.stream().map(FoodRestriction::folded).anyMatch(name::contains);
+    }
+
+    /** Minúsculas e sem acento, como o {@code fold_search} da busca (V6). */
+    static String folded(String value) {
+        return Normalizer.normalize(value.toLowerCase(Locale.ROOT), Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "");
     }
 
     public FoodRestriction {

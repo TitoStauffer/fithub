@@ -1,0 +1,205 @@
+{
+    "issue": "DEV-0084",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "A preferência passa a gerar alerta",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/restriction/FoodRestriction.java",
+            "find": "if (!kind.alerts() || foodName == null) {",
+            "replace": "if (foodName == null) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=FoodRestrictionTest,MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O alimento sem nome passa a derrubar a conferência",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/restriction/FoodRestriction.java",
+            "find": "if (!kind.alerts() || foodName == null) {",
+            "replace": "if (!kind.alerts()) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=FoodRestrictionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "A busca do termo passa a diferenciar acentos",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/restriction/FoodRestriction.java",
+            "find": "\n                .replaceAll(\"\\\\p{M}\", \"\");",
+            "replace": ";",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=FoodRestrictionTest,MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "A busca do termo passa a diferenciar maiúsculas",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/restriction/FoodRestriction.java",
+            "find": "Normalizer.normalize(value.toLowerCase(Locale.ROOT), Normalizer.Form.NFD)",
+            "replace": "Normalizer.normalize(value, Normalizer.Form.NFD)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=FoodRestrictionTest,MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O termo passa a precisar ser o nome inteiro em vez de aparecer nele",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/restriction/FoodRestriction.java",
+            "find": "anyMatch(name::contains)",
+            "replace": "anyMatch(name::equals)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=FoodRestrictionTest,MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "O ingrediente da receita deixa de ser conferido",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/MealPlanAlerts.java",
+            "find": "if (food.isRecipe()) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "O alerta passa a aparecer sem vínculo ativo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/MealPlanAlerts.java",
+            "find": "if (!links.hasActiveLink(plan.nutritionistId(), plan.clientId())) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "Toda restrição do paciente passa a alertar qualquer alimento",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/MealPlanAlerts.java",
+            "find": ".filter(restriction -> names.stream().anyMatch(restriction::alertsFor))",
+            "replace": ".filter(restriction -> true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "O paciente passa a receber o alerta que é da nutricionista",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": "                MealPlanAlerts.NONE);",
+            "replace": "                alerts.of(plan));",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "A alternativa deixa de ser conferida",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageMealPlans.java",
+            "find": "alertsFor.apply(other)));",
+            "replace": "List.of()));",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealPlanApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}
