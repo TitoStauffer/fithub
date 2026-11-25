@@ -72,6 +72,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clients/{clientId}/progress/nutrition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A evolução da dieta do paciente vinculado no período (padrão: últimas 4 semanas) */
+        get: operations["getClientNutritionProgress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/foods": {
         parameters: {
             query?: never;
@@ -283,6 +300,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/progress/nutrition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A evolução da dieta do paciente no período (padrão: últimas 4 semanas) */
+        get: operations["getMyNutritionProgress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/meal-plans/{planId}": {
         parameters: {
             query?: never;
@@ -352,10 +386,83 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/professionals/me/clients/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A última atividade de cada paciente com vínculo ativo, nos planos da nutricionista */
+        get: operations["listPatientNutritionActivity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Uma alternativa escolhida no período e quantas vezes. */
+        AlternativeUse: {
+            /** Format: uuid */
+            foodId?: string;
+            foodName?: string;
+            /** Format: int64 */
+            times?: number;
+        };
+        /** @description Refeições feitas contra prescritas no período. */
+        DietAdherence: {
+            days?: components["schemas"]["DietAdherenceDay"][];
+            done?: number;
+            /** @description Ausente sem refeição prescrita. */
+            percent?: number;
+            /** Format: int32 */
+            prescribed?: number;
+        };
+        /** @description Um dia do período: o feito e as refeições prescritas. */
+        DietAdherenceDay: {
+            /** Format: date */
+            day?: string;
+            /** @description Feita vale 1, parcial 0,5. */
+            done?: number;
+            /** Format: int32 */
+            prescribed?: number;
+        };
+        /** @description Um registro do período com desvio ou foto do prato. */
+        DietDeviation: {
+            /** Format: date */
+            day?: string;
+            deviation?: string;
+            /** Format: uuid */
+            logId?: string;
+            mealName?: string;
+            /** Format: int32 */
+            mealPosition?: number;
+            /**
+             * Format: uri
+             * @description URL temporária (5 minutos) para ver a foto do prato.
+             */
+            photoUrl?: string;
+            /** Format: date-time */
+            photoUrlExpiresAt?: string;
+        };
+        /** @description A evolução da dieta no período (FR-57, FR-58). */
+        DietProgress: {
+            adherence?: components["schemas"]["DietAdherence"];
+            /** @description As 10 alternativas mais escolhidas. */
+            alternatives?: components["schemas"]["AlternativeUse"][];
+            /** @description Do mais novo para o mais antigo. */
+            deviations?: components["schemas"]["DietDeviation"][];
+            /** Format: date */
+            from?: string;
+            /** Format: date */
+            to?: string;
+        };
         /** @description Alimento, com os valores por 100 da unidade base (100 g ou 100 ml). */
         Food: {
             /** @description Se a dona arquivou o próprio: sai da busca, mas continua nos planos. */
@@ -732,6 +839,16 @@ export interface components {
             fiberG?: number;
             proteinG?: number;
         };
+        /** @description A última atividade de um paciente vinculado. */
+        PatientActivity: {
+            /** Format: uuid */
+            clientId?: string;
+            /**
+             * Format: date-time
+             * @description O último registro de refeição nos planos da nutricionista; ausente se não houver.
+             */
+            lastActivityAt?: string;
+        };
         /** @description Erro no formato Problem Details (RFC 9457). */
         Problem: {
             detail?: string;
@@ -1068,6 +1185,58 @@ export interface operations {
                 };
             };
             /** @description Campo fora das regras ou alimento indisponível; o campo vem em errors. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é nutricionista. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem vínculo ativo com o paciente. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getClientNutritionProgress: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path: {
+                clientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Aderência, alternativas e desvios. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DietProgress"];
+                };
+            };
+            /** @description Período invertido ou maior que 26 semanas; o campo vem em errors. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1813,6 +1982,47 @@ export interface operations {
             };
         };
     };
+    getMyNutritionProgress: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Aderência, alternativas e desvios. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DietProgress"];
+                };
+            };
+            /** @description Período invertido ou maior que 26 semanas; o campo vem em errors. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é de cliente. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     getMealPlan: {
         parameters: {
             query?: never;
@@ -2045,6 +2255,35 @@ export interface operations {
             };
             /** @description O plano ou a versão não existe, ou o plano é de outra nutricionista. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listPatientNutritionActivity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Um item por paciente vinculado. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatientActivity"][];
+                };
+            };
+            /** @description A conta não é nutricionista. */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
