@@ -10,6 +10,7 @@ import com.fithub.eventcontracts.EventContract;
 import com.fithub.eventcontracts.EventContracts;
 import com.fithub.testing.service.ServiceIntegrationTest;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -84,6 +85,11 @@ class ClientUpdatedEventTest extends ServiceIntegrationTest {
             if (failAfterWriting.get()) {
                 throw new IllegalStateException("falha depois de gravar o evento");
             }
+        }
+
+        @Override
+        public void deleted(UUID clientId, Instant at) {
+            outbox.deleted(clientId, at);
         }
     }
 

@@ -675,6 +675,39 @@
   },
   "openapi" : "3.1.0",
   "paths" : {
+    "/clients/me" : {
+      "delete" : {
+        "description" : "Apaga perfil, saúde, avaliações, fotos, vínculos e consentimentos e publica o ContaExcluida para os outros serviços apagarem o que têm. As prescrições ficam com o profissional, sem identificar o cliente (ADR-012). Repetir responde 204.",
+        "operationId" : "deleteAccount",
+        "responses" : {
+          "204" : {
+            "description" : "Conta excluída."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não tem o papel de cliente."
+          }
+        },
+        "summary" : "Exclui a conta do cliente e todos os dados dele, sem volta",
+        "tags" : [ "Conta do cliente" ]
+      }
+    },
     "/clients/me/assessments" : {
       "get" : {
         "operationId" : "mine_5",
@@ -2239,6 +2272,9 @@
   }, {
     "description" : "Vínculos entre cliente e profissional",
     "name" : "Vínculos"
+  }, {
+    "description" : "Exclusão da conta do cliente autenticado",
+    "name" : "Conta do cliente"
   }, {
     "description" : "Fotos de evolução das avaliações",
     "name" : "Fotos"

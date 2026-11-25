@@ -25,14 +25,16 @@ class ClientApiFakes {
 
     /**
      * Tokens de teste: {@code Bearer conta-<uuid>} vira um JWT de cliente com esse {@code sub};
-     * {@code personal-<uuid>} e {@code nutri-<uuid>} trazem também o papel de profissional. O resto é recusado.
+     * {@code personal-<uuid>} e {@code nutri-<uuid>} trazem também o papel de profissional, e {@code sempapel-<uuid>},
+     * nenhum papel. Todos trazem o e-mail {@code <uuid>@teste.fithub}. O resto é recusado.
      */
     @Bean
     JwtDecoder jwtDecoder() {
         Map<String, List<String>> rolesByPrefix = Map.of(
                 "conta-", List.of("client"),
                 "personal-", List.of("client", "personal"),
-                "nutri-", List.of("client", "nutritionist"));
+                "nutri-", List.of("client", "nutritionist"),
+                "sempapel-", List.<String>of());
         return token -> rolesByPrefix.entrySet().stream()
                 .filter(entry -> token.startsWith(entry.getKey()))
                 .findFirst()
@@ -40,6 +42,7 @@ class ClientApiFakes {
                         .header("alg", "none")
                         .subject(token.substring(entry.getKey().length()))
                         .claim("realm_access", Map.of("roles", entry.getValue()))
+                        .claim("email", token.substring(entry.getKey().length()) + "@teste.fithub")
                         .issuedAt(Instant.now())
                         .expiresAt(Instant.now().plusSeconds(300))
                         .build())

@@ -1,0 +1,505 @@
+{
+    "issue": "DEV-0105",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Os consentimentos deixam de ser apagados",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
+            "find": "jdbc.sql(\"delete from consent where client_id = :clientId\")",
+            "replace": "jdbc.sql(\"select count(*) from consent where client_id = :clientId\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O convite aceito mantém o e-mail do cliente",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
+            "find": "update invitation set email = null\n                         where id in",
+            "replace": "update invitation set email = email\n                         where id in",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O convite pendente para o e-mail do cliente mantém o e-mail",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
+            "find": "update invitation set email = null where lower",
+            "replace": "update invitation set email = email where lower",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "O convite pendente passa a ser comparado com diferença de maiúsculas",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
+            "find": "lower(email) = lower(:email)",
+            "replace": "email = :email",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Os vínculos deixam de ser apagados",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
+            "find": "jdbc.sql(\"delete from client_link where client_id = :clientId\")",
+            "replace": "jdbc.sql(\"select count(*) from client_link where client_id = :clientId\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "A exclusão passa a apagar os vínculos de todos os clientes",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
+            "find": "\"delete from client_link where client_id = :clientId\"",
+            "replace": "\"delete from client_link where client_id = :clientId or status = 'ACTIVE'\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "As avaliações deixam de ser apagadas",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
+            "find": "jdbc.sql(\"delete from body_assessment where client_id = :clientId\")",
+            "replace": "jdbc.sql(\"select count(*) from body_assessment where client_id = :clientId\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "A exclusão passa a apagar as avaliações de todos os clientes",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
+            "find": "\"delete from body_assessment where client_id = :clientId\"",
+            "replace": "\"delete from body_assessment where client_id = :clientId or true\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "A saúde deixa de ser apagada",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
+            "find": "jdbc.sql(\"delete from client_health where account_id = :account\")",
+            "replace": "jdbc.sql(\"select count(*) from client_health where account_id = :account\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "O perfil deixa de ser apagado",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
+            "find": "jdbc.sql(\"delete from client_profile where account_id = :account\")",
+            "replace": "jdbc.sql(\"select count(*) from client_profile where account_id = :account\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "A exclusão passa a apagar o perfil de todos os clientes",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
+            "find": "\"delete from client_profile where account_id = :account\"",
+            "replace": "\"delete from client_profile where account_id = :account or true\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "A exclusão passa a apagar também o registro de leitura da saúde",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
+            "find": "        String account = clientId.toString();\n",
+            "replace": "        String account = clientId.toString();\n        jdbc.sql(\"delete from health_access_log where client_id = :clientId\").param(\"clientId\", clientId).update();\n",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M13",
+            "description": "O id deixa de entrar na lista de contas excluídas",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
+            "find": "insert into deleted_account (client_id, deleted_at) values (:clientId, :at)",
+            "replace": "select :clientId, :at",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M14",
+            "description": "Repetir a exclusão passa a falhar no id já listado",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
+            "find": "\n                        on conflict (client_id) do update set deleted_at = excluded.deleted_at",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M15",
+            "description": "O expurgo passa a tirar também quem fez exatamente 30 dias",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
+            "find": "where deleted_at < :cutoff",
+            "replace": "where deleted_at <= :cutoff",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M16",
+            "description": "O expurgo passa a ignorar o prazo de 30 dias",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/DeleteClientAccount.java",
+            "find": "clock.instant().minus(DELETED_ACCOUNT_RETENTION)",
+            "replace": "clock.instant()",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M17",
+            "description": "A exclusão deixa de publicar o ContaExcluida",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/DeleteClientAccount.java",
+            "find": "            events.deleted(clientId, now);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M18",
+            "description": "Os arquivos do bucket deixam de ser apagados",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/DeleteClientAccount.java",
+            "find": "        photos.deleteFilesOfClient(clientId);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M19",
+            "description": "Os arquivos passam a ser apagados antes da transação",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/DeleteClientAccount.java",
+            "find": "        transaction.executeWithoutResult(status -> {\n",
+            "replace": "        photos.deleteFilesOfClient(clientId);\n        transaction.executeWithoutResult(status -> {\n",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M20",
+            "description": "O prefixo apagado passa a ser o de todos os clientes",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManagePhotos.java",
+            "find": "storage.deleteAll(clientPrefix(clientId));",
+            "replace": "storage.deleteAll(ROOT_PREFIX);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M21",
+            "description": "O e-mail volta a ficar nos convites cancelados",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
+            "find": "update invitation set email = null where lower(email)",
+            "replace": "update invitation set email = null where status = 'PENDING' and lower(email)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M22",
+            "description": "A exclusão deixa de encerrar os vínculos ativos",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/DeleteClientAccount.java",
+            "find": "            endActiveLinks(clientId, now);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M23",
+            "description": "O encerramento deixa de publicar o VinculoEncerrado",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/DeleteClientAccount.java",
+            "find": "                    linkEvents.ended(ended);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M24",
+            "description": "O vínculo passa a ser encerrado pelo profissional",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/DeleteClientAccount.java",
+            "find": "link.end(Link.Party.CLIENT, now)",
+            "replace": "link.end(Link.Party.PROFESSIONAL, now)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M25",
+            "description": "A rota deixa de exigir o papel de cliente",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/interfaces/rest/ClientAccountController.java",
+            "find": "    @PreAuthorize(\"hasRole('CLIENT')\")\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

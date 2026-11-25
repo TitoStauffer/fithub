@@ -1,6 +1,26 @@
 // Gerado por scripts/generate.mjs a partir de openapi/client-service.json (DEV-0022). Não edite à mão.
 
 export interface paths {
+    "/clients/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Exclui a conta do cliente e todos os dados dele, sem volta
+         * @description Apaga perfil, saúde, avaliações, fotos, vínculos e consentimentos e publica o ContaExcluida para os outros serviços apagarem o que têm. As prescrições ficam com o profissional, sem identificar o cliente (ADR-012). Repetir responde 204.
+         */
+        delete: operations["deleteAccount"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/clients/me/assessments": {
         parameters: {
             query?: never;
@@ -670,6 +690,42 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    deleteAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Conta excluída. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não tem o papel de cliente. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     mine_5: {
         parameters: {
             query?: never;
