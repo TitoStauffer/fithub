@@ -16,5 +16,6 @@ superado ganha status "substituído por ADR-NNN" em vez de ser apagado.
 | [ADR-009](ADR-009-identidade-comum-entre-servicos.md) | O `sub` do Keycloak é o id da pessoa em todos os serviços | aceito |
 | [ADR-010](ADR-010-base-de-exercicios.md) | Base de exercícios inicial: dados do wger, mídia só com licença explícita | aceito |
 | [ADR-011](ADR-011-base-de-alimentos-taco.md) | Base de alimentos inicial: Tabela TACO em CSV versionado | aceito |
+| [ADR-012](ADR-012-retencao-e-exclusao.md) | Retenção e exclusão dos dados do cliente | aceito |
 
 Formato: contexto, decisão, alternativas consideradas e consequências.

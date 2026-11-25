@@ -656,8 +656,11 @@ Então um novo recorde de supino é registrado
   consentimento do responsável (LGPD, art. 14). **Enquanto aberta:** o perfil
   do cliente exige 18 anos ou mais (decisão do Agent na ausência do Tito, para
   revisão; DEV-0032).
-- **QUESTÃO-06** — Política de retenção após exclusão de conta, e o que
-  acontece com as prescrições guardadas pelo profissional.
+- ~~**QUESTÃO-06**~~ — **Decidida pelo Agent na ausência do Tito, para revisão
+  (DEV-0107, [ADR-012](adr/ADR-012-retencao-e-exclusao.md)):** o que é do
+  cliente é apagado de vez em todos os serviços, sem carência; as prescrições
+  ficam com o profissional, sem nada que identifique o cliente; backups e logs
+  expiram em 30 dias e a auditoria de acesso fica 6 meses.
 - ~~**QUESTÃO-07**~~ — **Decidida pelo Agent na ausência do Tito, para revisão
   (DEV-0052, [ADR-010](adr/ADR-010-base-de-exercicios.md)):** base inicial do
   wger (gratuita, Creative Commons por exercício, com atribuição), mídia só com
