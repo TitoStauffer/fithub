@@ -18,6 +18,9 @@ vi.mock('@/features/restrictions/RestrictionsSection', () => ({ RestrictionsSect
 vi.mock('@/features/progress/ClientProgressSection', () => ({
     ClientProgressSection: () => <section aria-label="Evolução" />,
 }));
+vi.mock('@/features/progress/PatientProgressSection', () => ({
+    PatientProgressSection: () => <section aria-label="Evolução da dieta" />,
+}));
 
 const API = 'http://localhost:8082';
 const CLIENT = '0193a1b2-0000-7000-8000-00000000000c';
@@ -208,6 +211,7 @@ describe('clientes', () => {
         expect(await screen.findByText('Condições: Hipertensão')).toBeInTheDocument();
         expect(screen.getByText('Observações: joelho')).toBeInTheDocument();
         expect(screen.getByRole('region', { name: 'Evolução' })).toBeInTheDocument();
+        expect(screen.queryByRole('region', { name: 'Evolução da dieta' })).not.toBeInTheDocument();
         // As restrições alimentares e os planos alimentares são só da nutricionista (BR-03).
         expect(screen.queryByRole('region', { name: 'Restrições alimentares' })).not.toBeInTheDocument();
         expect(screen.queryByRole('region', { name: 'Planos alimentares' })).not.toBeInTheDocument();
@@ -224,6 +228,8 @@ describe('clientes', () => {
         expect(screen.queryByRole('region', { name: 'Restrições de mobilidade' })).not.toBeInTheDocument();
         // A evolução do treino é do personal (DEV-0094).
         expect(screen.queryByRole('region', { name: 'Evolução' })).not.toBeInTheDocument();
+        // A evolução da dieta é da nutricionista (DEV-0095).
+        expect(screen.getByRole('region', { name: 'Evolução da dieta' })).toBeInTheDocument();
     });
 
     it('cliente que ainda não informou a saúde não é confundido com acesso encerrado', async () => {

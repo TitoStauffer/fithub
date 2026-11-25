@@ -1,6 +1,7 @@
 import type { NutritionServiceComponents } from '@fithub/api-types';
 
 import { problem } from './api';
+import { AccessEndedError } from './clientApi';
 import type { ApiFetch } from './http';
 
 type Schemas = NutritionServiceComponents['schemas'];
@@ -20,6 +21,7 @@ export type FoodRestrictionKind = FoodRestrictionInput['kind'];
 export type MealPlanInput = Schemas['MealPlanInput'];
 export type MealItemAlert = Schemas['MealItemAlert'];
 export type NutrientAmounts = Schemas['NutrientAmounts'];
+export type DietProgress = Schemas['DietProgress'];
 
 /** Filtros da busca (DEV-0078); campo vazio não filtra. */
 export interface FoodSearch {
@@ -169,6 +171,20 @@ export function nutritionApi(apiFetch: ApiFetch, baseUrl: string) {
                     headers: { Accept: 'application/json' },
                 }),
             );
+        },
+        /**
+         * Aderência, alternativas mais usadas e desvios do paciente vinculado de `from` até hoje (DEV-0092), nos planos
+         * da nutricionista; sem vínculo, o acesso acabou.
+         */
+        async clientDietProgress(clientId: string, from: string): Promise<DietProgress> {
+            const response = await apiFetch(
+                url(
+                    `/clients/${encodeURIComponent(clientId)}/progress/nutrition?from=${encodeURIComponent(from)}`,
+                ),
+                { headers: { Accept: 'application/json' } },
+            );
+            if (response.status === 404) throw new AccessEndedError();
+            return json(response);
         },
         async removeMeasure(foodId: string, measureId: string): Promise<void> {
             const response = await apiFetch(`${foodUrl(foodId)}/measures/${encodeURIComponent(measureId)}`, {

@@ -1,43 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
-import { ORIGINS } from '@/features/assessments/assessmentForm';
 import { messageOf } from '@/features/clients/messages';
-import { useClientApi } from '@/features/clients/useClientApi';
 import { useTrainingApi } from '@/features/exercises/useTrainingApi';
-import type { BodySeriesPoint } from '@/lib/clientApi';
 
-import type { ChartPoint } from './chartGeometry';
+import { BodyEvolution } from './BodyEvolution';
 import { LineChart } from './LineChart';
-import { formatDay, PERIODS, periodStart, type PeriodWeeks } from './progressPeriod';
-
-const CIRCUMFERENCES: Record<string, string> = {
-    neck: 'Pescoço',
-    chest: 'Tórax',
-    waist: 'Cintura',
-    abdomen: 'Abdômen',
-    hip: 'Quadril',
-    arm: 'Braço',
-    forearm: 'Antebraço',
-    thigh: 'Coxa',
-    calf: 'Panturrilha',
-};
+import { PeriodSelect } from './PeriodSelect';
+import { formatDay, periodStart, type PeriodWeeks } from './progressPeriod';
 
 const PERCENT = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
-
-/** Uma métrica corporal escolhível: o peso, uma circunferência ou o % de gordura de um método. */
-interface BodyMetric {
-    key: string;
-    label: string;
-    unit: string;
-    points: BodySeriesPoint[];
-}
-
-function chartPoints(points: { date?: string; value?: number }[]): ChartPoint[] {
-    return points
-        .filter((point) => point.value !== undefined)
-        .map((point) => ({ label: formatDay(point.date), value: point.value ?? 0 }));
-}
 
 /**
  * Evolução do aluno vinculado para o personal (DEV-0094, FR-56): aderência do período, carga e volume do exercício
@@ -46,10 +18,8 @@ function chartPoints(points: { date?: string; value?: number }[]): ChartPoint[] 
  */
 export function ClientProgressSection({ clientId, now = new Date() }: { clientId: string; now?: Date }) {
     const training = useTrainingApi();
-    const clients = useClientApi();
     const [weeks, setWeeks] = useState<PeriodWeeks>(4);
     const [exerciseId, setExerciseId] = useState('');
-    const [metricKey, setMetricKey] = useState('weight');
     const from = periodStart(now, weeks);
 
     const progress = useQuery({
@@ -62,56 +32,18 @@ export function ClientProgressSection({ clientId, now = new Date() }: { clientId
         queryFn: () => training.clientRecords(clientId),
         retry: false,
     });
-    const body = useQuery({
-        queryKey: ['professional', 'client', clientId, 'body-series'],
-        queryFn: () => clients.clientBodySeries(clientId),
-        retry: false,
-    });
 
     const adherence = progress.data?.adherence;
     const exercises = (progress.data?.exercises ?? []).filter(
         (exercise) => (exercise.points ?? []).length > 0,
     );
     const exercise = exercises.find((item) => item.exerciseId === exerciseId) ?? exercises[0];
-    const metrics: BodyMetric[] = body.data
-        ? [
-              ...((body.data.weightKg ?? []).length > 0
-                  ? [{ key: 'weight', label: 'Peso', unit: 'kg', points: body.data.weightKg ?? [] }]
-                  : []),
-              ...Object.entries(body.data.circumferences ?? {}).map(([name, points]) => ({
-                  key: `circumference:${name}`,
-                  label: CIRCUMFERENCES[name] ?? name,
-                  unit: 'cm',
-                  points,
-              })),
-              ...(body.data.bodyFat ?? []).map((series) => ({
-                  key: `fat:${series.origin ?? ''}`,
-                  label: `% de gordura (${ORIGINS[series.origin ?? ''] ?? series.origin ?? ''})`,
-                  unit: '%',
-                  points: series.points ?? [],
-              })),
-          ]
-        : [];
-    const metric = metrics.find((item) => item.key === metricKey) ?? metrics[0];
 
     return (
         <section aria-label="Evolução" className="space-y-3">
             <div className="flex items-center gap-3">
                 <h4 className="font-medium">Evolução</h4>
-                <label className="flex items-center gap-2 text-sm">
-                    Período
-                    <select
-                        className="rounded border px-2 py-1"
-                        value={weeks}
-                        onChange={(event) => setWeeks(Number(event.target.value) as PeriodWeeks)}
-                    >
-                        {PERIODS.map((option) => (
-                            <option key={option} value={option}>
-                                {option} semanas
-                            </option>
-                        ))}
-                    </select>
-                </label>
+                <PeriodSelect weeks={weeks} onChange={setWeeks} />
             </div>
 
             <div className="space-y-1">
@@ -226,37 +158,7 @@ export function ClientProgressSection({ clientId, now = new Date() }: { clientId
                 ) : null}
             </div>
 
-            <div className="space-y-1">
-                <h5 className="text-sm font-medium">Evolução corporal</h5>
-                {body.isPending ? <p role="status">Carregando a evolução corporal…</p> : null}
-                {body.isError ? <p role="alert">{messageOf(body.error)}</p> : null}
-                {body.data && metrics.length === 0 ? (
-                    <p className="text-muted-foreground">Nenhuma avaliação ainda.</p>
-                ) : null}
-                {metric ? (
-                    <>
-                        <label className="flex items-center gap-2 text-sm">
-                            Medida
-                            <select
-                                className="rounded border px-2 py-1"
-                                value={metric.key}
-                                onChange={(event) => setMetricKey(event.target.value)}
-                            >
-                                {metrics.map((item) => (
-                                    <option key={item.key} value={item.key}>
-                                        {item.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                        <LineChart
-                            title={metric.label}
-                            unit={metric.unit}
-                            points={chartPoints(metric.points)}
-                        />
-                    </>
-                ) : null}
-            </div>
+            <BodyEvolution clientId={clientId} />
         </section>
     );
 }

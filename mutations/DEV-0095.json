@@ -1,0 +1,110 @@
+{
+    "issue": "DEV-0095",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O personal passa a ver a evolução da dieta do paciente",
+            "area": "apps",
+            "file": "apps/web/src/features/clients/ClientDetailPage.tsx",
+            "find": "{profile.data && nutritionist ? <PatientProgressSection",
+            "replace": "{profile.data ? <PatientProgressSection",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Sem vínculo, a evolução da dieta deixa de avisar que o acesso acabou",
+            "area": "apps",
+            "file": "apps/web/src/lib/nutritionApi.ts",
+            "find": "if (response.status === 404) throw new AccessEndedError();",
+            "replace": "if (false) throw new AccessEndedError();",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Sem plano no período, a aderência deixa de dizer o que falta",
+            "area": "apps",
+            "file": "apps/web/src/features/progress/PatientProgressSection.tsx",
+            "find": "{adherence && adherence.percent === undefined ? (",
+            "replace": "{false ? (",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "O desvio sem foto passa a mostrar o link",
+            "area": "apps",
+            "file": "apps/web/src/features/progress/PatientProgressSection.tsx",
+            "find": "{deviation.photoUrl ? (",
+            "replace": "{true ? (",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "A foto do desvio passa a abrir sem isolar a página",
+            "area": "apps",
+            "file": "apps/web/src/features/progress/PatientProgressSection.tsx",
+            "find": "rel=\"noopener noreferrer\"",
+            "replace": "rel=\"opener\"",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Sem alternativa usada, o bloco deixa de dizer o que falta",
+            "area": "apps",
+            "file": "apps/web/src/features/progress/PatientProgressSection.tsx",
+            "find": "{alternatives.length === 0 ? (",
+            "replace": "{false ? (",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Trocar o período deixa de mudar a consulta da dieta",
+            "area": "apps",
+            "file": "apps/web/src/features/progress/PatientProgressSection.tsx",
+            "find": "queryKey: ['nutritionist', 'client', clientId, 'diet-progress', from],",
+            "replace": "queryKey: ['nutritionist', 'client', clientId, 'diet-progress'],",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}
