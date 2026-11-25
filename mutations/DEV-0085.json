@@ -1,0 +1,305 @@
+{
+    "issue": "DEV-0085",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Web: publicar o plano deixa de pedir confirmação",
+            "area": "apps",
+            "file": "apps/web/src/features/mealPlans/MealPlanEditorPage.tsx",
+            "find": "if (Object.keys(found).length === 0) setConfirmingPublish(true);",
+            "replace": "if (Object.keys(found).length === 0) publish.mutate();",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Web: publicar passa a aceitar refeição sem alimento (BR-10)",
+            "area": "apps",
+            "file": "apps/web/src/features/mealPlans/mealPlanForm.ts",
+            "find": "if (meal.items.length === 0) {",
+            "replace": "if (false) {",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Web: editar o publicado deixa de mandar a versão base",
+            "area": "apps",
+            "file": "apps/web/src/features/mealPlans/MealPlanEditorPage.tsx",
+            "find": "toInput(form, published ? current.version : undefined)",
+            "replace": "toInput(form)",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Web: o conflito de versão deixa de recarregar o plano",
+            "area": "apps",
+            "file": "apps/web/src/features/mealPlans/MealPlanEditorPage.tsx",
+            "find": "error.status === 409 && current?.id",
+            "replace": "error.status === 999 && current?.id",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Web: o plano inacessível deixa de dizer que o acesso acabou",
+            "area": "apps",
+            "file": "apps/web/src/features/mealPlans/MealPlanEditorPage.tsx",
+            "find": "error instanceof ApiProblemError && error.status === 404;",
+            "replace": "false;",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Web: com edição pendente, os macros e os alertas antigos continuam na tela",
+            "area": "apps",
+            "file": "apps/web/src/features/mealPlans/MealPlanEditorPage.tsx",
+            "find": "const saved = dirty ? undefined : current;",
+            "replace": "const saved = current;",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Web: com a medida caseira, a quantidade direta também é enviada",
+            "area": "apps",
+            "file": "apps/web/src/features/mealPlans/mealPlanForm.ts",
+            "find": "amount: item.measure ? undefined : toNumber(item.amount),",
+            "replace": "amount: toNumber(item.amount),",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "Web: o próprio alimento principal passa a entrar como alternativa",
+            "area": "apps",
+            "file": "apps/web/src/features/mealPlans/MealItemEditor.tsx",
+            "find": "picked.id === item.food.id ||",
+            "replace": "false ||",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "Web: o nome do plano fora de 2 a 80 passa na validação espelhada",
+            "area": "apps",
+            "file": "apps/web/src/features/mealPlans/mealPlanForm.ts",
+            "find": "if (name.length < LIMITS.minName || name.length > LIMITS.maxName) {",
+            "replace": "if (false) {",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "Web: o horário fora de HH:MM passa na validação espelhada",
+            "area": "apps",
+            "file": "apps/web/src/features/mealPlans/mealPlanForm.ts",
+            "find": "!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(meal.suggestedTime.trim())",
+            "replace": "false",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "Web: a quantidade do alimento abaixo de 0,1 passa na validação espelhada",
+            "area": "apps",
+            "file": "apps/web/src/features/mealPlans/mealPlanForm.ts",
+            "find": "item.amount,\n            LIMITS.minAmount,",
+            "replace": "item.amount,\n            -1,",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "Web: a quantidade de medidas acima de 100 passa na validação espelhada",
+            "area": "apps",
+            "file": "apps/web/src/features/mealPlans/mealPlanForm.ts",
+            "find": "LIMITS.minMeasureCount,\n            LIMITS.maxMeasureCount,",
+            "replace": "LIMITS.minMeasureCount,\n            Infinity,",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M13",
+            "description": "Web: a 3ª alternativa passa na validação espelhada",
+            "area": "apps",
+            "file": "apps/web/src/features/mealPlans/mealPlanForm.ts",
+            "find": "if (item.alternatives.length > LIMITS.maxAlternatives) {",
+            "replace": "if (false) {",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M14",
+            "description": "Web: a quantidade da alternativa acima de 5000 passa na validação espelhada",
+            "area": "apps",
+            "file": "apps/web/src/features/mealPlans/mealPlanForm.ts",
+            "find": "alternative.amount,\n            LIMITS.minAmount,\n            LIMITS.maxAmount,",
+            "replace": "alternative.amount,\n            LIMITS.minAmount,\n            Infinity,",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M15",
+            "description": "Web: o plano sem refeição ou com mais de 10 passa na validação espelhada",
+            "area": "apps",
+            "file": "apps/web/src/features/mealPlans/mealPlanForm.ts",
+            "find": "if (form.meals.length < 1 || form.meals.length > LIMITS.maxMeals) {",
+            "replace": "if (false) {",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M16",
+            "description": "Web: o nome da refeição fora de 2 a 60 passa na validação espelhada",
+            "area": "apps",
+            "file": "apps/web/src/features/mealPlans/mealPlanForm.ts",
+            "find": "if (mealName.length < LIMITS.minMealName || mealName.length > LIMITS.maxMealName) {",
+            "replace": "if (false) {",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M17",
+            "description": "Web: o plano sem data de início passa na validação espelhada",
+            "area": "apps",
+            "file": "apps/web/src/features/mealPlans/mealPlanForm.ts",
+            "find": "if (!form.startsOn) errors.startsOn = 'Informe a data de início.';",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M18",
+            "description": "Web: a observação do plano acima de 500 passa na validação espelhada",
+            "area": "apps",
+            "file": "apps/web/src/features/mealPlans/mealPlanForm.ts",
+            "find": "if (form.note.trim().length > LIMITS.maxNote)",
+            "replace": "if (false)",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M19",
+            "description": "Web: a observação da refeição acima de 500 passa na validação espelhada",
+            "area": "apps",
+            "file": "apps/web/src/features/mealPlans/mealPlanForm.ts",
+            "find": "if (meal.note.trim().length > LIMITS.maxNote) {",
+            "replace": "if (false) {",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M20",
+            "description": "Web: a refeição com mais de 30 alimentos passa na validação espelhada",
+            "area": "apps",
+            "file": "apps/web/src/features/mealPlans/mealPlanForm.ts",
+            "find": "if (meal.items.length > LIMITS.maxItems)",
+            "replace": "if (false)",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}

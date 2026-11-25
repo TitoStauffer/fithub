@@ -12,6 +12,7 @@ import { ExerciseFormPage } from '@/features/exercises/ExerciseFormPage';
 import { ExercisesPage } from '@/features/exercises/ExercisesPage';
 import { FoodFormPage } from '@/features/foods/FoodFormPage';
 import { FoodsPage } from '@/features/foods/FoodsPage';
+import { MealPlanEditorPage } from '@/features/mealPlans/MealPlanEditorPage';
 import { ExpiringPlansPage } from '@/features/plans/ExpiringPlansPage';
 import { PlanEditorPage } from '@/features/plans/PlanEditorPage';
 import { OnboardingPage } from '@/features/onboarding/OnboardingPage';
@@ -146,6 +147,14 @@ function ProfessionalArea() {
                 <Route path="clientes/:clientId/fichas/nova" element={onlyPersonal(<PlanEditorPage />)} />
                 <Route path="clientes/:clientId/fichas/:planId" element={onlyPersonal(<PlanEditorPage />)} />
                 <Route path="alimentos" element={onlyNutritionist(<FoodsPage />)} />
+                <Route
+                    path="clientes/:clientId/planos/novo"
+                    element={onlyNutritionist(<MealPlanEditorPage />)}
+                />
+                <Route
+                    path="clientes/:clientId/planos/:planId"
+                    element={onlyNutritionist(<MealPlanEditorPage />)}
+                />
                 <Route path="alimentos/novo" element={onlyNutritionist(<FoodFormPage />)} />
                 <Route path="alimentos/:foodId/editar" element={onlyNutritionist(<FoodFormPage />)} />
             </Routes>
