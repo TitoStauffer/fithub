@@ -19,6 +19,8 @@ export type Meal = NutritionSchemas['Meal'];
 export type MealItem = NutritionSchemas['MealItem'];
 export type MealLog = NutritionSchemas['MealLog'];
 export type NutrientAmounts = NutritionSchemas['NutrientAmounts'];
+export type MealLogInput = NutritionSchemas['MealLogInput'];
+export type MealPhotoUpload = NutritionSchemas['MealPhotoUpload'];
 
 /** Ficha ativa do aluno com o próximo treino (DEV-0065), como o training-service devolve. */
 export type ActivePlan = TrainingSchemas['ActivePlan'];
@@ -266,6 +268,37 @@ export async function fetchMyPhotos(
 /** As refeições de hoje do plano publicado e os registros do dia (DEV-0087); `null` sem plano publicado. */
 export function fetchMealPlanToday(apiFetch: ApiFetch, baseUrl = nutritionApiUrl()) {
     return read<MealPlanToday>(apiFetch, `${baseUrl}/me/meal-plan/today`);
+}
+
+function mealLogPath(baseUrl: string, logId: string) {
+    return `${baseUrl}/me/meal-logs/${encodeURIComponent(logId)}`;
+}
+
+/** Registra a refeição de hoje com o id gerado no aparelho: repetir com o mesmo id corrige (DEV-0087). */
+export function logMeal(apiFetch: ApiFetch, logId: string, body: MealLogInput, baseUrl = nutritionApiUrl()) {
+    return write<MealLog>(apiFetch, mealLogPath(baseUrl, logId), body);
+}
+
+/** URL pré-assinada para enviar a foto do prato (DEV-0088). */
+export function requestMealPhotoUpload(
+    apiFetch: ApiFetch,
+    logId: string,
+    contentType: string,
+    baseUrl = nutritionApiUrl(),
+) {
+    return post<MealPhotoUpload>(apiFetch, `${mealLogPath(baseUrl, logId)}/photo/upload-url`, {
+        contentType,
+    });
+}
+
+/** Confirma a foto do prato enviada: a API confere tipo e tamanho e troca a anterior (DEV-0088). */
+export function confirmMealPhoto(
+    apiFetch: ApiFetch,
+    logId: string,
+    uploadId: string,
+    baseUrl = nutritionApiUrl(),
+) {
+    return write<MealLog>(apiFetch, `${mealLogPath(baseUrl, logId)}/photo`, { uploadId });
 }
 
 /** As fichas publicadas do aluno, cada uma com o próximo treino da sequência (DEV-0065). */

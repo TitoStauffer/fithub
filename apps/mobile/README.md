@@ -154,3 +154,15 @@ está no ADR-007.
 - Sem plano publicado, a tela avisa. Sem conexão, avisa e deixa tentar de novo.
 - O app fala com o nutrition-service em `EXPO_PUBLIC_NUTRITION_API_URL` (padrão `http://localhost:8084`), que passa a
   receber o token junto com o client-service e o training-service.
+
+## Registrar refeição (DEV-0090)
+
+- Em "Refeições de hoje", cada refeição tem "Registrar refeição" (ou "Corrigir registro", quando já tem registro hoje):
+    - como foi: feita, parcial ou não feita;
+    - em cada alimento com alternativa, o que foi comido (o principal ou uma alternativa); a refeição não feita vai sem
+      alternativa;
+    - o desvio em texto (até 500 caracteres) e a foto do prato pela câmera ou pela galeria.
+- O id do registro vem do aparelho (`expo-crypto`) e é reaproveitado: o reenvio sem conexão e a correção do mesmo dia
+  não duplicam. Depois do dia, o 409 da API aparece como aviso.
+- A foto vai direto à URL pré-assinada, sem o token. A foto tirada pela câmera é apagada do aparelho depois do envio; a
+  da galeria é da pessoa e fica.
