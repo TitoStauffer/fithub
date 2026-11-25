@@ -166,4 +166,5 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
 - Sem assinatura válida (`validUntil` no passado ou, sem ele, `active` falso), criar, editar e publicar plano alimentar
   respondem 403 ("Sua assinatura venceu. Renove para criar ou editar prescrições."). Ler o que já existe continua,
   para o profissional e para o cliente (FR-06, BR-14).
-- Profissional de quem nenhum evento chegou não é bloqueado.
+- Profissional de quem nenhum evento chegou não é bloqueado. Isso vale para quem se cadastrou antes desta entrega,
+  porque o account-service só publica o evento no cadastro.

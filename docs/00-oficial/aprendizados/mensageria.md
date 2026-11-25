@@ -41,6 +41,15 @@ recusa (campo faltando, valor fora do enum, texto em branco) e declare o mutante
   - **Correção:** casos com JSON válido fora do contrato em `ClientEventsConsumerTest`, conferindo a `.dlq`, a
     projeção intacta e que a mensagem não conta como processada.
   - **Prevenção:** mutantes M7 e M8 em `mutations/DEV-0039.json`.
+- **Revisão:** Code Review do PR #286, no SHA `9beb87e` (MEDIUM) — DEV-0101 (#93) · **PR:** #286
+  - **Impacto:** as guardas do `AccountEventsListener` novo (routing key e `professionalId`, `active` e
+    `occurredAt` nulos), no training e no nutrition, não tinham mutante. O teste de integração com payload sem `active`
+    passava com ou sem a guarda: sem ela, o unboxing lança NPE dentro do `processOnce`, o listener tenta de novo e a
+    mensagem termina na `.dlq` do mesmo jeito.
+  - **Correção:** `AccountEventsListenerGuardsTest` nos dois serviços chama o listener sem banco nem broker e exige
+    `AmqpRejectAndDontRequeueException` para cada caso; mutantes M18 a M25 de `mutations/DEV-0101.json`.
+  - **Prevenção:** chegar à `.dlq` não prova a guarda, porque as retentativas também levam a mensagem até lá. Teste a
+    guarda pelo tipo da exceção (sem reentrega), sem broker, e declare um mutante por condição.
 
 ## dado-de-evento-tem-retencao
 

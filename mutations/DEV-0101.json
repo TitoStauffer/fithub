@@ -340,6 +340,166 @@
                 "-Dtest=SubscriptionBlockApiTest",
                 "-Dsurefire.failIfNoSpecifiedTests=false"
             ]
+        },
+        {
+            "id": "M18",
+            "description": "training: o evento de outra routing key passa a ser consumido",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/messaging/AccountEventsListener.java",
+            "find": "if (!SUBSCRIPTION_CHANGED.equals(message.getMessageProperties().getReceivedRoutingKey())) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=AccountEventsListenerGuardsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M19",
+            "description": "training: o evento sem professionalId passa a ser consumido",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/messaging/AccountEventsListener.java",
+            "find": "event.professionalId() == null || ",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=AccountEventsListenerGuardsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M20",
+            "description": "training: o evento sem active passa a ser consumido",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/messaging/AccountEventsListener.java",
+            "find": "event.active() == null || ",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=AccountEventsListenerGuardsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M21",
+            "description": "training: o evento sem occurredAt passa a ser consumido",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/messaging/AccountEventsListener.java",
+            "find": " || event.occurredAt() == null",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=AccountEventsListenerGuardsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M22",
+            "description": "nutrition: o evento de outra routing key passa a ser consumido",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/messaging/AccountEventsListener.java",
+            "find": "if (!SUBSCRIPTION_CHANGED.equals(message.getMessageProperties().getReceivedRoutingKey())) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=AccountEventsListenerGuardsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M23",
+            "description": "nutrition: o evento sem professionalId passa a ser consumido",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/messaging/AccountEventsListener.java",
+            "find": "event.professionalId() == null || ",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=AccountEventsListenerGuardsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M24",
+            "description": "nutrition: o evento sem active passa a ser consumido",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/messaging/AccountEventsListener.java",
+            "find": "event.active() == null || ",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=AccountEventsListenerGuardsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M25",
+            "description": "nutrition: o evento sem occurredAt passa a ser consumido",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/messaging/AccountEventsListener.java",
+            "find": " || event.occurredAt() == null",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=AccountEventsListenerGuardsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
         }
     ]
 }
