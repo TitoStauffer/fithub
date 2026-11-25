@@ -1,0 +1,605 @@
+{
+    "issue": "DEV-0087",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O registro passa a aceitar o estado vazio",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/log/MealLog.java",
+            "find": "if (status == null) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLog*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O registro passa a aceitar a refeição vazia",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/log/MealLog.java",
+            "find": "if (mealPosition == null\n                || mealPosition < 0",
+            "replace": "if (mealPosition < 0",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLog*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O registro passa a aceitar refeição de posição negativa",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/log/MealLog.java",
+            "find": "                || mealPosition < 0\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "O registro passa a aceitar refeição que não existe no plano",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/log/MealLog.java",
+            "find": "\n                || mealPosition >= version.meals().size()",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLog*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "A refeição não feita passa a aceitar alternativa usada",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/log/MealLog.java",
+            "find": "if (status == Status.SKIPPED && !given.isEmpty()) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLog*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "A troca vazia passa a derrubar o pedido em vez de apontar o campo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/log/MealLog.java",
+            "find": "if (substitution == null) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLog*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "A troca sem alimento passa a derrubar o pedido em vez de apontar o campo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/log/MealLog.java",
+            "find": "if (item == null || item < 0",
+            "replace": "if (item < 0",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "A troca passa a aceitar alimento de posição negativa",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/log/MealLog.java",
+            "find": "item == null || item < 0 || item",
+            "replace": "item == null || item",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "A troca passa a aceitar alimento que não existe na refeição",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/log/MealLog.java",
+            "find": " || item >= meal.items().size() || ",
+            "replace": " || ",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLog*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "O mesmo alimento passa a aceitar duas alternativas",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/log/MealLog.java",
+            "find": " || !seen.add(item)) {",
+            "replace": ") {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLog*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "A troca sem alternativa passa a derrubar o pedido em vez de apontar o campo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/log/MealLog.java",
+            "find": "if (alternative == null\n                || alternative < 0",
+            "replace": "if (alternative < 0",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "A troca passa a aceitar alternativa negativa",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/log/MealLog.java",
+            "find": "\n                || alternative < 0\n",
+            "replace": "\n",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M13",
+            "description": "A troca passa a aceitar alternativa que o alimento não tem",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/log/MealLog.java",
+            "find": "\n                || alternative >= mealItem.alternatives().size()",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLog*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M14",
+            "description": "A correção passa a mudar a refeição do registro",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/log/MealLog.java",
+            "find": "if (meal == null || meal != mealPosition) {",
+            "replace": "if (meal == null) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLog*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M15",
+            "description": "A correção sem refeição passa a derrubar o pedido",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/log/MealLog.java",
+            "find": "if (meal == null || meal != mealPosition) {",
+            "replace": "if (meal != mealPosition) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M16",
+            "description": "O registro passa a ser corrigido e apagado depois do dia",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/log/MealLog.java",
+            "find": "if (!loggedOn.equals(today)) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLog*Test",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M17",
+            "description": "O registro sem plano passa a responder 404 em vez de apontar o campo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/LogMeals.java",
+            "find": "if (draft.planId() == null) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M18",
+            "description": "O mesmo id deixa de corrigir o registro",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/LogMeals.java",
+            "find": "if (existing.isPresent()) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M19",
+            "description": "O paciente passa a registrar no plano de outro paciente",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/LogMeals.java",
+            "find": ".filter(found -> found.clientId().equals(clientId))\n                .filter(found -> found.status() != MealPlan.Status.DRAFT)",
+            "replace": ".filter(found -> true)\n                .filter(found -> found.status() != MealPlan.Status.DRAFT)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M20",
+            "description": "O paciente passa a registrar no plano em rascunho",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/LogMeals.java",
+            "find": ".filter(found -> found.status() != MealPlan.Status.DRAFT)",
+            "replace": ".filter(found -> true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M21",
+            "description": "O plano substituído passa a receber registro novo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/LogMeals.java",
+            "find": "if (plan.status() == MealPlan.Status.REPLACED) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M22",
+            "description": "Outro paciente passa a corrigir o registro pelo id",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/LogMeals.java",
+            "find": "if (!log.clientId().equals(clientId) || !log.planId().equals(draft.planId())) {",
+            "replace": "if (!log.planId().equals(draft.planId())) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M23",
+            "description": "O registro passa a ser corrigido com o id de outro plano",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/LogMeals.java",
+            "find": "if (!log.clientId().equals(clientId) || !log.planId().equals(draft.planId())) {",
+            "replace": "if (!log.clientId().equals(clientId)) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M24",
+            "description": "Outro paciente passa a apagar o registro pelo id",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/LogMeals.java",
+            "find": ".filter(found -> found.clientId().equals(clientId))\n                .orElseThrow(MealLogNotFoundException::new);",
+            "replace": ".filter(found -> true)\n                .orElseThrow(MealLogNotFoundException::new);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M25",
+            "description": "A refeição já registrada hoje deixa de responder conflito",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/LogMeals.java",
+            "find": "throw new MealLogConflictException(\"Esta refeição já foi registrada hoje.\");",
+            "replace": "throw taken;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M26",
+            "description": "O banco passa a aceitar estado fora da lista",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V10__registro_de_refeicao.sql",
+            "find": "check (status in ('DONE', 'PARTIAL', 'SKIPPED'))",
+            "replace": "check (status is not null)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M27",
+            "description": "O banco passa a aceitar refeição fora de 0 a 9",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V10__registro_de_refeicao.sql",
+            "find": "check (meal_position between 0 and 9)",
+            "replace": "check (meal_position >= 0)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M28",
+            "description": "O banco passa a aceitar duas vezes a mesma refeição no dia",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V10__registro_de_refeicao.sql",
+            "find": "    constraint uq_meal_log_slot unique (client_id, plan_id, meal_position, logged_on),\n",
+            "replace": "    constraint uq_meal_log_slot unique (id, client_id, plan_id, meal_position, logged_on),\n",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M29",
+            "description": "O banco passa a aceitar troca em alimento fora de 0 a 29",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V10__registro_de_refeicao.sql",
+            "find": "check (item_position between 0 and 29)",
+            "replace": "check (item_position >= 0)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M30",
+            "description": "O banco passa a aceitar alternativa fora de 0 a 1",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V10__registro_de_refeicao.sql",
+            "find": "check (alternative between 0 and 1)",
+            "replace": "check (alternative >= 0)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=MealLogApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}
