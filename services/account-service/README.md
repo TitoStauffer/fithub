@@ -42,3 +42,15 @@ Esqueleto da DEV-0015 (estrutura, execução e testes em [services/README.md](..
   sem rotina agendada aqui.
 - Um plano no MVP (`PROFESSIONAL_MONTHLY`). O preço e o meio de pagamento esperam a decisão da DEV-0098; o período
   pago só muda pelo pagamento (DEV-0100), que estende e nunca encurta.
+
+## Login de quem excluiu a conta (DEV-0161)
+
+O account-service consome o `ContaExcluida` (`client.account-deleted.v1`, fila `account.client-events`, com
+`.dlq`) e aplica o [ADR-012](../../docs/00-oficial/adr/ADR-012-retencao-e-exclusao.md):
+
+- **Conta só de cliente:** o usuário é apagado no Keycloak (`DELETE /admin/realms/fithub/users/{id}`), com o mesmo
+  client confidencial que atribui os papéis. Usuário que já não existe conta como apagado.
+- **Conta que também é de profissional:** o login fica, porque o lado profissional continua. O papel `client` vem do
+  papel padrão do realm e fica com ela.
+- **Consumo idempotente** pela `java-commons`. Falha do Keycloak volta para a fila (3 tentativas) e, esgotadas, vai
+  para a `.dlq`. Payload fora do contrato vai direto para a `.dlq`. Nada do payload vai para log.
