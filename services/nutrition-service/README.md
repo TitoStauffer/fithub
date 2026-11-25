@@ -175,7 +175,7 @@ O consumidor dos eventos do client-service também recebe o `ContaExcluida` (`cl
 [ADR-012](../../docs/00-oficial/adr/ADR-012-retencao-e-exclusao.md), na transação do consumo idempotente:
 
 - **Sai de vez:** registros de refeição (com trocas, desvios e fotos do prato, inclusive os objetos no bucket), restrições alimentares e as projeções do cliente e dos vínculos.
-- **Fica:** as planos alimentares das nutricionistas, com todas as versões, com o id do cliente trocado por um id aleatório (o mesmo para todas
+- **Fica:** os planos alimentares das nutricionistas, com todas as versões, com o id do cliente trocado por um id aleatório (o mesmo para todas
   as prescrições dessa pessoa).
 - **Lista de contas excluídas** (`deleted_account`): só o id e a data, com expurgo a cada
   `fithub.deleted-accounts.purge-interval` (padrão 6 h) do que passou de 30 dias.
