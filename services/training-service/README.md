@@ -199,3 +199,19 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
   páginas de 20 (a partir de 0; negativa responde 400). Cada um traz a ficha e o treino na versão em que foi feito, as
   datas, quantas séries teve e a sensação. O detalhe é `GET /me/sessions/{sessionId}` (DEV-0066).
 - O histórico e as fichas recebidas são do aluno: continuam depois que o vínculo acaba (BR-06).
+
+## Evolução do treino (DEV-0091)
+
+- `GET /clients/{clientId}/progress/training` (personal com vínculo ativo; sem vínculo, 404) e `GET /me/progress/training`
+  (aluno), com `from` e `to` opcionais: padrão das últimas 4 semanas, até 26 semanas (FR-56, FR-58).
+- **Aderência:** treinos finalizados contra esperados.
+    - Cada ficha publicada espera, por semana, tantos treinos quanto as suas divisões (ABC = 3), na proporção dos dias em
+      que valeu (da primeira publicação até a substituição).
+    - O período é dividido em semanas de 7 dias a partir do início (a última pode ser menor).
+    - O percentual sai do esperado exato, com uma casa; sem treino esperado, fica ausente.
+- **Carga e volume por exercício:** um ponto por sessão finalizada com o exercício: a maior carga com ao menos 1
+  repetição e o volume (soma de carga × repetições). A alternativa conta como o exercício que foi feito.
+- O personal vê só as fichas dele: a ficha própria do aluno não entra (QUESTÃO-03). O aluno vê todas.
+- `GET /professionals/me/clients/activity` (personal): cada aluno com vínculo ativo e a data do último treino finalizado
+  nas fichas do personal, base da lista de inativos (FR-59).
+- Tudo é calculado na leitura, sem tabela derivada. A nutricionista não tem rota (BR-03).

@@ -1,6 +1,7 @@
 package com.fithub.training.domain.access;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -17,4 +18,7 @@ public interface LinkProjection {
 
     /** Se o profissional tem vínculo ativo com o cliente. */
     boolean hasActiveLink(UUID professionalId, UUID clientId);
+
+    /** Os alunos com vínculo ativo com o personal (DEV-0091). */
+    List<UUID> activeClients(UUID professionalId);
 }

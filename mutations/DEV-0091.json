@@ -1,0 +1,325 @@
+{
+    "issue": "DEV-0091",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O período invertido passa a ser aceito",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/progress/ProgressPeriod.java",
+            "find": "if (start.isAfter(end)) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingAdherenceTest,ProgressApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O período passa a aceitar mais de 26 semanas",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/progress/ProgressPeriod.java",
+            "find": "if (ChronoUnit.DAYS.between(start, end) + 1 > MAX_DAYS) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingAdherenceTest,ProgressApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O período padrão deixa de ser de 4 semanas",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/progress/ProgressPeriod.java",
+            "find": "end.minusDays(DEFAULT_DAYS - 1L)",
+            "replace": "end.minusDays(DEFAULT_DAYS)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingAdherenceTest,ProgressApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "A ficha passa a esperar treinos antes de ser publicada",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/progress/TrainingAdherence.java",
+            "find": "LocalDate from = plan.from().isAfter(start) ? plan.from() : start;",
+            "replace": "LocalDate from = start;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingAdherenceTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "A ficha substituída passa a esperar treinos depois de sair",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/progress/TrainingAdherence.java",
+            "find": "LocalDate to = plan.to() == null || plan.to().isAfter(end) ? end : plan.to();",
+            "replace": "LocalDate to = end;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingAdherenceTest,ProgressApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "A ficha fora da semana passa a entrar no esperado",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/progress/TrainingAdherence.java",
+            "find": "if (!from.isAfter(to)) {",
+            "replace": "if (true) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingAdherenceTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "O treino de antes da semana passa a contar nela",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/progress/TrainingAdherence.java",
+            "find": "if (!day.isBefore(start) && !day.isAfter(end)) {",
+            "replace": "if (!day.isAfter(end)) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingAdherenceTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "Sem treino esperado, o percentual passa a dividir por zero",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/progress/TrainingAdherence.java",
+            "find": "totalExpected.signum() == 0",
+            "replace": "false",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingAdherenceTest,ProgressApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "A última semana passa a passar do fim do período",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/domain/progress/TrainingAdherence.java",
+            "find": "start.plusDays(6).isAfter(period.to()) ? period.to() : start.plusDays(6)",
+            "replace": "start.plusDays(6)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingAdherenceTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "O personal passa a ver a ficha própria do aluno",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcProgressRepository.java",
+            "find": "\" and (cast(:personalId as uuid) is null or p.personal_id = cast(:personalId as uuid))\"",
+            "replace": "\" and (cast(:personalId as uuid) is null or true)\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ProgressApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "A série sem repetição passa a contar para a maior carga",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcProgressRepository.java",
+            "find": "max(case when w.reps >= 1 then w.load_kg end) max_load",
+            "replace": "max(w.load_kg) max_load",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ProgressApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "O treino de antes do período passa a contar na aderência",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcProgressRepository.java",
+            "find": "join workout_plan p on p.id = s.plan_id\n                        where s.client_id = :clientId and s.finished_at >= :from and s.finished_at < :to\n                        \"\"\" + PERSONAL_FILTER + \" order by",
+            "replace": "join workout_plan p on p.id = s.plan_id\n                        where s.client_id = :clientId and s.finished_at < :to\n                        \"\"\" + PERSONAL_FILTER + \" order by",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ProgressApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M13",
+            "description": "A ficha substituída passa a valer como se continuasse publicada",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcProgressRepository.java",
+            "find": "\"REPLACED\".equals(rs.getString(\"status\"))",
+            "replace": "false",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ProgressApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M14",
+            "description": "A última atividade passa a contar a ficha própria do aluno",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcProgressRepository.java",
+            "find": "where p.personal_id = :personalId and s.client_id in (:clientIds)",
+            "replace": "where s.client_id in (:clientIds)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ProgressApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M15",
+            "description": "O personal sem vínculo passa a ver a evolução do aluno",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/TrainingProgress.java",
+            "find": "        clientAccess.requireActiveLink(personalAccount, clientId);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ProgressApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M16",
+            "description": "A nutricionista passa a ter rota de evolução do treino",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/interfaces/rest/ProgressController.java",
+            "find": "@PreAuthorize(\"hasRole('PERSONAL')\")",
+            "replace": "@PreAuthorize(\"isAuthenticated()\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ProgressApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}
