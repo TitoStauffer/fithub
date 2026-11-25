@@ -361,7 +361,7 @@ class PlanController {
                                         schema = @Schema(implementation = ClientController.ApiProblem.class))),
                 @ApiResponse(
                         responseCode = "403",
-                        description = "A conta não é personal, ou a assinatura venceu (DEV-0101).",
+                        description = "A conta não é personal.",
                         content =
                                 @Content(
                                         mediaType = PROBLEM,
@@ -479,7 +479,7 @@ class PlanController {
                                         schema = @Schema(implementation = ClientController.ApiProblem.class))),
                 @ApiResponse(
                         responseCode = "403",
-                        description = "A conta não é personal, ou a assinatura venceu (DEV-0101).",
+                        description = "A conta não é personal.",
                         content =
                                 @Content(
                                         mediaType = PROBLEM,
@@ -518,7 +518,7 @@ class PlanController {
                                         schema = @Schema(implementation = ClientController.ApiProblem.class))),
                 @ApiResponse(
                         responseCode = "403",
-                        description = "A conta não é personal, ou a assinatura venceu (DEV-0101).",
+                        description = "A conta não é personal.",
                         content =
                                 @Content(
                                         mediaType = PROBLEM,

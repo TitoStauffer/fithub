@@ -385,7 +385,7 @@ class MealPlanController {
                                         schema = @Schema(implementation = ClientController.ApiProblem.class))),
                 @ApiResponse(
                         responseCode = "403",
-                        description = "A conta não é nutricionista, ou a assinatura venceu (DEV-0101).",
+                        description = "A conta não é nutricionista.",
                         content =
                                 @Content(
                                         mediaType = PROBLEM,
@@ -448,7 +448,7 @@ class MealPlanController {
                                         schema = @Schema(implementation = ClientController.ApiProblem.class))),
                 @ApiResponse(
                         responseCode = "403",
-                        description = "A conta não é nutricionista, ou a assinatura venceu (DEV-0101).",
+                        description = "A conta não é nutricionista.",
                         content =
                                 @Content(
                                         mediaType = PROBLEM,
@@ -488,7 +488,7 @@ class MealPlanController {
                                         schema = @Schema(implementation = ClientController.ApiProblem.class))),
                 @ApiResponse(
                         responseCode = "403",
-                        description = "A conta não é nutricionista, ou a assinatura venceu (DEV-0101).",
+                        description = "A conta não é nutricionista.",
                         content =
                                 @Content(
                                         mediaType = PROBLEM,
