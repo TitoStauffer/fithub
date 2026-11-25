@@ -11,6 +11,9 @@ import java.util.UUID;
  * Aderência à dieta (DEV-0092, FR-57): refeições feitas contra prescritas no período. Cada refeição prescrita num dia
  * conta 1; a feita vale 1, a parcial 0,5, a não feita ou sem registro 0. As prescritas de um dia são as refeições da
  * versão do plano em vigor nele, enquanto o plano estava publicado.
+ *
+ * <p>Num dia prescreve um plano só: no dia da troca, o substituído e o novo valem os dois, e conta o mais novo (o que
+ * fica valendo no fim do dia). Os registros do dia nos dois contam, até o total prescrito (Code Review do PR #277).
  */
 public final class DietAdherence {
 
@@ -55,13 +58,20 @@ public final class DietAdherence {
         for (LocalDate day = period.from(); !day.isAfter(period.to()); day = day.plusDays(1)) {
             int prescribed = 0;
             BigDecimal done = BigDecimal.ZERO;
+            LocalDate newestStart = null;
             for (PlanWindow plan : plans) {
                 int meals = mealsOn(plan, day);
                 if (meals > 0) {
-                    prescribed += meals;
+                    // O plano mais novo do dia é o que prescreve; o substituído nele só traz os registros.
+                    LocalDate start = startOf(plan);
+                    if (newestStart == null || !start.isBefore(newestStart)) {
+                        newestStart = start;
+                        prescribed = meals;
+                    }
                     done = done.add(doneOn(logs, plan.planId(), day));
                 }
             }
+            done = done.min(BigDecimal.valueOf(prescribed));
             days.add(new Day(day, done.setScale(1, RoundingMode.HALF_UP), prescribed));
             totalDone = totalDone.add(done);
             totalPrescribed += prescribed;
@@ -70,6 +80,11 @@ public final class DietAdherence {
                 ? null
                 : totalDone.multiply(HUNDRED).divide(BigDecimal.valueOf(totalPrescribed), 1, RoundingMode.HALF_UP);
         return new Result(totalDone.setScale(1, RoundingMode.HALF_UP), totalPrescribed, percent, days);
+    }
+
+    /** O dia em que o plano passou a valer: o da primeira versão publicada. */
+    private static LocalDate startOf(PlanWindow plan) {
+        return plan.versions().getFirst().publishedOn();
     }
 
     /** As refeições da versão em vigor no dia: a última publicada até ele, se o plano ainda valia. */

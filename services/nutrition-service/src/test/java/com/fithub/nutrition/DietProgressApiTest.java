@@ -115,6 +115,11 @@ class DietProgressApiTest extends ServiceIntegrationTest {
 
     /** Plano de 4 refeições da nutricionista, publicado há 10 dias: o café tem arroz com macarrão e feijão de alternativa. */
     private UUID publishedPlan(UUID author) throws Exception {
+        return publishedPlan(author, 10);
+    }
+
+    /** O mesmo plano, publicado há {@code daysAgo} dias. */
+    private UUID publishedPlan(UUID author, int daysAgo) throws Exception {
         String other = "{\"name\": \"%s\", \"items\": [{\"foodId\": \"" + beans.id() + "\", \"amount\": 50}]}";
         String body = "{\"name\": \"Plano\", \"startsOn\": \"" + TODAY + "\", \"meals\": ["
                 + "{\"name\": \"Café\", \"items\": [{\"foodId\": \"" + rice.id()
@@ -134,7 +139,9 @@ class DietProgressApiTest extends ServiceIntegrationTest {
         UUID planId = UUID.fromString(location.substring(location.lastIndexOf('/') + 1));
         mvc.perform(post("/meal-plans/" + planId + "/publish").header("Authorization", "Bearer nutri-" + author))
                 .andExpect(status().isOk());
-        jdbc.sql("update meal_plan_version set published_at = published_at - interval '10 days' where plan_id = :plan")
+        jdbc.sql(
+                        "update meal_plan_version set published_at = published_at - make_interval(days => :days) where plan_id = :plan")
+                .param("days", daysAgo)
                 .param("plan", planId)
                 .update();
         return planId;
@@ -220,7 +227,8 @@ class DietProgressApiTest extends ServiceIntegrationTest {
         // Outra nutricionista vinculada depois publica o dela: o primeiro fica substituído hoje.
         UUID other = UUID.randomUUID();
         link(client, other);
-        UUID second = publishedPlan(other);
+        // O plano novo foi publicado no mesmo dia em que substituiu o primeiro, há 2 dias.
+        UUID second = publishedPlan(other, 2);
         logged(second, 0, 0, "DONE", null, null, null);
         // O primeiro foi substituído há 2 dias: só prescreve até lá.
         jdbc.sql("update meal_plan set updated_at = now() - interval '2 days' where id = :id")
@@ -237,8 +245,11 @@ class DietProgressApiTest extends ServiceIntegrationTest {
                 .andExpect(jsonPath("$.adherence.prescribed").value(12));
         // O paciente vê os dois planos.
         mvc.perform(get("/me/progress/nutrition" + period()).header("Authorization", "Bearer conta-" + client))
+                // No dia da troca prescreve só o plano novo: 3 dias × 4, sem somar o substituído (Code Review do #277).
                 .andExpect(jsonPath("$.adherence.done").value(2.0))
-                .andExpect(jsonPath("$.adherence.prescribed").value(16));
+                .andExpect(jsonPath("$.adherence.prescribed").value(12))
+                .andExpect(jsonPath("$.adherence.days[0].prescribed").value(4))
+                .andExpect(jsonPath("$.adherence.days[0].done").value(1.0));
         // A última atividade da primeira nutricionista é o registro no plano dela, não o de hoje no da outra.
         mvc.perform(get("/professionals/me/clients/activity").header("Authorization", "Bearer nutri-" + nutritionist))
                 .andExpect(jsonPath("$[0].lastActivityAt")
@@ -287,5 +298,10 @@ class DietProgressApiTest extends ServiceIntegrationTest {
         mvc.perform(get("/professionals/me/clients/activity")
                         .header("Authorization", "Bearer personal-" + nutritionist))
                 .andExpect(status().isForbidden());
+        // Nutricionista sem paciente vinculado: lista vazia, não erro.
+        mvc.perform(get("/professionals/me/clients/activity")
+                        .header("Authorization", "Bearer nutri-" + UUID.randomUUID()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
     }
 }

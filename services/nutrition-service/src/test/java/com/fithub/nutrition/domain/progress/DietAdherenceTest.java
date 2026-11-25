@@ -92,6 +92,53 @@ class DietAdherenceTest {
     }
 
     @Test
+    void noDiaDaTrocaPrescreveSoOPlanoNovoEOsRegistrosDosDoisContamAteOPrescrito() {
+        UUID replaced = UUID.randomUUID();
+        UUID current = UUID.randomUUID();
+        ProgressPeriod twoDays = new ProgressPeriod(D0, D0.plusDays(1));
+        List<DietAdherence.PlanWindow> plans = List.of(
+                new DietAdherence.PlanWindow(replaced, D0, List.of(version(D0.minusDays(10), 4))),
+                new DietAdherence.PlanWindow(current, null, List.of(version(D0, 3))));
+        // No dia da troca, 1 refeição feita no plano antigo e 1 no novo: 2 das 3 do novo.
+        DietAdherence.Result result = DietAdherence.of(
+                twoDays,
+                plans,
+                List.of(
+                        new DietAdherence.Log(D0, replaced, "DONE"),
+                        new DietAdherence.Log(D0, current, "DONE"),
+                        new DietAdherence.Log(D0.plusDays(1), current, "DONE")));
+        assertThat(result.days()).extracting(DietAdherence.Day::prescribed).containsExactly(3, 3);
+        assertThat(result.days().get(0).done()).isEqualByComparingTo("2.0");
+        assertThat(result.prescribed()).isEqualTo(6);
+        assertThat(result.done()).isEqualByComparingTo("3.0");
+        assertThat(result.percent()).isEqualByComparingTo("50.0");
+
+        // Antes da troca, o plano que ainda não foi publicado não tira o lugar do ativo.
+        DietAdherence.Result before = DietAdherence.of(
+                new ProgressPeriod(D0.minusDays(1), D0),
+                plans,
+                List.of(new DietAdherence.Log(D0.minusDays(1), replaced, "DONE")));
+        assertThat(before.days()).extracting(DietAdherence.Day::prescribed).containsExactly(4, 3);
+        assertThat(before.days().get(0).done()).isEqualByComparingTo("1.0");
+
+        // A ordem da lista não muda quem prescreve.
+        DietAdherence.Result reversed = DietAdherence.of(twoDays, List.of(plans.get(1), plans.get(0)), List.of());
+        assertThat(reversed.days()).extracting(DietAdherence.Day::prescribed).containsExactly(3, 3);
+
+        // Registrar nos dois mais do que o novo prescreve não passa de 100% no dia.
+        DietAdherence.Result capped = DietAdherence.of(
+                new ProgressPeriod(D0, D0),
+                plans,
+                List.of(
+                        new DietAdherence.Log(D0, replaced, "DONE"),
+                        new DietAdherence.Log(D0, replaced, "DONE"),
+                        new DietAdherence.Log(D0, current, "DONE"),
+                        new DietAdherence.Log(D0, current, "DONE")));
+        assertThat(capped.done()).isEqualByComparingTo("3.0");
+        assertThat(capped.percent()).isEqualByComparingTo("100.0");
+    }
+
+    @Test
     void semPlanoNaoHaPercentualERegistroDeOutroPlanoNaoConta() {
         DietAdherence.Result empty = DietAdherence.of(new ProgressPeriod(D0, D0), List.of(), List.of(log(D0, "DONE")));
         assertThat(empty.prescribed()).isZero();

@@ -400,6 +400,66 @@
                 "-Dtest=DietProgressApiTest",
                 "-Dsurefire.failIfNoSpecifiedTests=false"
             ]
+        },
+        {
+            "id": "M21",
+            "description": "No dia da troca, o plano substituído passa a prescrever no lugar do novo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/progress/DietAdherence.java",
+            "find": "if (newestStart == null || !start.isBefore(newestStart)) {",
+            "replace": "if (true) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=DietAdherenceTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M22",
+            "description": "O feito do dia passa a poder passar do prescrito",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/domain/progress/DietAdherence.java",
+            "find": "            done = done.min(BigDecimal.valueOf(prescribed));",
+            "replace": "done = done;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=DietAdherenceTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M23",
+            "description": "A nutricionista sem paciente vinculado passa a receber erro na última atividade",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/JdbcProgressRepository.java",
+            "find": "if (clientIds.isEmpty()) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=DietProgressApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
         }
     ]
 }

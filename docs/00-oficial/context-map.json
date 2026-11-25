@@ -36,7 +36,8 @@
         "docs/00-oficial/aprendizados/contratos-api.md",
         "docs/00-oficial/adr/README.md",
         "docs/00-oficial/aprendizados/testes-de-integracao.md",
-        "docs/00-oficial/aprendizados/idempotencia-e-posse.md"
+        "docs/00-oficial/aprendizados/idempotencia-e-posse.md",
+        "docs/00-oficial/aprendizados/metricas-e-periodos.md"
       ]
     },
     {
