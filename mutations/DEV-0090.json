@@ -135,6 +135,36 @@
                 "run",
                 "test"
             ]
+        },
+        {
+            "id": "M10",
+            "description": "Mobile: o pedido de envio da foto passa a chamar uma rota que não é a do contrato",
+            "area": "apps",
+            "file": "apps/mobile/src/lib/api.ts",
+            "find": "'/me/meal-logs/{logId}/photo/upload-url'",
+            "replace": "'/me/meal-logs/{logId}/upload-url' as never",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "Mobile: o id do registro deixa de ser codificado na rota",
+            "area": "apps",
+            "file": "apps/mobile/src/lib/api.ts",
+            "find": "encodeURIComponent(params[name] ?? '')",
+            "replace": "params[name] ?? ''",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
         }
     ]
 }

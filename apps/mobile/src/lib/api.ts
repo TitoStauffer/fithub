@@ -1,6 +1,7 @@
 import type {
     ClientServiceComponents,
     NutritionServiceComponents,
+    NutritionServicePaths,
     TrainingServiceComponents,
 } from '@fithub/api-types';
 
@@ -265,18 +266,36 @@ export async function fetchMyPhotos(
     );
 }
 
-/** As refeições de hoje do plano publicado e os registros do dia (DEV-0087); `null` sem plano publicado. */
-export function fetchMealPlanToday(apiFetch: ApiFetch, baseUrl = nutritionApiUrl()) {
-    return read<MealPlanToday>(apiFetch, `${baseUrl}/me/meal-plan/today`);
+type HttpMethod = 'get' | 'put' | 'post' | 'delete';
+
+/** As rotas do contrato do nutrition-service (OpenAPI gerado) que aceitam o método {@code M}. */
+type NutritionPath<M extends HttpMethod> = {
+    [P in keyof NutritionServicePaths]: [Exclude<NutritionServicePaths[P][M], undefined>] extends [never]
+        ? never
+        : P;
+}[keyof NutritionServicePaths];
+
+/**
+ * URL de uma rota do nutrition-service tirada do contrato gerado (DEV-0090, QA do PR #275): rota que não existe no
+ * OpenAPI, ou que não aceita o método, não compila. Os parâmetros `{nome}` vêm de `params`, codificados.
+ */
+export function nutritionUrl<M extends HttpMethod>(
+    baseUrl: string,
+    _method: M,
+    path: NutritionPath<M>,
+    params: Record<string, string> = {},
+): string {
+    return baseUrl + path.replace(/\{(\w+)\}/g, (_, name: string) => encodeURIComponent(params[name] ?? ''));
 }
 
-function mealLogPath(baseUrl: string, logId: string) {
-    return `${baseUrl}/me/meal-logs/${encodeURIComponent(logId)}`;
+/** As refeições de hoje do plano publicado e os registros do dia (DEV-0087); `null` sem plano publicado. */
+export function fetchMealPlanToday(apiFetch: ApiFetch, baseUrl = nutritionApiUrl()) {
+    return read<MealPlanToday>(apiFetch, nutritionUrl(baseUrl, 'get', '/me/meal-plan/today'));
 }
 
 /** Registra a refeição de hoje com o id gerado no aparelho: repetir com o mesmo id corrige (DEV-0087). */
 export function logMeal(apiFetch: ApiFetch, logId: string, body: MealLogInput, baseUrl = nutritionApiUrl()) {
-    return write<MealLog>(apiFetch, mealLogPath(baseUrl, logId), body);
+    return write<MealLog>(apiFetch, nutritionUrl(baseUrl, 'put', '/me/meal-logs/{logId}', { logId }), body);
 }
 
 /** URL pré-assinada para enviar a foto do prato (DEV-0088). */
@@ -286,9 +305,11 @@ export function requestMealPhotoUpload(
     contentType: string,
     baseUrl = nutritionApiUrl(),
 ) {
-    return post<MealPhotoUpload>(apiFetch, `${mealLogPath(baseUrl, logId)}/photo/upload-url`, {
-        contentType,
-    });
+    return post<MealPhotoUpload>(
+        apiFetch,
+        nutritionUrl(baseUrl, 'post', '/me/meal-logs/{logId}/photo/upload-url', { logId }),
+        { contentType },
+    );
 }
 
 /** Confirma a foto do prato enviada: a API confere tipo e tamanho e troca a anterior (DEV-0088). */
@@ -298,7 +319,9 @@ export function confirmMealPhoto(
     uploadId: string,
     baseUrl = nutritionApiUrl(),
 ) {
-    return write<MealLog>(apiFetch, `${mealLogPath(baseUrl, logId)}/photo`, { uploadId });
+    return write<MealLog>(apiFetch, nutritionUrl(baseUrl, 'put', '/me/meal-logs/{logId}/photo', { logId }), {
+        uploadId,
+    });
 }
 
 /** As fichas publicadas do aluno, cada uma com o próximo treino da sequência (DEV-0065). */
