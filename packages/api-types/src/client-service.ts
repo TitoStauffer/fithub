@@ -19,6 +19,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clients/me/assessments/series": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A série histórica da evolução corporal do cliente (todo o histórico, ou de from a to) */
+        get: operations["getMyBodySeries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/clients/me/assessments/{assessmentId}/photos": {
         parameters: {
             query?: never;
@@ -262,6 +279,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/professionals/me/clients/{clientId}/assessments/series": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A série histórica da evolução corporal de um cliente com vínculo ativo */
+        get: operations["getClientBodySeries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/professionals/me/clients/{clientId}/assessments/{assessmentId}/photos": {
         parameters: {
             query?: never;
@@ -388,6 +422,28 @@ export interface components {
             /** @enum {string} */
             origin?: "POLLOCK_3" | "POLLOCK_7" | "NAVY" | "BIOIMPEDANCE";
             percent?: number;
+        };
+        /** @description A série do % de gordura de um método; métodos não se misturam (BR-12). */
+        BodyFatSeries: {
+            /** @enum {string} */
+            origin?: "POLLOCK_3" | "POLLOCK_7" | "NAVY" | "BIOIMPEDANCE";
+            points?: components["schemas"]["BodySeriesPoint"][];
+        };
+        /** @description A série histórica de peso, circunferências e % de gordura por método. */
+        BodySeries: {
+            /** @description Uma série por método de % de gordura, sem misturar métodos. */
+            bodyFat?: components["schemas"]["BodyFatSeries"][];
+            /** @description Uma série por circunferência medida (neck, chest, waist, abdomen, hip, arm, forearm, thigh, calf), em cm. */
+            circumferences?: {
+                [key: string]: components["schemas"]["BodySeriesPoint"][];
+            };
+            weightKg?: components["schemas"]["BodySeriesPoint"][];
+        };
+        /** @description Um valor numa data de medição. */
+        BodySeriesPoint: {
+            /** Format: date */
+            date?: string;
+            value?: number;
         };
         /** @description Circunferências em cm, todas opcionais. */
         Circumferences: {
@@ -666,6 +722,47 @@ export interface operations {
                 };
             };
             /** @description Campo inválido. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getMyBodySeries: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Peso, circunferências e % de gordura por método. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BodySeries"];
+                };
+            };
+            /** @description Período invertido; o campo vem em errors. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1562,6 +1659,58 @@ export interface operations {
             };
             /** @description Sem token válido. */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não é profissional. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem vínculo ativo com o cliente. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    getClientBodySeries: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path: {
+                clientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Peso, circunferências e % de gordura por método. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BodySeries"];
+                };
+            };
+            /** @description Período invertido; o campo vem em errors. */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };

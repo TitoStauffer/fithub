@@ -1,0 +1,225 @@
+{
+    "issue": "DEV-0093",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O período invertido passa a ser aceito",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/assessment/BodySeries.java",
+            "find": "if (from != null && to != null && from.isAfter(to)) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=BodySeriesTest,AssessmentApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "A avaliação de antes do início passa a entrar na série",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/assessment/BodySeries.java",
+            "find": "from == null || !assessment.measuredOn().isBefore(from)",
+            "replace": "true",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=BodySeriesTest,AssessmentApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "A avaliação de depois do fim passa a entrar na série",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/assessment/BodySeries.java",
+            "find": "to == null || !assessment.measuredOn().isAfter(to)",
+            "replace": "true",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=BodySeriesTest,AssessmentApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "A série deixa de seguir a data da medição",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/assessment/BodySeries.java",
+            "find": "Comparator.comparing(Assessment::measuredOn).thenComparing(Assessment::createdAt)",
+            "replace": "Comparator.comparing(Assessment::createdAt)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=BodySeriesTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "Na mesma data, a ordem deixa de seguir o registro",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/assessment/BodySeries.java",
+            "find": ".thenComparing(Assessment::createdAt)",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=BodySeriesTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "A série da Marinha passa a misturar a bioimpedância (BR-12)",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/assessment/BodySeries.java",
+            "find": "FatMethod.NAVY, BodyFat::navy,",
+            "replace": "FatMethod.NAVY, BodyFat::bioimpedance,",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=BodySeriesTest,AssessmentApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "A circunferência nunca medida passa a ter série vazia",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/assessment/BodySeries.java",
+            "find": "if (!series.isEmpty()) {\n                circumferences.put(name, series);",
+            "replace": "if (true) {\n                circumferences.put(name, series);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=BodySeriesTest,AssessmentApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "O método de % de gordura sem valor passa a ter série vazia",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/assessment/BodySeries.java",
+            "find": "if (!series.isEmpty()) {\n                bodyFat.put(method, series);",
+            "replace": "if (true) {\n                bodyFat.put(method, series);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=BodySeriesTest,AssessmentApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "O valor não medido passa a virar ponto vazio",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/assessment/BodySeries.java",
+            "find": "if (measured != null) {",
+            "replace": "if (true) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=BodySeriesTest,AssessmentApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "O profissional sem vínculo passa a ver a série do cliente",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManageAssessments.java",
+            "find": "return BodySeries.of(listForClient(professionalAccount, clientId), from, to);",
+            "replace": "return BodySeries.of(assessments.listByClient(clientId), from, to);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AssessmentApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "O cliente passa a ter a rota da série do profissional",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/interfaces/rest/AssessmentController.java",
+            "find": "            path = \"/professionals/me/clients/{clientId}/assessments/series\",\n            produces = MediaType.APPLICATION_JSON_VALUE)\n    @PreAuthorize(\"hasAnyRole('PERSONAL', 'NUTRITIONIST')\")",
+            "replace": "            path = \"/professionals/me/clients/{clientId}/assessments/series\",\n            produces = MediaType.APPLICATION_JSON_VALUE)\n    @PreAuthorize(\"isAuthenticated()\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AssessmentApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

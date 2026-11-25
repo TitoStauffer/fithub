@@ -2,6 +2,7 @@ package com.fithub.client.application;
 
 import com.fithub.client.domain.assessment.Assessment;
 import com.fithub.client.domain.assessment.AssessmentRepository;
+import com.fithub.client.domain.assessment.BodySeries;
 import com.fithub.client.domain.assessment.Circumferences;
 import com.fithub.client.domain.assessment.Skinfolds;
 import com.fithub.client.domain.link.LinkRepository;
@@ -75,6 +76,16 @@ public class ManageAssessments {
     public List<Assessment> listForClient(String professionalAccount, UUID clientId) {
         requireActiveLink(professionalAccount, clientId);
         return assessments.listByClient(clientId);
+    }
+
+    /** A série da evolução corporal do próprio cliente (DEV-0093); sem as datas, todo o histórico. */
+    public BodySeries seriesMine(String clientAccount, LocalDate from, LocalDate to) {
+        return BodySeries.of(listMine(clientAccount), from, to);
+    }
+
+    /** A série do cliente vinculado, para o profissional (BR-04); sem vínculo ativo, 404 (BR-05). */
+    public BodySeries seriesForClient(String professionalAccount, UUID clientId, LocalDate from, LocalDate to) {
+        return BodySeries.of(listForClient(professionalAccount, clientId), from, to);
     }
 
     /** Só o cliente, dono dos dados, exclui; avaliação de outra pessoa é 404. */
