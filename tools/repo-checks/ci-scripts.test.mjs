@@ -19,6 +19,7 @@ test('cada área roda só quando um caminho dela muda', () => {
   assert.deepEqual(classifyChanges(['apps/web/src/App.tsx']), { java: false, apps: true, infra: false });
   assert.deepEqual(classifyChanges(['pnpm-lock.yaml']), { java: false, apps: true, infra: false });
   assert.deepEqual(classifyChanges(['infra/compose/docker-compose.dev.yml']), { java: false, apps: false, infra: true });
+  assert.deepEqual(classifyChanges(['.github/workflows/deploy.yml']), { java: false, apps: false, infra: true });
 });
 
 // Code Review do PR #187: o teste Java lê o contrato OpenAPI e o teste do api-types lê os Dockerfiles.

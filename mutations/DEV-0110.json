@@ -1,0 +1,109 @@
+{
+    "issue": "DEV-0110",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O console do Keycloak passa a ser publicado em todas as interfaces",
+            "area": "tools",
+            "file": "infra/compose/docker-compose.prod.yml",
+            "find": "\"127.0.0.1:${KEYCLOAK_ADMIN_PORT:-8080}:8080\"",
+            "replace": "\"${KEYCLOAK_ADMIN_PORT:-8080}:8080\"",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O e-mail do Let's Encrypt ganha um valor padrão e deixa de ser obrigatório",
+            "area": "tools",
+            "file": "infra/compose/docker-compose.prod.yml",
+            "find": "${ACME_EMAIL:?defina ACME_EMAIL no .env}",
+            "replace": "${ACME_EMAIL:-admin@example.com}",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O Traefik passa a montar o socket do Docker",
+            "area": "tools",
+            "file": "infra/compose/docker-compose.prod.yml",
+            "find": "      - letsencrypt:/letsencrypt\n",
+            "replace": "      - letsencrypt:/letsencrypt\n      - /var/run/docker.sock:/var/run/docker.sock:ro\n",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "A borda passa a expor todo o Keycloak, com o console de administração",
+            "area": "tools",
+            "file": "infra/traefik/dynamic.yml",
+            "find": "(PathPrefix(`/auth/realms/fithub/`) || PathPrefix(`/auth/resources/`))",
+            "replace": "PathPrefix(`/auth/`)",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "A rota do client-service deixa de tirar o prefixo /api/client",
+            "area": "tools",
+            "file": "infra/traefik/dynamic.yml",
+            "find": "middlewares: [strip-api-client, security-headers]",
+            "replace": "middlewares: [security-headers]",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "O Loki deixa de aplicar a retenção de 30 dias",
+            "area": "tools",
+            "file": "infra/observability/loki-config.yaml",
+            "find": "  retention_enabled: true\n",
+            "replace": "  retention_enabled: false\n",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "O deploy passa a aceitar chave nova do host",
+            "area": "tools",
+            "file": ".github/workflows/deploy.yml",
+            "find": "StrictHostKeyChecking yes",
+            "replace": "StrictHostKeyChecking accept-new",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "O deploy deixa de validar a tag como SHA completo",
+            "area": "tools",
+            "file": ".github/workflows/deploy.yml",
+            "find": "[[ \"$IMAGE_TAG\" =~ ^[0-9a-f]{40}$ ]] || { echo \"image_tag precisa ser o SHA completo do commit.\"; exit 1; }",
+            "replace": "true",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        }
+    ]
+}

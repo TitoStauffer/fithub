@@ -1,0 +1,280 @@
+# Produção do FitHub numa VPS (DEV-0110, ADR-005, ADR-014). Só o Traefik publica portas públicas (80 e 443); o
+# resto fica na rede interna, e o Grafana e o console do Keycloak só em 127.0.0.1, por túnel SSH.
+# Os segredos vêm do .env desta pasta, na VPS (modelo: .env.prod.example); sem cada um, o compose não sobe.
+# O workflow Deploy copia esta pasta e roda, com a tag da imagem (SHA do commit):
+#   FITHUB_IMAGE_TAG=<sha> docker compose -f infra/compose/docker-compose.prod.yml up -d --wait
+name: fithub
+
+x-service: &service
+  restart: unless-stopped
+  depends_on: &service-depends-on
+    postgres:
+      condition: service_healthy
+    rabbitmq:
+      condition: service_healthy
+    keycloak:
+      condition: service_healthy
+    logs-init:
+      condition: service_completed_successfully
+  volumes:
+    - logs:/logs
+  logging: &logging
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+x-service-environment: &service-environment
+  DB_HOST: postgres
+  DB_PASSWORD: ${FITHUB_DB_PASSWORD:?defina FITHUB_DB_PASSWORD no .env}
+  RABBITMQ_HOST: rabbitmq
+  RABBITMQ_USER: ${RABBITMQ_USER:?defina RABBITMQ_USER no .env}
+  RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?defina RABBITMQ_PASSWORD no .env}
+  # O iss do token é o endereço público; as chaves vêm do Keycloak pela rede interna, sem sair da VPS.
+  KEYCLOAK_ISSUER_URI: https://${FITHUB_DOMAIN:?defina FITHUB_DOMAIN no .env}/auth/realms/fithub
+  SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/auth/realms/fithub/protocol/openid-connect/certs
+  # Observabilidade (DEV-0109, ADR-013): spans para o coletor; log em arquivo, um por dia, 30 dias (ADR-012).
+  MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT: http://otel-lgtm:4318/v1/traces
+  LOGGING_LOGBACK_ROLLINGPOLICY_MAX_HISTORY: "30"
+
+services:
+  traefik:
+    image: traefik:v3.7.20
+    restart: unless-stopped
+    # Configuração estática por argumentos; as rotas ficam em arquivo (sem o socket do Docker).
+    command:
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.websecure.http.tls.certresolver=letsencrypt
+      - --providers.file.filename=/etc/traefik/dynamic.yml
+      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:?defina ACME_EMAIL no .env}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.letsencrypt.acme.caserver=${ACME_CA_SERVER:-https://acme-v02.api.letsencrypt.org/directory}
+      - --ping=true
+      - --log.level=INFO
+    environment:
+      # Lido pelas rotas (dynamic.yml) com {{ env "FITHUB_DOMAIN" }}.
+      FITHUB_DOMAIN: ${FITHUB_DOMAIN:?defina FITHUB_DOMAIN no .env}
+    ports:
+      - "${FITHUB_HTTP_PORT:-80}:80"
+      - "${FITHUB_HTTPS_PORT:-443}:443"
+    volumes:
+      - ../traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - letsencrypt:/letsencrypt
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *logging
+
+  postgres:
+    image: postgres:17.12
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      # Um banco e um usuário por serviço, mais o do Keycloak (postgres/init-databases.sh).
+      FITHUB_DATABASES: account client training nutrition keycloak
+      FITHUB_DB_PASSWORD: ${FITHUB_DB_PASSWORD:?defina FITHUB_DB_PASSWORD no .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    logging: *logging
+
+  rabbitmq:
+    image: rabbitmq:4.3.8-management
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?defina RABBITMQ_USER no .env}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?defina RABBITMQ_PASSWORD no .env}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+    logging: *logging
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.2
+    restart: unless-stopped
+    # Modo de produção atrás do Traefik, em /auth. Importa o realm só quando ele ainda não existe no banco; as URLs e
+    # o SMTP de produção do realm são da DEV-0176.
+    command: start --import-realm
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${FITHUB_DB_PASSWORD:?defina FITHUB_DB_PASSWORD no .env}
+      KC_HOSTNAME: https://${FITHUB_DOMAIN:?defina FITHUB_DOMAIN no .env}/auth
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_HTTP_MANAGEMENT_RELATIVE_PATH: /
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:?defina KEYCLOAK_ADMIN no .env}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?defina KEYCLOAK_ADMIN_PASSWORD no .env}
+      FITHUB_ACCOUNT_SERVICE_SECRET: ${FITHUB_ACCOUNT_SERVICE_SECRET:?defina FITHUB_ACCOUNT_SERVICE_SECRET no .env}
+    ports:
+      # Console de administração só por túnel SSH: o Traefik expõe só o realm fithub.
+      - "127.0.0.1:${KEYCLOAK_ADMIN_PORT:-8080}:8080"
+    volumes:
+      - ../keycloak/realm-fithub.json:/opt/keycloak/data/import/realm-fithub.json:ro
+      - ../keycloak/themes/fithub:/opt/keycloak/themes/fithub:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    logging: *logging
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.54
+    restart: unless-stopped
+    command: server -s3 -dir=/data -master.telemetry=false
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY:?defina S3_ACCESS_KEY no .env}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:?defina S3_SECRET_KEY no .env}
+    volumes:
+      - seaweedfs-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8333/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    logging: *logging
+
+  # Pasta dos logs dos serviços, gravável pelo usuário sem privilégio das imagens (10001) e lida pelo coletor.
+  logs-init:
+    image: postgres:17.12-alpine
+    command: ["sh", "-c", "chown 10001:10001 /logs && chmod 750 /logs"]
+    volumes:
+      - logs:/logs
+
+  account-service:
+    <<: *service
+    image: ghcr.io/${FITHUB_IMAGE_OWNER:-titostauffer}/fithub-account-service:${FITHUB_IMAGE_TAG:?informe FITHUB_IMAGE_TAG (SHA do commit)}
+    environment:
+      <<: *service-environment
+      DB_NAME: account
+      DB_USER: account
+      KEYCLOAK_URL: http://keycloak:8080/auth
+      FITHUB_ACCOUNT_SERVICE_SECRET: ${FITHUB_ACCOUNT_SERVICE_SECRET:?defina FITHUB_ACCOUNT_SERVICE_SECRET no .env}
+      LOGGING_FILE_NAME: /logs/account-service.log
+
+  client-service:
+    <<: *service
+    image: ghcr.io/${FITHUB_IMAGE_OWNER:-titostauffer}/fithub-client-service:${FITHUB_IMAGE_TAG:?informe FITHUB_IMAGE_TAG (SHA do commit)}
+    depends_on:
+      <<: *service-depends-on
+      seaweedfs:
+        condition: service_healthy
+    environment:
+      <<: *service-environment
+      DB_NAME: client
+      DB_USER: client
+      MAIL_HOST: ${SMTP_HOST:?defina SMTP_HOST no .env}
+      MAIL_PORT: ${SMTP_PORT:?defina SMTP_PORT no .env}
+      SPRING_MAIL_USERNAME: ${SMTP_USERNAME:?defina SMTP_USERNAME no .env}
+      SPRING_MAIL_PASSWORD: ${SMTP_PASSWORD:?defina SMTP_PASSWORD no .env}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: "true"
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: "true"
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_REQUIRED: "true"
+      FITHUB_MAIL_FROM: ${FITHUB_MAIL_FROM:?defina FITHUB_MAIL_FROM no .env}
+      S3_ENDPOINT: http://seaweedfs:8333
+      # As URLs pré-assinadas das fotos saem pelo Traefik, no mesmo domínio.
+      S3_PUBLIC_ENDPOINT: https://${FITHUB_DOMAIN:?defina FITHUB_DOMAIN no .env}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?defina S3_ACCESS_KEY no .env}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?defina S3_SECRET_KEY no .env}
+      LOGGING_FILE_NAME: /logs/client-service.log
+
+  training-service:
+    <<: *service
+    image: ghcr.io/${FITHUB_IMAGE_OWNER:-titostauffer}/fithub-training-service:${FITHUB_IMAGE_TAG:?informe FITHUB_IMAGE_TAG (SHA do commit)}
+    environment:
+      <<: *service-environment
+      DB_NAME: training
+      DB_USER: training
+      LOGGING_FILE_NAME: /logs/training-service.log
+
+  nutrition-service:
+    <<: *service
+    image: ghcr.io/${FITHUB_IMAGE_OWNER:-titostauffer}/fithub-nutrition-service:${FITHUB_IMAGE_TAG:?informe FITHUB_IMAGE_TAG (SHA do commit)}
+    depends_on:
+      <<: *service-depends-on
+      seaweedfs:
+        condition: service_healthy
+    environment:
+      <<: *service-environment
+      DB_NAME: nutrition
+      DB_USER: nutrition
+      S3_ENDPOINT: http://seaweedfs:8333
+      S3_PUBLIC_ENDPOINT: https://${FITHUB_DOMAIN:?defina FITHUB_DOMAIN no .env}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?defina S3_ACCESS_KEY no .env}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?defina S3_SECRET_KEY no .env}
+      LOGGING_FILE_NAME: /logs/nutrition-service.log
+
+  # Backup diário dos bancos (DEV-0108) às 03:00 UTC, num volume próprio; a cópia para fora da VPS é do Tito.
+  backup:
+    image: postgres:17.12-alpine
+    restart: unless-stopped
+    command: ["sh", "/scripts/cron-entrypoint.sh"]
+    environment:
+      PGHOST: postgres
+      PGUSER: postgres
+      PGPASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      FITHUB_DATABASES: account client training nutrition keycloak
+      BACKUP_DIR: /backups
+      BACKUP_RETENTION_DAYS: "30"
+      BACKUP_SCHEDULE: ${BACKUP_SCHEDULE:-0 3 * * *}
+    volumes:
+      - backups:/backups
+      - ../backup:/scripts:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *logging
+
+  # Observabilidade (DEV-0109, ADR-013), com retenção de 30 dias no Loki e no Tempo (ADR-012).
+  otel-lgtm:
+    image: grafana/otel-lgtm:0.40.0
+    restart: unless-stopped
+    ports:
+      # Grafana só por túnel SSH: ssh -L 3000:127.0.0.1:3000 <vps>.
+      - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
+    volumes:
+      - ../observability/otelcol-config.yaml:/otel-lgtm/otelcol-config.yaml:ro
+      - ../observability/loki-config.yaml:/otel-lgtm/loki-config.yaml:ro
+      - ../observability/tempo-config.yaml:/otel-lgtm/tempo-config.yaml:ro
+      - logs:/var/log/fithub:ro
+      - otel-lgtm-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
+    logging: *logging
+
+volumes:
+  postgres-data:
+  rabbitmq-data:
+  seaweedfs-data:
+  letsencrypt:
+  logs:
+  backups:
+  otel-lgtm-data:
