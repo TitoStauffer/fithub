@@ -155,9 +155,14 @@ test('a web fica em /, com a menor prioridade: /api, /auth e os buckets nunca ca
   assert.match(body, /rule: Host\(`\{\{ env "FITHUB_DOMAIN" \}\}`\)\n/);
   assert.match(body, /priority: 1\n/);
   assert.match(dynamic, /url: "http:\/\/web:8080"/);
-  // A web pode ser embutida pela própria origem (iframe do keycloak-js); as outras rotas continuam com DENY.
-  assert.match(body, /middlewares: \[web-headers\]\n/);
-  const webHeaders = dynamic.match(/\n {4}web-headers:\n([\s\S]*?)\n\n/)[1];
+  // A web e o Keycloak podem ser embutidos pela própria origem (iframes do keycloak-js); as APIs e os buckets
+  // continuam com DENY.
+  assert.match(body, /middlewares: \[same-origin-headers\]\n/);
+  const keycloak = dynamic.match(/\n {4}keycloak:\n([\s\S]*?)\n {4}[a-z]+:\n/)[1];
+  assert.match(keycloak, /middlewares: \[same-origin-headers\]\n/);
+  const photos = dynamic.match(/\n {4}photos:\n([\s\S]*?)\n {4}[a-z]+:\n/)[1];
+  assert.match(photos, /middlewares: \[security-headers\]\n/);
+  const webHeaders = dynamic.match(/\n {4}same-origin-headers:\n([\s\S]*?)\n\n/)[1];
   assert.match(webHeaders, /customFrameOptionsValue: SAMEORIGIN\n/);
   assert.doesNotMatch(webHeaders, /frameDeny/);
   assert.match(webHeaders, /stsSeconds: 31536000\n/);

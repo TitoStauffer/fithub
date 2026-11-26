@@ -44,7 +44,8 @@ operação antiga que falha só encerra a sessão em que nasceu, nunca uma abert
 **Regra:** a web usa um iframe escondido do `keycloak-js` (`silent-check-sso.html`) para renovar a sessão sem
 recarregar. Um cabeçalho de segurança na borda que proíbe embutir a página (`X-Frame-Options: DENY` ou
 `frame-ancestors 'none'`) quebra esse iframe, e cada recarga vira um redirecionamento ao login. A rota da web usa
-`SAMEORIGIN`; as rotas das APIs e do Keycloak continuam com DENY.
+`SAMEORIGIN`, assim como a do Keycloak, que serve páginas do realm embutidas pelo `keycloak-js`; as rotas das APIs e
+dos buckets continuam com DENY.
 
 ### Ocorrências
 
@@ -53,3 +54,10 @@ recarregar. Um cabeçalho de segurança na borda que proíbe embutir a página (
     recarga.
   - **Correção:** middleware `web-headers` no Traefik, com `customFrameOptionsValue: SAMEORIGIN`, só na rota da web.
   - **Prevenção:** esta regra, a guarda da rota da web no `prod.test.mjs` e o mutante M6 de `mutations/DEV-0176.json`.
+- **Revisão:** Code Review APPROVED do PR #324, no SHA `19813cf` (LOW não bloqueante) — DEV-0176 (#321) · **PR:** #324
+  - **Impacto:** o mesmo bloqueio nas páginas do realm que o `keycloak-js` carrega em iframe (o teste de cookies do
+    `check-sso`), servidas pela rota do Keycloak, ainda com DENY.
+  - **Correção:** a rota do Keycloak também usa o middleware de `SAMEORIGIN` (`same-origin-headers`). As APIs e os
+    buckets continuam com DENY.
+  - **Prevenção:** vale para toda rota que serve página que o `keycloak-js` embute, não só para a web. Guarda das
+    duas rotas e mutante M8.

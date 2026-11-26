@@ -95,6 +95,19 @@
                 "run",
                 "test"
             ]
+        },
+        {
+            "id": "M8",
+            "description": "A rota do Keycloak volta a recusar ser embutida pela própria origem",
+            "area": "tools",
+            "file": "infra/traefik/dynamic.yml",
+            "find": "teste de cookies, Code Review do PR #324).\n      middlewares: [same-origin-headers]\n",
+            "replace": "teste de cookies, Code Review do PR #324).\n      middlewares: [security-headers]\n",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
         }
     ]
 }
