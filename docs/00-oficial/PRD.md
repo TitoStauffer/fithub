@@ -174,7 +174,7 @@ Profissional se cadastra (web)
    ↓
 Informa dados profissionais (tipo: personal ou nutri, nº CREF/CRN)
    ↓
-Assina um plano (ou entra em período de teste — QUESTÃO-01)
+Entra no teste grátis de 14 dias e depois assina o plano mensal (seção 9.2)
    ↓
 Convida um cliente (e-mail, link ou código)
    ↓
@@ -240,7 +240,23 @@ Cliente mantém todo o histórico
   profissional da plataforma.
 - **FR-06** — Sem assinatura ativa, o profissional não consegue criar novas
   prescrições, mas o cliente continua vendo o que já recebeu.
-- Detalhes de planos, preço, teste grátis e meio de pagamento: QUESTÃO-01.
+- **Plano, preço, teste e pagamento** (QUESTÃO-01, decidida pelo Tito em 26/11/2026, DEV-0098):
+  - **Plano único** mensal (`PROFESSIONAL_MONTHLY`), sem limite de clientes.
+  - **Preço:** R$ 200/mês.
+  - **Preço de lançamento:** R$ 150/mês nos 3 primeiros meses pagos, só para quem assinar até a data de corte do
+    lançamento. A data é uma configuração, provisória no fim do beta, e o Tito define a real. Quem assinou a tempo
+    mantém os 3 meses a R$ 150, mesmo que o corte caia no meio deles.
+  - Os valores e a data ficam em configuração: mudar o preço não exige mudar código, e vale para as próximas
+    cobranças.
+  - **Teste grátis:** 14 dias desde o cadastro, sem pedir cartão (DEV-0099).
+  - **Meio de pagamento:** Asaas, pelo checkout hospedado dele, só com **cartão de crédito** em cobrança recorrente
+    automática (decisão do Tito em 26/11/2026). O próprio Asaas coleta os dados do pagador, inclusive o CPF ou CNPJ:
+    o FitHub não pede nem guarda esse dado. O checkout recorrente do Asaas não aceita Pix nem boleto. Esses dois
+    exigiriam guardar o CPF no FitHub e pagamento manual a cada mês, e ficam para depois do MVP, se os profissionais
+    pedirem.
+  - **Lançamento:** já cobra, com o preço de lançamento. Não há beta gratuito além do teste de 14 dias.
+  - **Motivo do preço de lançamento por data:** a conversão de quem assina depois mede o preço cheio (GOAL-06), e o
+    desconto recompensa os primeiros profissionais sem virar desconto permanente.
 
 ### 9.3 Perfil do cliente (dono: cliente)
 - **FR-07** — O cliente mantém seu perfil: nome, data de nascimento, gênero,
@@ -501,7 +517,7 @@ Cliente mantém todo o histórico
 
 ### No MVP
 - Conta, login (e-mail e Google) e recuperação de senha
-- Assinatura do profissional (forma mínima — QUESTÃO-01)
+- Assinatura do profissional (plano único mensal, seção 9.2)
 - Perfil e perfil de saúde do cliente
 - Vínculo por convite com consentimento e encerramento
 - Avaliação corporal presencial (dobras, Pollock) e online (Marinha dos EUA),
@@ -535,7 +551,7 @@ Cliente mantém todo o histórico
 | Base externa de exercícios com vídeo/animação (ex.: ExerciseDB) | Sem ela, o personal começa com a base vazia. Licença e custo precisam ser validados (QUESTÃO-07) |
 | Tabela TACO | Base de alimentos da nutri. Pública, precisa de importação e de conversões caseiras |
 | Login com Google | Necessário para FR-01 |
-| Meio de pagamento recorrente | Necessário para a assinatura (QUESTÃO-01) |
+| Meio de pagamento recorrente (Asaas) | Necessário para a assinatura (seção 9.2); a conta de produção pede CNPJ e conta bancária |
 | Lojas de aplicativo (Apple/Google) | Publicação do app do cliente; contas de desenvolvedor e revisão das lojas |
 | Envio de e-mail | Convites e recuperação de senha |
 
@@ -661,9 +677,10 @@ Então um novo recorde de supino é registrado
 
 ## 21. Questões em aberto
 
-- **QUESTÃO-01** — Assinatura: preço, planos (limite de clientes por plano?),
-  teste grátis, meio de pagamento (Stripe, Asaas, Mercado Pago…) e se o
-  primeiro lançamento já cobra ou começa com cobrança manual/beta gratuito.
+- ~~**QUESTÃO-01**~~ — **Decidida pelo Tito em 26/11/2026** (DEV-0098): plano
+  único de R$ 200/mês, preço de lançamento de R$ 150/mês nos 3 primeiros meses
+  para quem assinar até a data de corte, 14 dias grátis sem cartão, Asaas
+  (checkout com cartão recorrente; Pix e boleto depois do MVP). O lançamento já cobra. Detalhes na seção 9.2.
 - ~~**QUESTÃO-02**~~ — **Decidida pelo Tito em 22/11/2026:** sim, a mesma
   conta pode ser profissional e cliente.
 - **QUESTÃO-03** — Quando o cliente tem ficha própria e passa a ter personal, a
