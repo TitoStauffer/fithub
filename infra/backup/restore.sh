@@ -13,6 +13,8 @@
 # Ambiente: PGHOST, PGPORT, PGUSER e PGPASSWORD de um superusuário; FITHUB_DATABASES; BACKUP_DIR (padrão /backups).
 # Cada banco é restaurado com o papel do próprio banco (o dono, como em postgres/init-databases.sh).
 set -eu
+# A cópia da lista guarda ids de quem excluiu a conta: só o dono lê (arquivos 600, pastas 700).
+umask 077
 
 dir=${BACKUP_DIR:-/backups}
 : "${FITHUB_DATABASES:?Informe os bancos em FITHUB_DATABASES.}"
@@ -41,6 +43,8 @@ mkdir -p "$saved"
 has_deleted_list() {
   answer=$(psql -X -At -v ON_ERROR_STOP=1 -d "$1" -c "select to_regclass('public.deleted_account') is not null") || {
     echo "Não foi possível conferir a lista de contas excluídas de $1: nada mais foi feito." >&2
+    # Sem nada guardado ainda, a cópia vazia não fica; com algo guardado, o rmdir não apaga.
+    rmdir "$saved" 2>/dev/null || true
     exit 1
   }
   [ "$answer" = "t" ]
@@ -67,9 +71,12 @@ for db in $FITHUB_DATABASES; do
   fi
 done
 
-# 2. Cada banco, com o papel do dono, e a lista dele de volta logo em seguida.
+# 2. Cada banco, com o papel do dono, e a lista dele de volta logo em seguida. O schema public é recriado antes: o
+#    --clean só remove o que está no dump, e uma tabela de migration posterior ao backup sobraria (o Flyway falharia).
 for db in $FITHUB_DATABASES; do
-  if ! pg_restore --clean --if-exists --no-owner --no-privileges --role="$db" --dbname="$db" "$source/$db.dump"; then
+  if ! psql -X -q -v ON_ERROR_STOP=1 -d "$db" \
+    -c "drop schema if exists public cascade" -c "create schema public authorization \"$db\"" ||
+    ! pg_restore --clean --if-exists --no-owner --no-privileges --role="$db" --dbname="$db" "$source/$db.dump"; then
     echo "A restauração de $db falhou. As listas de contas excluídas de antes da restauração estão em $saved;" \
       "regrave-as antes de subir os serviços." >&2
     exit 1

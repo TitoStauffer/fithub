@@ -20,3 +20,18 @@ dentro de um `if` o `set -e` não vale, e a falha do comando vira "falso" em sil
     logo depois de cada banco, e a leitura aborta de forma explícita.
   - **Prevenção:** esta regra e o caso de dump corrompido no `backup.test.sh`. A prova manual dos mutantes, que
     regravam só no fim e apagam a cópia na falha, está no PR.
+
+## arquivo-com-dado-sensivel-nasce-restrito
+
+**Regra:** script que grava dump, cópia ou exportação com dado pessoal ou de saúde define `umask 077` no início (arquivos
+600, pastas 700), e o teste confere as permissões. Container que roda como root com o umask padrão (022) deixa tudo
+legível para qualquer usuário do host. Cada guarda do script (validação de entrada, recusa, aborto) tem um caso no teste
+que só ela derruba, provado por mutação.
+
+### Ocorrências
+
+- **Revisão:** Code Review CHANGES_REQUESTED do PR #314, no SHA `0deec40` (MEDIUM e MEDIUM) — DEV-0108 (#100) · **PR:** #314
+  - **Impacto:** os dumps, com perfil de saúde, avaliações e restrições, e a cópia da lista de ids excluídos saíam 0644
+    e 0755 no volume da VPS (NFR-02). Cinco guardas novas da restauração não tinham teste.
+  - **Correção:** `umask 077` nos dois scripts e um caso no `backup.test.sh` para cada guarda.
+  - **Prevenção:** esta regra, a checagem de permissões no teste e a prova manual de 17 mutantes no PR.
