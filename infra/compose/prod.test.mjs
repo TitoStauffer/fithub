@@ -147,6 +147,17 @@ test('o realm de produção recebe o endereço da web e o SMTP de produção (DE
   assert.equal(resolved.config.services.web.ports, undefined);
 });
 
+test('as métricas de sucesso saem para o otel-lgtm, e o painel está montado (DEV-0113)', () => {
+  for (const name of Object.keys(SERVICES)) {
+    const environment = resolved.config.services[name].environment;
+    assert.equal(environment.MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED, 'true', name);
+    assert.equal(environment.MANAGEMENT_OTLP_METRICS_EXPORT_URL, 'http://otel-lgtm:4318/v1/metrics', name);
+  }
+  const targets = resolved.config.services['otel-lgtm'].volumes.map((volume) => volume.target);
+  assert.ok(targets.includes('/otel-lgtm/grafana/conf/provisioning/dashboards/fithub.yaml'));
+  assert.ok(targets.includes('/otel-lgtm/fithub-metricas.json'));
+});
+
 test('a web fica em /, com a menor prioridade: /api, /auth e os buckets nunca caem nela', () => {
   const dynamic = read('infra/traefik/dynamic.yml');
   const router = dynamic.match(/\n {4}web:\n([\s\S]*?)\n {4}[a-z]+:\n|\n {4}web:\n([\s\S]*?)\n\n/);

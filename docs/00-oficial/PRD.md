@@ -584,6 +584,24 @@ Metas numéricas **a definir** com base nos primeiros profissionais.
 | Retenção mensal de profissionais | Saúde do negócio |
 | Clientes que mantêm uso após o fim de um vínculo | Valor do histórico próprio (GOAL-05) |
 
+**Como cada métrica é medida (DEV-0113).** Os números são agregados por tipo de profissional, sem dado de pessoa. Cada
+serviço recalcula os seus a cada 5 minutos, e eles aparecem no painel "FitHub — Métricas de sucesso" do Grafana
+(ADR-013).
+
+- **Profissionais pagantes:** profissionais com o período pago valendo. O mesmo número mostra quem está em teste e quem
+  expirou. Até o pagamento existir (DEV-0100), o número de pagantes fica em zero.
+- **Clientes ativos por profissional:** vínculos ativos divididos pelos profissionais que têm ao menos um vínculo
+  ativo, por tipo.
+- **Engajamento semanal:** entre os clientes com vínculo ativo, a fração que registrou ao menos um treino iniciado
+  (com o personal) ou uma refeição feita ou parcial (com a nutricionista; a pulada não conta) nos últimos 7 dias.
+  - A taxa sai separada por área, porque treino e refeição ficam em bancos diferentes.
+  - A união "treino ou refeição" não é calculada.
+- **Prescrições publicadas por profissional por mês:** versões de ficha e de plano alimentar publicadas nos últimos 30
+  dias, divididas pelos profissionais que publicaram. A ficha que o próprio cliente monta não conta.
+- **Uso depois do fim de um vínculo:** clientes sem vínculo ativo, com um vínculo encerrado, que registraram treino
+  ou refeição depois do fim do último vínculo, nos últimos 30 dias.
+- **Conversão do teste para pago e retenção mensal:** dependem do histórico de pagamento, que nasce com a DEV-0100.
+
 ---
 
 ## 20. Critérios de aceitação (MVP)

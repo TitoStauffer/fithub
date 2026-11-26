@@ -1,0 +1,105 @@
+{
+  "uid": "fithub-metricas",
+  "title": "FitHub — Métricas de sucesso",
+  "description": "Métricas de sucesso do PRD (seção 19, DEV-0113): só contagens agregadas, sem dado de pessoa.",
+  "tags": ["fithub"],
+  "timezone": "America/Sao_Paulo",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "time": { "from": "now-30d", "to": "now" },
+  "refresh": "5m",
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Profissionais por estado da assinatura",
+      "description": "Ativo = período pago valendo (pagante, depois da DEV-0100); em teste = teste grátis valendo; expirado = nenhum dos dois.",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (type, status) (fithub_professionals)",
+          "legendFormat": "{{type}} {{status}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Clientes ativos por profissional",
+      "description": "Vínculos ativos divididos pelos profissionais com ao menos um vínculo ativo.",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (type) (fithub_links_active) / sum by (type) (fithub_professionals_with_active_links)",
+          "legendFormat": "{{type}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Engajamento semanal dos clientes vinculados (%)",
+      "description": "Clientes vinculados que registraram treino (PERSONAL) ou refeição feita ou parcial (NUTRITIONIST) nos últimos 7 dias. Os dois serviços têm bancos separados: a união \"treino ou refeição\" não é calculada.",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percent" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "100 * sum by (type) (fithub_clients_linked_engaged) / sum by (type) (fithub_clients_linked)",
+          "legendFormat": "{{type}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Prescrições publicadas por profissional (30 dias)",
+      "description": "Versões de ficha e de plano alimentar publicadas nos últimos 30 dias, divididas pelos profissionais que publicaram. A ficha que o próprio cliente monta não conta.",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (type) (fithub_prescriptions_published) / sum by (type) (fithub_prescribers_active)",
+          "legendFormat": "{{type}} por profissional"
+        },
+        {
+          "refId": "B",
+          "expr": "sum by (type) (fithub_prescriptions_published)",
+          "legendFormat": "{{type}} total"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Clientes que seguem usando depois do fim do vínculo (30 dias)",
+      "description": "Clientes sem vínculo ativo que registraram treino ou refeição depois do fim do último vínculo, nos últimos 30 dias.",
+      "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (type) (fithub_clients_after_link_end)",
+          "legendFormat": "{{type}}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "text",
+      "title": "Fora deste painel",
+      "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
+      "options": {
+        "mode": "markdown",
+        "content": "**Conversão do teste para pago** e **retenção mensal de profissionais** dependem do histórico de pagamento, que nasce com a DEV-0100. Os números deste painel são agregados por tipo de profissional, recalculados a cada 5 minutos em cada serviço."
+      }
+    }
+  ]
+}

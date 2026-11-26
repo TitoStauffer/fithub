@@ -58,4 +58,19 @@ has_line() {
 eventually has_line || fail "o Loki não mostrou a linha de log com o traceId $trace"
 loki_line | grep -q '\\"process\\"' && fail "o corpo da linha no Loki ficou com o JSON inteiro, não só a mensagem"
 
+# Métricas de sucesso (DEV-0113): uma métrica agregada por OTLP chega ao Prometheus com o nome que o painel usa
+# (pontos viram sublinhados), e o painel está provisionado.
+now=$(date +%s)
+curl -sf -X POST "$otlp/v1/metrics" -H 'Content-Type: application/json' -d "{\"resourceMetrics\":[{
+  \"resource\":{\"attributes\":[{\"key\":\"service.name\",\"value\":{\"stringValue\":\"$service\"}}]},
+  \"scopeMetrics\":[{\"metrics\":[{\"name\":\"fithub.links.active\",\"gauge\":{\"dataPoints\":[{\"asInt\":\"4\",
+    \"timeUnixNano\":\"${now}000000000\",\"attributes\":[{\"key\":\"type\",\"value\":{\"stringValue\":\"PERSONAL\"}}]}]}}]}]}]}" \
+  >/dev/null || fail "o coletor recusou a métrica por OTLP"
+has_metric() {
+  curl -sf -G "$grafana/api/datasources/proxy/uid/prometheus/api/v1/query" \
+    --data-urlencode "query=fithub_links_active{job=\"$service\",type=\"PERSONAL\"}" | grep -q '"4"'
+}
+eventually has_metric || fail "o Prometheus não mostrou a métrica fithub_links_active"
+curl -sf -o /dev/null "$grafana/api/dashboards/uid/fithub-metricas" || fail "o painel das métricas de sucesso não foi provisionado"
+
 echo "Observabilidade: OK."

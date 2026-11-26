@@ -1,0 +1,198 @@
+{
+    "issue": "DEV-0113",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Um rótulo que poderia apontar uma pessoa passa a ser aceito",
+            "area": "java",
+            "file": "libs/java-commons/src/main/java/com/fithub/commons/metrics/AggregateGauges.java",
+            "find": "            if (!ALLOWED_TAGS.contains(tag.getKey())) {",
+            "replace": "            if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "libs/java-commons",
+                "-am",
+                "test",
+                "-Dtest=AggregateGaugesTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "A exportação das métricas fica ligada sem configuração",
+            "area": "java",
+            "file": "libs/java-commons/src/main/java/com/fithub/commons/logging/StructuredLoggingDefaults.java",
+            "find": "\"management.otlp.metrics.export.enabled\", \"false\"",
+            "replace": "\"management.otlp.metrics.export.enabled\", \"true\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "libs/java-commons",
+                "-am",
+                "test",
+                "-Dtest=MetricsExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O profissional pago e ainda em teste passa a contar como em teste",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/metrics/SubscriptionMetrics.java",
+            "find": "TRIAL = \"not coalesce(s.paid_until > :now, false) and s.trial_ends_at > :now\"",
+            "replace": "TRIAL = \"s.trial_ends_at > :now\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Vínculo encerrado passa a contar como ativo",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/metrics/LinkMetrics.java",
+            "find": "\"select count(*) from client_link where status = 'ACTIVE' and professional_type = ?\"",
+            "replace": "\"select count(*) from client_link where professional_type = ?\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O engajamento do treino passa a olhar 30 dias em vez de 7",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/metrics/TrainingMetrics.java",
+            "find": "                        WEEK));",
+            "replace": "                        MONTH));",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "A ficha montada pelo próprio cliente passa a contar como prescrição",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/metrics/TrainingMetrics.java",
+            "find": "\"select count(*) from workout_plan_version v join workout_plan p on p.id = v.plan_id\"\n                                + \" where p.author = 'PERSONAL' and v.published_at >= :since\"",
+            "replace": "\"select count(*) from workout_plan_version v join workout_plan p on p.id = v.plan_id\"\n                                + \" where v.published_at >= :since\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "O treino antes do fim do vínculo passa a contar como uso depois dele",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/metrics/TrainingMetrics.java",
+            "find": "\" and s.started_at > ended.last_end and s.started_at >= :since)\"",
+            "replace": "\" and s.started_at >= :since)\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "A refeição pulada passa a contar como registro",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/metrics/NutritionMetrics.java",
+            "find": "EATEN = \"m.status in ('DONE', 'PARTIAL')\"",
+            "replace": "EATEN = \"m.status in ('DONE', 'PARTIAL', 'SKIPPED')\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=NutritionMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "A semana da nutrição passa a ter 8 dias",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/metrics/NutritionMetrics.java",
+            "find": ".minusDays(days - 1L))",
+            "replace": ".minusDays(days))",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=NutritionMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "A produção deixa de exportar as métricas",
+            "area": "tools",
+            "file": "infra/compose/docker-compose.prod.yml",
+            "find": "  MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED: \"true\"\n",
+            "replace": "",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        }
+    ]
+}

@@ -1,3 +1,4 @@
 com.fithub.commons.security.FithubSecurityAutoConfiguration
 com.fithub.commons.web.FithubProblemDetailsAutoConfiguration
 com.fithub.commons.messaging.FithubMessagingAutoConfiguration
+com.fithub.commons.metrics.FithubMetricsAutoConfiguration

@@ -57,3 +57,19 @@ microssegundos, a precisão do `timestamptz`. Data absoluta só com um relógio 
   - **Correção:** a data passou a ser `Instant.now().minus(1, DAYS).truncatedTo(MICROS)`, como no training e no
     nutrition.
   - **Prevenção:** esta regra.
+
+## teste-nao-apaga-dado-do-banco-compartilhado
+
+**Regra:** as classes de teste de um serviço dividem o mesmo banco (Testcontainers reaproveitado entre os contextos).
+Um teste não apaga as linhas de uma tabela inteira para começar do zero: isso tira o dado que outra classe gravou e
+quebra o que ela confere depois. Para contagens e agregados, o teste mede o acréscimo sobre o banco: lê antes, grava
+os próprios dados com ids novos e lê de novo.
+
+### Ocorrências
+
+- **Validação local:** build completo da DEV-0113 (#105), antes do PR · **PR:** o da DEV-0113
+  - **Impacto:** o `SubscriptionMetricsTest` apagava todos os profissionais. Os eventos de cadastro gravados no outbox
+    por outra classe ficaram órfãos, e o `ProfessionalRegistrationTest.cadastroDesfeitoNaoDeixaNemOCadastroNemOEvento`,
+    que conta evento órfão do último minuto, falhou.
+  - **Correção:** o teste das métricas confere o acréscimo, sem apagar nada, como os das outras métricas.
+  - **Prevenção:** esta regra.

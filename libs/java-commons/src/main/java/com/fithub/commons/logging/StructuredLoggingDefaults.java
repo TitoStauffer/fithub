@@ -25,7 +25,10 @@ public class StructuredLoggingDefaults implements EnvironmentPostProcessor {
             "management.tracing.sampling.probability", "1.0",
             // Sem as observações do Spring Security (DEV-0109): elas criam um span por filtro, com os papéis da pessoa
             // (spring.security.authentication.authorities). O span da requisição continua, com rota, status e duração.
-            "management.observations.enable.spring.security", "false");
+            "management.observations.enable.spring.security", "false",
+            // Métricas por OTLP (DEV-0113) só quando o ambiente liga: sem isso, o registro do Micrometer tentaria o
+            // coletor em localhost a cada minuto, nos testes e no desenvolvimento.
+            "management.otlp.metrics.export.enabled", "false");
 
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
