@@ -36,6 +36,11 @@ class DeletedAccountPurgeScheduler implements SmartLifecycle {
         if (removed > 0) {
             log.info("Expurgo de contas excluídas: {} id(s) removido(s) da lista", removed);
         }
+        // Depois de restaurar um backup, o dado de quem excluiu a conta volta; a exclusão é reaplicada (DEV-0172).
+        int reapplied = deleteClientAccount.reapplyDeletions();
+        if (reapplied > 0) {
+            log.info("Exclusão reaplicada a {} conta(s) da lista", reapplied);
+        }
     }
 
     @Override
@@ -46,7 +51,8 @@ class DeletedAccountPurgeScheduler implements SmartLifecycle {
         scheduler = Executors.newSingleThreadScheduledExecutor(
                 Thread.ofVirtual().name("fithub-deleted-account-purge").factory());
         long period = interval.toMillis();
-        scheduler.scheduleWithFixedDelay(this::safely, period, period, TimeUnit.MILLISECONDS);
+        // A primeira rodada é na subida: o dado de uma restauração sai antes de o serviço atender por muito tempo.
+        scheduler.scheduleWithFixedDelay(this::safely, 0, period, TimeUnit.MILLISECONDS);
     }
 
     private void safely() {

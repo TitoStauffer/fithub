@@ -119,11 +119,14 @@ copy=$(run sh -c "ls -d /backups/restore-2026-11-21T000000Z-*")
 run test -f "$copy/client.csv" || fail "a cópia durável da lista não ficou depois da falha"
 [ "$(run stat -c %a "$copy")" = 700 ] || fail "a cópia durável não ficou só para o dono (700)"
 
-# Um backup de antes de a lista existir: a restauração para e deixa a lista de agora guardada.
+# Um backup de antes de a lista existir é recusado antes de mexer em qualquer banco (achado do PR #314).
+lines=$(sql client 'select count(*) from sample')
 if message=$(run sh /scripts/restore.sh "$before_list" 2>&1); then fail "restaurou um backup sem a lista"; fi
-echo "$message" | grep -q "não tem a lista de contas excluídas; a lista de agora está em /backups/restore-" \
-  || fail "a recusa do backup sem a lista não diz onde a lista ficou"
-run sh -c "ls /backups/restore-$before_list-*/client.csv" >/dev/null || fail "a lista de agora não ficou guardada"
+echo "$message" | grep -q "não tem a lista de contas excluídas: nada foi restaurado" \
+  || fail "a recusa do backup sem a lista não diz que nada foi restaurado"
+[ "$(sql client 'select count(*) from sample')" = "$lines" ] || fail "a recusa do backup sem a lista mudou o banco"
+[ -z "$(run sh -c "ls -d /backups/restore-$before_list-* 2>/dev/null || true")" ] \
+  || fail "a recusa sem mudança deixou uma cópia da lista"
 
 sql client "set role client; drop table if exists deleted_account, sample, later;" >/dev/null
 echo "Backup e restauração: OK."

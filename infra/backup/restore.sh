@@ -42,9 +42,14 @@ mkdir -p "$saved"
 # vale, então a saída é explícita, para a falha nunca virar "banco sem lista".
 has_deleted_list() {
   answer=$(psql -X -At -v ON_ERROR_STOP=1 -d "$1" -c "select to_regclass('public.deleted_account') is not null") || {
-    echo "Não foi possível conferir a lista de contas excluídas de $1: nada mais foi feito." >&2
-    # Sem nada guardado ainda, a cópia vazia não fica; com algo guardado, o rmdir não apaga.
+    # Sem nada guardado ainda, a cópia vazia não fica; com algo guardado, o rmdir não apaga e a mensagem diz onde está.
     rmdir "$saved" 2>/dev/null || true
+    if [ -d "$saved" ]; then
+      echo "Não foi possível conferir a lista de contas excluídas de $1: a restauração parou. As listas de antes da" \
+        "restauração estão em $saved; regrave-as antes de subir os serviços." >&2
+    else
+      echo "Não foi possível conferir a lista de contas excluídas de $1: nada foi restaurado." >&2
+    fi
     exit 1
   }
   [ "$answer" = "t" ]
@@ -68,6 +73,16 @@ for db in $FITHUB_DATABASES; do
     psql -X -q -v ON_ERROR_STOP=1 -d "$db" \
       -c "\\copy (select client_id, deleted_at from deleted_account) to '$saved/$db.csv' csv"
     [ -f "$saved/$db.csv" ] || { echo "A lista de contas excluídas de $db não foi guardada." >&2; exit 1; }
+  fi
+done
+
+# Cada banco com lista guardada precisa de um backup que também a tenha: senão, a lista não teria onde voltar. Confere
+# antes de mexer em qualquer banco (achado do PR #314); nada mudou, então a cópia sai.
+for db in $FITHUB_DATABASES; do
+  if [ -f "$saved/$db.csv" ] && ! pg_restore -l "$source/$db.dump" | grep -q ' TABLE public deleted_account '; then
+    rm -rf "$saved"
+    echo "O backup $stamp de $db não tem a lista de contas excluídas: nada foi restaurado." >&2
+    exit 1
   fi
 done
 
