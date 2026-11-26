@@ -1,6 +1,7 @@
 package com.fithub.nutrition.application;
 
 import com.fithub.commons.ids.UuidV7;
+import com.fithub.nutrition.domain.access.ProfessionalAccessAudit;
 import com.fithub.nutrition.domain.restriction.FoodRestriction;
 import com.fithub.nutrition.domain.restriction.FoodRestrictionRepository;
 import com.fithub.nutrition.domain.restriction.InvalidRestrictionException;
@@ -19,20 +20,33 @@ public class ManageFoodRestrictions {
 
     private final ClientAccess clientAccess;
     private final FoodRestrictionRepository restrictions;
+    private final ProfessionalAccessAudit audit;
     private final Clock clock;
 
-    public ManageFoodRestrictions(ClientAccess clientAccess, FoodRestrictionRepository restrictions, Clock clock) {
+    public ManageFoodRestrictions(
+            ClientAccess clientAccess,
+            FoodRestrictionRepository restrictions,
+            ProfessionalAccessAudit audit,
+            Clock clock) {
         this.clientAccess = clientAccess;
         this.restrictions = restrictions;
+        this.audit = audit;
         this.clock = clock;
     }
 
     /** O que a nutricionista informa. */
     public record Draft(FoodRestriction.Kind kind, String description, List<String> terms) {}
 
+    /** Cada leitura pela nutricionista fica registrada (DEV-0171, NFR-03): é dado de saúde do paciente. */
     public List<FoodRestriction> list(String nutritionistAccount, UUID clientId) {
         clientAccess.requireActiveLink(nutritionistAccount, clientId);
-        return restrictions.findByClient(clientId);
+        List<FoodRestriction> found = restrictions.findByClient(clientId);
+        audit.record(
+                UUID.fromString(nutritionistAccount),
+                clientId,
+                ProfessionalAccessAudit.Resource.FOOD_RESTRICTIONS,
+                clock.instant());
+        return found;
     }
 
     public FoodRestriction create(String nutritionistAccount, UUID clientId, Draft draft) {

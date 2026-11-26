@@ -158,7 +158,7 @@ export interface paths {
         };
         /**
          * Exporta todos os dados que o training tem do cliente
-         * @description Fichas (as dos personais nas versões publicadas; a própria com os rascunhos), sessões com as séries e os comentários, recordes e restrições de mobilidade. O app junta com a exportação do client-service e do nutrition.
+         * @description Fichas (as dos personais nas versões publicadas; a própria com os rascunhos), sessões com as séries e os comentários, recordes, restrições de mobilidade e as leituras delas pelo personal (accessLog), sem o conteúdo. O app junta com a exportação do client-service e do nutrition.
          */
         get: operations["export"];
         put?: never;

@@ -1,5 +1,6 @@
 package com.fithub.nutrition.application;
 
+import com.fithub.nutrition.domain.access.ProfessionalAccessAudit;
 import com.fithub.nutrition.domain.account.NutritionExportReader;
 import com.fithub.nutrition.domain.log.MealLogRepository;
 import com.fithub.nutrition.domain.restriction.FoodRestriction;
@@ -22,6 +23,7 @@ public class ExportNutritionData {
     private final MealLogRepository logs;
     private final MealLogPhotos photos;
     private final ViewOwnFoodRestrictions restrictions;
+    private final ProfessionalAccessAudit audit;
     private final Clock clock;
 
     public ExportNutritionData(
@@ -30,12 +32,14 @@ public class ExportNutritionData {
             MealLogRepository logs,
             MealLogPhotos photos,
             ViewOwnFoodRestrictions restrictions,
+            ProfessionalAccessAudit audit,
             Clock clock) {
         this.reader = reader;
         this.plans = plans;
         this.logs = logs;
         this.photos = photos;
         this.restrictions = restrictions;
+        this.audit = audit;
         this.clock = clock;
     }
 
@@ -43,12 +47,13 @@ public class ExportNutritionData {
             Instant exportedAt,
             List<ManageMealPlans.PlanView> planVersions,
             List<MealLogPhotos.LogView> logs,
-            List<FoodRestriction> restrictions) {}
+            List<FoodRestriction> restrictions,
+            List<ProfessionalAccessAudit.AccessRecord> accessLog) {}
 
     public Export mine(String clientAccount) {
         UUID clientId = ViewFood.accountId(clientAccount);
         if (clientId == null) {
-            return new Export(clock.instant(), List.of(), List.of(), restrictions.mine(clientAccount));
+            return new Export(clock.instant(), List.of(), List.of(), restrictions.mine(clientAccount), List.of());
         }
         List<ManageMealPlans.PlanView> planVersions = reader.deliveredPlanIdsOf(clientId).stream()
                 .flatMap(planId -> plans.clientVersions(clientAccount, planId).stream()
@@ -58,6 +63,7 @@ public class ExportNutritionData {
                 .flatMap(id -> logs.findById(id).stream())
                 .map(photos::view)
                 .toList();
-        return new Export(clock.instant(), planVersions, exportedLogs, restrictions.mine(clientAccount));
+        return new Export(
+                clock.instant(), planVersions, exportedLogs, restrictions.mine(clientAccount), audit.logOf(clientId));
     }
 }

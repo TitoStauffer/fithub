@@ -117,6 +117,11 @@ class TrainingAccessAuditTest extends ServiceIntegrationTest {
         link(personal, client);
         mvc.perform(get("/clients/" + client + "/restrictions").header("Authorization", "Bearer personal-" + personal))
                 .andExpect(status().isOk());
+        // Uma leitura de outro aluno antes: só o filtro por aluno a deixa de fora (achado do PR #311).
+        UUID other = UUID.randomUUID();
+        link(personal, other);
+        mvc.perform(get("/clients/" + other + "/restrictions").header("Authorization", "Bearer personal-" + personal))
+                .andExpect(status().isOk());
 
         mvc.perform(get("/me/export").header("Authorization", "Bearer conta-" + client))
                 .andExpect(status().isOk())
