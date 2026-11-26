@@ -192,3 +192,14 @@ O consumidor dos eventos do client-service também recebe o `ContaExcluida` (`cl
   refeição com trocas, desvios e a foto do prato (URL pré-assinada de 5 minutos) e as restrições alimentares.
 - O rascunho da nutricionista fica de fora: ainda não foi entregue ao cliente.
 - O app junta com a exportação do client-service (DEV-0104) e do training (DEV-0166), na tela da DEV-0168.
+
+## Auditoria de acesso (DEV-0171)
+
+- Cada leitura das restrições alimentares do paciente pela nutricionista vinculada
+  (`GET /clients/{clientId}/food-restrictions`) fica registrada em `professional_access_log` (V14): quem leu, de
+  quem, o quê e quando, nunca o conteúdo. A leitura do próprio paciente não grava.
+- Abrir o plano alimentar com alertas de restrição (DEV-0084) também registra a leitura, porque o alerta mostra a
+  descrição da restrição. Registra quando o paciente tem restrições, mesmo que nenhum alimento as dispare.
+- **Expurgo:** a cada `fithub.access-log.purge-interval` (padrão 6 h), sai o que passou de 6 meses (ADR-012, item 6).
+  Fica mesmo depois da exclusão da conta, até o prazo.
+- **Exportação:** `GET /me/export` traz o registro em `accessLog`.

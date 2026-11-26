@@ -1,12 +1,14 @@
 package com.fithub.nutrition.application;
 
 import com.fithub.nutrition.domain.access.LinkProjection;
+import com.fithub.nutrition.domain.access.ProfessionalAccessAudit;
 import com.fithub.nutrition.domain.food.Food;
 import com.fithub.nutrition.domain.food.FoodRepository;
 import com.fithub.nutrition.domain.food.Recipe;
 import com.fithub.nutrition.domain.plan.MealPlan;
 import com.fithub.nutrition.domain.restriction.FoodRestriction;
 import com.fithub.nutrition.domain.restriction.FoodRestrictionRepository;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,11 +35,20 @@ public class MealPlanAlerts {
     private final LinkProjection links;
     private final FoodRestrictionRepository restrictions;
     private final FoodRepository foods;
+    private final ProfessionalAccessAudit audit;
+    private final Clock clock;
 
-    public MealPlanAlerts(LinkProjection links, FoodRestrictionRepository restrictions, FoodRepository foods) {
+    public MealPlanAlerts(
+            LinkProjection links,
+            FoodRestrictionRepository restrictions,
+            FoodRepository foods,
+            ProfessionalAccessAudit audit,
+            Clock clock) {
         this.links = links;
         this.restrictions = restrictions;
         this.foods = foods;
+        this.audit = audit;
+        this.clock = clock;
     }
 
     /** As restrições que cada alimento do plano dispara, para a autora com vínculo ativo. */
@@ -49,6 +60,14 @@ public class MealPlanAlerts {
         if (restricted.isEmpty()) {
             return NONE;
         }
+        // O alerta mostra a descrição da restrição à nutricionista: é leitura de dado de saúde (DEV-0171, NFR-03).
+        // Registra quando as restrições entram na resposta, mesmo que nenhum alimento as dispare: a mais, nunca a
+        // menos.
+        audit.record(
+                plan.nutritionistId(),
+                plan.clientId(),
+                ProfessionalAccessAudit.Resource.FOOD_RESTRICTIONS,
+                clock.instant());
         Map<UUID, Optional<Food>> cache = new HashMap<>();
         return food -> {
             List<String> names = names(food, cache);

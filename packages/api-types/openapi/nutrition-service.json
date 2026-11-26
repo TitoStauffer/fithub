@@ -899,6 +899,13 @@
       "NutritionExport" : {
         "description" : "Todos os dados que o nutrition tem do cliente.",
         "properties" : {
+          "accessLog" : {
+            "description" : "Leituras das restrições alimentares pela nutricionista (DEV-0171), sem o conteúdo.",
+            "items" : {
+              "$ref" : "#/components/schemas/NutritionExportAccess"
+            },
+            "type" : "array"
+          },
           "exportedAt" : {
             "format" : "date-time",
             "type" : "string"
@@ -922,6 +929,24 @@
               "$ref" : "#/components/schemas/FoodRestriction"
             },
             "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "NutritionExportAccess" : {
+        "description" : "Leitura de dado sensível pela nutricionista, sem o conteúdo.",
+        "properties" : {
+          "accessedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "professionalId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "resource" : {
+            "enum" : [ "FOOD_RESTRICTIONS" ],
+            "type" : "string"
           }
         },
         "type" : "object"
@@ -1918,7 +1943,7 @@
     },
     "/me/export" : {
       "get" : {
-        "description" : "Planos alimentares recebidos (cada versão), registros de refeição com trocas, desvios e a foto do prato (URL temporária de 5 minutos) e restrições alimentares. O app junta com a exportação do client-service e do training.",
+        "description" : "Planos alimentares recebidos (cada versão), registros de refeição com trocas, desvios e a foto do prato (URL temporária de 5 minutos), restrições alimentares e as leituras delas pela nutricionista (accessLog), sem o conteúdo. O app junta com a exportação do client-service e do training.",
         "operationId" : "export",
         "responses" : {
           "200" : {

@@ -1,0 +1,165 @@
+{
+    "issue": "DEV-0171",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "A leitura das restrições pelo profissional deixa de ser registrada",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ManageFoodRestrictions.java",
+            "find": "        audit.record(\n",
+            "replace": "        if (false) audit.record(\n",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=NutritionAccessAuditTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O expurgo passa a guardar 7 meses",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/AccessLogRetention.java",
+            "find": ".minusMonths(RETENTION_MONTHS)",
+            "replace": ".minusMonths(RETENTION_MONTHS + 1)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=NutritionAccessAuditTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O expurgo passa a guardar só 5 meses",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/AccessLogRetention.java",
+            "find": ".minusMonths(RETENTION_MONTHS)",
+            "replace": ".minusMonths(RETENTION_MONTHS - 1)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=NutritionAccessAuditTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "A exportação deixa de trazer o registro",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ExportNutritionData.java",
+            "find": "audit.logOf(clientId)",
+            "replace": "List.of()",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=NutritionAccessAuditTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O registro passa a trazer as leituras de outros alunos",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/JdbcProfessionalAccessAudit.java",
+            "find": "where client_id = :clientId order by accessed_at desc",
+            "replace": "where :clientId is not null order by accessed_at desc",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=NutritionAccessAuditTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "O banco passa a aceitar qualquer recurso",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V14__auditoria_de_acesso.sql",
+            "find": "check (resource in ('FOOD_RESTRICTIONS'))",
+            "replace": "check (resource is not null)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=NutritionAccessAuditTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "O plano com alerta de restrição deixa de registrar a leitura",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/MealPlanAlerts.java",
+            "find": "        audit.record(\n",
+            "replace": "        if (false) audit.record(\n",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=NutritionAccessAuditTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "A ficha com alerta de restrição deixa de registrar a leitura",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/PlanAlerts.java",
+            "find": "        audit.record(\n",
+            "replace": "        if (false) audit.record(\n",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingAccessAuditTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

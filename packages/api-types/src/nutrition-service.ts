@@ -188,7 +188,7 @@ export interface paths {
         };
         /**
          * Exporta todos os dados que o nutrition tem do cliente
-         * @description Planos alimentares recebidos (cada versão), registros de refeição com trocas, desvios e a foto do prato (URL temporária de 5 minutos) e restrições alimentares. O app junta com a exportação do client-service e do training.
+         * @description Planos alimentares recebidos (cada versão), registros de refeição com trocas, desvios e a foto do prato (URL temporária de 5 minutos), restrições alimentares e as leituras delas pela nutricionista (accessLog), sem o conteúdo. O app junta com a exportação do client-service e do training.
          */
         get: operations["export"];
         put?: never;
@@ -861,6 +861,8 @@ export interface components {
         };
         /** @description Todos os dados que o nutrition tem do cliente. */
         NutritionExport: {
+            /** @description Leituras das restrições alimentares pela nutricionista (DEV-0171), sem o conteúdo. */
+            accessLog?: components["schemas"]["NutritionExportAccess"][];
             /** Format: date-time */
             exportedAt?: string;
             /** @description Registros de refeição, com a foto do prato por URL temporária quando houver. */
@@ -868,6 +870,15 @@ export interface components {
             /** @description Cada versão recebida de cada plano alimentar, com refeições, alimentos e macros. */
             planVersions?: components["schemas"]["MealPlan"][];
             restrictions?: components["schemas"]["FoodRestriction"][];
+        };
+        /** @description Leitura de dado sensível pela nutricionista, sem o conteúdo. */
+        NutritionExportAccess: {
+            /** Format: date-time */
+            accessedAt?: string;
+            /** Format: uuid */
+            professionalId?: string;
+            /** @enum {string} */
+            resource?: "FOOD_RESTRICTIONS";
         };
         /** @description A última atividade de um paciente vinculado. */
         PatientActivity: {
