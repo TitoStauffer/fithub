@@ -127,6 +127,8 @@ test('cada identidade S3 só tem o bucket do seu serviço', () => {
   assert.ok(script.includes('\n  identity client-service "$client_key" "$client_secret" fithub-photos\n'));
   assert.ok(script.includes('\n  identity nutrition-service "$nutrition_key" "$nutrition_secret" fithub-meal-photos\n'));
   assert.equal((script.match(/\n {2}identity /g) ?? []).length, 2);
+  // Só o gateway S3 atende a rede; o filer, o master e o volume ficam no loopback, sem credencial a conferir.
+  assert.ok(script.includes('-ip=127.0.0.1 -ip.bind=127.0.0.1 -s3.ip.bind=0.0.0.0'), 'SeaweedFS fora do loopback');
 });
 
 test('o console do Keycloak abre pelo túnel SSH, não pelo domínio público', () => {

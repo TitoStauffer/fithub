@@ -182,6 +182,19 @@
                 "--test",
                 "infra/compose/prod.test.mjs"
             ]
+        },
+        {
+            "id": "M15",
+            "description": "O filer, o master e o volume do SeaweedFS voltam a atender a rede interna",
+            "area": "tools",
+            "file": "infra/compose/seaweedfs/start.sh",
+            "find": "-ip=127.0.0.1 -ip.bind=127.0.0.1 -s3.ip.bind=0.0.0.0",
+            "replace": "-s3.ip.bind=0.0.0.0",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
         }
     ]
 }

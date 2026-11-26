@@ -88,6 +88,13 @@ uma compartilhada, e nenhuma credencial de outro serviço ou do Keycloak no cont
   - **Prevenção:** a regra passa a valer para toda credencial, não só para a de banco. O teste
     `cada credencial chega só ao dono e a quem a cria` cobre todos os segredos do `.env`. A fumaça confere que a
     publicação forjada e o acesso ao bucket alheio são recusados. Mutantes M11 a M14.
+- **Revisão:** Code Review CHANGES_REQUESTED do PR #322, no SHA `3221b48` (MEDIUM) — DEV-0110 (#102) · **PR:** #322
+  - **Impacto:** as identidades S3 só valiam no gateway. O filer, o master e o volume do SeaweedFS atendiam sem
+    credencial na rede interna, e um serviço comprometido leria as fotos do outro direto pelo filer.
+  - **Correção:** master, volume e filer só no loopback do container (`-ip.bind=127.0.0.1`), e só o gateway S3 na
+    rede.
+  - **Prevenção:** a credencial isolada vale para **todas as portas** do componente, não só para a API usada. A
+    fumaça testa as portas internas a partir de outro container, e há o mutante M15.
 
 ## acesso-administrativo-testado-pelo-caminho-documentado
 

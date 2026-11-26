@@ -34,4 +34,7 @@ nutrition_secret=$(check NUTRITION_S3_SECRET_KEY)
 # O entrypoint da imagem troca para o usuário seaweed: o arquivo é só dele.
 if [ "$(id -u)" = 0 ]; then chown seaweed:seaweed /tmp/s3-identities.json; fi
 
-exec /entrypoint.sh server -s3 -dir=/data -master.telemetry=false -s3.config=/tmp/s3-identities.json
+# Master, volume e filer só no loopback do container: só o gateway S3, que confere as identidades, atende a rede
+# (Code Review do PR #322). Sem isso, o filer (8888) e o volume (8080) entregariam qualquer foto sem credencial.
+exec /entrypoint.sh server -s3 -dir=/data -master.telemetry=false -s3.config=/tmp/s3-identities.json \
+  -ip=127.0.0.1 -ip.bind=127.0.0.1 -s3.ip.bind=0.0.0.0

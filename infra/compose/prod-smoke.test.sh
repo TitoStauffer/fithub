@@ -95,6 +95,15 @@ expect 403 "o nutrition-service leu a foto corporal" NUTRITION GET /fithub-photo
 expect 403 "o nutrition-service apagou a foto corporal" NUTRITION DELETE /fithub-photos/corpo.jpg
 expect 403 "o client-service gravou no bucket de prato" CLIENT PUT /fithub-meal-photos/prato.jpg
 
+# Na rede interna, o SeaweedFS só atende pelo gateway S3, que confere as identidades: o filer, o master e o volume
+# ficam no loopback do container (Code Review do PR #322). Testado de outro container da rede, o do RabbitMQ.
+for port in 8888 9333 8080 18888 19333 18080; do
+  if $compose exec -T rabbitmq bash -c "exec 3<>/dev/tcp/seaweedfs/$port" 2>/dev/null; then
+    fail "o SeaweedFS atende na porta $port da rede interna, sem credencial"
+  fi
+done
+$compose exec -T rabbitmq bash -c 'exec 3<>/dev/tcp/seaweedfs/8333' || fail "o gateway S3 não atende na rede interna"
+
 # Cada serviço tem o seu usuário no RabbitMQ: publica na própria exchange e não publica na de outro (um
 # VinculoAtivado forjado). A API de gestão só atende usuário com a tag management, dada aqui só para o teste; as
 # permissões nas exchanges valem igual pelo AMQP.
