@@ -20,7 +20,7 @@ function setup(statuses: number[]) {
     const apiFetch = createApiFetch({
         getAccessToken,
         onSessionRejected,
-        allowedOrigins: [API],
+        allowedBases: [API],
         fetch: fetchFake,
     });
     return { apiFetch, sent, getAccessToken, onSessionRejected };
@@ -78,12 +78,38 @@ describe('createApiFetch', () => {
         expect(getAccessToken).not.toHaveBeenCalled();
     });
 
+    // Em produção, as APIs ficam em caminhos do mesmo domínio da web, do Keycloak e dos buckets (DEV-0176).
+    it('com o endereço base num caminho, o token vai só para baixo dele', async () => {
+        const sent: string[] = [];
+        const apiFetch = createApiFetch({
+            getAccessToken: () => Promise.resolve('atual'),
+            onSessionRejected: vi.fn(),
+            allowedBases: ['https://fithub.example/api/account'],
+            fetch: vi.fn((input: RequestInfo | URL) => {
+                sent.push(input instanceof Request ? input.url : input.toString());
+                return Promise.resolve(new Response(null, { status: 200 }));
+            }),
+        });
+
+        await apiFetch('https://fithub.example/api/account/professionals/me');
+        for (const outside of [
+            'https://fithub.example/auth/realms/fithub/protocol/openid-connect/userinfo',
+            'https://fithub.example/fithub-photos/foto.jpg',
+            'https://fithub.example/api/accounts-falso/x',
+            'https://fithub.example/api/account/../../auth/x',
+            'https://outro.example/api/account/professionals/me',
+        ]) {
+            await expect(apiFetch(outside)).rejects.toThrow('fora das APIs do FitHub');
+        }
+        expect(sent).toEqual(['https://fithub.example/api/account/professionals/me']);
+    });
+
     it('falha ao obter o token não chega a chamar a API', async () => {
         const { sent } = setup([200]);
         const apiFetch = createApiFetch({
             getAccessToken: () => Promise.reject(new SessionExpiredError()),
             onSessionRejected: vi.fn(),
-            allowedOrigins: [API],
+            allowedBases: [API],
             fetch: vi.fn(),
         });
 

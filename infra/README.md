@@ -167,8 +167,14 @@ Voltar uma versão é rodar de novo com o SHA anterior.
   [backup/README.md](backup/README.md).
 - **Logs e traces:** o `otel-lgtm` guarda 30 dias no Loki e no Tempo (`observability/loki-config.yaml` e
   `tempo-config.yaml`); cada serviço escreve um arquivo de log por dia no volume `logs`, com 30 dias.
-- **Até a DEV-0176:** sem imagem da web, e o realm importado só tem os endereços de desenvolvimento (login da web e
-  SMTP do Mailpit).
+- **Web (DEV-0176):** a imagem `fithub-web` sai junto com as dos serviços, na mesma tag, e fica em `/`, com a
+  menor prioridade no Traefik. Ela chama as APIs e o Keycloak por caminho (`/api/<serviço>`, `/auth`), no mesmo
+  domínio, e devolve 404 para `/api`, `/auth` e os buckets que chegam a ela, como o console de administração.
+- **Realm de produção (DEV-0176):** o realm importado usa `FITHUB_WEB_URL` (redirect URI, origem e logout da web) e
+  `FITHUB_SMTP_*` (e-mail de verificação do cadastro), que o compose de produção passa ao Keycloak. Sem eles, o realm
+  fica com os valores do desenvolvimento: `http://localhost:5173` e o Mailpit. O remetente desse e-mail é
+  `KEYCLOAK_MAIL_FROM`, só o endereço. O import só roda com o realm ainda inexistente no banco: num banco que já tem o
+  realm, mude esses campos pelo console.
 
 ### Testes
 

@@ -38,3 +38,26 @@ operação antiga que falha só encerra a sessão em que nasceu, nunca uma abert
   - **Impacto:** com duas chamadas à API ao mesmo tempo, a que terminava depois da recusa encerrava a sessão de novo, a rota protegida mandava ao login e o laço que a DEV-0146 queria fechar voltava. Na renovação forçada depois de um 401, uma queda de rede devolvia o mesmo token que a API tinha recusado e levava à tela de sessão recusada.
   - **Correção:** a recusa virou estado final até o logout (uma ref conferida em `endSession` e no início de `getAccessToken`); com `force`, falha passageira lança `SessionUnavailableError` em vez de devolver o token atual.
   - **Prevenção:** testes com duas chamadas concorrentes, com eventos depois da recusa e com 401 seguido de renovação sem rede; mutantes M7 a M9 de `mutations/DEV-0146.json`. Estado terminal (recusado, encerrado) não pode ser desfeito por uma operação que já estava em andamento: teste sempre com pelo menos duas operações concorrentes.
+
+## cabecalho-da-borda-nao-quebra-o-iframe-do-login
+
+**Regra:** a web usa um iframe escondido do `keycloak-js` (`silent-check-sso.html`) para renovar a sessão sem
+recarregar. Um cabeçalho de segurança na borda que proíbe embutir a página (`X-Frame-Options: DENY` ou
+`frame-ancestors 'none'`) quebra esse iframe, e cada recarga vira um redirecionamento ao login. A rota da web usa
+`SAMEORIGIN`, assim como a do Keycloak, que serve páginas do realm embutidas pelo `keycloak-js`; as rotas das APIs e
+dos buckets continuam com DENY.
+
+### Ocorrências
+
+- **Revisão:** Code Review APPROVED do PR #324, no SHA `ddd2a58` (MEDIUM não bloqueante) — DEV-0176 (#321) · **PR:** #324
+  - **Impacto:** em produção, a sessão da web não se renovaria em silêncio: o profissional voltaria ao login a cada
+    recarga.
+  - **Correção:** middleware `web-headers` no Traefik, com `customFrameOptionsValue: SAMEORIGIN`, só na rota da web.
+  - **Prevenção:** esta regra, a guarda da rota da web no `prod.test.mjs` e o mutante M6 de `mutations/DEV-0176.json`.
+- **Revisão:** Code Review APPROVED do PR #324, no SHA `19813cf` (LOW não bloqueante) — DEV-0176 (#321) · **PR:** #324
+  - **Impacto:** o mesmo bloqueio nas páginas do realm que o `keycloak-js` carrega em iframe (o teste de cookies do
+    `check-sso`), servidas pela rota do Keycloak, ainda com DENY.
+  - **Correção:** a rota do Keycloak também usa o middleware de `SAMEORIGIN` (`same-origin-headers`). As APIs e os
+    buckets continuam com DENY.
+  - **Prevenção:** vale para toda rota que serve página que o `keycloak-js` embute, não só para a web. Guarda das
+    duas rotas e mutante M8.

@@ -1,4 +1,4 @@
-# Rotas do Traefik em produção (DEV-0110, ADR-014): um domínio só (FITHUB_DOMAIN), roteado por caminho. Com a web,
+# Rotas do Traefik em produção (DEV-0110, DEV-0176, ADR-014): um domínio só (FITHUB_DOMAIN), roteado por caminho. Com a web,
 # as APIs e o Keycloak na mesma origem, o navegador não precisa de CORS.
 # Lido pelo provider de arquivo; {{ env "FITHUB_DOMAIN" }} vem do ambiente do container do Traefik.
 http:
@@ -29,7 +29,8 @@ http:
     keycloak:
       rule: Host(`{{ env "FITHUB_DOMAIN" }}`) && (PathPrefix(`/auth/realms/fithub/`) || PathPrefix(`/auth/resources/`))
       entryPoints: [websecure]
-      middlewares: [security-headers]
+      # SAMEORIGIN: o keycloak-js da web carrega páginas do realm em iframe (teste de cookies, Code Review do PR #324).
+      middlewares: [same-origin-headers]
       service: keycloak
     # Fotos pelas URLs pré-assinadas: o caminho chega sem mudança, porque ele faz parte da assinatura.
     photos:
@@ -37,6 +38,15 @@ http:
       entryPoints: [websecure]
       middlewares: [security-headers]
       service: seaweedfs
+
+    # Web do profissional (DEV-0176): todo caminho que nenhuma rota acima pegou. Prioridade mínima, para /api, /auth
+    # e os buckets nunca caírem na web.
+    web:
+      rule: Host(`{{ env "FITHUB_DOMAIN" }}`)
+      priority: 1
+      entryPoints: [websecure]
+      middlewares: [same-origin-headers]
+      service: web
 
   middlewares:
     strip-api-account:
@@ -59,6 +69,17 @@ http:
         frameDeny: true
         referrerPolicy: no-referrer
 
+    # Os mesmos cabeçalhos para a web e o Keycloak, mas a página pode ser embutida pela própria origem: o keycloak-js
+    # usa iframes escondidos (silent-check-sso.html da web e o teste de cookies do realm) para renovar a sessão sem
+    # recarregar (Code Review do PR #324). Outra origem continua sem poder embutir.
+    same-origin-headers:
+      headers:
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        contentTypeNosniff: true
+        customFrameOptionsValue: SAMEORIGIN
+        referrerPolicy: no-referrer
+
   services:
     account:
       loadBalancer:
@@ -78,3 +99,6 @@ http:
     seaweedfs:
       loadBalancer:
         servers: [{ url: "http://seaweedfs:8333" }]
+    web:
+      loadBalancer:
+        servers: [{ url: "http://web:8080" }]

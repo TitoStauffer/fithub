@@ -7,7 +7,7 @@ name: CI
 #   Java Services         libs Java e serviços: build, unitários, ArchUnit e integração (Testcontainers)
 #   Apps                  workspace pnpm: lint, typecheck e testes dos apps e pacotes
 #   Local Infrastructure  compose de desenvolvimento sobe saudável
-#   Publish Images        só no push na master: imagem de todos os serviços no GHCR, tag do commit (DEV-0017)
+#   Publish Images        só no push na master: imagem de todos os serviços e da web no GHCR, tag do commit (DEV-0017, DEV-0176)
 #
 # Mutação (DEV-0116): os manifestos mutations/<CHAVE>.json alterados no PR rodam no job da área de cada
 # mutante (tools no GitHub Reviewer, java no Java Services, apps no Apps), por tools/repo-checks/mutations.mjs.
@@ -286,6 +286,12 @@ jobs:
         if: env.RUN_AREA == 'true'
         run: pnpm -r --if-present run build
 
+      # Imagem da web (DEV-0176): no PR, constrói, roda sem root e serve o app (rota do React Router volta para o
+      # index, sem cache); o push na master constrói de novo e publica no job Publish Images.
+      - name: Build web image
+        if: env.RUN_AREA == 'true' && github.event_name == 'pull_request'
+        run: sh apps/web/image.test.sh
+
       # Os testes dos apps publicam JUnit em reports/junit*.xml (o web desde a DEV-0020); sem nenhum
       # relatório, a guarda falha. Teste pulado no Vitest precisa da issue no nome: it.skip('... DEV-xxxx').
       - name: Check skipped tests
@@ -374,11 +380,12 @@ jobs:
         if: env.RUN_AREA == 'true'
         run: sh infra/compose/prod-smoke.test.sh
 
-  # Imagens no GHCR (DEV-0017): só no push na master, depois de o Java Services passar no mesmo
-  # commit, para todos os serviços (idempotente). Tag = SHA do commit; deploy continua manual (ADR-005).
+  # Imagens no GHCR (DEV-0017): só no push na master, depois de o Java Services e o Apps passarem no mesmo
+  # commit, para todos os serviços e a web (DEV-0176, idempotente). Tag = SHA do commit; deploy continua manual
+  # (ADR-005).
   publish-images:
     name: Publish Images
-    needs: [changes, java-services]
+    needs: [changes, java-services, apps]
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' && needs.changes.outputs.services != '[]' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -417,6 +424,14 @@ jobs:
             docker push "$image"
             echo "Publicada: $image"
           done
+          # Web do profissional (DEV-0176): o deploy usa a mesma tag dos serviços.
+          image="ghcr.io/$owner/fithub-web:$GITHUB_SHA"
+          docker build --file apps/web/Dockerfile --tag "$image" \
+            --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" .
+          node tools/repo-checks/check-image-user.mjs "$image"
+          docker push "$image"
+          echo "Publicada: $image"
 
       - name: Log out of GHCR
         if: always()
