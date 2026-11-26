@@ -24,7 +24,8 @@ via SSH. Faltava o desenho da borda e do deploy. Três fatos pesam:
    | `/auth/realms/fithub/`, `/auth/resources/` | Keycloak (`KC_HTTP_RELATIVE_PATH=/auth`) |
    | `/fithub-photos/`, `/fithub-meal-photos/` | SeaweedFS, com o caminho inteiro (ele entra na assinatura das URLs pré-assinadas) |
 
-   Com tudo na mesma origem, o navegador não precisa de CORS em produção. A web em `/` é da DEV-0176.
+   Com tudo na mesma origem, o navegador não precisa de CORS em produção. A web fica em `/` (DEV-0176), com a menor
+   prioridade: o que nenhuma outra rota pega.
 2. **Traefik v3 sem o socket do Docker:**
    - a configuração estática vai em argumentos, e as rotas num arquivo;
    - HTTP redireciona para HTTPS, e toda rota manda HSTS (1 ano), `nosniff`, `X-Frame-Options: DENY` e
@@ -81,6 +82,9 @@ via SSH. Faltava o desenho da borda e do deploy. Três fatos pesam:
   - os segredos do environment `production` (`DEPLOY_SSH_HOST`, `DEPLOY_SSH_USER`, `DEPLOY_SSH_KEY`,
     `DEPLOY_SSH_KNOWN_HOSTS`, opcional `DEPLOY_DIR`) e a variável `FITHUB_DOMAIN`;
   - a cópia dos backups para fora da VPS.
-- **Até a DEV-0176:** o realm importado tem só os endereços de desenvolvimento (login da web e SMTP do Mailpit), e não
-  há imagem da web.
+- **Web em produção (DEV-0176):**
+  - a imagem `fithub-web` (nginx sem privilégio) é publicada com a mesma tag dos serviços e fica em `/`, com a menor
+    prioridade;
+  - ela chama as APIs e o Keycloak por caminho, então a mesma imagem serve qualquer domínio;
+  - o realm recebe o endereço da web e o SMTP de produção por variável, com os do desenvolvimento como padrão.
 - **Fora da borda:** o RabbitMQ e o Postgres não têm acesso externo; a administração é por túnel SSH.

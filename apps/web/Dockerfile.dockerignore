@@ -1,0 +1,12 @@
+# Contexto da imagem da web (DEV-0176): só o que o build do app usa. O .dockerignore da raiz é o das imagens dos
+# serviços; o Docker usa este, por estar ao lado do Dockerfile.
+*
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!packages/
+!apps/web/
+**/node_modules/
+**/dist/
+**/coverage/
+**/reports/

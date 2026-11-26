@@ -93,6 +93,8 @@ jobs:
           curl -fsS --retry 30 --retry-delay 4 --retry-all-errors -o /dev/null \
             "https://$FITHUB_DOMAIN/auth/realms/fithub/.well-known/openid-configuration"
           echo "keycloak: ok"
+          curl -fsS --retry 10 --retry-delay 6 --retry-all-errors -o /dev/null "https://$FITHUB_DOMAIN/"
+          echo "web: ok"
 
       - name: Remove the SSH key
         if: always()

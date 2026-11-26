@@ -6,7 +6,12 @@ import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const realm = JSON.parse(readFileSync(new URL('./realm-fithub.json', import.meta.url), 'utf8'));
+const raw = readFileSync(new URL('./realm-fithub.json', import.meta.url), 'utf8');
+// Variáveis com padrão (${NOME:padrão}), resolvidas como o import do Keycloak faz sem a variável: o realm do
+// desenvolvimento. Em produção, o compose passa os endereços e o SMTP de produção (DEV-0176).
+const DEFAULTED = /\$\{([A-Z_]+):([^}]*)\}/g;
+const realm = JSON.parse(raw.replace(DEFAULTED, (_, name, fallback) => fallback));
+const rawRealm = JSON.parse(raw);
 const client = (clientId) => realm.clients.find((candidate) => candidate.clientId === clientId);
 const APP_CLIENTS = ['fithub-web', 'fithub-mobile'];
 // Client confidencial do account-service, só para atribuir o papel de profissional (DEV-0029, ADR-008).
@@ -92,6 +97,32 @@ test('redirect URIs e origens não têm curinga de host nem aceitam qualquer des
 
 // Code Review do PR #190 (LOW): recusar curinga não basta, porque um host fixo de terceiro passaria.
 // Os destinos de cada client são fixados por valor; mudar um deles é decisão revisada, com este teste.
+// DEV-0176: o endereço da web vem de FITHUB_WEB_URL, com o do desenvolvimento como padrão. Nenhum outro campo dos
+// clients aceita variável, e o curinga continua só no fim do caminho, fora da variável.
+test('o endereço da web vem só de FITHUB_WEB_URL, e o SMTP do realm vem do ambiente', () => {
+  const url = '${FITHUB_WEB_URL:http://localhost:5173}';
+  const web = rawRealm.clients.find((candidate) => candidate.clientId === 'fithub-web');
+  assert.equal(web.rootUrl, url);
+  assert.deepEqual(web.redirectUris, [`${url}/*`]);
+  assert.deepEqual(web.webOrigins, [url]);
+  assert.equal(web.attributes['post.logout.redirect.uris'], `${url}/*`);
+  const variables = [...raw.matchAll(/\$\{([A-Z_]+)(:[^}]*)?\}/g)].map((match) => match[1]);
+  assert.deepEqual([...new Set(variables)].sort(), [
+    'FITHUB_ACCOUNT_SERVICE_SECRET',
+    'FITHUB_SMTP_AUTH',
+    'FITHUB_SMTP_FROM',
+    'FITHUB_SMTP_HOST',
+    'FITHUB_SMTP_PASSWORD',
+    'FITHUB_SMTP_PORT',
+    'FITHUB_SMTP_STARTTLS',
+    'FITHUB_SMTP_USER',
+    'FITHUB_WEB_URL',
+  ]);
+  // O desenvolvimento continua no Mailpit, sem autenticação.
+  assert.equal(realm.smtpServer.host, 'mailpit');
+  assert.equal(realm.smtpServer.auth, 'false');
+});
+
 test('os destinos do web e do mobile são exatamente os esperados', () => {
   const web = client('fithub-web');
   assert.deepEqual(web.redirectUris, ['http://localhost:5173/*']);
@@ -205,15 +236,19 @@ test('o arquivo não traz usuário de pessoa, credencial, secret nem senha de SM
   assert.equal(realm.identityProviders, undefined, 'provedor de identidade entra com a DEV-0025');
   assert.equal(realm.smtpServer.host, 'mailpit');
   assert.equal(realm.smtpServer.auth, 'false');
-  assert.equal(realm.smtpServer.password, undefined);
-  assert.equal(realm.smtpServer.user, undefined);
+  // O usuário e a senha do SMTP de produção vêm só do ambiente (DEV-0176): no arquivo, a variável sem valor.
+  assert.equal(rawRealm.smtpServer.password, '${FITHUB_SMTP_PASSWORD:}');
+  assert.equal(rawRealm.smtpServer.user, '${FITHUB_SMTP_USER:}');
+  assert.equal(realm.smtpServer.password, '');
+  assert.equal(realm.smtpServer.user, '');
   // Rede de segurança para qualquer nível do arquivo: nenhuma chave com cara de segredo.
   const secretKeys = [];
   const visit = (value, path) => {
     if (Array.isArray(value)) value.forEach((item, index) => visit(item, `${path}[${index}]`));
     else if (value && typeof value === 'object') {
       for (const [key, inner] of Object.entries(value)) {
-        const placeholder = typeof inner === 'string' && /^\$\{[A-Z0-9_]+\}$/.test(inner);
+        // Só a variável sem valor padrão (${NOME} ou ${NOME:}): um segredo não entra disfarçado de padrão.
+        const placeholder = typeof inner === 'string' && /^\$\{[A-Z0-9_]+:?\}$/.test(inner);
         if (/secret|password$|credentials|privateKey/i.test(key) && key !== 'passwordPolicy' && !placeholder) {
           secretKeys.push(`${path}.${key}`);
         }
@@ -221,6 +256,6 @@ test('o arquivo não traz usuário de pessoa, credencial, secret nem senha de SM
       }
     }
   };
-  visit(realm, 'realm');
+  visit(rawRealm, 'realm');
   assert.deepEqual(secretKeys, []);
 });

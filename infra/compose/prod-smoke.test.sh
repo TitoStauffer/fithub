@@ -54,8 +54,11 @@ edge -D - -o /dev/null "https://$domain:$https/auth/realms/fithub/.well-known/op
   | grep -qi '^strict-transport-security: max-age=31536000' || fail "a borda não mandou o HSTS"
 
 # O console de administração e o realm master ficam fora da borda.
+# Esses caminhos caem na rota da web (DEV-0176), que devolve 404 para eles; sem a web de pé aqui, o Traefik responde
+# 502. Os dois provam que o Keycloak não recebeu a requisição.
 for path in /auth/admin/ /auth/realms/master/.well-known/openid-configuration /auth/; do
-  [ "$(edge -o /dev/null -w '%{http_code}' "https://$domain:$https$path")" = 404 ] || fail "a borda expôs $path"
+  code=$(edge -o /dev/null -w '%{http_code}' "https://$domain:$https$path")
+  case "$code" in 404 | 502) ;; *) fail "a borda expôs $path ($code)" ;; esac
 done
 
 # O console de administração abre pelo túnel (127.0.0.1), com o endereço do túnel, não o domínio público.
@@ -130,6 +133,11 @@ broker $nutrition publish message --exchange fithub.client --routing-key client.
 for service in account client training nutrition; do
   code=$(edge -o /dev/null -w '%{http_code}' "https://$domain:$https/api/$service/actuator/health")
   [ "$code" = 502 ] || fail "a rota /api/$service respondeu $code, esperava 502 sem o serviço"
+done
+# A web (DEV-0176) fica em /, para qualquer caminho que nenhuma rota pegou: sem o container dela, 502.
+for path in / /clientes; do
+  code=$(edge -o /dev/null -w '%{http_code}' "https://$domain:$https$path")
+  [ "$code" = 502 ] || fail "a rota da web em $path respondeu $code, esperava 502 sem a web"
 done
 
 # O backup está agendado e o job roda com o ambiente do container.

@@ -10,7 +10,8 @@ import test from 'node:test';
 
 const root = new URL('../../', import.meta.url);
 const COMPOSE = 'infra/compose/docker-compose.prod.yml';
-const read = (path) => readFileSync(new URL(path, root), 'utf8');
+// Quebra de linha normalizada: num clone do Windows, o Git grava os arquivos com CRLF.
+const read = (path) => readFileSync(new URL(path, root), 'utf8').replace(/\r\n/g, '\n');
 const example = read('infra/compose/.env.prod.example');
 const IMAGE_TAG = 'a'.repeat(40);
 const SERVICES = { 'account-service': 8081, 'client-service': 8082, 'training-service': 8083, 'nutrition-service': 8084 };
@@ -95,7 +96,8 @@ const CREDENTIAL_RECEIVERS = {
   NUTRITION_S3_SECRET_KEY: ['nutrition-service', 'seaweedfs'],
   FITHUB_ACCOUNT_SERVICE_SECRET: ['account-service', 'keycloak'],
   KEYCLOAK_ADMIN_PASSWORD: ['keycloak'],
-  SMTP_PASSWORD: ['client-service'],
+  // O mesmo SMTP manda o convite (client-service) e a verificação do cadastro (Keycloak, DEV-0176).
+  SMTP_PASSWORD: ['client-service', 'keycloak'],
 };
 
 test('cada credencial chega só ao dono e a quem a cria', () => {
@@ -135,6 +137,26 @@ test('o console do Keycloak abre pelo túnel SSH, não pelo domínio público', 
   assert.equal(resolved.config.services.keycloak.environment.KC_HOSTNAME_ADMIN, 'http://localhost:8080/auth');
 });
 
+test('o realm de produção recebe o endereço da web e o SMTP de produção (DEV-0176)', () => {
+  const keycloak = resolved.config.services.keycloak.environment;
+  assert.equal(keycloak.FITHUB_WEB_URL, 'https://<dominio>');
+  assert.equal(keycloak.FITHUB_SMTP_AUTH, 'true');
+  assert.equal(keycloak.FITHUB_SMTP_STARTTLS, 'true');
+  assert.equal(keycloak.FITHUB_SMTP_HOST, '<host-smtp>');
+  assert.equal(resolved.config.services.web.image, `ghcr.io/titostauffer/fithub-web:${IMAGE_TAG}`);
+  assert.equal(resolved.config.services.web.ports, undefined);
+});
+
+test('a web fica em /, com a menor prioridade: /api, /auth e os buckets nunca caem nela', () => {
+  const dynamic = read('infra/traefik/dynamic.yml');
+  const router = dynamic.match(/\n {4}web:\n([\s\S]*?)\n {4}[a-z]+:\n|\n {4}web:\n([\s\S]*?)\n\n/);
+  assert.ok(router, 'sem a rota da web');
+  const body = router[1] ?? router[2];
+  assert.match(body, /rule: Host\(`\{\{ env "FITHUB_DOMAIN" \}\}`\)\n/);
+  assert.match(body, /priority: 1\n/);
+  assert.match(dynamic, /url: "http:\/\/web:8080"/);
+});
+
 test('a tag da imagem dos serviços é obrigatória e vem do disparo do deploy', () => {
   assert.equal(compose(example, {}).ok, false);
   for (const name of Object.keys(SERVICES)) {
@@ -169,7 +191,7 @@ test('cada rota do Traefik vai para o serviço certo, só em HTTPS', () => {
     assert.match(dynamic, new RegExp(`url: "http://${name}:${port}"`));
   }
   assert.doesNotMatch(dynamic, /entryPoints: \[web\]/);
-  assert.equal(dynamic.match(/entryPoints: \[websecure\]/g).length, 6);
+  assert.equal(dynamic.match(/entryPoints: \[websecure\]/g).length, 7);
 });
 
 test('a borda do Keycloak tem só o realm fithub e os recursos, sem o console de administração', () => {

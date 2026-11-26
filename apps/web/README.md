@@ -31,6 +31,24 @@ pnpm --filter web build       # typecheck e build em dist/
 O CI (job `Apps`) roda lint, typecheck, testes, build e a guarda de teste pulado. Teste pulado precisa
 da issue no nome: `it.skip('motivo DEV-xxxx', ...)`.
 
+## Produção (DEV-0176)
+
+A imagem `apps/web/Dockerfile` gera os estáticos e serve num nginx sem privilégio, na porta 8080, atrás do Traefik
+(ADR-014). Contexto de build: a raiz do repositório.
+
+```sh
+docker build -f apps/web/Dockerfile -t fithub-web .
+sh apps/web/image.test.sh   # constrói, confere o usuário sem root e o que o nginx serve
+```
+
+- **Endereços:** o build usa caminhos, `VITE_KEYCLOAK_URL=/auth` e `VITE_*_API_URL=/api/<serviço>`.
+  `src/lib/config.ts` resolve cada caminho na origem da página, e a mesma imagem serve qualquer domínio. No
+  desenvolvimento, os padrões continuam os endereços completos do compose local.
+- **Rotas do app:** caminho sem arquivo volta para o `index.html`, que vai sem cache. Os assets com hash no nome
+  vão com cache longo.
+- **Caminhos de outros serviços:** `/api`, `/auth` e os buckets que chegarem à web dão 404, não o index.
+- O CI constrói e testa a imagem no PR e publica no GHCR a cada merge, junto com as dos serviços.
+
 ## Estrutura
 
 ```

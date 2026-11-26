@@ -1,4 +1,4 @@
-# Rotas do Traefik em produção (DEV-0110, ADR-014): um domínio só (FITHUB_DOMAIN), roteado por caminho. Com a web,
+# Rotas do Traefik em produção (DEV-0110, DEV-0176, ADR-014): um domínio só (FITHUB_DOMAIN), roteado por caminho. Com a web,
 # as APIs e o Keycloak na mesma origem, o navegador não precisa de CORS.
 # Lido pelo provider de arquivo; {{ env "FITHUB_DOMAIN" }} vem do ambiente do container do Traefik.
 http:
@@ -37,6 +37,15 @@ http:
       entryPoints: [websecure]
       middlewares: [security-headers]
       service: seaweedfs
+
+    # Web do profissional (DEV-0176): todo caminho que nenhuma rota acima pegou. Prioridade mínima, para /api, /auth
+    # e os buckets nunca caírem na web.
+    web:
+      rule: Host(`{{ env "FITHUB_DOMAIN" }}`)
+      priority: 1
+      entryPoints: [websecure]
+      middlewares: [security-headers]
+      service: web
 
   middlewares:
     strip-api-account:
@@ -78,3 +87,6 @@ http:
     seaweedfs:
       loadBalancer:
         servers: [{ url: "http://seaweedfs:8333" }]
+    web:
+      loadBalancer:
+        servers: [{ url: "http://web:8080" }]

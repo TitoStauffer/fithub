@@ -129,8 +129,8 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.8.2
     restart: unless-stopped
-    # Modo de produção atrás do Traefik, em /auth. Importa o realm só quando ele ainda não existe no banco; as URLs e
-    # o SMTP de produção do realm são da DEV-0176.
+    # Modo de produção atrás do Traefik, em /auth. Importa o realm só quando ele ainda não existe no banco, com o
+    # endereço da web e o SMTP de produção (DEV-0176): o realm usa os de desenvolvimento como padrão.
     command: start --import-realm
     environment:
       KC_DB: postgres
@@ -149,6 +149,15 @@ services:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:?defina KEYCLOAK_ADMIN no .env}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?defina KEYCLOAK_ADMIN_PASSWORD no .env}
       FITHUB_ACCOUNT_SERVICE_SECRET: ${FITHUB_ACCOUNT_SERVICE_SECRET:?defina FITHUB_ACCOUNT_SERVICE_SECRET no .env}
+      FITHUB_WEB_URL: https://${FITHUB_DOMAIN:?defina FITHUB_DOMAIN no .env}
+      # E-mail de verificação do cadastro, pelo mesmo SMTP do convite.
+      FITHUB_SMTP_HOST: ${SMTP_HOST:?defina SMTP_HOST no .env}
+      FITHUB_SMTP_PORT: ${SMTP_PORT:?defina SMTP_PORT no .env}
+      FITHUB_SMTP_FROM: ${KEYCLOAK_MAIL_FROM:?defina KEYCLOAK_MAIL_FROM no .env}
+      FITHUB_SMTP_STARTTLS: "true"
+      FITHUB_SMTP_AUTH: "true"
+      FITHUB_SMTP_USER: ${SMTP_USERNAME:?defina SMTP_USERNAME no .env}
+      FITHUB_SMTP_PASSWORD: ${SMTP_PASSWORD:?defina SMTP_PASSWORD no .env}
     ports:
       # Console de administração só por túnel SSH: o Traefik expõe só o realm fithub.
       - "127.0.0.1:${KEYCLOAK_ADMIN_PORT:-8080}:8080"
@@ -267,6 +276,12 @@ services:
       S3_ACCESS_KEY: ${NUTRITION_S3_ACCESS_KEY:?defina NUTRITION_S3_ACCESS_KEY no .env}
       S3_SECRET_KEY: ${NUTRITION_S3_SECRET_KEY:?defina NUTRITION_S3_SECRET_KEY no .env}
       LOGGING_FILE_NAME: /logs/nutrition-service.log
+
+  # Web do profissional (DEV-0176): estáticos num nginx sem privilégio, em / pelo Traefik.
+  web:
+    image: ghcr.io/${FITHUB_IMAGE_OWNER:-titostauffer}/fithub-web:${FITHUB_IMAGE_TAG:?informe FITHUB_IMAGE_TAG (SHA do commit)}
+    restart: unless-stopped
+    logging: *logging
 
   # Backup diário dos bancos (DEV-0108) às 03:00 UTC, num volume próprio; a cópia para fora da VPS é do Tito.
   backup:

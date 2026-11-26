@@ -27,13 +27,15 @@
   "loginTheme": "fithub",
   "emailTheme": "fithub",
   "smtpServer": {
-    "host": "mailpit",
-    "port": "1025",
-    "from": "no-reply@fithub.local",
+    "host": "${FITHUB_SMTP_HOST:mailpit}",
+    "port": "${FITHUB_SMTP_PORT:1025}",
+    "from": "${FITHUB_SMTP_FROM:no-reply@fithub.local}",
     "fromDisplayName": "FitHub",
     "ssl": "false",
-    "starttls": "false",
-    "auth": "false"
+    "starttls": "${FITHUB_SMTP_STARTTLS:false}",
+    "auth": "${FITHUB_SMTP_AUTH:false}",
+    "user": "${FITHUB_SMTP_USER:}",
+    "password": "${FITHUB_SMTP_PASSWORD:}"
   },
   "defaultRole": {
     "name": "default-roles-fithub",
@@ -98,17 +100,17 @@
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
-      "rootUrl": "http://localhost:5173",
+      "rootUrl": "${FITHUB_WEB_URL:http://localhost:5173}",
       "baseUrl": "/",
       "redirectUris": [
-        "http://localhost:5173/*"
+        "${FITHUB_WEB_URL:http://localhost:5173}/*"
       ],
       "webOrigins": [
-        "http://localhost:5173"
+        "${FITHUB_WEB_URL:http://localhost:5173}"
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "http://localhost:5173/*"
+        "post.logout.redirect.uris": "${FITHUB_WEB_URL:http://localhost:5173}/*"
       }
     },
     {

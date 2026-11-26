@@ -1,0 +1,72 @@
+{
+    "issue": "DEV-0176",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Um caminho configurado deixa de ser resolvido na origem da página",
+            "area": "apps",
+            "file": "apps/web/src/lib/config.ts",
+            "find": "    if (!value.startsWith('/')) return value;\n",
+            "replace": "    return value;\n",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O redirect URI da web passa a aceitar qualquer host",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "        \"${FITHUB_WEB_URL:http://localhost:5173}/*\"\n",
+            "replace": "        \"https://*\"\n",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "A senha do SMTP entra no realm disfarçada de valor padrão",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"password\": \"${FITHUB_SMTP_PASSWORD:}\"",
+            "replace": "\"password\": \"${FITHUB_SMTP_PASSWORD:senha-versionada}\"",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "A rota da web perde a prioridade mínima",
+            "area": "tools",
+            "file": "infra/traefik/dynamic.yml",
+            "find": "      priority: 1\n",
+            "replace": "",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O Keycloak de produção deixa de receber o endereço da web",
+            "area": "tools",
+            "file": "infra/compose/docker-compose.prod.yml",
+            "find": "      FITHUB_WEB_URL: https://${FITHUB_DOMAIN:?defina FITHUB_DOMAIN no .env}\n",
+            "replace": "",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        }
+    ]
+}
