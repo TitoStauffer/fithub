@@ -34,7 +34,7 @@ refused() {
   [ "$(sql client 'select count(*) from sample')" = "$expected" ] || fail "mudou o banco ao recusar: $*"
 }
 
-sql client "set role client; drop table if exists deleted_account, sample, later;"
+sql client "set role client; drop table if exists deleted_account, sample, later, restore_pending;"
 
 # Um backup de antes de a lista de contas excluídas existir no banco.
 run sh /scripts/backup.sh >/dev/null
@@ -76,8 +76,10 @@ run test ! -e /backups/2026-10-11T120000Z || fail "a pasta de 29 dias e 23 horas
 run test -d /backups/2026-10-12T000000Z || fail "a pasta de 29 dias saiu antes do prazo"
 run test ! -e /backups/restore-2026-10-01T000000Z-20261001T000000Z || fail "a cópia de restauração de 40 dias não saiu"
 
-# Depois do backup: dado novo, uma exclusão nova e uma tabela de uma migration posterior.
+# Depois do backup: dado novo, uma exclusão nova e tabelas de migrations posteriores. O backup não tem o marcador de
+# restauração, como um backup de antes da migration dele (Code Review do PR #316).
 sql client "set role client; insert into sample values (2); create table later (id int);
+  create table restore_pending (restored_at timestamptz not null);
   insert into deleted_account values ('00000000-0000-0000-0000-00000000000b', '2026-11-25T00:00:00Z');" >/dev/null
 
 # Recusas, sempre antes de mexer no banco.
@@ -103,6 +105,10 @@ run sh /scripts/restore.sh "$stamp" >/dev/null
   || fail "a tabela restaurada não ficou com o dono do banco"
 [ "$(sql client "select to_regclass('public.later') is null")" = t ] \
   || fail "a tabela posterior ao backup sobrou na restauração"
+[ "$(sql client 'select count(*) from restore_pending')" = 1 ] \
+  || fail "a restauração não gravou o marcador para os serviços reaplicarem as exclusões"
+[ "$(sql client "select pg_get_userbyid(relowner) from pg_class where relname = 'restore_pending'")" = client ] \
+  || fail "a tabela do marcador não ficou com o dono do banco"
 [ -z "$(run sh -c "ls -d /backups/restore-$stamp-* 2>/dev/null || true")" ] \
   || fail "a cópia da restauração que deu certo não saiu"
 
@@ -119,11 +125,14 @@ copy=$(run sh -c "ls -d /backups/restore-2026-11-21T000000Z-*")
 run test -f "$copy/client.csv" || fail "a cópia durável da lista não ficou depois da falha"
 [ "$(run stat -c %a "$copy")" = 700 ] || fail "a cópia durável não ficou só para o dono (700)"
 
-# Um backup de antes de a lista existir: a restauração para e deixa a lista de agora guardada.
+# Um backup de antes de a lista existir é recusado antes de mexer em qualquer banco (achado do PR #314).
+lines=$(sql client 'select count(*) from sample')
 if message=$(run sh /scripts/restore.sh "$before_list" 2>&1); then fail "restaurou um backup sem a lista"; fi
-echo "$message" | grep -q "não tem a lista de contas excluídas; a lista de agora está em /backups/restore-" \
-  || fail "a recusa do backup sem a lista não diz onde a lista ficou"
-run sh -c "ls /backups/restore-$before_list-*/client.csv" >/dev/null || fail "a lista de agora não ficou guardada"
+echo "$message" | grep -q "não tem a lista de contas excluídas: nada foi restaurado" \
+  || fail "a recusa do backup sem a lista não diz que nada foi restaurado"
+[ "$(sql client 'select count(*) from sample')" = "$lines" ] || fail "a recusa do backup sem a lista mudou o banco"
+[ -z "$(run sh -c "ls -d /backups/restore-$before_list-* 2>/dev/null || true")" ] \
+  || fail "a recusa sem mudança deixou uma cópia da lista"
 
-sql client "set role client; drop table if exists deleted_account, sample, later;" >/dev/null
+sql client "set role client; drop table if exists deleted_account, sample, later, restore_pending;" >/dev/null
 echo "Backup e restauração: OK."

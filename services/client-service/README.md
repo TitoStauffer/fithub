@@ -198,3 +198,14 @@ Aplica o [ADR-012](../../docs/00-oficial/adr/ADR-012-retencao-e-exclusao.md):
 - **Expurgo:** a cada `fithub.access-log.purge-interval` (padrão 6 h), sai o que passou de 6 meses (Marco Civil,
   art. 15; ADR-012, item 6). Fica mesmo depois da exclusão da conta, até o prazo.
 - **Exportação:** `accessLog` traz todas as leituras; `healthReads` segue só com as da saúde, por compatibilidade.
+
+## Reaplicar as exclusões depois de restaurar um backup (DEV-0172)
+
+- Depois de restaurar um backup (DEV-0108), o dado de quem excluiu a conta depois do backup volta. A restauração grava
+  um marcador em `restore_pending`, e o expurgo periódico da lista `deleted_account`, que também roda na subida do
+  serviço, reaplica a exclusão de cada conta da lista e apaga o marcador. Só apaga, sem evento e sem mudar a data da
+  lista.
+- Sem marcador, a reaplicação não roda: o dado criado depois da exclusão, como o perfil de cliente recriado por quem
+  também é profissional, não é apagado por ela. A exceção é restaurar um backup feito depois da recriação e ainda
+  com o id na lista (até 30 dias depois da exclusão): a reaplicação apaga também o perfil recriado.
+- O e-mail dos convites pendentes não é conhecido na reaplicação e fica no convite restaurado (débito DEV-0174, #317).

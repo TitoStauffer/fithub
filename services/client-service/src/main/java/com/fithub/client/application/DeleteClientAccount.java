@@ -9,6 +9,7 @@ import com.fithub.client.domain.profile.ClientEvents;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionOperations;
@@ -78,6 +79,27 @@ public class DeleteClientAccount {
                 }
             });
         }
+    }
+
+    /**
+     * Reaplica a exclusão de cada conta da lista (DEV-0172): depois de restaurar um backup, o dado de quem excluiu a conta
+     * depois do backup volta. Só apaga, sem evento (os outros serviços reaplicam a sua parte) e sem mudar a data da lista.
+     * O e-mail dos convites pendentes não é conhecido aqui e fica. Devolve quantas contas foram processadas.
+     */
+    public int reapplyDeletions() {
+        // Só depois de uma restauração (marcador da restore.sh): sem ela, o dado de um id da lista é dado novo do
+        // titular.
+        if (!erasure.restorePending()) {
+            return 0;
+        }
+        List<AccountErasure.DeletedAccount> deleted = erasure.deletedAccounts();
+        for (AccountErasure.DeletedAccount account : deleted) {
+            transaction.executeWithoutResult(status -> erasure.erase(account.clientId(), null, account.deletedAt()));
+            photos.deleteFilesOfClient(account.clientId());
+        }
+        // Só no fim: se algo falhar no meio, o marcador fica e a reaplicação roda de novo no próximo ciclo.
+        erasure.clearRestorePending();
+        return deleted.size();
     }
 
     /** Expurgo da lista de contas excluídas; devolve quantas saíram. */

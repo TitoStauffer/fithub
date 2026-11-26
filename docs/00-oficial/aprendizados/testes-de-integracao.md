@@ -41,3 +41,19 @@ navegação: passa na máquina rápida e falha no runner do CI.
     "Publicar" com `findByRole`.
   - **Prevenção:** a regra acima. A ordem não deu para fixar no mock, porque a disputa é entre microtarefas, então
     a prova é a manual: 20 rodadas seguidas verdes e a leitura do DOM da falha no CI.
+
+## data-de-teste-relativa-ao-relogio-do-codigo
+
+**Regra:** quando o código testado lê o relógio real (um expurgo por prazo, um agendador), a data semeada no teste
+é relativa a `Instant.now()`, nunca uma data absoluta. Para comparar com o que volta do banco, trunque para
+microssegundos, a precisão do `timestamptz`. Data absoluta só com um relógio fixo injetado no contexto do teste.
+
+### Ocorrências
+
+- **Revisão:** Code Review CHANGES_REQUESTED do PR #316, no SHA `cca507b` (MEDIUM) — DEV-0172 (#313) · **PR:** #316
+  - **Impacto:** o `ReapplyDeletionsTest` do client-service semeava a exclusão em 20/11/2026. O expurgo de 30 dias
+    roda com o relógio real antes de reaplicar, então a partir de 20/12/2026 o teste quebraria sozinho e travaria o
+    Java Services de todo PR.
+  - **Correção:** a data passou a ser `Instant.now().minus(1, DAYS).truncatedTo(MICROS)`, como no training e no
+    nutrition.
+  - **Prevenção:** esta regra.

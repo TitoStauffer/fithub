@@ -35,3 +35,28 @@ que só ela derruba, provado por mutação.
     e 0755 no volume da VPS (NFR-02). Cinco guardas novas da restauração não tinham teste.
   - **Correção:** `umask 077` nos dois scripts e um caso no `backup.test.sh` para cada guarda.
   - **Prevenção:** esta regra, a checagem de permissões no teste e a prova manual de 17 mutantes no PR.
+
+## reparo-pos-restauracao-roda-so-com-marcador
+
+**Regra:** um passo que reaplica uma exclusão (ou qualquer reparo) depois de restaurar um backup roda só quando a
+restauração aconteceu, com um marcador gravado pelo procedimento de restauração e apagado no fim do reparo. Rodar
+sempre, por id, apaga também o dado que o titular criou depois da exclusão. O marcador não pode depender de uma
+tabela que o backup restaurado talvez não tenha: a restauração cria a tabela se faltar, e a migration dela usa
+`if not exists`.
+
+### Ocorrências
+
+- **Revisão:** Code Review CHANGES_REQUESTED do PR #316, no SHA `de84ecf` (MEDIUM) — DEV-0172 (#313) · **PR:** #316
+  - **Impacto:** a reaplicação incondicional a cada 6 h apagaria o perfil de cliente recriado por quem também é
+    profissional, e o vínculo aceito de novo, sem `VinculoEncerrado`.
+  - **Correção:** a `restore.sh` grava uma linha em `restore_pending`, e os serviços reaplicam só com ela e a
+    apagam no fim.
+  - **Prevenção:** esta regra, o teste `semRestauracaoODadoDeUmIdDaListaFica` nos três serviços e os mutantes do
+    marcador.
+- **Revisão:** Code Review CHANGES_REQUESTED do PR #316, no SHA `d920891` (MEDIUM) — DEV-0172 (#313) · **PR:** #316
+  - **Impacto:** a `restore.sh` só gravava o marcador quando a tabela existia no banco restaurado. Num backup de
+    antes da migration do marcador, o dado de saúde de quem excluiu a conta depois do backup voltaria sem
+    reaplicação.
+  - **Correção:** a `restore.sh` cria `restore_pending` como dono do banco antes de gravar, e as migrations usam
+    `create table if not exists`.
+  - **Prevenção:** o `backup.test.sh` restaura um backup sem a tabela e confere o marcador e o dono dela.

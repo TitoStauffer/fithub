@@ -310,7 +310,8 @@ class AccountDeletionTest extends ServiceIntegrationTest {
         assertThat(EventContracts.validate(EventContract.ACCOUNT_DELETED_V1, payloads.getFirst()))
                 .isEmpty();
         assertThat(payloads.getFirst()).contains("\"occurredAt\": \"2026-11-23T12:00:00Z\"");
-        assertThat(storage.deletedPrefixes).containsExactly("clients/" + client + "/");
+        // Só o prefixo deste cliente importa: a reaplicação da DEV-0172, na subida, pode apagar o de outros da lista.
+        assertThat(storage.deletedPrefixes).contains("clients/" + client + "/");
     }
 
     @Test
@@ -389,7 +390,7 @@ class AccountDeletionTest extends ServiceIntegrationTest {
                         UUID.fromString(client)))
                 .isEqualTo(1);
         assertThat(deletedAccounts(client)).isZero();
-        assertThat(storage.deletedPrefixes).isEmpty();
+        assertThat(storage.deletedPrefixes).doesNotContain("clients/" + client + "/");
     }
 
     @Test

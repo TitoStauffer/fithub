@@ -22,7 +22,11 @@ Backup diário e restauração dos bancos do FitHub (DEV-0108, ADR-012, item 4; 
     listas antes de subir os serviços;
   - a lista tem o mesmo formato nos três serviços que a usam: `deleted_account(client_id uuid primary key, deleted_at
     timestamptz not null)`;
-  - reapagar o dado dessas contas, que volta com o backup, é a DEV-0172 (#313).
+  - antes de mexer em qualquer banco, confere que o dump de cada banco com lista guardada também tem a
+    `deleted_account`; senão, recusa sem restaurar nada;
+  - grava um marcador em `restore_pending` nos bancos com a lista, criando a tabela se o backup for de antes dela: o client-service, o training e o nutrition
+    reapagam o dado dessas contas na subida e apagam o marcador (DEV-0172). O login no Keycloak é a DEV-0173 (#315);
+  - um dump ilegível na conferência é recusado como ilegível, sem restaurar nada.
 
 ## Ambiente
 
@@ -72,4 +76,4 @@ Infrastructure). Ele confere:
 ## Pendências
 
 - **Cópia fora da VPS:** depende do Tito (provedor e custo). Até lá, os backups ficam num volume da própria VPS.
-- **Reaplicar as exclusões depois da restauração:** DEV-0172 (#313).
+- **Reapagar o login no Keycloak depois da restauração:** DEV-0173 (#315).

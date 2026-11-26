@@ -1,0 +1,365 @@
+{
+    "issue": "DEV-0172",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "client: o expurgo deixa de reaplicar as exclusões",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/DeletedAccountPurgeScheduler.java",
+            "find": "int reapplied = deleteClientAccount.reapplyDeletions();",
+            "replace": "int reapplied = 0;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ReapplyDeletionsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "client: a reaplicação deixa de apagar o dado",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/DeleteClientAccount.java",
+            "find": "status -> erasure.erase(account.clientId(), null, account.deletedAt())",
+            "replace": "status -> {}",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ReapplyDeletionsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "client: a reaplicação passa a renovar a data da lista",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/DeleteClientAccount.java",
+            "find": "erasure.erase(account.clientId(), null, account.deletedAt())",
+            "replace": "erasure.erase(account.clientId(), null, java.time.Instant.now())",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ReapplyDeletionsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "client: a lista de contas excluídas passa a vir vazia",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
+            "find": "\"select client_id, deleted_at from deleted_account order by deleted_at, client_id\"",
+            "replace": "\"select client_id, deleted_at from deleted_account where false\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ReapplyDeletionsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "client: a reaplicação passa a rodar sem restauração",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/DeleteClientAccount.java",
+            "find": "if (!erasure.restorePending()) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ReapplyDeletionsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "client: o marcador de restauração deixa de sair",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/DeleteClientAccount.java",
+            "find": "        erasure.clearRestorePending();\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ReapplyDeletionsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "training: o expurgo deixa de reaplicar as exclusões",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/DeletedAccountPurgeScheduler.java",
+            "find": "int reapplied = eraseDeletedClient.reapplyDeletions();",
+            "replace": "int reapplied = 0;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ReapplyDeletionsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "training: a reaplicação deixa de apagar o dado",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/EraseDeletedClient.java",
+            "find": "status -> erasure.erase(account.clientId(), account.deletedAt())",
+            "replace": "status -> {}",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ReapplyDeletionsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "training: a reaplicação passa a renovar a data da lista",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/EraseDeletedClient.java",
+            "find": "erasure.erase(account.clientId(), account.deletedAt())",
+            "replace": "erasure.erase(account.clientId(), java.time.Instant.now())",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ReapplyDeletionsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "training: a lista de contas excluídas passa a vir vazia",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcClientErasure.java",
+            "find": "\"select client_id, deleted_at from deleted_account order by deleted_at, client_id\"",
+            "replace": "\"select client_id, deleted_at from deleted_account where false\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ReapplyDeletionsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "training: a reaplicação passa a rodar sem restauração",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/EraseDeletedClient.java",
+            "find": "if (!erasure.restorePending()) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ReapplyDeletionsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "training: o marcador de restauração deixa de sair",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/EraseDeletedClient.java",
+            "find": "        erasure.clearRestorePending();\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ReapplyDeletionsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M13",
+            "description": "nutrition: o expurgo deixa de reaplicar as exclusões",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/DeletedAccountPurgeScheduler.java",
+            "find": "int reapplied = eraseDeletedClient.reapplyDeletions();",
+            "replace": "int reapplied = 0;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ReapplyDeletionsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M14",
+            "description": "nutrition: a reaplicação deixa de apagar o dado",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/EraseDeletedClient.java",
+            "find": "status -> accountDeleted(account.clientId(), account.deletedAt())",
+            "replace": "status -> {}",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ReapplyDeletionsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M15",
+            "description": "nutrition: a reaplicação passa a renovar a data da lista",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/EraseDeletedClient.java",
+            "find": "accountDeleted(account.clientId(), account.deletedAt())",
+            "replace": "accountDeleted(account.clientId(), java.time.Instant.now())",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ReapplyDeletionsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M16",
+            "description": "nutrition: a lista de contas excluídas passa a vir vazia",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/JdbcClientErasure.java",
+            "find": "\"select client_id, deleted_at from deleted_account order by deleted_at, client_id\"",
+            "replace": "\"select client_id, deleted_at from deleted_account where false\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ReapplyDeletionsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M17",
+            "description": "nutrition: a reaplicação passa a rodar sem restauração",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/EraseDeletedClient.java",
+            "find": "if (!erasure.restorePending()) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ReapplyDeletionsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M18",
+            "description": "nutrition: o marcador de restauração deixa de sair",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/EraseDeletedClient.java",
+            "find": "        erasure.clearRestorePending();\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ReapplyDeletionsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

@@ -3,6 +3,7 @@ package com.fithub.nutrition.infrastructure.persistence;
 import com.fithub.nutrition.domain.account.ClientErasure;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -42,6 +43,27 @@ class JdbcClientErasure implements ClientErasure {
                         insert into deleted_account (client_id, deleted_at) values (:c, :at)
                         on conflict (client_id) do update set deleted_at = excluded.deleted_at
                         """).param("c", clientId).param("at", Timestamp.from(at)).update();
+    }
+
+    @Override
+    public List<DeletedAccount> deletedAccounts() {
+        return jdbc.sql("select client_id, deleted_at from deleted_account order by deleted_at, client_id")
+                .query((row, index) -> new DeletedAccount(
+                        row.getObject("client_id", UUID.class),
+                        row.getTimestamp("deleted_at").toInstant()))
+                .list();
+    }
+
+    @Override
+    public boolean restorePending() {
+        return Boolean.TRUE.equals(jdbc.sql("select exists (select 1 from restore_pending)")
+                .query(Boolean.class)
+                .single());
+    }
+
+    @Override
+    public void clearRestorePending() {
+        jdbc.sql("delete from restore_pending").update();
     }
 
     @Override
