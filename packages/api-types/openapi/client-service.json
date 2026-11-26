@@ -208,6 +208,13 @@
       "ClientExport" : {
         "description" : "Todos os dados que o client-service tem do cliente.",
         "properties" : {
+          "accessLog" : {
+            "description" : "Todas as leituras de dados sensíveis pelos profissionais (saúde, avaliações e fotos).",
+            "items" : {
+              "$ref" : "#/components/schemas/ClientExportAccess"
+            },
+            "type" : "array"
+          },
           "assessments" : {
             "items" : {
               "$ref" : "#/components/schemas/ClientExportAssessment"
@@ -223,6 +230,7 @@
             "description" : "Ausente se o cliente nunca preencheu o perfil de saúde."
           },
           "healthReads" : {
+            "description" : "Só as leituras da saúde; o registro completo está em accessLog.",
             "items" : {
               "$ref" : "#/components/schemas/ClientExportHealthRead"
             },
@@ -237,6 +245,27 @@
           "profile" : {
             "$ref" : "#/components/schemas/ClientProfile",
             "description" : "Ausente se a conta ainda não tem perfil."
+          }
+        },
+        "type" : "object"
+      },
+      "ClientExportAccess" : {
+        "description" : "Leitura de dado sensível pelo profissional, sem o conteúdo.",
+        "properties" : {
+          "accessedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "professionalId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "professionalName" : {
+            "type" : "string"
+          },
+          "resource" : {
+            "enum" : [ "HEALTH", "ASSESSMENTS", "PHOTOS" ],
+            "type" : "string"
           }
         },
         "type" : "object"

@@ -6,6 +6,7 @@ import com.fithub.client.domain.assessment.BodySeries;
 import com.fithub.client.domain.assessment.Circumferences;
 import com.fithub.client.domain.assessment.Skinfolds;
 import com.fithub.client.domain.link.LinkRepository;
+import com.fithub.client.domain.link.ProfessionalAccessAudit;
 import com.fithub.client.domain.profile.ClientProfileRepository;
 import com.fithub.commons.ids.UuidV7;
 import java.math.BigDecimal;
@@ -27,6 +28,7 @@ public class ManageAssessments {
     private final LinkRepository links;
     private final ClientProfileRepository profiles;
     private final ManagePhotos photos;
+    private final ProfessionalAccessAudit audit;
     private final Clock clock;
 
     public ManageAssessments(
@@ -34,11 +36,13 @@ public class ManageAssessments {
             LinkRepository links,
             ClientProfileRepository profiles,
             ManagePhotos photos,
+            ProfessionalAccessAudit audit,
             Clock clock) {
         this.assessments = assessments;
         this.links = links;
         this.profiles = profiles;
         this.photos = photos;
+        this.audit = audit;
         this.clock = clock;
     }
 
@@ -73,9 +77,12 @@ public class ManageAssessments {
         return assessments.listByClient(UUID.fromString(clientAccount));
     }
 
+    /** Cada leitura pelo profissional fica registrada (DEV-0106, NFR-03); a série corporal passa por aqui. */
     public List<Assessment> listForClient(String professionalAccount, UUID clientId) {
-        requireActiveLink(professionalAccount, clientId);
-        return assessments.listByClient(clientId);
+        UUID professionalId = requireActiveLink(professionalAccount, clientId);
+        List<Assessment> found = assessments.listByClient(clientId);
+        audit.record(professionalId, clientId, ProfessionalAccessAudit.Resource.ASSESSMENTS, clock.instant());
+        return found;
     }
 
     /** A série da evolução corporal do próprio cliente (DEV-0093); sem as datas, todo o histórico. */

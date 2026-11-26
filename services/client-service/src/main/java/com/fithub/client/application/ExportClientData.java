@@ -59,7 +59,8 @@ public class ExportClientData {
             Optional<HealthProfile> health,
             List<AssessmentWithPhotos> assessments,
             List<LinkWithConsent> links,
-            List<PrivacyRecords.HealthRead> healthReads) {}
+            List<PrivacyRecords.HealthRead> healthReads,
+            List<PrivacyRecords.AccessRecord> accessLog) {}
 
     public Export mine(String clientAccount) {
         UUID clientId = UUID.fromString(clientAccount);
@@ -81,6 +82,7 @@ public class ExportClientData {
                                 Optional.ofNullable(
                                         consentByLink.get(found.link().id()))))
                         .toList(),
-                privacy.healthReadsOf(clientId));
+                privacy.healthReadsOf(clientId),
+                privacy.accessLogOf(clientId));
     }
 }

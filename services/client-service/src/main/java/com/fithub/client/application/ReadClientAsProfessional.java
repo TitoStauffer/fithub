@@ -1,7 +1,7 @@
 package com.fithub.client.application;
 
-import com.fithub.client.domain.link.HealthAccessAudit;
 import com.fithub.client.domain.link.LinkRepository;
+import com.fithub.client.domain.link.ProfessionalAccessAudit;
 import com.fithub.client.domain.profile.HealthProfile;
 import java.time.Clock;
 import java.util.UUID;
@@ -17,14 +17,14 @@ public class ReadClientAsProfessional {
     private final LinkRepository links;
     private final ManageClientProfile profiles;
     private final ManageHealthProfile health;
-    private final HealthAccessAudit audit;
+    private final ProfessionalAccessAudit audit;
     private final Clock clock;
 
     public ReadClientAsProfessional(
             LinkRepository links,
             ManageClientProfile profiles,
             ManageHealthProfile health,
-            HealthAccessAudit audit,
+            ProfessionalAccessAudit audit,
             Clock clock) {
         this.links = links;
         this.profiles = profiles;
@@ -52,7 +52,7 @@ public class ReadClientAsProfessional {
         UUID professionalId = requireActiveLink(professionalAccount, clientId);
         HealthProfile found = health.findMine(clientId.toString())
                 .orElseThrow(() -> new NotFoundException("O cliente ainda não informou os dados de saúde."));
-        audit.record(professionalId, clientId, clock.instant());
+        audit.record(professionalId, clientId, ProfessionalAccessAudit.Resource.HEALTH, clock.instant());
         return found;
     }
 

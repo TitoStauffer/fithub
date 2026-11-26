@@ -187,3 +187,13 @@ Aplica o [ADR-012](../../docs/00-oficial/adr/ADR-012-retencao-e-exclusao.md):
   e encerrados com o consentimento de cada um (escopo, versão do termo e data) e as leituras do perfil de saúde pelos
   profissionais (quem e quando, sem o conteúdo).
 - O app junta esta exportação com a do training (DEV-0166) e a do nutrition (DEV-0167), na tela da DEV-0168.
+
+## Auditoria de acesso (DEV-0106)
+
+- Cada leitura de dado sensível pelo profissional vinculado fica registrada em `health_access_log` (V7 e V14): quem
+  leu, de quem, o quê (`resource`: `HEALTH`, `ASSESSMENTS` ou `PHOTOS`) e quando, nunca o conteúdo.
+- Gravam: a saúde (DEV-0040), a lista de avaliações, a série corporal e as fotos de uma avaliação. A leitura do
+  próprio cliente não grava.
+- **Expurgo:** a cada `fithub.access-log.purge-interval` (padrão 6 h), sai o que passou de 6 meses (Marco Civil,
+  art. 15; ADR-012, item 6). Fica mesmo depois da exclusão da conta, até o prazo.
+- **Exportação:** `accessLog` traz todas as leituras; `healthReads` segue só com as da saúde, por compatibilidade.

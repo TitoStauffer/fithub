@@ -158,6 +158,7 @@ class ProfessionalReadTest extends ServiceIntegrationTest {
         assertThat(jdbc.sql("""
                         select string_agg(column_name, ',' order by column_name) from information_schema.columns
                          where table_name = 'health_access_log'
-                        """).query(String.class).single()).isEqualTo("accessed_at,client_id,id,professional_id");
+                        """).query(String.class).single())
+                .isEqualTo("accessed_at,client_id,id,professional_id,resource");
     }
 }

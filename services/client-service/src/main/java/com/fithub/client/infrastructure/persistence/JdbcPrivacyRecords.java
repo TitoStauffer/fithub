@@ -2,6 +2,7 @@ package com.fithub.client.infrastructure.persistence;
 
 import com.fithub.client.domain.account.PrivacyRecords;
 import com.fithub.client.domain.invitation.SharedData;
+import com.fithub.client.domain.link.ProfessionalAccessAudit;
 import java.sql.Array;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -43,12 +44,30 @@ class JdbcPrivacyRecords implements PrivacyRecords {
         return jdbc.sql("""
                         select a.professional_id, p.name, a.accessed_at
                           from health_access_log a left join professional p on p.id = a.professional_id
-                         where a.client_id = :clientId order by a.accessed_at desc, a.id desc
+                         where a.client_id = :clientId and a.resource = 'HEALTH'
+                         order by a.accessed_at desc, a.id desc
                         """)
                 .param("clientId", clientId)
                 .query((row, index) -> new HealthRead(
                         row.getObject("professional_id", UUID.class),
                         row.getString("name"),
+                        row.getTimestamp("accessed_at").toInstant()))
+                .list();
+    }
+
+    @Override
+    public List<AccessRecord> accessLogOf(UUID clientId) {
+        return jdbc.sql("""
+                        select a.professional_id, p.name, a.resource, a.accessed_at
+                          from health_access_log a left join professional p on p.id = a.professional_id
+                         where a.client_id = :clientId
+                         order by a.accessed_at desc, a.id desc
+                        """)
+                .param("clientId", clientId)
+                .query((row, index) -> new AccessRecord(
+                        row.getObject("professional_id", UUID.class),
+                        row.getString("name"),
+                        ProfessionalAccessAudit.Resource.valueOf(row.getString("resource")),
                         row.getTimestamp("accessed_at").toInstant()))
                 .list();
     }
