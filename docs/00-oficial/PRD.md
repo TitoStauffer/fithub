@@ -616,7 +616,10 @@ serviço recalcula os seus a cada 5 minutos, e eles aparecem no painel "FitHub �
   dias, divididas pelos profissionais que publicaram. A ficha que o próprio cliente monta não conta.
 - **Uso depois do fim de um vínculo:** clientes sem vínculo ativo, com um vínculo encerrado, que registraram treino
   ou refeição depois do fim do último vínculo, nos últimos 30 dias.
-- **Conversão do teste para pago e retenção mensal:** dependem do histórico de pagamento, que nasce com a DEV-0100.
+- **Conversão do teste para pago (DEV-0100):** entre os profissionais com o teste grátis já terminado, a fração com ao
+  menos uma cobrança confirmada.
+- **Retenção mensal (DEV-0100):** entre os profissionais com cobrança confirmada que vence no mês passado, a fração que
+  também tem cobrança confirmada que vence neste mês (meses de São Paulo).
 
 ---
 

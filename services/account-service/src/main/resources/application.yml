@@ -49,6 +49,32 @@ management:
         enabled: true
 
 fithub:
+  security:
+    # Os caminhos padrão da java-commons, mais o webhook do Asaas (DEV-0100), que confere o próprio token.
+    public-paths:
+      - /actuator/health
+      - /actuator/health/**
+      - /v3/api-docs/**
+      - /swagger-ui/**
+      - /swagger-ui.html
+      - /webhooks/asaas
+  subscription:
+    # Preço do plano mensal (DEV-0098, PRD seção 9.2). A data de corte do lançamento é provisória (o fim do beta):
+    # quem assina até ela paga o preço de lançamento nos primeiros meses pagos.
+    price:
+      monthly: ${FITHUB_SUBSCRIPTION_PRICE:200.00}
+      launch: ${FITHUB_SUBSCRIPTION_LAUNCH_PRICE:150.00}
+      launch-months: ${FITHUB_SUBSCRIPTION_LAUNCH_MONTHS:3}
+      launch-until: ${FITHUB_SUBSCRIPTION_LAUNCH_UNTIL:2027-06-30}
+  payment:
+    # Asaas (DEV-0100): sandbox por padrão. A chave e o token do webhook vêm só do ambiente; sem eles, o checkout falha
+    # e o webhook recusa tudo.
+    asaas:
+      base-url: ${ASAAS_BASE_URL:https://api-sandbox.asaas.com/v3}
+      api-key: ${ASAAS_API_KEY:}
+      webhook-token: ${ASAAS_WEBHOOK_TOKEN:}
+      success-url: ${FITHUB_PAYMENT_SUCCESS_URL:http://localhost:5173/assinatura?retorno=sucesso}
+      cancel-url: ${FITHUB_PAYMENT_CANCEL_URL:http://localhost:5173/assinatura?retorno=cancelado}
   messaging:
     # Exchange topic de origem dos eventos deste serviço (ADR-003).
     exchange: fithub.account

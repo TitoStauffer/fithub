@@ -150,6 +150,23 @@
           }
         },
         "type" : "object"
+      },
+      "SubscriptionCheckout" : {
+        "properties" : {
+          "checkoutUrl" : {
+            "description" : "Página de pagamento do Asaas, só com cartão de crédito.",
+            "type" : "string"
+          },
+          "launchPrice" : {
+            "description" : "Se o valor é o preço de lançamento, que vale nos primeiros meses pagos.",
+            "type" : "boolean"
+          },
+          "value" : {
+            "description" : "Valor mensal da primeira cobrança.",
+            "type" : "number"
+          }
+        },
+        "type" : "object"
       }
     },
     "securitySchemes" : {
@@ -311,6 +328,55 @@
           }
         },
         "summary" : "Plano e estado da assinatura do profissional da conta autenticada",
+        "tags" : [ "Assinatura" ]
+      }
+    },
+    "/professionals/me/subscription/checkout" : {
+      "post" : {
+        "operationId" : "startSubscriptionCheckout",
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SubscriptionCheckout"
+                }
+              }
+            },
+            "description" : "O checkout, com o link e o valor."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta ainda não tem cadastro de profissional."
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A assinatura já tem período pago valendo."
+          }
+        },
+        "summary" : "Cria o checkout da assinatura mensal no Asaas e devolve o link de pagamento",
         "tags" : [ "Assinatura" ]
       }
     }

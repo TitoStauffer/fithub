@@ -98,6 +98,9 @@ const CREDENTIAL_RECEIVERS = {
   KEYCLOAK_ADMIN_PASSWORD: ['keycloak'],
   // O mesmo SMTP manda o convite (client-service) e a verificação do cadastro (Keycloak, DEV-0176).
   SMTP_PASSWORD: ['client-service', 'keycloak'],
+  // Pagamento da assinatura (DEV-0100): só o account-service fala com o Asaas.
+  ASAAS_API_KEY: ['account-service'],
+  ASAAS_WEBHOOK_TOKEN: ['account-service'],
 };
 
 test('cada credencial chega só ao dono e a quem a cria', () => {

@@ -146,7 +146,14 @@ O console usa o endereço do túnel (`KC_HOSTNAME_ADMIN`): abra pela porta 8080 
    No RabbitMQ, o administrador (`RABBITMQ_ADMIN_*`) fica só para a operação: cada serviço tem o seu usuário
    (`<SERVIÇO>_RABBITMQ_PASSWORD`), que só publica na própria exchange. No S3, o client e o nutrition têm cada um
    a sua identidade (`CLIENT_S3_*`, `NUTRITION_S3_*`), só com o próprio bucket.
-4. No GitHub, crie o environment `production` com os segredos `DEPLOY_SSH_HOST`, `DEPLOY_SSH_USER`, `DEPLOY_SSH_KEY`
+4. **Asaas (DEV-0100, [ADR-015](../docs/00-oficial/adr/ADR-015-pagamento-asaas.md)):**
+   - crie a conta de produção (pede CNPJ, MEI serve, e conta bancária) e gere a chave da API;
+   - em **Integrações > Webhooks**, cadastre `https://<domínio>/api/account/webhooks/asaas`, com a fila sequencial
+     e um token de 32 a 255 caracteres;
+   - ponha a chave e o token no `.env` (`ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN`).
+
+   Para testar antes, use o sandbox, com `ASAAS_BASE_URL=https://api-sandbox.asaas.com/v3` e a chave do sandbox.
+5. No GitHub, crie o environment `production` com os segredos `DEPLOY_SSH_HOST`, `DEPLOY_SSH_USER`, `DEPLOY_SSH_KEY`
    (chave só para o deploy), `DEPLOY_SSH_KNOWN_HOSTS` (saída de `ssh-keyscan <vps>`, conferida) e, se a pasta não for
    a padrão, `DEPLOY_DIR`; e a variável `FITHUB_DOMAIN`. Em **Deployment branches**, deixe só a `master`: o
    `workflow_dispatch` roda o arquivo do workflow da branch escolhida, e sem essa regra uma branch com o `deploy.yml`
