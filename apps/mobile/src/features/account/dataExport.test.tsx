@@ -63,7 +63,7 @@ describe('collectExport', () => {
 describe('DownloadDataScreen', () => {
     it('avisa que as fotos vêm por link de 5 minutos e entrega o JSON pelo compartilhamento', async () => {
         const user = userEvent.setup();
-        const share = jest.fn(async () => undefined);
+        const share = jest.fn(async () => true);
         await render(<DownloadDataScreen api={exportApi()} share={share} onDone={jest.fn()} />);
 
         expect(screen.getByText(/link que vale 5 minutos/)).toBeOnTheScreen();
@@ -78,7 +78,7 @@ describe('DownloadDataScreen', () => {
 
     it('com uma parte fora do ar, diz qual e não abre o compartilhamento', async () => {
         const user = userEvent.setup();
-        const share = jest.fn(async () => undefined);
+        const share = jest.fn(async () => true);
         await render(
             <DownloadDataScreen api={exportApi({ nutrition: failing })} share={share} onDone={jest.fn()} />,
         );
@@ -89,6 +89,20 @@ describe('DownloadDataScreen', () => {
             'Não foi possível baixar: alimentação. Nada foi entregue; tente de novo.',
         );
         expect(share).not.toHaveBeenCalled();
+        expect(screen.getByRole('button', { name: 'Baixar meus dados' })).toBeEnabled();
+    });
+});
+
+describe('DownloadDataScreen sem compartilhar', () => {
+    it('fechar o compartilhamento sem escolher nada não diz que os dados foram entregues', async () => {
+        const user = userEvent.setup();
+        const share = jest.fn(async () => false);
+        await render(<DownloadDataScreen api={exportApi()} share={share} onDone={jest.fn()} />);
+
+        await user.press(screen.getByRole('button', { name: 'Baixar meus dados' }));
+
+        expect(share).toHaveBeenCalledTimes(1);
+        expect(screen.queryByText('Pronto: seus dados foram entregues.')).toBeNull();
         expect(screen.getByRole('button', { name: 'Baixar meus dados' })).toBeEnabled();
     });
 });
@@ -115,7 +129,7 @@ describe('ClientArea', () => {
 
     it('leva da tela inicial ao Baixar meus dados', async () => {
         const user = userEvent.setup();
-        const share = jest.fn(async () => undefined);
+        const share = jest.fn(async () => true);
         await render(
             <ClientArea
                 api={profileApi}

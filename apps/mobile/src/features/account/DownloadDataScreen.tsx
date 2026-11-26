@@ -4,10 +4,14 @@ import { Share, StyleSheet, Text, View } from 'react-native';
 import { Alert, Button } from '../profile/ui';
 import { collectExport, PART_LABELS, type DataExportApi } from './dataExport';
 
-/** Entrega o texto pelo compartilhamento do sistema; injetável nos testes. */
-export type ShareText = (title: string, message: string) => Promise<unknown>;
+/**
+ * Entrega o texto pelo compartilhamento do sistema e diz se a pessoa de fato compartilhou; injetável nos testes. Fechar
+ * a folha sem escolher nada não é entrega (no iOS, `dismissedAction`; o Android não distingue e conta como entregue).
+ */
+export type ShareText = (title: string, message: string) => Promise<boolean>;
 
-const systemShare: ShareText = (title, message) => Share.share({ title, message });
+const systemShare: ShareText = async (title, message) =>
+    (await Share.share({ title, message })).action === Share.sharedAction;
 
 /**
  * Baixar meus dados (DEV-0168, NFR-01, LGPD art. 18, II e V): junta a exportação do client-service, do training e do
@@ -40,8 +44,7 @@ export function DownloadDataScreen({
                 setError(`Não foi possível baixar: ${parts}. Nada foi entregue; tente de novo.`);
                 return;
             }
-            await share('Meus dados no FitHub', result.json);
-            setShared(true);
+            setShared(await share('Meus dados no FitHub', result.json));
         } catch {
             setError('Não foi possível abrir o compartilhamento. Tente de novo.');
         } finally {

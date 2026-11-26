@@ -196,3 +196,5 @@ está no ADR-007.
 - Se uma parte falhar, a tela diz qual faltou e não entrega nada: nunca um arquivo incompleto como se estivesse
   completo.
 - A tela avisa que as fotos vêm por link de 5 minutos.
+- A confirmação "Pronto" só aparece quando a pessoa de fato compartilha; fechar a folha sem escolher nada (iOS) não
+  conta como entrega.

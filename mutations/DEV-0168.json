@@ -90,6 +90,21 @@
                 "run",
                 "test"
             ]
+        },
+        {
+            "id": "M7",
+            "description": "Fechar o compartilhamento sem escolher nada passa a mostrar que foi entregue",
+            "area": "apps",
+            "file": "apps/mobile/src/features/account/DownloadDataScreen.tsx",
+            "find": "setShared(await share('Meus dados no FitHub', result.json));",
+            "replace": "await share('Meus dados no FitHub', result.json);\n            setShared(true);",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
         }
     ]
 }
