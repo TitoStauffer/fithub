@@ -187,3 +187,14 @@ está no ADR-007.
 - O botão só habilita depois que o cliente digita **EXCLUIR** (sem diferenciar maiúsculas nem espaços nas pontas).
 - Chama `DELETE /clients/me` (DEV-0105). Com sucesso, encerra a sessão (`signOut`: apaga a local e tenta revogar
   no Keycloak, sem falhar se o login já saiu). Com erro, mostra a mensagem e deixa tentar de novo.
+
+## Baixar meus dados (DEV-0168)
+
+- Na tela inicial, **Baixar meus dados** chama, ao mesmo tempo, a exportação do client-service (`/clients/me/export`),
+  do training e do nutrition (`/me/export`) e junta as três num JSON legível, com a data em que foi gerado.
+- O arquivo sai pelo compartilhamento do sistema (`Share` do React Native, sem dependência nova).
+- Se uma parte falhar, a tela diz qual faltou e não entrega nada: nunca um arquivo incompleto como se estivesse
+  completo.
+- A tela avisa que as fotos vêm por link de 5 minutos.
+- A confirmação "Pronto" só aparece quando a pessoa de fato compartilha; fechar a folha sem escolher nada (iOS) não
+  conta como entrega.

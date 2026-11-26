@@ -1,0 +1,110 @@
+{
+    "issue": "DEV-0168",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "Com uma parte fora do ar, o arquivo passa a ser entregue mesmo assim",
+            "area": "apps",
+            "file": "apps/mobile/src/features/account/dataExport.ts",
+            "find": "if (profile.status === 'rejected' || training.status === 'rejected' || nutrition.status === 'rejected') {",
+            "replace": "if (false) {",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "A parte de treinos que falhou deixa de ser apontada",
+            "area": "apps",
+            "file": "apps/mobile/src/features/account/dataExport.ts",
+            "find": "    if (training.status === 'rejected') missing.push('training');\n",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O arquivo deixa de trazer a data em que foi gerado",
+            "area": "apps",
+            "file": "apps/mobile/src/features/account/dataExport.ts",
+            "find": "        exportedAt: now().toISOString(),\n",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "A tela deixa de dizer quais partes faltaram",
+            "area": "apps",
+            "file": "apps/mobile/src/features/account/DownloadDataScreen.tsx",
+            "find": "                setError(`Não foi possível baixar: ${parts}. Nada foi entregue; tente de novo.`);\n",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "A tela passa a compartilhar mesmo com uma parte faltando",
+            "area": "apps",
+            "file": "apps/mobile/src/features/account/DownloadDataScreen.tsx",
+            "find": "            if (!result.complete) {",
+            "replace": "            if (false) {",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "A tela inicial deixa de levar ao Baixar meus dados",
+            "area": "apps",
+            "file": "apps/mobile/src/features/profile/ClientArea.tsx",
+            "find": "            <Button onPress={() => setScreen('downloadData')}>Baixar meus dados</Button>\n",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Fechar o compartilhamento sem escolher nada passa a mostrar que foi entregue",
+            "area": "apps",
+            "file": "apps/mobile/src/features/account/DownloadDataScreen.tsx",
+            "find": "setShared(await share('Meus dados no FitHub', result.json));",
+            "replace": "await share('Meus dados no FitHub', result.json);\n            setShared(true);",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}
