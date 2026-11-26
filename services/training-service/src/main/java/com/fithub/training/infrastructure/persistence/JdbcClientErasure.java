@@ -64,6 +64,18 @@ class JdbcClientErasure implements ClientErasure {
     }
 
     @Override
+    public boolean restorePending() {
+        return Boolean.TRUE.equals(jdbc.sql("select exists (select 1 from restore_pending)")
+                .query(Boolean.class)
+                .single());
+    }
+
+    @Override
+    public void clearRestorePending() {
+        jdbc.sql("delete from restore_pending").update();
+    }
+
+    @Override
     public int purgeDeletedBefore(Instant cutoff) {
         return jdbc.sql("delete from deleted_account where deleted_at < :cutoff")
                 .param("cutoff", Timestamp.from(cutoff))

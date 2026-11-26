@@ -87,11 +87,18 @@ public class DeleteClientAccount {
      * O e-mail dos convites pendentes não é conhecido aqui e fica. Devolve quantas contas foram processadas.
      */
     public int reapplyDeletions() {
+        // Só depois de uma restauração (marcador da restore.sh): sem ela, o dado de um id da lista é dado novo do
+        // titular.
+        if (!erasure.restorePending()) {
+            return 0;
+        }
         List<AccountErasure.DeletedAccount> deleted = erasure.deletedAccounts();
         for (AccountErasure.DeletedAccount account : deleted) {
             transaction.executeWithoutResult(status -> erasure.erase(account.clientId(), null, account.deletedAt()));
             photos.deleteFilesOfClient(account.clientId());
         }
+        // Só no fim: se algo falhar no meio, o marcador fica e a reaplicação roda de novo no próximo ciclo.
+        erasure.clearRestorePending();
         return deleted.size();
     }
 

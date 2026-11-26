@@ -39,10 +39,17 @@ public class EraseDeletedClient {
      * foram processadas.
      */
     public int reapplyDeletions() {
+        // Só depois de uma restauração (marcador da restore.sh): sem ela, o dado de um id da lista é dado novo do
+        // titular.
+        if (!erasure.restorePending()) {
+            return 0;
+        }
         List<ClientErasure.DeletedAccount> deleted = erasure.deletedAccounts();
         for (ClientErasure.DeletedAccount account : deleted) {
             transaction.executeWithoutResult(status -> erasure.erase(account.clientId(), account.deletedAt()));
         }
+        // Só no fim: se algo falhar no meio, o marcador fica e a reaplicação roda de novo no próximo ciclo.
+        erasure.clearRestorePending();
         return deleted.size();
     }
 

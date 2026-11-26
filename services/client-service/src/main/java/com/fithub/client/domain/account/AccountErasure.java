@@ -23,4 +23,10 @@ public interface AccountErasure {
 
     /** A lista de contas excluídas, da mais antiga para a mais nova (DEV-0172). */
     List<DeletedAccount> deletedAccounts();
+
+    /** Se a infra/backup/restore.sh restaurou o banco e a reaplicação ainda não rodou (DEV-0172). */
+    boolean restorePending();
+
+    /** A reaplicação terminou: o marcador de restauração sai. */
+    void clearRestorePending();
 }

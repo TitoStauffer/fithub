@@ -64,6 +64,12 @@ create temp table restored_deleted_account (client_id uuid, deleted_at timestamp
 insert into deleted_account (client_id, deleted_at)
 select client_id, deleted_at from restored_deleted_account
 on conflict (client_id) do update set deleted_at = greatest(deleted_account.deleted_at, excluded.deleted_at);
+-- Marcador para o serviço reaplicar a exclusão das contas da lista (DEV-0172); só quem tem a tabela.
+do \$\$ begin
+  if to_regclass('public.restore_pending') is not null then
+    insert into restore_pending (restored_at) values (now());
+  end if;
+end \$\$;
 SQL
 }
 
@@ -79,7 +85,14 @@ done
 # Cada banco com lista guardada precisa de um backup que também a tenha: senão, a lista não teria onde voltar. Confere
 # antes de mexer em qualquer banco (achado do PR #314); nada mudou, então a cópia sai.
 for db in $FITHUB_DATABASES; do
-  if [ -f "$saved/$db.csv" ] && ! pg_restore -l "$source/$db.dump" | grep -q ' TABLE public deleted_account '; then
+  [ -f "$saved/$db.csv" ] || continue
+  # A listagem numa atribuição própria: um dump ilegível não pode virar "não tem a lista" (Code Review do PR #316).
+  if ! contents=$(pg_restore -l "$source/$db.dump" 2>/dev/null); then
+    rm -rf "$saved"
+    echo "O dump de $db no backup $stamp está ilegível: nada foi restaurado." >&2
+    exit 1
+  fi
+  if ! echo "$contents" | grep -q ' TABLE public deleted_account '; then
     rm -rf "$saved"
     echo "O backup $stamp de $db não tem a lista de contas excluídas: nada foi restaurado." >&2
     exit 1

@@ -105,10 +105,16 @@ class ReapplyDeletionsTest extends ServiceIntegrationTest {
                 .param("id", deleted)
                 .param("at", Timestamp.from(deletedAt))
                 .update();
+        // A restauração gravou o marcador (infra/backup/restore.sh).
+        jdbc.sql("insert into restore_pending (restored_at) values (now())").update();
         int events = count(
                 "select count(*) from fithub_outbox_event where payload ->> 'clientId' = :id", deleted.toString());
 
         scheduler.purge();
+        assertThat(jdbc.sql("select count(*) from restore_pending")
+                        .query(Integer.class)
+                        .single())
+                .isZero();
 
         assertThat(leftovers(deleted)).containsOnly(0);
         assertThat(leftovers(other)).containsExactly(1, 1, 1);
@@ -122,5 +128,20 @@ class ReapplyDeletionsTest extends ServiceIntegrationTest {
                         "select count(*) from fithub_outbox_event where payload ->> 'clientId' = :id",
                         deleted.toString()))
                 .isEqualTo(events);
+    }
+
+    @Test
+    void semRestauracaoODadoDeUmIdDaListaFica() throws Exception {
+        // Quem também é profissional pode recriar o perfil de cliente depois de excluir a conta de cliente: sem
+        // marcador de restauração, a reaplicação não toca nesse dado novo (Code Review do PR #316).
+        jdbc.sql("delete from restore_pending").update();
+        UUID recreated = client();
+        jdbc.sql("insert into deleted_account (client_id, deleted_at) values (:id, now() - interval '1 day')")
+                .param("id", recreated)
+                .update();
+
+        scheduler.purge();
+
+        assertThat(leftovers(recreated)).containsExactly(1, 1, 1);
     }
 }

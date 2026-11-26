@@ -201,7 +201,10 @@ Aplica o [ADR-012](../../docs/00-oficial/adr/ADR-012-retencao-e-exclusao.md):
 
 ## Reaplicar as exclusões depois de restaurar um backup (DEV-0172)
 
-- O expurgo periódico da lista `deleted_account`, que também roda na subida do serviço, reaplica a exclusão de cada
-  conta da lista: depois de restaurar um backup (DEV-0108), o dado de quem excluiu a conta depois do backup volta e sai
-  de novo. Só apaga, sem evento e sem mudar a data da lista.
-- O e-mail dos convites pendentes não é conhecido na reaplicação e fica no convite restaurado.
+- Depois de restaurar um backup (DEV-0108), o dado de quem excluiu a conta depois do backup volta. A restauração grava
+  um marcador em `restore_pending`, e o expurgo periódico da lista `deleted_account`, que também roda na subida do
+  serviço, reaplica a exclusão de cada conta da lista e apaga o marcador. Só apaga, sem evento e sem mudar a data da
+  lista.
+- Sem marcador, a reaplicação não roda: o dado criado depois da exclusão, como o perfil de cliente recriado por quem
+  também é profissional, nunca é apagado por ela.
+- O e-mail dos convites pendentes não é conhecido na reaplicação e fica no convite restaurado (débito DEV-0174, #317).

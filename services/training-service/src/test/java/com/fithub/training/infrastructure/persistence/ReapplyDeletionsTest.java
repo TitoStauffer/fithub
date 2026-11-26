@@ -78,7 +78,13 @@ class ReapplyDeletionsTest extends ServiceIntegrationTest {
                 .param("at", Timestamp.from(deletedAt))
                 .update();
 
+        // A restauração gravou o marcador (infra/backup/restore.sh).
+        jdbc.sql("insert into restore_pending (restored_at) values (now())").update();
         scheduler.purge();
+        assertThat(jdbc.sql("select count(*) from restore_pending")
+                        .query(Integer.class)
+                        .single())
+                .isZero();
 
         assertThat(leftovers(deleted)).containsOnly(0);
         assertThat(leftovers(other)).containsExactly(1, 1);
@@ -88,5 +94,20 @@ class ReapplyDeletionsTest extends ServiceIntegrationTest {
                         .single()
                         .toInstant())
                 .isCloseTo(deletedAt, org.assertj.core.api.Assertions.within(1, java.time.temporal.ChronoUnit.MILLIS));
+    }
+
+    @Test
+    void semRestauracaoODadoDeUmIdDaListaFica() throws Exception {
+        // Quem também é profissional pode recriar o perfil de cliente depois de excluir a conta de cliente: sem
+        // marcador de restauração, a reaplicação não toca nesse dado novo (Code Review do PR #316).
+        jdbc.sql("delete from restore_pending").update();
+        UUID recreated = client();
+        jdbc.sql("insert into deleted_account (client_id, deleted_at) values (:id, now() - interval '1 day')")
+                .param("id", recreated)
+                .update();
+
+        scheduler.purge();
+
+        assertThat(leftovers(recreated)).containsExactly(1, 1);
     }
 }

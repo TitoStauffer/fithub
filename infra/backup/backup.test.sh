@@ -34,7 +34,7 @@ refused() {
   [ "$(sql client 'select count(*) from sample')" = "$expected" ] || fail "mudou o banco ao recusar: $*"
 }
 
-sql client "set role client; drop table if exists deleted_account, sample, later;"
+sql client "set role client; drop table if exists deleted_account, sample, later, restore_pending;"
 
 # Um backup de antes de a lista de contas excluídas existir no banco.
 run sh /scripts/backup.sh >/dev/null
@@ -44,6 +44,7 @@ before_list=$(run sh -c "ls /backups")
 sql client "set role client;
   create table deleted_account (client_id uuid primary key, deleted_at timestamptz not null);
   create table sample (id int primary key);
+  create table restore_pending (restored_at timestamptz not null);
   insert into sample values (1);
   insert into deleted_account values ('00000000-0000-0000-0000-00000000000a', '2026-11-01T00:00:00Z');" >/dev/null
 
@@ -103,6 +104,8 @@ run sh /scripts/restore.sh "$stamp" >/dev/null
   || fail "a tabela restaurada não ficou com o dono do banco"
 [ "$(sql client "select to_regclass('public.later') is null")" = t ] \
   || fail "a tabela posterior ao backup sobrou na restauração"
+[ "$(sql client 'select count(*) from restore_pending')" = 1 ] \
+  || fail "a restauração não gravou o marcador para os serviços reaplicarem as exclusões"
 [ -z "$(run sh -c "ls -d /backups/restore-$stamp-* 2>/dev/null || true")" ] \
   || fail "a cópia da restauração que deu certo não saiu"
 
@@ -128,5 +131,5 @@ echo "$message" | grep -q "não tem a lista de contas excluídas: nada foi resta
 [ -z "$(run sh -c "ls -d /backups/restore-$before_list-* 2>/dev/null || true")" ] \
   || fail "a recusa sem mudança deixou uma cópia da lista"
 
-sql client "set role client; drop table if exists deleted_account, sample, later;" >/dev/null
+sql client "set role client; drop table if exists deleted_account, sample, later, restore_pending;" >/dev/null
 echo "Backup e restauração: OK."

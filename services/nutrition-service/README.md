@@ -206,6 +206,9 @@ O consumidor dos eventos do client-service também recebe o `ContaExcluida` (`cl
 
 ## Reaplicar as exclusões depois de restaurar um backup (DEV-0172)
 
-- O expurgo periódico da lista `deleted_account`, que também roda na subida do serviço, reaplica a exclusão de cada
-  conta da lista: depois de restaurar um backup (DEV-0108), o dado de quem excluiu a conta depois do backup volta e sai
-  de novo. Só apaga, sem evento e sem mudar a data da lista.
+- Depois de restaurar um backup (DEV-0108), o dado de quem excluiu a conta depois do backup volta. A restauração grava
+  um marcador em `restore_pending`, e o expurgo periódico da lista `deleted_account`, que também roda na subida do
+  serviço, reaplica a exclusão de cada conta da lista e apaga o marcador. Só apaga, sem evento e sem mudar a data da
+  lista.
+- Sem marcador, a reaplicação não roda: o dado criado depois da exclusão, como o perfil de cliente recriado por quem
+  também é profissional, nunca é apagado por ela.
