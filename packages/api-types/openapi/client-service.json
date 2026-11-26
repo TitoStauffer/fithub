@@ -220,7 +220,7 @@
           },
           "health" : {
             "$ref" : "#/components/schemas/HealthProfile",
-            "description" : "Vazio se o cliente nunca preencheu o perfil de saúde."
+            "description" : "Ausente se o cliente nunca preencheu o perfil de saúde."
           },
           "healthReads" : {
             "items" : {
@@ -236,7 +236,7 @@
           },
           "profile" : {
             "$ref" : "#/components/schemas/ClientProfile",
-            "description" : "Vazio se a conta ainda não tem perfil."
+            "description" : "Ausente se a conta ainda não tem perfil."
           }
         },
         "type" : "object"

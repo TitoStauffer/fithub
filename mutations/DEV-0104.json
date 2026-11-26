@@ -140,6 +140,46 @@
                 "-Dtest=ClientExportTest",
                 "-Dsurefire.failIfNoSpecifiedTests=false"
             ]
+        },
+        {
+            "id": "M8",
+            "description": "A exportação volta a mandar null no perfil e na saúde ausentes",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/interfaces/rest/ClientExportController.java",
+            "find": "    @JsonInclude(JsonInclude.Include.NON_NULL)\n    @Schema(name = \"ClientExport\", description",
+            "replace": "    @Schema(name = \"ClientExport\", description",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ClientExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "O vínculo ativo volta a mandar null no encerramento",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/interfaces/rest/ClientExportController.java",
+            "find": "    @JsonInclude(JsonInclude.Include.NON_NULL)\n    @Schema(name = \"ClientExportLink\"",
+            "replace": "    @Schema(name = \"ClientExportLink\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ClientExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
         }
     ]
 }

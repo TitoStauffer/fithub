@@ -1,5 +1,6 @@
 package com.fithub.client.interfaces.rest;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fithub.client.application.ExportClientData;
 import com.fithub.client.domain.account.PrivacyRecords;
 import com.fithub.client.domain.invitation.SharedData;
@@ -49,6 +50,9 @@ class ClientExportController {
         }
     }
 
+    // Vínculo ativo não tem endedAt nem endedBy; sem consentimento, o campo também some (aprendizado
+    // nulo-sobre-ref-no-openapi: campo que pode faltar é omitido, não null).
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     @Schema(name = "ClientExportLink", description = "Vínculo, ativo ou encerrado, com o consentimento.")
     record LinkExport(
             UUID id,
@@ -76,6 +80,8 @@ class ClientExportController {
         }
     }
 
+    // O nome some quando o profissional saiu da projeção.
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     @Schema(
             name = "ClientExportHealthRead",
             description = "Leitura do perfil de saúde pelo profissional, sem o conteúdo.")
@@ -86,14 +92,16 @@ class ClientExportController {
         }
     }
 
+    // Sem perfil ou sem saúde, o campo some.
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     @Schema(name = "ClientExport", description = "Todos os dados que o client-service tem do cliente.")
     record ExportResponse(
             Instant exportedAt,
 
-            @Schema(description = "Vazio se a conta ainda não tem perfil.")
+            @Schema(description = "Ausente se a conta ainda não tem perfil.")
             ClientProfileController.ProfileResponse profile,
 
-            @Schema(description = "Vazio se o cliente nunca preencheu o perfil de saúde.")
+            @Schema(description = "Ausente se o cliente nunca preencheu o perfil de saúde.")
             HealthProfileController.HealthResponse health,
 
             List<AssessmentExport> assessments,

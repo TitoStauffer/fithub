@@ -502,11 +502,11 @@ export interface components {
             assessments?: components["schemas"]["ClientExportAssessment"][];
             /** Format: date-time */
             exportedAt?: string;
-            /** @description Vazio se o cliente nunca preencheu o perfil de saúde. */
+            /** @description Ausente se o cliente nunca preencheu o perfil de saúde. */
             health?: components["schemas"]["HealthProfile"];
             healthReads?: components["schemas"]["ClientExportHealthRead"][];
             links?: components["schemas"]["ClientExportLink"][];
-            /** @description Vazio se a conta ainda não tem perfil. */
+            /** @description Ausente se a conta ainda não tem perfil. */
             profile?: components["schemas"]["ClientProfile"];
         };
         /** @description Avaliação com as fotos, cada uma com a URL temporária. */

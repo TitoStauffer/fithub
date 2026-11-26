@@ -1,5 +1,6 @@
 package com.fithub.client;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -153,14 +154,44 @@ class ClientExportTest extends ServiceIntegrationTest {
     }
 
     @Test
-    void contaSemNadaExportaListasVazias() throws Exception {
-        mvc.perform(get("/clients/me/export").header("Authorization", "Bearer conta-" + UUID.randomUUID()))
+    void contaSemNadaExportaListasVaziasSemPerfilNemSaude() throws Exception {
+        String body = mvc.perform(
+                        get("/clients/me/export").header("Authorization", "Bearer conta-" + UUID.randomUUID()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.profile").isEmpty())
-                .andExpect(jsonPath("$.health").isEmpty())
                 .andExpect(jsonPath("$.assessments.length()").value(0))
                 .andExpect(jsonPath("$.links.length()").value(0))
-                .andExpect(jsonPath("$.healthReads.length()").value(0));
+                .andExpect(jsonPath("$.healthReads.length()").value(0))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        // Campo que pode faltar é omitido, não null: é o que o OpenAPI promete (aprendizado nulo-sobre-ref-no-openapi).
+        assertThat(body)
+                .doesNotContain("\"profile\"")
+                .doesNotContain("\"health\"")
+                .doesNotContain("null");
+    }
+
+    @Test
+    void vinculoAtivoSaiSemDataNemAutorDoEncerramento() throws Exception {
+        String personal = professional(ProfessionalType.PERSONAL_TRAINER, "Paula Personal");
+        String nutritionist = professional(ProfessionalType.NUTRITIONIST, "Nina Nutri");
+        String client = fullClient(personal, nutritionist, "joelho");
+
+        String body = mvc.perform(get("/clients/me/export").header("Authorization", "Bearer conta-" + client))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        int active = 0;
+        for (var link : json.readTree(body).get("links")) {
+            if ("ACTIVE".equals(link.get("status").asString())) {
+                active++;
+                assertThat(link.has("endedAt")).isFalse();
+                assertThat(link.has("endedBy")).isFalse();
+            }
+        }
+        assertThat(active).isEqualTo(1);
     }
 
     @Test
