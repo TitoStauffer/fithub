@@ -3,6 +3,7 @@
 Infraestrutura local e de produção.
 
 - `compose/` — `docker-compose.dev.yml`, ambiente local (DEV-0012)
+- `backup/` — backup diário dos bancos e restauração, com o teste de ponta a ponta (DEV-0108)
 - `keycloak/` — realm `fithub` versionado (DEV-0024), com o teste das guardas e a checagem no Keycloak de pé
 - `traefik/` — borda e TLS em produção
 
