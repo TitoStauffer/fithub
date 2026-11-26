@@ -351,9 +351,18 @@ jobs:
         if: env.RUN_AREA == 'true'
         run: sh infra/backup/backup.test.sh
 
+      # Observabilidade (DEV-0109): o otel-lgtm do perfil observability sobe com a configuração do coletor, e um span
+      # e uma linha de log com o mesmo traceId chegam ao Tempo e ao Loki.
+      - name: Check observability stack
+        if: env.RUN_AREA == 'true'
+        run: |
+          mkdir -p .logs
+          docker compose -f infra/compose/docker-compose.dev.yml --profile observability up -d --wait --wait-timeout 300 otel-lgtm
+          sh infra/observability/observability.test.sh
+
       - name: Stop local infrastructure compose
         if: always() && env.RUN_AREA == 'true'
-        run: docker compose -f infra/compose/docker-compose.dev.yml down -v
+        run: docker compose -f infra/compose/docker-compose.dev.yml --profile observability down -v
 
   # Imagens no GHCR (DEV-0017): só no push na master, depois de o Java Services passar no mesmo
   # commit, para todos os serviços (idempotente). Tag = SHA do commit; deploy continua manual (ADR-005).

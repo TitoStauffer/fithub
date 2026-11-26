@@ -1,0 +1,119 @@
+{
+    "issue": "DEV-0109",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O outbox deixa de gravar o traceparent da requisição",
+            "area": "java",
+            "file": "libs/java-commons/src/main/java/com/fithub/commons/messaging/OutboxWriter.java",
+            "find": "                        currentTraceParent())",
+            "replace": "                        (String) null)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "libs/java-commons",
+                "test",
+                "-Dtest=MessagingIntegrationTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O publicador deixa de mandar o cabeçalho traceparent",
+            "area": "java",
+            "file": "libs/java-commons/src/main/java/com/fithub/commons/messaging/OutboxPublisher.java",
+            "find": "            message.getMessageProperties().setHeader(TRACE_PARENT_HEADER, event.traceParent());\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "libs/java-commons",
+                "test",
+                "-Dtest=MessagingIntegrationTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "A observação dos listeners fica desligada e o consumidor começa outro trace",
+            "area": "java",
+            "file": "libs/java-commons/src/main/java/com/fithub/commons/messaging/MessagingDefaults.java",
+            "find": "\"spring.rabbitmq.listener.simple.observation-enabled\", \"true\"",
+            "replace": "\"spring.rabbitmq.listener.simple.observation-enabled\", \"false\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "libs/java-commons",
+                "test",
+                "-Dtest=MessagingIntegrationTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Sem o exportador OTLP, os spans não saem do serviço mesmo com o endpoint",
+            "area": "java",
+            "file": "libs/java-commons/pom.xml",
+            "find": "      <artifactId>opentelemetry-exporter-otlp</artifactId>",
+            "replace": "      <artifactId>opentelemetry-exporter-common</artifactId>",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "libs/java-commons",
+                "test",
+                "-Dtest=TraceExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O arquivo de log deixa de sair em JSON e o coletor não lê a linha",
+            "area": "java",
+            "file": "libs/java-commons/src/main/java/com/fithub/commons/logging/StructuredLoggingDefaults.java",
+            "find": "            \"logging.structured.format.file\", \"ecs\",\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "libs/java-commons",
+                "test",
+                "-Dtest=StructuredLoggingDefaultsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "As observações do Spring Security voltam e os spans levam os papéis da pessoa",
+            "area": "java",
+            "file": "libs/java-commons/src/main/java/com/fithub/commons/logging/StructuredLoggingDefaults.java",
+            "find": "\"management.observations.enable.spring.security\", \"false\"",
+            "replace": "\"management.observations.enable.spring.security\", \"true\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "libs/java-commons",
+                "test",
+                "-Dtest=JavaCommonsIntegrationTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

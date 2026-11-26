@@ -8,10 +8,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationHandler;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -19,10 +24,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 // Sem banco nem broker: as peças de mensageria (DEV-0014) têm o próprio teste com Testcontainers.
-@SpringBootTest(properties = "spring.autoconfigure.exclude="
-        + "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration,"
-        + "org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration,"
-        + "org.springframework.boot.amqp.autoconfigure.RabbitAutoConfiguration")
+@SpringBootTest(
+        properties = "spring.autoconfigure.exclude="
+                + "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration,"
+                + "org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration,"
+                + "org.springframework.boot.amqp.autoconfigure.RabbitAutoConfiguration")
 @AutoConfigureMockMvc
 @ExtendWith(OutputCaptureExtension.class)
 class JavaCommonsIntegrationTest {
@@ -88,7 +94,9 @@ class JavaCommonsIntegrationTest {
                 .andExpect(content().contentTypeCompatibleWith(PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(500))
                 .andExpect(jsonPath("$.title").value("Erro interno"))
-                .andReturn().getResponse().getContentAsString();
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
         assertThat(body).doesNotContain("detalhe interno").doesNotContain("IllegalStateException");
     }
 
@@ -122,11 +130,45 @@ class JavaCommonsIntegrationTest {
     void requestLogLineIsJsonWithTraceId(CapturedOutput output) throws Exception {
         mvc.perform(get("/log").header("Authorization", "Bearer " + TestApplication.CLIENT_TOKEN))
                 .andExpect(status().isOk());
-        String line = output.getOut().lines()
+        String line = output.getOut()
+                .lines()
                 .filter(candidate -> candidate.contains("linha de log de teste da java-commons"))
                 .findFirst()
                 .orElseThrow();
         assertThat(line).startsWith("{").endsWith("}");
         assertThat(line).containsPattern("\"traceId\":\"[0-9a-f]{32}\"");
+    }
+
+    // --- Observações exportadas como spans (DEV-0109) ---
+
+    @Autowired
+    private ObservationNames observationNames;
+
+    @Test
+    void authenticatedRequestIsObservedWithoutTheSpringSecuritySpans() throws Exception {
+        observationNames.names.clear();
+        mvc.perform(get("/secure").header("Authorization", "Bearer " + TestApplication.CLIENT_TOKEN))
+                .andExpect(status().isOk());
+
+        assertThat(observationNames.names).contains("http.server.requests");
+        // Os spans do Spring Security levam os papéis da pessoa: ficam desligados pela java-commons.
+        assertThat(observationNames.names).noneMatch(name -> name.startsWith("spring.security"));
+    }
+
+    /** Guarda o nome de cada observação iniciada: cada uma vira um span quando o exportador está ligado. */
+    @TestConfiguration(proxyBeanMethods = false)
+    static class ObservationNames implements ObservationHandler<Observation.Context> {
+
+        final Set<String> names = ConcurrentHashMap.newKeySet();
+
+        @Override
+        public void onStart(Observation.Context context) {
+            names.add(context.getName());
+        }
+
+        @Override
+        public boolean supportsContext(Observation.Context context) {
+            return true;
+        }
     }
 }

@@ -1,7 +1,6 @@
 package com.fithub.commons.logging;
 
 import java.util.Map;
-
 import org.springframework.boot.EnvironmentPostProcessor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -18,8 +17,15 @@ public class StructuredLoggingDefaults implements EnvironmentPostProcessor {
 
     static final Map<String, Object> DEFAULTS = Map.of(
             "logging.structured.format.console", "ecs",
-            // Sem exportador configurado, amostrar tudo só garante traceId em todas as linhas de log.
-            "management.tracing.sampling.probability", "1.0");
+            // O arquivo de log, quando o serviço liga logging.file.name, no mesmo JSON: o coletor do compose lê
+            // esse arquivo e manda as linhas para o Loki (DEV-0109).
+            "logging.structured.format.file", "ecs",
+            // Amostrar tudo garante traceId em todas as linhas de log e, com o exportador OTLP ligado, todos os
+            // traces no Tempo (o volume do MVP é pequeno; o serviço pode baixar a probabilidade).
+            "management.tracing.sampling.probability", "1.0",
+            // Sem as observações do Spring Security (DEV-0109): elas criam um span por filtro, com os papéis da pessoa
+            // (spring.security.authentication.authorities). O span da requisição continua, com rota, status e duração.
+            "management.observations.enable.spring.security", "false");
 
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {

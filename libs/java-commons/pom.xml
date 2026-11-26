@@ -31,7 +31,7 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
-    <!-- Tracer do Micrometer (ponte OpenTelemetry), sem exportador: põe traceId/spanId no MDC dos logs. -->
+    <!-- Tracer do Micrometer (ponte OpenTelemetry): põe traceId/spanId no MDC dos logs. -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-micrometer-tracing-opentelemetry</artifactId>
@@ -39,6 +39,19 @@
     <dependency>
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-tracing-bridge-otel</artifactId>
+    </dependency>
+    <!--
+      Exportador OTLP oficial do OpenTelemetry (DEV-0109, ADR-013), na versão do Spring Boot. Só exporta com
+      management.opentelemetry.tracing.export.otlp.endpoint configurado; sem ele, nenhum span sai do serviço.
+    -->
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-exporter-otlp</artifactId>
+    </dependency>
+    <!-- API do OpenTelemetry: o outbox grava o traceparent da requisição (DEV-0109). -->
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-api</artifactId>
     </dependency>
     <!-- Mensageria confiável (DEV-0014): outbox transacional e consumidor idempotente (ADR-003). -->
     <dependency>
