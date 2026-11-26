@@ -67,6 +67,34 @@
                 "--test",
                 "infra/compose/prod.test.mjs"
             ]
+        },
+        {
+            "id": "M6",
+            "description": "A web volta a recusar ser embutida até pela própria origem (iframe do keycloak-js)",
+            "area": "tools",
+            "file": "infra/traefik/dynamic.yml",
+            "find": "        customFrameOptionsValue: SAMEORIGIN\n",
+            "replace": "        frameDeny: true\n",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "O token volta a ir para qualquer caminho da origem das APIs",
+            "area": "apps",
+            "file": "apps/web/src/lib/http.ts",
+            "find": "        return target.pathname === prefix || target.pathname.startsWith(`${prefix}/`);\n",
+            "replace": "        return true;\n",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
         }
     ]
 }

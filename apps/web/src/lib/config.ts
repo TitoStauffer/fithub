@@ -26,12 +26,7 @@ export const config = {
     nutritionApiUrl: setting(import.meta.env.VITE_NUTRITION_API_URL, 'http://localhost:8084'),
 } as const;
 
-/** Origens que podem receber o token de acesso: só as APIs do FitHub. */
-export function apiOrigins(): string[] {
-    return [
-        new URL(config.accountApiUrl).origin,
-        new URL(config.clientApiUrl).origin,
-        new URL(config.trainingApiUrl).origin,
-        new URL(config.nutritionApiUrl).origin,
-    ];
+/** Endereços que podem receber o token de acesso: só os das APIs do FitHub, com o caminho (DEV-0176). */
+export function apiBases(): string[] {
+    return [config.accountApiUrl, config.clientApiUrl, config.trainingApiUrl, config.nutritionApiUrl];
 }

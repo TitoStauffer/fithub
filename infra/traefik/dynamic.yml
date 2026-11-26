@@ -44,7 +44,7 @@ http:
       rule: Host(`{{ env "FITHUB_DOMAIN" }}`)
       priority: 1
       entryPoints: [websecure]
-      middlewares: [security-headers]
+      middlewares: [web-headers]
       service: web
 
   middlewares:
@@ -66,6 +66,17 @@ http:
         stsIncludeSubdomains: true
         contentTypeNosniff: true
         frameDeny: true
+        referrerPolicy: no-referrer
+
+    # Os mesmos cabeçalhos para a web, mas a página pode ser embutida pela própria origem: o keycloak-js usa um iframe
+    # escondido (silent-check-sso.html) para renovar a sessão sem recarregar (Code Review do PR #324). Outra origem
+    # continua sem poder embutir a web.
+    web-headers:
+      headers:
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        contentTypeNosniff: true
+        customFrameOptionsValue: SAMEORIGIN
         referrerPolicy: no-referrer
 
   services:

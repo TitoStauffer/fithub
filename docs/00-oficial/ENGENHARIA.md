@@ -159,7 +159,8 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
     renova o token para trazer o papel. A proteção de verdade é sempre da API.
   - As chamadas às APIs usam `createApiFetch` (`src/lib/http.ts`): Bearer
     token, uma nova tentativa com token renovado num 401, e o token só vai
-    para as origens das APIs do FitHub.
+    para os endereços base das APIs do FitHub, com o caminho: em produção
+    elas dividem a origem com a web, o Keycloak e os buckets (DEV-0176).
 - **Sessão no mobile** (DEV-0028, `apps/mobile/src/features/auth`):
   `expo-auth-session` em Authorization Code + PKCE S256, no navegador do
   sistema, voltando pelo esquema `fithub://auth`.
@@ -176,8 +177,9 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
     tela de entrada; falha de rede mantém a sessão guardada.
   - O logout apaga o cofre e revoga a sessão no Keycloak pelo refresh token.
   - As chamadas usam `createApiFetch` (`src/lib/apiFetch.ts`), com as
-    mesmas regras da web: Bearer token, uma nova tentativa no 401 e token só
-    para as origens das APIs do FitHub.
+    regras da web: Bearer token e uma nova tentativa no 401. O token vai só
+    para as origens das APIs do FitHub; o filtro pelo caminho, como na web,
+    é o débito DEV-0178.
 - **Avaliação corporal** (DEV-0044): o cliente registra a online em
   `/clients/me/assessments`; o profissional vinculado, a presencial em
   `/professionals/me/clients/{clientId}/assessments`. O tipo vem da rota, e o
@@ -402,9 +404,10 @@ teste pulado sem `DEV-xxxx` na justificativa derruba o job (DEV-0016; detalhes e
    Testcontainers), lint e typecheck no front. Precisa estar verde para merge.
    Depois do CI verde rodam Code Review, QA, Coordinator e Merge Readiness
    (AGENTS.md).
-2. **Merge na master:** gera a imagem Docker de cada serviço e publica no
-   GHCR com a tag do commit (`ghcr.io/<dono>/fithub-<servico>:<sha>`), no job
-   `Publish Images`, depois do `Java Services` verde no mesmo commit. Publica
+2. **Merge na master:** gera a imagem Docker de cada serviço e a da web
+   (`fithub-web`, DEV-0176) e publica no GHCR com a tag do commit
+   (`ghcr.io/<dono>/fithub-<servico>:<sha>`), no job `Publish Images`,
+   depois do `Java Services` e do `Apps` verdes no mesmo commit. Publica
    todos, não só os alterados, para que um run cancelado ou falho não deixe
    serviço sem imagem (cada execução é idempotente). Só esse
    job tem `packages: write`, com o `GITHUB_TOKEN`. Cada serviço tem um

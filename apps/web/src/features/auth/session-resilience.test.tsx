@@ -33,7 +33,7 @@ function CallsApiOnMount({ fetch }: { fetch: typeof window.fetch }) {
         const apiFetch = createApiFetch({
             getAccessToken,
             onSessionRejected: rejectSession,
-            allowedOrigins: [API],
+            allowedBases: [API],
             fetch,
         });
         apiFetch(`${API}/professionals/me`).then(
@@ -152,7 +152,7 @@ function CallsApiTwice({ fetch }: { fetch: typeof window.fetch }) {
         const apiFetch = createApiFetch({
             getAccessToken,
             onSessionRejected: rejectSession,
-            allowedOrigins: [API],
+            allowedBases: [API],
             fetch,
         });
         void apiFetch(`${API}/professionals/me?chamada=1`).catch(() => undefined);

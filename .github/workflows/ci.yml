@@ -7,7 +7,7 @@ name: CI
 #   Java Services         libs Java e serviços: build, unitários, ArchUnit e integração (Testcontainers)
 #   Apps                  workspace pnpm: lint, typecheck e testes dos apps e pacotes
 #   Local Infrastructure  compose de desenvolvimento sobe saudável
-#   Publish Images        só no push na master: imagem de todos os serviços no GHCR, tag do commit (DEV-0017)
+#   Publish Images        só no push na master: imagem de todos os serviços e da web no GHCR, tag do commit (DEV-0017, DEV-0176)
 #
 # Mutação (DEV-0116): os manifestos mutations/<CHAVE>.json alterados no PR rodam no job da área de cada
 # mutante (tools no GitHub Reviewer, java no Java Services, apps no Apps), por tools/repo-checks/mutations.mjs.

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 
-import { apiOrigins } from '@/lib/config';
+import { apiBases } from '@/lib/config';
 import { createApiFetch, type ApiFetch } from '@/lib/http';
 
 import { useAuth } from './authContext';
@@ -13,7 +13,7 @@ export function useApiFetch(): ApiFetch {
             createApiFetch({
                 getAccessToken,
                 onSessionRejected: rejectSession,
-                allowedOrigins: apiOrigins(),
+                allowedBases: apiBases(),
             }),
         [getAccessToken, rejectSession],
     );
