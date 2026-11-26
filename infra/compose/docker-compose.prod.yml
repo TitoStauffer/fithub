@@ -26,7 +26,6 @@ x-service: &service
 
 x-service-environment: &service-environment
   DB_HOST: postgres
-  DB_PASSWORD: ${FITHUB_DB_PASSWORD:?defina FITHUB_DB_PASSWORD no .env}
   RABBITMQ_HOST: rabbitmq
   RABBITMQ_USER: ${RABBITMQ_USER:?defina RABBITMQ_USER no .env}
   RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?defina RABBITMQ_PASSWORD no .env}
@@ -79,7 +78,12 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
       # Um banco e um usuário por serviço, mais o do Keycloak (postgres/init-databases.sh).
       FITHUB_DATABASES: account client training nutrition keycloak
-      FITHUB_DB_PASSWORD: ${FITHUB_DB_PASSWORD:?defina FITHUB_DB_PASSWORD no .env}
+      # Uma senha por usuário (init-databases.sh): cada serviço recebe só a do seu banco.
+      ACCOUNT_DB_PASSWORD: ${ACCOUNT_DB_PASSWORD:?defina ACCOUNT_DB_PASSWORD no .env}
+      CLIENT_DB_PASSWORD: ${CLIENT_DB_PASSWORD:?defina CLIENT_DB_PASSWORD no .env}
+      TRAINING_DB_PASSWORD: ${TRAINING_DB_PASSWORD:?defina TRAINING_DB_PASSWORD no .env}
+      NUTRITION_DB_PASSWORD: ${NUTRITION_DB_PASSWORD:?defina NUTRITION_DB_PASSWORD no .env}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?defina KEYCLOAK_DB_PASSWORD no .env}
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
@@ -115,8 +119,11 @@ services:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
       KC_DB_USERNAME: keycloak
-      KC_DB_PASSWORD: ${FITHUB_DB_PASSWORD:?defina FITHUB_DB_PASSWORD no .env}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?defina KEYCLOAK_DB_PASSWORD no .env}
       KC_HOSTNAME: https://${FITHUB_DOMAIN:?defina FITHUB_DOMAIN no .env}/auth
+      # O console de administração abre pelo túnel SSH (ssh -L 8080:127.0.0.1:8080): sem isto, ele mandaria o login
+      # para o domínio público, onde a borda não expõe o realm master nem /auth/admin.
+      KC_HOSTNAME_ADMIN: http://localhost:${KEYCLOAK_ADMIN_PORT:-8080}/auth
       KC_HTTP_RELATIVE_PATH: /auth
       KC_HTTP_MANAGEMENT_RELATIVE_PATH: /
       KC_HTTP_ENABLED: "true"
@@ -172,6 +179,7 @@ services:
       <<: *service-environment
       DB_NAME: account
       DB_USER: account
+      DB_PASSWORD: ${ACCOUNT_DB_PASSWORD:?defina ACCOUNT_DB_PASSWORD no .env}
       KEYCLOAK_URL: http://keycloak:8080/auth
       FITHUB_ACCOUNT_SERVICE_SECRET: ${FITHUB_ACCOUNT_SERVICE_SECRET:?defina FITHUB_ACCOUNT_SERVICE_SECRET no .env}
       LOGGING_FILE_NAME: /logs/account-service.log
@@ -187,6 +195,7 @@ services:
       <<: *service-environment
       DB_NAME: client
       DB_USER: client
+      DB_PASSWORD: ${CLIENT_DB_PASSWORD:?defina CLIENT_DB_PASSWORD no .env}
       MAIL_HOST: ${SMTP_HOST:?defina SMTP_HOST no .env}
       MAIL_PORT: ${SMTP_PORT:?defina SMTP_PORT no .env}
       SPRING_MAIL_USERNAME: ${SMTP_USERNAME:?defina SMTP_USERNAME no .env}
@@ -209,6 +218,7 @@ services:
       <<: *service-environment
       DB_NAME: training
       DB_USER: training
+      DB_PASSWORD: ${TRAINING_DB_PASSWORD:?defina TRAINING_DB_PASSWORD no .env}
       LOGGING_FILE_NAME: /logs/training-service.log
 
   nutrition-service:
@@ -222,6 +232,7 @@ services:
       <<: *service-environment
       DB_NAME: nutrition
       DB_USER: nutrition
+      DB_PASSWORD: ${NUTRITION_DB_PASSWORD:?defina NUTRITION_DB_PASSWORD no .env}
       S3_ENDPOINT: http://seaweedfs:8333
       S3_PUBLIC_ENDPOINT: https://${FITHUB_DOMAIN:?defina FITHUB_DOMAIN no .env}
       S3_ACCESS_KEY: ${S3_ACCESS_KEY:?defina S3_ACCESS_KEY no .env}

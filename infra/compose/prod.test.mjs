@@ -76,6 +76,33 @@ test('cada segredo do .env é obrigatório: sem ele, o compose não sobe', () =>
   }
 });
 
+test('cada usuário de banco tem senha própria, e só o dono do banco a recebe', () => {
+  const owners = {
+    ACCOUNT_DB_PASSWORD: 'account-service',
+    CLIENT_DB_PASSWORD: 'client-service',
+    TRAINING_DB_PASSWORD: 'training-service',
+    NUTRITION_DB_PASSWORD: 'nutrition-service',
+    KEYCLOAK_DB_PASSWORD: 'keycloak',
+  };
+  // Um valor diferente por senha, para saber quem recebeu qual.
+  const distinct = example.replace(/^([A-Z]+_DB_PASSWORD)=.*$/gm, (_, name) => `${name}=senha-de-${name.toLowerCase()}`);
+  const { config } = compose(distinct);
+  for (const [name, owner] of Object.entries(owners)) {
+    const value = `senha-de-${name.toLowerCase()}`;
+    const receivers = Object.entries(config.services)
+      .filter(([, service]) => Object.values(service.environment ?? {}).includes(value))
+      .map(([service]) => service)
+      .sort();
+    // O Postgres cria os usuários (init-databases.sh), então recebe todas.
+    assert.deepEqual(receivers, [owner, 'postgres'].sort(), `${name} chegou a ${receivers.join(', ')}`);
+  }
+  assert.doesNotMatch(read(COMPOSE), /FITHUB_DB_PASSWORD/);
+});
+
+test('o console do Keycloak abre pelo túnel SSH, não pelo domínio público', () => {
+  assert.equal(resolved.config.services.keycloak.environment.KC_HOSTNAME_ADMIN, 'http://localhost:8080/auth');
+});
+
 test('a tag da imagem dos serviços é obrigatória e vem do disparo do deploy', () => {
   assert.equal(compose(example, {}).ok, false);
   for (const name of Object.keys(SERVICES)) {

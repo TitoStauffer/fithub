@@ -32,16 +32,21 @@ via SSH. Faltava o desenho da borda e do deploy. Três fatos pesam:
    - o certificado vem do Let's Encrypt, pelo desafio HTTP.
 3. **Só o Traefik publica portas públicas** (80 e 443). Postgres, RabbitMQ, SeaweedFS e os serviços ficam na rede
    interna. O console do Keycloak (`127.0.0.1:8080`) e o Grafana (`127.0.0.1:3000`) ficam só na VPS, por túnel SSH; a
-   borda não expõe o realm `master` nem `/auth/admin`.
+   borda não expõe o realm `master` nem `/auth/admin`. O console usa o endereço do túnel (`KC_HOSTNAME_ADMIN`), e não o
+   domínio público (Code Review do PR #322).
 4. **Token:** o `iss` é o endereço público (`https://<domínio>/auth/realms/fithub`), e os serviços buscam as chaves
    do Keycloak pela rede interna (`jwk-set-uri`), sem sair da VPS.
 5. **Segredos:** num `.env` na VPS (modelo `infra/compose/.env.prod.example`, só com marcadores). O compose recusa
-   subir sem cada um (`${VAR:?}`). O workflow guarda só o acesso SSH, no environment `production` do GitHub.
+   subir sem cada um (`${VAR:?}`). Cada usuário de banco tem a sua senha, e cada serviço recebe só a do seu banco:
+   comprometer um serviço não abre o banco de outro nem o do Keycloak (Code Review do PR #322). O workflow guarda só o acesso SSH, no environment `production` do GitHub.
 6. **Deploy (`.github/workflows/deploy.yml`):**
    - só manual, com o SHA completo de um commit da master que já tem as imagens no GHCR (DEV-0017);
    - copia por SSH só os arquivos da infra desse commit e roda `pull` e `up --wait`;
    - confere a borda no fim (health de cada serviço e o realm);
-   - permissão só de leitura; o host é conferido pelo `known_hosts` de um segredo, sem aceitar chave nova.
+   - permissão só de leitura; o host é conferido pelo `known_hosts` de um segredo, sem aceitar chave nova;
+   - o environment `production` aceita só a branch `master` (regra de deployment branch): o `workflow_dispatch`
+     roda o arquivo do workflow da branch escolhida, e sem a regra uma branch com o `deploy.yml` alterado receberia a
+     chave SSH.
 7. **Operação na VPS:**
    - backup diário às 03:00 UTC, por um container com o `crond`, num volume próprio, com 30 dias de retenção
      (DEV-0108);

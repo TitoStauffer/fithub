@@ -53,6 +53,12 @@ for path in /auth/admin/ /auth/realms/master/.well-known/openid-configuration /a
   [ "$(edge -o /dev/null -w '%{http_code}' "https://$domain:$https$path")" = 404 ] || fail "a borda expôs $path"
 done
 
+# O console de administração abre pelo túnel (127.0.0.1), com o endereço do túnel, não o domínio público.
+admin_port=${KEYCLOAK_ADMIN_PORT:-8080}
+console=$(curl -sf "http://127.0.0.1:$admin_port/auth/admin/master/console/") || fail "o console do Keycloak não abriu pelo 127.0.0.1"
+echo "$console" | grep -q "http://localhost:$admin_port/auth" || fail "o console não usa o endereço do túnel"
+echo "$console" | grep -q "https://$domain/auth/admin" && fail "o console manda o login para o domínio público"
+
 # O bucket das fotos chega ao SeaweedFS com o caminho inteiro (resposta do S3, não do Traefik).
 edge "https://$domain:$https/fithub-photos/inexistente.jpg" | grep -q '<Error>' || fail "o bucket de fotos não chegou ao S3"
 

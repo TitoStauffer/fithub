@@ -104,6 +104,32 @@
                 "--test",
                 "infra/compose/prod.test.mjs"
             ]
+        },
+        {
+            "id": "M9",
+            "description": "O training-service passa a receber a senha do banco do client",
+            "area": "tools",
+            "file": "infra/compose/docker-compose.prod.yml",
+            "find": "      DB_PASSWORD: ${TRAINING_DB_PASSWORD:?defina TRAINING_DB_PASSWORD no .env}",
+            "replace": "      DB_PASSWORD: ${CLIENT_DB_PASSWORD:?defina CLIENT_DB_PASSWORD no .env}",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "O console do Keycloak volta a usar o domínio público",
+            "area": "tools",
+            "file": "infra/compose/docker-compose.prod.yml",
+            "find": "      KC_HOSTNAME_ADMIN: http://localhost:${KEYCLOAK_ADMIN_PORT:-8080}/auth\n",
+            "replace": "",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
         }
     ]
 }

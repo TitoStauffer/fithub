@@ -88,7 +88,9 @@ jobs:
             curl -fsS --retry 10 --retry-delay 6 --retry-all-errors -o /dev/null "https://$FITHUB_DOMAIN/api/$service/actuator/health"
             echo "$service: ok"
           done
-          curl -fsS -o /dev/null "https://$FITHUB_DOMAIN/auth/realms/fithub/.well-known/openid-configuration"
+          # O Keycloak fica saudável antes de terminar de importar o realm (503 nesse meio-tempo).
+          curl -fsS --retry 30 --retry-delay 4 --retry-all-errors -o /dev/null \
+            "https://$FITHUB_DOMAIN/auth/realms/fithub/.well-known/openid-configuration"
           echo "keycloak: ok"
 
       - name: Remove the SSH key
