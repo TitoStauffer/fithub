@@ -176,3 +176,14 @@ Aplica o [ADR-012](../../docs/00-oficial/adr/ADR-012-retencao-e-exclusao.md):
   de 30 dias. O log traz só a quantidade.
 - O login no Keycloak e os dados de training e nutrition saem nos consumidores do evento (DEV-0161, DEV-0162 e
   DEV-0163).
+
+## Exportação dos dados (DEV-0104)
+
+| Rota | Quem | Resposta |
+|---|---|---|
+| `GET /clients/me/export` | cliente | Todos os dados que o client-service tem do cliente do token |
+
+- **O que entra:** perfil, perfil de saúde, avaliações com as fotos (URL pré-assinada de 5 minutos), vínculos ativos
+  e encerrados com o consentimento de cada um (escopo, versão do termo e data) e as leituras do perfil de saúde pelos
+  profissionais (quem e quando, sem o conteúdo).
+- O app junta esta exportação com a do training (DEV-0166) e a do nutrition (DEV-0167), na tela da DEV-0168.

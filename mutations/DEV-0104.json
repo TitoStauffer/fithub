@@ -1,0 +1,185 @@
+{
+    "issue": "DEV-0104",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "A rota deixa de exigir o papel de cliente",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/interfaces/rest/ClientExportController.java",
+            "find": "    @PreAuthorize(\"hasRole('CLIENT')\")\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ClientExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "As leituras da saúde passam a trazer as de outros clientes",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcPrivacyRecords.java",
+            "find": "where a.client_id = :clientId order by",
+            "replace": "where :clientId is not null order by",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ClientExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O vínculo deixa de trazer o consentimento",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ExportClientData.java",
+            "find": "consentByLink.get(found.link().id())",
+            "replace": "null",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ClientExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "As avaliações deixam de trazer as fotos",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ExportClientData.java",
+            "find": "photos.listMine(clientAccount, assessment.id())",
+            "replace": "List.of()",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ClientExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "A exportação deixa de trazer as leituras da saúde",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ExportClientData.java",
+            "find": "                privacy.healthReadsOf(clientId));",
+            "replace": "                List.of());",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ClientExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "A exportação deixa de trazer o perfil de saúde",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ExportClientData.java",
+            "find": "                health.findMine(clientAccount),",
+            "replace": "                Optional.empty(),",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ClientExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "A exportação deixa de trazer o perfil",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ExportClientData.java",
+            "find": "                profiles.findMine(clientAccount),",
+            "replace": "                Optional.empty(),",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ClientExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "A exportação volta a mandar null no perfil e na saúde ausentes",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/interfaces/rest/ClientExportController.java",
+            "find": "    @JsonInclude(JsonInclude.Include.NON_NULL)\n    @Schema(name = \"ClientExport\", description",
+            "replace": "    @Schema(name = \"ClientExport\", description",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ClientExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "O vínculo ativo volta a mandar null no encerramento",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/interfaces/rest/ClientExportController.java",
+            "find": "    @JsonInclude(JsonInclude.Include.NON_NULL)\n    @Schema(name = \"ClientExportLink\"",
+            "replace": "    @Schema(name = \"ClientExportLink\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ClientExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

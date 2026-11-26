@@ -45,6 +45,14 @@ o teste prova a ausência no corpo, não com `jsonPath(...).doesNotExist()`, que
   - **Prevenção:** o teste confere que o corpo do exercício próprio não contém `attribution`; o mutante M9
     de `mutations/DEV-0053.json` tira o `@JsonInclude` e é derrubado. Ao revisar o OpenAPI gerado, procurar
     `"type": "null"` ao lado de `$ref`.
+- **Revisão:** Code Review CHANGES_REQUESTED do PR #303, no SHA `8aaf142` (MEDIUM: a exportação devolvia
+  `profile`, `health`, `consent`, `endedAt`, `endedBy` e `professionalName` como `null`, e o contrato não admitia) —
+  DEV-0104 (#96) · **PR:** #303
+  - **Impacto:** o app (DEV-0168) receberia `null` em campos que o tipo gerado diz que não são nulos.
+  - **Correção:** `@JsonInclude(NON_NULL)` nos records da exportação; o campo que pode faltar some do corpo.
+  - **Prevenção:** os testes conferem que o corpo não tem `null` nem os campos ausentes; mutantes M8 e M9 de
+    `mutations/DEV-0104.json` tiram o `@JsonInclude`. Ao criar um DTO com `Optional` ou `.orElse(null)`, aplicar
+    a regra desde o início.
 
 ## operation-id-explicito-quando-o-metodo-repete
 
