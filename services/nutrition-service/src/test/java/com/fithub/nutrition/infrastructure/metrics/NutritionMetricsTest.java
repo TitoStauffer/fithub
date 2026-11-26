@@ -46,6 +46,9 @@ class NutritionMetricsTest extends ServiceIntegrationTest {
             // Refeição pulada não é registro de refeição feita.
             UUID skipped = linked(nutritionist);
             meal(skipped, plan(nutritionist, skipped, null), today, "SKIPPED");
+            // Cliente com vínculo encerrado que comeu nesta semana: fora dos vinculados e do engajamento.
+            UUID unlinked = ended(nutritionist, Instant.now().minus(Duration.ofDays(40)));
+            meal(unlinked, plan(nutritionist, unlinked, null), today.minusDays(1), "DONE");
             return delta(before);
         });
 
@@ -64,6 +67,11 @@ class NutritionMetricsTest extends ServiceIntegrationTest {
         version(plan, 3, null);
         plan(nutritionist, UUID.randomUUID(), now.minus(Duration.ofDays(30)).minus(Duration.ofMinutes(1)));
         plan(UUID.randomUUID(), UUID.randomUUID(), now.minus(Duration.ofDays(2)));
+        // Nutricionista que só publicou antes dos 30 dias: não está entre as que publicaram.
+        plan(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                now.minus(Duration.ofDays(30)).minus(Duration.ofMinutes(1)));
 
         Map<String, Double> after = delta(before);
 
@@ -89,6 +97,9 @@ class NutritionMetricsTest extends ServiceIntegrationTest {
             UUID relinked = ended(nutritionist, now.minus(Duration.ofDays(20)));
             link(relinked, UUID.randomUUID(), "ACTIVE", null);
             meal(relinked, plan(nutritionist, relinked, null), today, "DONE");
+            // Comeu depois do fim do vínculo, mas há mais de 30 dias (o 30º dia antes de hoje já fica fora).
+            UUID old = ended(nutritionist, now.minus(Duration.ofDays(60)));
+            meal(old, plan(nutritionist, old, null), today.minusDays(30), "DONE");
             return delta(before);
         });
 

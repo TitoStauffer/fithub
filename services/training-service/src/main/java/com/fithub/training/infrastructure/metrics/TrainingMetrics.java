@@ -67,9 +67,12 @@ class TrainingMetrics {
                 "Profissionais que publicaram prescrição nos últimos 30 dias",
                 personal,
                 count(
+                        // Sem filtro de autor: a ficha do próprio cliente tem personal_id nulo
+                        // (ck_workout_plan_author),
+                        // e o count(distinct) não conta nulo.
                         "select count(distinct p.personal_id) from workout_plan_version v"
                                 + " join workout_plan p on p.id = v.plan_id"
-                                + " where p.author = 'PERSONAL' and v.published_at >= :since",
+                                + " where v.published_at >= :since",
                         MONTH));
         gauges.register(
                 AFTER_LINK_END,

@@ -353,6 +353,246 @@
                 "-Dtest=NutritionMetricsTest",
                 "-Dsurefire.failIfNoSpecifiedTests=false"
             ]
+        },
+        {
+            "id": "M19",
+            "description": "O pagamento vencido passa a contar como ativo",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/metrics/SubscriptionMetrics.java",
+            "find": "ACTIVE = \"s.paid_until > :now\"",
+            "replace": "ACTIVE = \"s.paid_until is not null\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M20",
+            "description": "A contagem da assinatura deixa de separar por tipo de profissional",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/metrics/SubscriptionMetrics.java",
+            "find": "\" where p.type = :type and \" + condition",
+            "replace": "\" where cast(:type as text) is not null and \" + condition",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M21",
+            "description": "Os vínculos ativos deixam de separar por tipo de profissional",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/metrics/LinkMetrics.java",
+            "find": "\"select count(*) from client_link where status = 'ACTIVE' and professional_type = ?\"",
+            "replace": "\"select count(*) from client_link where status = 'ACTIVE' and cast(? as text) is not null\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M22",
+            "description": "O profissional que só tem vínculo encerrado passa a contar",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/metrics/LinkMetrics.java",
+            "find": "\" where status = 'ACTIVE' and professional_type = ?\")",
+            "replace": "\" where professional_type = ?\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M23",
+            "description": "Os profissionais com vínculo deixam de separar por tipo",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/metrics/LinkMetrics.java",
+            "find": "\" where status = 'ACTIVE' and professional_type = ?\")",
+            "replace": "\" where status = 'ACTIVE' and cast(? as text) is not null\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M24",
+            "description": "No treino, o cliente com vínculo encerrado passa a contar como vinculado",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/metrics/TrainingMetrics.java",
+            "find": "\"select count(distinct client_id) from client_link where status = 'ACTIVE'\"",
+            "replace": "\"select count(distinct client_id) from client_link\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M25",
+            "description": "No treino, o cliente com vínculo encerrado passa a contar no engajamento",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/metrics/TrainingMetrics.java",
+            "find": "\"select count(distinct l.client_id) from client_link l where l.status = 'ACTIVE' and exists (\"",
+            "replace": "\"select count(distinct l.client_id) from client_link l where exists (\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M26",
+            "description": "No treino, o personal que só publicou antes dos 30 dias passa a contar entre os que publicaram",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/metrics/TrainingMetrics.java",
+            "find": "                                + \" join workout_plan p on p.id = v.plan_id\"\n                                + \" where v.published_at >= :since\",",
+            "replace": "                                + \" join workout_plan p on p.id = v.plan_id\"\n                                + \" where v.published_at is not null\",",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M27",
+            "description": "Na nutrição, o cliente com vínculo encerrado passa a contar como vinculado",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/metrics/NutritionMetrics.java",
+            "find": "\"select count(distinct client_id) from client_link where status = 'ACTIVE'\"",
+            "replace": "\"select count(distinct client_id) from client_link\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=NutritionMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M28",
+            "description": "Na nutrição, o cliente com vínculo encerrado passa a contar no engajamento",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/metrics/NutritionMetrics.java",
+            "find": "\"select count(distinct l.client_id) from client_link l where l.status = 'ACTIVE' and exists (\"",
+            "replace": "\"select count(distinct l.client_id) from client_link l where exists (\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=NutritionMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M29",
+            "description": "Na nutrição, a nutricionista que só publicou antes dos 30 dias passa a contar entre as que publicaram",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/metrics/NutritionMetrics.java",
+            "find": "\" join meal_plan p on p.id = v.plan_id where v.published_at >= :since\"",
+            "replace": "\" join meal_plan p on p.id = v.plan_id where v.published_at is not null\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=NutritionMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M30",
+            "description": "Na nutrição, a refeição depois do fim do vínculo, mas há mais de 30 dias, passa a contar",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/metrics/NutritionMetrics.java",
+            "find": "::date\"\n                                + \" and m.logged_on >= :since)\"",
+            "replace": "::date)\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=NutritionMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
         }
     ]
 }

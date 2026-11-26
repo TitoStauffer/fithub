@@ -72,6 +72,11 @@ class TrainingMetricsTest extends ServiceIntegrationTest {
         UUID own = ownPlan(client);
         version(own, 2, now.minus(Duration.ofDays(1)));
         plan(UUID.randomUUID(), UUID.randomUUID(), now.minus(Duration.ofDays(2)));
+        // Personal que só publicou antes dos 30 dias: não está entre os que publicaram.
+        plan(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                now.minus(TrainingMetrics.MONTH).minus(MARGIN));
 
         Map<String, Double> after = delta(before);
 

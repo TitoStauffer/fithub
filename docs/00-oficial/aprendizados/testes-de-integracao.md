@@ -89,3 +89,17 @@ caso de limite. Sem o mutante, o PR não prova que o teste pega a condição.
     janelas de 30 dias. O critério de aceitação afirmava uma cobertura que não estava provada.
   - **Correção:** mutantes M11 a M18 de `mutations/DEV-0113.json`.
   - **Prevenção:** esta regra.
+- **Revisão:** Code Review CHANGES_REQUESTED do PR #326, no SHA `6ac1ced` (2 MEDIUM) — DEV-0113 (#105) · **PR:** #326
+  - **Impacto:** a correção da rodada anterior cobriu só as condições apontadas. Sobraram condições sem teste:
+    - o vínculo ativo nos vinculados da nutrição;
+    - a janela do uso depois do vínculo na nutrição;
+    - a janela de "profissionais que publicaram".
+
+    Sobraram também condições com teste, mas sem mutante: o estado ativo, o tipo e o status nos dois lados.
+  - **Correção:**
+    - uma varredura de todas as condições de todas as consultas: 33 condições, cada uma com caso de teste e mutante
+      (M19 a M30 nesta rodada);
+    - a condição que nenhum teste consegue provar saiu, com o motivo no código: o autor em "profissionais que
+      publicaram" do treino, que o `count(distinct)` de um id nulo já exclui.
+  - **Prevenção:** a varredura é da consulta inteira, não do achado. Faça uma tabela condição, caso de teste e mutante
+    antes de pedir revisão.
