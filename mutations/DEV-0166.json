@@ -1,0 +1,165 @@
+{
+    "issue": "DEV-0166",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "A rota deixa de exigir o papel de cliente",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/interfaces/rest/TrainingExportController.java",
+            "find": "    @PreAuthorize(\"hasRole('CLIENT')\")\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O rascunho da ficha do personal passa a ser exportado",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ExportTrainingData.java",
+            "find": ".filter(plan -> plan.personalId() == null || plan.status() != WorkoutPlan.Status.DRAFT)",
+            "replace": ".filter(plan -> true)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "As fichas passam a trazer as de outros clientes",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcTrainingExportReader.java",
+            "find": "where client_id = :c order by created_at desc",
+            "replace": "where :c is not null order by created_at desc",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "As sessões passam a trazer as de outros clientes",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcTrainingExportReader.java",
+            "find": "                         where ws.client_id = :c\n                         order by ws.started_at desc",
+            "replace": "                         where :c is not null\n                         order by ws.started_at desc",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "A exportação deixa de trazer as sessões",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ExportTrainingData.java",
+            "find": "                reader.sessionsOf(clientId),\n                records.mine(clientAccount),\n                restrictions.list(clientAccount));",
+            "replace": "                List.of(),\n                records.mine(clientAccount),\n                restrictions.list(clientAccount));",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "A exportação deixa de trazer os recordes",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ExportTrainingData.java",
+            "find": "                reader.sessionsOf(clientId),\n                records.mine(clientAccount),\n                restrictions.list(clientAccount));",
+            "replace": "                reader.sessionsOf(clientId),\n                new ClientRecords.Records(List.of(), java.util.Map.of()),\n                restrictions.list(clientAccount));",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "A exportação deixa de trazer as restrições",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ExportTrainingData.java",
+            "find": "                reader.sessionsOf(clientId),\n                records.mine(clientAccount),\n                restrictions.list(clientAccount));",
+            "replace": "                reader.sessionsOf(clientId),\n                records.mine(clientAccount),\n                List.of());",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "A sessão volta a mandar null no comentário ausente",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/interfaces/rest/TrainingExportController.java",
+            "find": "    @JsonInclude(JsonInclude.Include.NON_NULL)\n    @Schema(name = \"TrainingExportSession\"",
+            "replace": "    @Schema(name = \"TrainingExportSession\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}
