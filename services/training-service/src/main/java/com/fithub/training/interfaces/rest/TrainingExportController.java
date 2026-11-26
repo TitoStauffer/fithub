@@ -2,6 +2,7 @@ package com.fithub.training.interfaces.rest;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fithub.training.application.ExportTrainingData;
+import com.fithub.training.domain.access.ProfessionalAccessAudit;
 import com.fithub.training.domain.account.TrainingExportReader;
 import com.fithub.training.domain.plan.WorkoutPlan;
 import io.swagger.v3.oas.annotations.Operation;
@@ -117,13 +118,24 @@ class TrainingExportController {
         }
     }
 
+    @Schema(name = "TrainingExportAccess", description = "Leitura de dado sensível pelo personal, sem o conteúdo.")
+    record AccessExport(UUID professionalId, ProfessionalAccessAudit.Resource resource, Instant accessedAt) {
+
+        static AccessExport of(ProfessionalAccessAudit.AccessRecord access) {
+            return new AccessExport(access.professionalId(), access.resource(), access.accessedAt());
+        }
+    }
+
     @Schema(name = "TrainingExport", description = "Todos os dados que o training tem do cliente.")
     record ExportResponse(
             Instant exportedAt,
             List<PlanExport> plans,
             List<SessionExport> sessions,
             List<MyRecordController.ExerciseRecordsResponse> records,
-            List<RestrictionController.RestrictionResponse> restrictions) {
+            List<RestrictionController.RestrictionResponse> restrictions,
+
+            @Schema(description = "Leituras das restrições de mobilidade pelo personal (DEV-0170), sem o conteúdo.")
+            List<AccessExport> accessLog) {
 
         static ExportResponse of(ExportTrainingData.Export export) {
             return new ExportResponse(
@@ -133,7 +145,8 @@ class TrainingExportController {
                     MyRecordController.ExerciseRecordsResponse.of(export.records()),
                     export.restrictions().stream()
                             .map(RestrictionController.RestrictionResponse::of)
-                            .toList());
+                            .toList(),
+                    export.accessLog().stream().map(AccessExport::of).toList());
         }
     }
 

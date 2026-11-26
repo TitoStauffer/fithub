@@ -158,8 +158,9 @@ class ClientExportController {
     @Operation(
             summary = "Exporta todos os dados que o client-service tem do cliente",
             description = "Perfil, saúde, avaliações com as fotos (URL temporária de 5 minutos), vínculos com o"
-                    + " consentimento de cada um e as leituras da saúde pelos profissionais, sem o conteúdo. O app junta"
-                    + " com a exportação do training e do nutrition.",
+                    + " consentimento de cada um, as leituras da saúde (healthReads) e o registro completo das leituras"
+                    + " de dados sensíveis pelos profissionais (accessLog), sem o conteúdo. O app junta com a exportação"
+                    + " do training e do nutrition.",
             responses = {
                 @ApiResponse(responseCode = "200", description = "Os dados do cliente."),
                 @ApiResponse(

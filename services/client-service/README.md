@@ -171,7 +171,8 @@ Aplica o [ADR-012](../../docs/00-oficial/adr/ADR-012-retencao-e-exclusao.md):
   dado do cliente.
 - **Depois do commit:** saem do bucket os objetos sob `clients/<id>/`. Com o armazenamento fora do ar, o expurgo de
   envios não confirmados os apaga, porque nenhuma foto registrada aponta mais para eles.
-- **Fica:** o registro de leitura da saúde (DEV-0040, 6 meses pela DEV-0106) e o lado profissional da mesma conta.
+- **Fica:** o registro das leituras de dados sensíveis pelos profissionais (saúde, avaliações e fotos; DEV-0040 e
+  DEV-0106, por 6 meses) e o lado profissional da mesma conta.
 - **Expurgo da lista:** a cada `fithub.deleted-accounts.purge-interval` (padrão 6 h), saem os ids excluídos há mais
   de 30 dias. O log traz só a quantidade.
 - O login no Keycloak e os dados de training e nutrition saem nos consumidores do evento (DEV-0161, DEV-0162 e

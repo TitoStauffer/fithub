@@ -984,12 +984,23 @@ export interface components {
         };
         /** @description Todos os dados que o training tem do cliente. */
         TrainingExport: {
+            /** @description Leituras das restrições de mobilidade pelo personal (DEV-0170), sem o conteúdo. */
+            accessLog?: components["schemas"]["TrainingExportAccess"][];
             /** Format: date-time */
             exportedAt?: string;
             plans?: components["schemas"]["TrainingExportPlan"][];
             records?: components["schemas"]["ExerciseRecords"][];
             restrictions?: components["schemas"]["MobilityRestriction"][];
             sessions?: components["schemas"]["TrainingExportSession"][];
+        };
+        /** @description Leitura de dado sensível pelo personal, sem o conteúdo. */
+        TrainingExportAccess: {
+            /** Format: date-time */
+            accessedAt?: string;
+            /** Format: uuid */
+            professionalId?: string;
+            /** @enum {string} */
+            resource?: "MOBILITY_RESTRICTIONS";
         };
         /** @description Ficha com as versões que o cliente vê. */
         TrainingExportPlan: {
