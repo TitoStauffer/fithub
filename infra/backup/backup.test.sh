@@ -62,5 +62,19 @@ run sh /scripts/restore.sh "$stamp"
 [ "$(sql client "select pg_get_userbyid(relowner) from pg_class where relname = 'sample'")" = client ] \
   || fail "a tabela restaurada não ficou com o dono do banco"
 
+# Falha no meio da restauração (o dump do training corrompido, depois do client): a lista do client já voltou, e a cópia
+# durável fica em /backups/restore-* para o operador (Code Review do PR #314).
+sql client "set role client;
+  insert into deleted_account values ('00000000-0000-0000-0000-00000000000c', '2026-11-26T00:00:00Z');"
+run sh -c "mkdir -p /backups/2026-11-21T000000Z && cp /backups/$stamp/* /backups/2026-11-21T000000Z/ &&
+  echo corrompido > /backups/2026-11-21T000000Z/training.dump"
+if run sh /scripts/restore.sh 2026-11-21T000000Z 2>/dev/null; then fail "a restauração com dump corrompido passou"; fi
+[ "$(sql client 'select count(*) from deleted_account')" = 3 ] \
+  || fail "a falha no meio da restauração perdeu a lista de contas excluídas"
+run sh -c "ls /backups/restore-2026-11-21T000000Z-*/client.csv" >/dev/null \
+  || fail "a cópia durável da lista não ficou depois da falha"
+[ -z "$(run sh -c "ls -d /backups/restore-$stamp-* 2>/dev/null || true")" ] \
+  || fail "a cópia da restauração que deu certo não saiu"
+
 sql client "set role client; drop table deleted_account, sample;"
 echo "Backup e restauração: OK."

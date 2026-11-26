@@ -12,8 +12,14 @@ Backup diário e restauração dos bancos do FitHub (DEV-0108, ADR-012, item 4; 
     guardado além desse prazo.
 - **`restore.sh <pasta>`:**
   - recusa uma pasta sem o `COMPLETE` ou sem o dump de algum banco, antes de mexer em qualquer coisa;
-  - guarda a lista `deleted_account` atual de cada banco que a tem, restaura os bancos com o papel do dono de cada um
-    e regrava a lista. Assim, quem excluiu a conta depois do backup continua listado;
+  - guarda a lista `deleted_account` atual de cada banco que a tem numa pasta durável, `BACKUP_DIR/restore-<backup>-<agora>/`.
+    Uma falha ao ler ou guardar a lista para tudo antes de restaurar;
+  - restaura cada banco com o papel do dono e regrava a lista dele logo em seguida. Assim, quem excluiu a conta depois
+    do backup continua listado;
+  - apaga a pasta durável só com tudo restaurado. Se algo falhar no meio, ela fica, e a mensagem diz onde: regrave as
+    listas antes de subir os serviços;
+  - a lista tem o mesmo formato nos três serviços que a usam: `deleted_account(client_id uuid primary key, deleted_at
+    timestamptz not null)`;
   - reapagar o dado dessas contas, que volta com o backup, é a DEV-0172 (#313).
 
 ## Ambiente
@@ -52,6 +58,8 @@ Infrastructure). Ele confere:
 - a recusa de uma pasta sem o `COMPLETE`, sem mudar o banco;
 - a volta do dado ao estado do backup;
 - a preservação da exclusão feita depois do backup;
+- a falha no meio da restauração (dump corrompido depois do `client`): a lista do `client` já voltou e a cópia
+  durável fica;
 - o dono das tabelas restauradas.
 
 ## Pendências

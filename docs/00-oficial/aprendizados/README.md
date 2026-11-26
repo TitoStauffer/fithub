@@ -16,6 +16,7 @@ que fazemos para não repeti-los.
 | Métricas sobre períodos (aderência, janelas de vigência) | [metricas-e-periodos.md](metricas-e-periodos.md) |
 | Política de privacidade e termos (o que listar) | [documentacao-legal.md](documentacao-legal.md) |
 | Auditoria de acesso a dados sensíveis | [auditoria.md](auditoria.md) |
+| Operação: backup e restauração | [operacao.md](operacao.md) |
 
 Regras de registro: [AGENTS.md](../../../AGENTS.md), seção **Aprendizados**.
 
