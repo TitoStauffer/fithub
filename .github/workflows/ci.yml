@@ -345,6 +345,12 @@ jobs:
         if: env.RUN_AREA == 'true'
         run: node infra/keycloak/check-live-realm.mjs http://localhost:8080
 
+      # Backup e restauração (DEV-0108): dumps por banco, retenção de 30 dias, recusa de backup incompleto e a
+      # lista de contas excluídas preservada na restauração.
+      - name: Check database backup and restore
+        if: env.RUN_AREA == 'true'
+        run: sh infra/backup/backup.test.sh
+
       - name: Stop local infrastructure compose
         if: always() && env.RUN_AREA == 'true'
         run: docker compose -f infra/compose/docker-compose.dev.yml down -v
