@@ -25,7 +25,8 @@ trap cleanup EXIT
 
 fail() {
   echo "FALHOU: $1" >&2
-  $compose logs --tail 30 traefik keycloak >&2 || true
+  $compose ps -a >&2 || true
+  $compose logs --tail 30 traefik keycloak otel-lgtm >&2 || true
   exit 1
 }
 edge() {

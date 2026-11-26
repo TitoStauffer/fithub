@@ -47,6 +47,13 @@ overrides:
     metrics_generator:
       processors: [service-graphs, span-metrics]
 
-compactor:
+# Tempo 3: o backend-scheduler agenda a retenção e o backend-worker aplica; os dois com 30 dias.
+backend_scheduler:
+  provider:
+    compaction:
+      compaction:
+        block_retention: 720h
+
+backend_worker:
   compaction:
     block_retention: 720h

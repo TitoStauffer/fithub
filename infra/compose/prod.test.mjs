@@ -134,7 +134,10 @@ test('logs e traces com retenção de 30 dias (ADR-012)', () => {
   const loki = read('infra/observability/loki-config.yaml');
   assert.match(loki, /\nlimits_config:\n  retention_period: 720h\n/);
   assert.match(loki, /\n  retention_enabled: true\n/);
-  assert.match(read('infra/observability/tempo-config.yaml'), /\ncompactor:\n  compaction:\n    block_retention: 720h\n/);
+  // Tempo 3: o backend-scheduler agenda a retenção e o backend-worker aplica.
+  const tempo = read('infra/observability/tempo-config.yaml');
+  assert.match(tempo, /\nbackend_scheduler:\n  provider:\n    compaction:\n      compaction:\n        block_retention: 720h\n/);
+  assert.match(tempo, /\nbackend_worker:\n  compaction:\n    block_retention: 720h\n/);
 });
 
 test('o workflow de deploy é só manual, só leitura e confere o host', () => {
