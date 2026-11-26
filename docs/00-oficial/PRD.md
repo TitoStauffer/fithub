@@ -249,7 +249,11 @@ Cliente mantém todo o histórico
   - Os valores e a data ficam em configuração: mudar o preço não exige mudar código, e vale para as próximas
     cobranças.
   - **Teste grátis:** 14 dias desde o cadastro, sem pedir cartão (DEV-0099).
-  - **Meio de pagamento:** Asaas. Cartão com cobrança recorrente automática como forma principal, mais Pix e boleto.
+  - **Meio de pagamento:** Asaas, pelo checkout hospedado dele, só com **cartão de crédito** em cobrança recorrente
+    automática (decisão do Tito em 26/11/2026). O próprio Asaas coleta os dados do pagador, inclusive o CPF ou CNPJ:
+    o FitHub não pede nem guarda esse dado. O checkout recorrente do Asaas não aceita Pix nem boleto. Esses dois
+    exigiriam guardar o CPF no FitHub e pagamento manual a cada mês, e ficam para depois do MVP, se os profissionais
+    pedirem.
   - **Lançamento:** já cobra, com o preço de lançamento. Não há beta gratuito além do teste de 14 dias.
   - **Motivo do preço de lançamento por data:** a conversão de quem assina depois mede o preço cheio (GOAL-06), e o
     desconto recompensa os primeiros profissionais sem virar desconto permanente.
@@ -676,7 +680,7 @@ Então um novo recorde de supino é registrado
 - ~~**QUESTÃO-01**~~ — **Decidida pelo Tito em 26/11/2026** (DEV-0098): plano
   único de R$ 200/mês, preço de lançamento de R$ 150/mês nos 3 primeiros meses
   para quem assinar até a data de corte, 14 dias grátis sem cartão, Asaas
-  (cartão recorrente, Pix e boleto). O lançamento já cobra. Detalhes na seção 9.2.
+  (checkout com cartão recorrente; Pix e boleto depois do MVP). O lançamento já cobra. Detalhes na seção 9.2.
 - ~~**QUESTÃO-02**~~ — **Decidida pelo Tito em 22/11/2026:** sim, a mesma
   conta pode ser profissional e cliente.
 - **QUESTÃO-03** — Quando o cliente tem ficha própria e passa a ter personal, a
