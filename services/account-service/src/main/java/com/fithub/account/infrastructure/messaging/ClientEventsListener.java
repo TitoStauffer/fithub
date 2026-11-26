@@ -64,7 +64,8 @@ class ClientEventsListener {
             throw new AmqpRejectAndDontRequeueException("Routing key fora do que esta fila consome.");
         }
         AccountDeleted event = parse(message);
-        processedEvents.processOnce(QUEUE, message, () -> removeDeletedLogin.accountDeleted(event.clientId()));
+        processedEvents.processOnce(
+                QUEUE, message, () -> removeDeletedLogin.accountDeleted(event.clientId(), event.occurredAt()));
     }
 
     private AccountDeleted parse(Message message) {

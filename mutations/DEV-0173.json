@@ -1,0 +1,265 @@
+{
+    "issue": "DEV-0173",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O ContaExcluida deixa de gravar o id na lista",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/RemoveDeletedLogin.java",
+            "find": "        deletedLogins.record(clientId, occurredAt);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletedConsumerTest,DeletedLoginReapplyTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "A conta que também é de profissional passa a entrar na lista",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/RemoveDeletedLogin.java",
+            "find": "            return false;\n        }\n        logins.delete(clientId);",
+            "replace": "            deletedLogins.record(clientId, occurredAt);\n            return false;\n        }\n        logins.delete(clientId);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletedConsumerTest,DeletedLoginReapplyTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "A lista passa a gravar a data de agora em vez da data do evento",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/messaging/ClientEventsListener.java",
+            "find": "removeDeletedLogin.accountDeleted(event.clientId(), event.occurredAt())",
+            "replace": "removeDeletedLogin.accountDeleted(event.clientId(), java.time.Instant.now())",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletedConsumerTest,DeletedLoginReapplyTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "A gravação repetida passa a falhar no id já listado",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/persistence/JdbcDeletedLogins.java",
+            "find": "\n                        on conflict (client_id) do update set deleted_at = greatest(deleted_account.deleted_at, excluded.deleted_at)",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletedConsumerTest,DeletedLoginReapplyTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "A gravação repetida passa a trocar pela data mais antiga",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/persistence/JdbcDeletedLogins.java",
+            "find": "greatest(deleted_account.deleted_at, excluded.deleted_at)",
+            "replace": "excluded.deleted_at",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletedConsumerTest,DeletedLoginReapplyTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "O expurgo deixa de reapagar os logins",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/keycloak/DeletedLoginPurgeScheduler.java",
+            "find": "int reapplied = removeDeletedLogin.reapplyDeletions();",
+            "replace": "int reapplied = 0;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletedConsumerTest,DeletedLoginReapplyTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "A reaplicação deixa de apagar o login no Keycloak",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/RemoveDeletedLogin.java",
+            "find": "            logins.delete(accountId);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletedConsumerTest,DeletedLoginReapplyTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "A reaplicação passa a rodar sem restauração",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/RemoveDeletedLogin.java",
+            "find": "if (!deletedLogins.restorePending()) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletedConsumerTest,DeletedLoginReapplyTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "O marcador de restauração deixa de sair",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/RemoveDeletedLogin.java",
+            "find": "        deletedLogins.clearRestorePending();\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletedConsumerTest,DeletedLoginReapplyTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "A lista de logins apagados passa a vir vazia",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/persistence/JdbcDeletedLogins.java",
+            "find": "\"select client_id from deleted_account order by deleted_at, client_id\"",
+            "replace": "\"select client_id from deleted_account where false\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletedConsumerTest,DeletedLoginReapplyTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "O expurgo deixa de tirar ids da lista",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/keycloak/DeletedLoginPurgeScheduler.java",
+            "find": "int removed = removeDeletedLogin.purgeDeletedLogins();",
+            "replace": "int removed = 0;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletedConsumerTest,DeletedLoginReapplyTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "O expurgo passa a ignorar o prazo de 30 dias",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/RemoveDeletedLogin.java",
+            "find": "clock.instant().minus(DELETED_LOGIN_RETENTION)",
+            "replace": "clock.instant()",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletedConsumerTest,DeletedLoginReapplyTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M13",
+            "description": "O prazo da lista passa a 31 dias",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/RemoveDeletedLogin.java",
+            "find": "Duration.ofDays(30)",
+            "replace": "Duration.ofDays(31)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletedConsumerTest,DeletedLoginReapplyTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}
