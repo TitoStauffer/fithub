@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fithub.testing.service.ServiceIntegrationTest;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -100,7 +101,10 @@ class ReapplyDeletionsTest extends ServiceIntegrationTest {
     void oExpurgoReapagaODadoDeQuemEstaNaListaSemMudarADataNemTocarNosOutros() throws Exception {
         UUID deleted = client();
         UUID other = client();
-        Instant deletedAt = Instant.parse("2026-11-20T10:00:00Z");
+        // Data relativa: o expurgo roda com o relógio real antes de reaplicar, e uma data fixa sairia da lista depois
+        // de
+        // 30 dias (Code Review do PR #316). Microssegundos, a precisão do timestamptz, para a comparação exata.
+        Instant deletedAt = Instant.now().minus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.MICROS);
         jdbc.sql("insert into deleted_account (client_id, deleted_at) values (:id, :at)")
                 .param("id", deleted)
                 .param("at", Timestamp.from(deletedAt))

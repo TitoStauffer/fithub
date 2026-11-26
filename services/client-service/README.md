@@ -206,5 +206,6 @@ Aplica o [ADR-012](../../docs/00-oficial/adr/ADR-012-retencao-e-exclusao.md):
   serviço, reaplica a exclusão de cada conta da lista e apaga o marcador. Só apaga, sem evento e sem mudar a data da
   lista.
 - Sem marcador, a reaplicação não roda: o dado criado depois da exclusão, como o perfil de cliente recriado por quem
-  também é profissional, nunca é apagado por ela.
+  também é profissional, não é apagado por ela. A exceção é restaurar um backup feito depois da recriação e ainda
+  com o id na lista (até 30 dias depois da exclusão): a reaplicação apaga também o perfil recriado.
 - O e-mail dos convites pendentes não é conhecido na reaplicação e fica no convite restaurado (débito DEV-0174, #317).
