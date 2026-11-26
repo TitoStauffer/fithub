@@ -57,3 +57,49 @@ microssegundos, a precisão do `timestamptz`. Data absoluta só com um relógio 
   - **Correção:** a data passou a ser `Instant.now().minus(1, DAYS).truncatedTo(MICROS)`, como no training e no
     nutrition.
   - **Prevenção:** esta regra.
+
+## teste-nao-apaga-dado-do-banco-compartilhado
+
+**Regra:** as classes de teste de um serviço dividem o mesmo banco (Testcontainers reaproveitado entre os contextos).
+Um teste não apaga as linhas de uma tabela inteira para começar do zero: isso tira o dado que outra classe gravou e
+quebra o que ela confere depois. Para contagens e agregados, o teste mede o acréscimo sobre o banco: lê antes, grava
+os próprios dados com ids novos e lê de novo.
+
+### Ocorrências
+
+- **Validação local:** build completo da DEV-0113 (#105), antes do PR · **PR:** o da DEV-0113
+  - **Impacto:** o `SubscriptionMetricsTest` apagava todos os profissionais. Os eventos de cadastro gravados no outbox
+    por outra classe ficaram órfãos, e o `ProfessionalRegistrationTest.cadastroDesfeitoNaoDeixaNemOCadastroNemOEvento`,
+    que conta evento órfão do último minuto, falhou.
+  - **Correção:** o teste das métricas confere o acréscimo, sem apagar nada, como os das outras métricas.
+  - **Prevenção:** esta regra.
+
+## cada-condicao-da-consulta-tem-mutante
+
+**Regra:** numa consulta que define uma regra (métrica, filtro de acesso, expurgo), cada condição do `where` e do
+`having` é uma guarda: a janela de tempo, o estado, o tipo e o "sem outro vínculo ativo". Antes do PR, liste as
+condições de cada consulta e declare um mutante para cada uma no manifesto da tarefa, mesmo quando o teste já tem o
+caso de limite. Sem o mutante, o PR não prova que o teste pega a condição.
+
+### Ocorrências
+
+- **Revisão:** Code Review CHANGES_REQUESTED do PR #326, no SHA `0a97e3e` (MEDIUM) — DEV-0113 (#105) · **PR:** #326
+  - **Impacto:** sete condições das métricas tinham teste, mas não tinham mutante. Eram a recusa de nome fora de
+    `fithub.*`, o estado expirado, o "sem vínculo ativo" nos dois serviços, o dia do fim do vínculo na nutrição e as
+    janelas de 30 dias. O critério de aceitação afirmava uma cobertura que não estava provada.
+  - **Correção:** mutantes M11 a M18 de `mutations/DEV-0113.json`.
+  - **Prevenção:** esta regra.
+- **Revisão:** Code Review CHANGES_REQUESTED do PR #326, no SHA `6ac1ced` (2 MEDIUM) — DEV-0113 (#105) · **PR:** #326
+  - **Impacto:** a correção da rodada anterior cobriu só as condições apontadas. Sobraram condições sem teste:
+    - o vínculo ativo nos vinculados da nutrição;
+    - a janela do uso depois do vínculo na nutrição;
+    - a janela de "profissionais que publicaram".
+
+    Sobraram também condições com teste, mas sem mutante: o estado ativo, o tipo e o status nos dois lados.
+  - **Correção:**
+    - uma varredura de todas as condições de todas as consultas: 33 condições, cada uma com caso de teste e mutante
+      (M19 a M30 nesta rodada);
+    - a condição que nenhum teste consegue provar saiu, com o motivo no código: o autor em "profissionais que
+      publicaram" do treino, que o `count(distinct)` de um id nulo já exclui.
+  - **Prevenção:** a varredura é da consulta inteira, não do achado. Faça uma tabela condição, caso de teste e mutante
+    antes de pedir revisão.

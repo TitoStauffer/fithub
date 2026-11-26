@@ -58,9 +58,12 @@ LOGGING_FILE_NAME=<raiz do repositório>/.logs/client-service.log
 - Sem o endpoint, o serviço não exporta nada; sem o arquivo, só escreve no console.
 - No Grafana, **Explore → Tempo** mostra o trace de uma requisição, inclusive o consumidor do evento no RabbitMQ.
   **Explore → Loki** mostra os logs: `{service_name="client-service"} | trace_id="<traceId>"`.
+- **Métricas de sucesso (DEV-0113):** o painel **FitHub — Métricas de sucesso** vem provisionado (`observability/grafana/`).
+  Para ver números do serviço local, rode-o com `MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED=true` e
+  `MANAGEMENT_OTLP_METRICS_EXPORT_URL=http://localhost:4318/v1/metrics`. As definições estão no PRD, seção 19.
 - O container não tem volume: os dados somem quando ele é removido (`down`).
 - **Teste de ponta a ponta:** `sh infra/observability/observability.test.sh`, com o perfil de pé. Ele manda um span
-  e uma linha de log com o mesmo `traceId` e confere que o Tempo e o Loki mostram os dois. Roda no job Local
+  e uma linha de log com o mesmo `traceId` e confere que o Tempo e o Loki mostram os dois, e que uma métrica chega ao Prometheus e o painel está provisionado. Roda no job Local
   Infrastructure.
 
 ### Realm do Keycloak

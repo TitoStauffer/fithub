@@ -32,6 +32,9 @@ x-service-environment: &service-environment
   SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/auth/realms/fithub/protocol/openid-connect/certs
   # Observabilidade (DEV-0109, ADR-013): spans para o coletor; log em arquivo, um por dia, 30 dias (ADR-012).
   MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT: http://otel-lgtm:4318/v1/traces
+  # Métricas de sucesso do PRD (DEV-0113), agregadas, para o Prometheus do otel-lgtm.
+  MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED: "true"
+  MANAGEMENT_OTLP_METRICS_EXPORT_URL: http://otel-lgtm:4318/v1/metrics
   LOGGING_LOGBACK_ROLLINGPOLICY_MAX_HISTORY: "30"
 
 services:
@@ -313,6 +316,9 @@ services:
       - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
     volumes:
       - ../observability/otelcol-config.yaml:/otel-lgtm/otelcol-config.yaml:ro
+      # Painel das métricas de sucesso do PRD (DEV-0113).
+      - ../observability/grafana/fithub-dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/fithub.yaml:ro
+      - ../observability/grafana/fithub-metricas.json:/otel-lgtm/fithub-metricas.json:ro
       - ../observability/loki-config.yaml:/otel-lgtm/loki-config.yaml:ro
       - ../observability/tempo-config.yaml:/otel-lgtm/tempo-config.yaml:ro
       - logs:/var/log/fithub:ro

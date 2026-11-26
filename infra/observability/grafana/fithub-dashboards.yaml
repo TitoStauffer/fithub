@@ -1,0 +1,12 @@
+# Painel das métricas de sucesso do PRD (DEV-0113), provisionado no Grafana do otel-lgtm, ao lado dos painéis da
+# própria imagem.
+apiVersion: 1
+
+providers:
+  - name: "FitHub — Métricas de sucesso"
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    options:
+      path: /otel-lgtm/fithub-metricas.json
+      foldersFromFilesStructure: false
