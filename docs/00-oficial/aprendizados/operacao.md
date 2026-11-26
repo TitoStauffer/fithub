@@ -40,7 +40,9 @@ que só ela derruba, provado por mutação.
 
 **Regra:** um passo que reaplica uma exclusão (ou qualquer reparo) depois de restaurar um backup roda só quando a
 restauração aconteceu, com um marcador gravado pelo procedimento de restauração e apagado no fim do reparo. Rodar
-sempre, por id, apaga também o dado que o titular criou depois da exclusão.
+sempre, por id, apaga também o dado que o titular criou depois da exclusão. O marcador não pode depender de uma
+tabela que o backup restaurado talvez não tenha: a restauração cria a tabela se faltar, e a migration dela usa
+`if not exists`.
 
 ### Ocorrências
 
@@ -51,3 +53,10 @@ sempre, por id, apaga também o dado que o titular criou depois da exclusão.
     apagam no fim.
   - **Prevenção:** esta regra, o teste `semRestauracaoODadoDeUmIdDaListaFica` nos três serviços e os mutantes do
     marcador.
+- **Revisão:** Code Review CHANGES_REQUESTED do PR #316, no SHA `d920891` (MEDIUM) — DEV-0172 (#313) · **PR:** #316
+  - **Impacto:** a `restore.sh` só gravava o marcador quando a tabela existia no banco restaurado. Num backup de
+    antes da migration do marcador, o dado de saúde de quem excluiu a conta depois do backup voltaria sem
+    reaplicação.
+  - **Correção:** a `restore.sh` cria `restore_pending` como dono do banco antes de gravar, e as migrations usam
+    `create table if not exists`.
+  - **Prevenção:** o `backup.test.sh` restaura um backup sem a tabela e confere o marcador e o dono dela.

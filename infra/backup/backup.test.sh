@@ -44,7 +44,6 @@ before_list=$(run sh -c "ls /backups")
 sql client "set role client;
   create table deleted_account (client_id uuid primary key, deleted_at timestamptz not null);
   create table sample (id int primary key);
-  create table restore_pending (restored_at timestamptz not null);
   insert into sample values (1);
   insert into deleted_account values ('00000000-0000-0000-0000-00000000000a', '2026-11-01T00:00:00Z');" >/dev/null
 
@@ -77,8 +76,10 @@ run test ! -e /backups/2026-10-11T120000Z || fail "a pasta de 29 dias e 23 horas
 run test -d /backups/2026-10-12T000000Z || fail "a pasta de 29 dias saiu antes do prazo"
 run test ! -e /backups/restore-2026-10-01T000000Z-20261001T000000Z || fail "a cópia de restauração de 40 dias não saiu"
 
-# Depois do backup: dado novo, uma exclusão nova e uma tabela de uma migration posterior.
+# Depois do backup: dado novo, uma exclusão nova e tabelas de migrations posteriores. O backup não tem o marcador de
+# restauração, como um backup de antes da migration dele (Code Review do PR #316).
 sql client "set role client; insert into sample values (2); create table later (id int);
+  create table restore_pending (restored_at timestamptz not null);
   insert into deleted_account values ('00000000-0000-0000-0000-00000000000b', '2026-11-25T00:00:00Z');" >/dev/null
 
 # Recusas, sempre antes de mexer no banco.
@@ -106,6 +107,8 @@ run sh /scripts/restore.sh "$stamp" >/dev/null
   || fail "a tabela posterior ao backup sobrou na restauração"
 [ "$(sql client 'select count(*) from restore_pending')" = 1 ] \
   || fail "a restauração não gravou o marcador para os serviços reaplicarem as exclusões"
+[ "$(sql client "select pg_get_userbyid(relowner) from pg_class where relname = 'restore_pending'")" = client ] \
+  || fail "a tabela do marcador não ficou com o dono do banco"
 [ -z "$(run sh -c "ls -d /backups/restore-$stamp-* 2>/dev/null || true")" ] \
   || fail "a cópia da restauração que deu certo não saiu"
 

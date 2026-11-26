@@ -64,12 +64,11 @@ create temp table restored_deleted_account (client_id uuid, deleted_at timestamp
 insert into deleted_account (client_id, deleted_at)
 select client_id, deleted_at from restored_deleted_account
 on conflict (client_id) do update set deleted_at = greatest(deleted_account.deleted_at, excluded.deleted_at);
--- Marcador para o serviço reaplicar a exclusão das contas da lista (DEV-0172); só quem tem a tabela.
-do \$\$ begin
-  if to_regclass('public.restore_pending') is not null then
-    insert into restore_pending (restored_at) values (now());
-  end if;
-end \$\$;
+-- Marcador para o serviço reaplicar a exclusão das contas da lista (DEV-0172). Um backup de antes da migration do
+-- marcador não tem a tabela: ela é criada aqui, pelo dono do banco, e a migration usa "if not exists" (Code Review do
+-- PR #316).
+create table if not exists restore_pending (restored_at timestamptz not null);
+insert into restore_pending (restored_at) values (now());
 SQL
 }
 

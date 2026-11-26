@@ -24,7 +24,7 @@ Backup diário e restauração dos bancos do FitHub (DEV-0108, ADR-012, item 4; 
     timestamptz not null)`;
   - antes de mexer em qualquer banco, confere que o dump de cada banco com lista guardada também tem a
     `deleted_account`; senão, recusa sem restaurar nada;
-  - grava um marcador em `restore_pending` nos bancos que têm a tabela: o client-service, o training e o nutrition
+  - grava um marcador em `restore_pending` nos bancos com a lista, criando a tabela se o backup for de antes dela: o client-service, o training e o nutrition
     reapagam o dado dessas contas na subida e apagam o marcador (DEV-0172). O login no Keycloak é a DEV-0173 (#315);
   - um dump ilegível na conferência é recusado como ilegível, sem restaurar nada.
 
