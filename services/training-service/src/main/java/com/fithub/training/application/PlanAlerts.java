@@ -1,6 +1,7 @@
 package com.fithub.training.application;
 
 import com.fithub.training.domain.access.LinkProjection;
+import com.fithub.training.domain.access.ProfessionalAccessAudit;
 import com.fithub.training.domain.exercise.Exercise;
 import com.fithub.training.domain.exercise.ExerciseRepository;
 import com.fithub.training.domain.plan.PlanItem;
@@ -10,6 +11,7 @@ import com.fithub.training.domain.restriction.BodyRegion;
 import com.fithub.training.domain.restriction.MobilityRestriction;
 import com.fithub.training.domain.restriction.MuscleRegions;
 import com.fithub.training.domain.restriction.RestrictionRepository;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -32,11 +34,20 @@ public class PlanAlerts {
     private final LinkProjection links;
     private final RestrictionRepository restrictions;
     private final ExerciseRepository exercises;
+    private final ProfessionalAccessAudit audit;
+    private final Clock clock;
 
-    public PlanAlerts(LinkProjection links, RestrictionRepository restrictions, ExerciseRepository exercises) {
+    public PlanAlerts(
+            LinkProjection links,
+            RestrictionRepository restrictions,
+            ExerciseRepository exercises,
+            ProfessionalAccessAudit audit,
+            Clock clock) {
         this.links = links;
         this.restrictions = restrictions;
         this.exercises = exercises;
+        this.audit = audit;
+        this.clock = clock;
     }
 
     /**
@@ -63,6 +74,13 @@ public class PlanAlerts {
         if (restricted.isEmpty()) {
             return List.of();
         }
+        // O alerta mostra a região e a descrição da restrição ao personal: é leitura de dado de saúde (achado do PR
+        // #312, NFR-03). Registra quando as restrições entram na resposta, mesmo sem alerta: a mais, nunca a menos.
+        audit.record(
+                plan.personalId(),
+                plan.clientId(),
+                ProfessionalAccessAudit.Resource.MOBILITY_RESTRICTIONS,
+                clock.instant());
         Map<UUID, Optional<Exercise>> cache = new HashMap<>();
         List<Alert> alerts = new ArrayList<>();
         List<PlanVersion.Division> divisions = plan.current().divisions();

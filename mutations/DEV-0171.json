@@ -120,6 +120,46 @@
                 "-Dtest=NutritionAccessAuditTest",
                 "-Dsurefire.failIfNoSpecifiedTests=false"
             ]
+        },
+        {
+            "id": "M7",
+            "description": "O plano com alerta de restrição deixa de registrar a leitura",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/MealPlanAlerts.java",
+            "find": "        audit.record(\n",
+            "replace": "        if (false) audit.record(\n",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=NutritionAccessAuditTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "A ficha com alerta de restrição deixa de registrar a leitura",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/PlanAlerts.java",
+            "find": "        audit.record(\n",
+            "replace": "        if (false) audit.record(\n",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingAccessAuditTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
         }
     ]
 }

@@ -181,4 +181,53 @@ class NutritionAccessAuditTest extends ServiceIntegrationTest {
                         .single()
                 == 1;
     }
+
+    @Test
+    void oPlanoComOAlertaDeRestricaoMostradoANutricionistaRegistraALeitura() throws Exception {
+        UUID nutritionist = UUID.randomUUID();
+        UUID client = UUID.randomUUID();
+        link(nutritionist, client);
+        jdbc.sql("""
+                        insert into food_restriction (id, client_id, kind, description, terms, recorded_by, created_at,
+                                                      updated_at)
+                        values (:id, :c, 'ALLERGY', 'amendoim', array['amendoim'], :n, now(), now())
+                        """)
+                .param("id", UUID.randomUUID())
+                .param("c", client)
+                .param("n", nutritionist)
+                .update();
+        UUID food = UUID.randomUUID();
+        jdbc.sql("""
+                        insert into food (id, kind, owner_id, name, base_unit, energy_kcal, protein_g, carbs_g, fat_g,
+                                          vegan, created_at, updated_at)
+                        values (:id, 'OWN', :owner, 'Pasta de amendoim', 'G', 590, 25, 20, 50, true, now(), now())
+                        """).param("id", food).param("owner", nutritionist).update();
+        UUID plan = UUID.randomUUID();
+        UUID version = UUID.randomUUID();
+        jdbc.sql("""
+                        insert into meal_plan (id, client_id, nutritionist_id, status, created_at, updated_at)
+                        values (:id, :c, :n, 'PUBLISHED', now(), now())
+                        """)
+                .param("id", plan)
+                .param("c", client)
+                .param("n", nutritionist)
+                .update();
+        jdbc.sql("""
+                        insert into meal_plan_version (id, plan_id, number, name, starts_on, published_at, created_at)
+                        values (:id, :plan, 1, 'Plano A', date '2026-11-01', now(), now())
+                        """).param("id", version).param("plan", plan).update();
+        jdbc.sql("insert into meal (version_id, position, name) values (:v, 0, 'Lanche')")
+                .param("v", version)
+                .update();
+        jdbc.sql(
+                        "insert into meal_item (version_id, meal_position, position, food_id, amount) values (:v, 0, 0, :f, 20)")
+                .param("v", version)
+                .param("f", food)
+                .update();
+
+        mvc.perform(get("/meal-plans/" + plan).header("Authorization", "Bearer nutri-" + nutritionist))
+                .andExpect(status().isOk());
+
+        assertThat(resources(client)).containsExactly("FOOD_RESTRICTIONS");
+    }
 }

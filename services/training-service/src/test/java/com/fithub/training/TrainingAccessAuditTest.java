@@ -178,4 +178,52 @@ class TrainingAccessAuditTest extends ServiceIntegrationTest {
                         .single()
                 == 1;
     }
+
+    @Test
+    void aFichaComOsAlertasDeRestricaoMostradaAoPersonalRegistraALeitura() throws Exception {
+        UUID personal = UUID.randomUUID();
+        UUID client = UUID.randomUUID();
+        link(personal, client);
+        jdbc.sql("""
+                        insert into mobility_restriction (id, client_id, region, description, recorded_by, created_at,
+                                                          updated_at)
+                        values (:id, :c, 'KNEE', 'dor no joelho', :p, now(), now())
+                        """)
+                .param("id", UUID.randomUUID())
+                .param("c", client)
+                .param("p", personal)
+                .update();
+        UUID exercise = UUID.randomUUID();
+        jdbc.sql("""
+                        insert into exercise (id, kind, owner_id, name, equipment, created_at, updated_at)
+                        values (:id, 'OWN', :owner, 'Agachamento auditado', 'BARBELL', now(), now())
+                        """).param("id", exercise).param("owner", personal).update();
+        jdbc.sql("insert into exercise_muscle_group (exercise_id, muscle_group) values (:id, 'GLUTES')")
+                .param("id", exercise)
+                .update();
+        UUID plan = UUID.randomUUID();
+        UUID version = UUID.randomUUID();
+        jdbc.sql("""
+                        insert into workout_plan (id, client_id, personal_id, status, author, created_at, updated_at)
+                        values (:id, :c, :p, 'PUBLISHED', 'PERSONAL', now(), now())
+                        """).param("id", plan).param("c", client).param("p", personal).update();
+        jdbc.sql("""
+                        insert into workout_plan_version (id, plan_id, number, name, starts_on, validity_weeks,
+                                                          published_at, created_at)
+                        values (:id, :plan, 1, 'Ficha A', date '2026-11-01', 8, now(), now())
+                        """).param("id", version).param("plan", plan).update();
+        jdbc.sql("insert into workout_division (version_id, position, letter) values (:v, 0, 'A')")
+                .param("v", version)
+                .update();
+        jdbc.sql("""
+                        insert into workout_item (version_id, division_position, position, exercise_id, sets, reps_min,
+                                                  reps_max)
+                        values (:v, 0, 0, :e, 3, 8, 12)
+                        """).param("v", version).param("e", exercise).update();
+
+        mvc.perform(get("/plans/" + plan).header("Authorization", "Bearer personal-" + personal))
+                .andExpect(status().isOk());
+
+        assertThat(resources(client)).containsExactly("MOBILITY_RESTRICTIONS");
+    }
 }

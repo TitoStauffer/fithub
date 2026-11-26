@@ -257,6 +257,8 @@ O consumidor dos eventos do client-service também recebe o `ContaExcluida` (`cl
 - Cada leitura das restrições de mobilidade do aluno pelo personal vinculado (`GET /clients/{clientId}/restrictions`)
   fica registrada em `professional_access_log` (V17): quem leu, de quem, o quê e quando, nunca o conteúdo. A leitura
   do próprio aluno não grava.
+- Abrir a ficha com alertas de restrição (DEV-0062) também registra a leitura, porque o alerta mostra a região e a
+  descrição da restrição. Registra quando o aluno tem restrições, mesmo sem alerta na ficha (achado do PR #312).
 - **Expurgo:** a cada `fithub.access-log.purge-interval` (padrão 6 h), sai o que passou de 6 meses (ADR-012, item 6).
   Fica mesmo depois da exclusão da conta, até o prazo.
 - **Exportação:** `GET /me/export` traz o registro em `accessLog`.

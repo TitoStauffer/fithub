@@ -198,6 +198,8 @@ O consumidor dos eventos do client-service também recebe o `ContaExcluida` (`cl
 - Cada leitura das restrições alimentares do paciente pela nutricionista vinculada
   (`GET /clients/{clientId}/food-restrictions`) fica registrada em `professional_access_log` (V14): quem leu, de
   quem, o quê e quando, nunca o conteúdo. A leitura do próprio paciente não grava.
+- Abrir o plano alimentar com alertas de restrição (DEV-0084) também registra a leitura, porque o alerta mostra a
+  descrição da restrição. Registra quando o paciente tem restrições, mesmo que nenhum alimento as dispare.
 - **Expurgo:** a cada `fithub.access-log.purge-interval` (padrão 6 h), sai o que passou de 6 meses (ADR-012, item 6).
   Fica mesmo depois da exclusão da conta, até o prazo.
 - **Exportação:** `GET /me/export` traz o registro em `accessLog`.

@@ -1,6 +1,6 @@
 -- Auditoria de acesso de profissionais a dados sensíveis (DEV-0171, NFR-03, ADR-012): cada leitura das restrições
--- de mobilidade do paciente pela nutricionista vinculada. Guarda quem leu, de quem, o quê e quando, nunca o conteúdo. Fica 6
--- meses e sai por expurgo; continua depois da exclusão da conta, até o prazo.
+-- alimentares do paciente pela nutricionista vinculada. Guarda quem leu, de quem, o quê e quando, nunca o conteúdo.
+-- Fica 6 meses e sai por expurgo; continua depois da exclusão da conta, até o prazo.
 create table professional_access_log (
     id uuid primary key,
     professional_id uuid not null,
