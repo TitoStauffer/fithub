@@ -3,7 +3,9 @@ import { Linking, StyleSheet, Text, View } from 'react-native';
 
 import type { ClientProfile, MealPlanToday } from '../../lib/api';
 import { accountApiFrom, type AccountApi } from '../account/accountApi';
+import { dataExportApiFrom, type DataExportApi } from '../account/dataExport';
 import { DeleteAccountScreen } from '../account/DeleteAccountScreen';
+import { DownloadDataScreen, type ShareText } from '../account/DownloadDataScreen';
 import { assessmentApiFrom, type AssessmentApi, type PhotoSource } from '../assessments/assessmentApi';
 import { expoPhotoSource } from '../assessments/expoPhotoSource';
 import { OnlineAssessmentScreen } from '../assessments/OnlineAssessmentScreen';
@@ -54,7 +56,8 @@ type Screen =
     | 'meals'
     | 'mealLog'
     | 'progress'
-    | 'deleteAccount';
+    | 'deleteAccount'
+    | 'downloadData';
 
 /** De onde chegam os links abertos pelo sistema (`fithub://convite/<token>`); injetável nos testes. */
 export interface LinkSource {
@@ -81,6 +84,8 @@ export function ClientArea({
     progressApi: injectedProgress,
     accountApi: injectedAccount,
     onAccountDeleted,
+    dataExportApi: injectedExport,
+    shareText,
 }: {
     api?: ProfileApi;
     linksApi?: LinksApi;
@@ -97,6 +102,9 @@ export function ClientArea({
     accountApi?: AccountApi;
     /** Depois da exclusão da conta (DEV-0164); por padrão, encerra a sessão. */
     onAccountDeleted?: () => void;
+    dataExportApi?: DataExportApi;
+    /** Compartilhamento do arquivo de dados (DEV-0168); por padrão, o do sistema. */
+    shareText?: ShareText;
 }) {
     const { apiFetch, session } = useSession();
     const api = useMemo(() => injected ?? profileApiFrom(apiFetch), [injected, apiFetch]);
@@ -125,6 +133,10 @@ export function ClientArea({
     const accountApi = useMemo(
         () => injectedAccount ?? accountApiFrom(apiFetch),
         [injectedAccount, apiFetch],
+    );
+    const dataExportApi = useMemo(
+        () => injectedExport ?? dataExportApiFrom(apiFetch),
+        [injectedExport, apiFetch],
     );
     const progressApi = useMemo(
         () => injectedProgress ?? progressApiFrom(apiFetch),
@@ -197,6 +209,9 @@ export function ClientArea({
                 onCancel={() => setScreen('home')}
             />
         );
+    }
+    if (screen === 'downloadData') {
+        return <DownloadDataScreen api={dataExportApi} share={shareText} onDone={() => setScreen('home')} />;
     }
     if (screen === 'deleteAccount') {
         return (
@@ -315,6 +330,7 @@ export function ClientArea({
             <Button onPress={() => setScreen('links')}>Meus vínculos</Button>
             <Button onPress={() => setScreen('assessment')}>Avaliação online</Button>
             <Button onPress={() => setScreen('compare')}>Comparar fotos</Button>
+            <Button onPress={() => setScreen('downloadData')}>Baixar meus dados</Button>
             <Button onPress={() => setScreen('deleteAccount')}>Excluir minha conta</Button>
         </View>
     );

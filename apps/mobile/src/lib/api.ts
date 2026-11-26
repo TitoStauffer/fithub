@@ -506,3 +506,37 @@ export async function fetchMyDietProgress(
 export async function fetchMyBodySeries(apiFetch: ApiFetch, baseUrl = clientApiUrl()): Promise<BodySeries> {
     return (await read<BodySeries>(apiFetch, `${baseUrl}/clients/me/assessments/series`)) ?? {};
 }
+
+export type ClientExport = Schemas['ClientExport'];
+export type TrainingExport = TrainingSchemas['TrainingExport'];
+export type NutritionExport = NutritionSchemas['NutritionExport'];
+
+/** Tudo o que o client-service tem do próprio cliente (DEV-0104). */
+export async function fetchMyClientExport(
+    apiFetch: ApiFetch,
+    baseUrl = clientApiUrl(),
+): Promise<ClientExport> {
+    return required(await read<ClientExport>(apiFetch, `${baseUrl}/clients/me/export`));
+}
+
+/** Tudo o que o training tem do próprio cliente (DEV-0166). */
+export async function fetchMyTrainingExport(
+    apiFetch: ApiFetch,
+    baseUrl = trainingApiUrl(),
+): Promise<TrainingExport> {
+    return required(await read<TrainingExport>(apiFetch, `${baseUrl}/me/export`));
+}
+
+/** Tudo o que o nutrition tem do próprio cliente (DEV-0167). */
+export async function fetchMyNutritionExport(
+    apiFetch: ApiFetch,
+    baseUrl = nutritionApiUrl(),
+): Promise<NutritionExport> {
+    return required(await read<NutritionExport>(apiFetch, nutritionUrl(baseUrl, 'get', '/me/export')));
+}
+
+/** A exportação sempre existe: um 404 é falha, não ausência de dados. */
+function required<T>(value: T | null): T {
+    if (value === null) throw new ApiProblemError(404, 'A exportação não foi encontrada.', {});
+    return value;
+}
