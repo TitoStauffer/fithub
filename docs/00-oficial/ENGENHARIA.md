@@ -391,7 +391,9 @@ novos serviços quando cada épico chegar. Ele não é evoluído no lugar.
   agregadas que cada serviço calcula a partir do próprio banco a cada 5
   minutos (`AggregateGauges` da java-commons). Elas não têm rótulo que aponte
   uma pessoa e vão por OTLP para o Prometheus, só quando o ambiente liga a
-  exportação, com um painel provisionado no Grafana.
+  exportação, com um painel provisionado no Grafana. A exportação leva também
+  os medidores padrão do Spring (JVM, requisições HTTP pelo modelo da rota,
+  pool do banco). Medidor novo não pode ter rótulo que aponte uma pessoa.
 
 ---
 

@@ -13,6 +13,7 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -34,19 +35,19 @@ class NutritionMetricsTest extends ServiceIntegrationTest {
 
     @Test
     void engagementCountsLinkedClientsWithAMealEatenInTheLast7Days() {
-        Map<String, Double> before = values();
-        LocalDate today = LocalDate.now(NutritionMetrics.ZONE);
-        UUID nutritionist = UUID.randomUUID();
-        // Sexto dia antes de hoje: ainda dentro da semana (hoje e os 6 anteriores).
-        UUID engaged = linked(nutritionist);
-        meal(engaged, plan(nutritionist, engaged, null), today.minusDays(6), "PARTIAL");
-        UUID stale = linked(nutritionist);
-        meal(stale, plan(nutritionist, stale, null), today.minusDays(7), "DONE");
-        // Refeição pulada não é registro de refeição feita.
-        UUID skipped = linked(nutritionist);
-        meal(skipped, plan(nutritionist, skipped, null), today, "SKIPPED");
-
-        Map<String, Double> after = delta(before);
+        Map<String, Double> after = onOneDay(today -> {
+            Map<String, Double> before = values();
+            UUID nutritionist = UUID.randomUUID();
+            // Sexto dia antes de hoje: ainda dentro da semana (hoje e os 6 anteriores).
+            UUID engaged = linked(nutritionist);
+            meal(engaged, plan(nutritionist, engaged, null), today.minusDays(6), "PARTIAL");
+            UUID stale = linked(nutritionist);
+            meal(stale, plan(nutritionist, stale, null), today.minusDays(7), "DONE");
+            // Refeição pulada não é registro de refeição feita.
+            UUID skipped = linked(nutritionist);
+            meal(skipped, plan(nutritionist, skipped, null), today, "SKIPPED");
+            return delta(before);
+        });
 
         assertThat(after.get(NutritionMetrics.LINKED)).isEqualTo(3);
         assertThat(after.get(NutritionMetrics.ENGAGED)).isEqualTo(1);
@@ -72,26 +73,41 @@ class NutritionMetricsTest extends ServiceIntegrationTest {
 
     @Test
     void useAfterTheLinkEndsCountsClientsWithoutAnActiveLinkWhoAteAfterTheEndDay() {
-        Map<String, Double> before = values();
-        LocalDate today = LocalDate.now(NutritionMetrics.ZONE);
-        Instant now = Instant.now();
-        UUID nutritionist = UUID.randomUUID();
-        UUID kept = ended(nutritionist, now.minus(Duration.ofDays(10)));
-        UUID keptPlan = plan(nutritionist, kept, null);
-        meal(kept, keptPlan, today.minusDays(2), "DONE");
-        // Comeu só no próprio dia do fim e antes dele; e pulou depois.
-        UUID stopped = ended(nutritionist, now.minus(Duration.ofDays(5)));
-        UUID stoppedPlan = plan(nutritionist, stopped, null);
-        meal(stopped, stoppedPlan, today.minusDays(6), "DONE");
-        meal(stopped, stoppedPlan, today.minusDays(1), "SKIPPED");
-        // Encerrou um vínculo e tem outro ativo: ainda é cliente vinculado.
-        UUID relinked = ended(nutritionist, now.minus(Duration.ofDays(20)));
-        link(relinked, UUID.randomUUID(), "ACTIVE", null);
-        meal(relinked, plan(nutritionist, relinked, null), today, "DONE");
-
-        Map<String, Double> after = delta(before);
+        Map<String, Double> after = onOneDay(today -> {
+            Map<String, Double> before = values();
+            Instant now = Instant.now();
+            UUID nutritionist = UUID.randomUUID();
+            UUID kept = ended(nutritionist, now.minus(Duration.ofDays(10)));
+            UUID keptPlan = plan(nutritionist, kept, null);
+            meal(kept, keptPlan, today.minusDays(2), "DONE");
+            // Comeu só antes do fim do vínculo; e pulou depois.
+            UUID stopped = ended(nutritionist, now.minus(Duration.ofDays(5)));
+            UUID stoppedPlan = plan(nutritionist, stopped, null);
+            meal(stopped, stoppedPlan, today.minusDays(6), "DONE");
+            meal(stopped, stoppedPlan, today.minusDays(1), "SKIPPED");
+            // Encerrou um vínculo e tem outro ativo: ainda é cliente vinculado.
+            UUID relinked = ended(nutritionist, now.minus(Duration.ofDays(20)));
+            link(relinked, UUID.randomUUID(), "ACTIVE", null);
+            meal(relinked, plan(nutritionist, relinked, null), today, "DONE");
+            return delta(before);
+        });
 
         assertThat(after.get(NutritionMetrics.AFTER_LINK_END)).isEqualTo(1);
+    }
+
+    /**
+     * Roda o cenário com o dia de hoje em São Paulo e repete uma vez se a meia-noite cair no meio dele: os limites da
+     * nutrição são em dias, e a métrica calcula com o dia do momento em que consulta (Code Review do PR #326).
+     */
+    private Map<String, Double> onOneDay(Function<LocalDate, Map<String, Double>> scenario) {
+        for (int attempt = 0; attempt < 2; attempt++) {
+            LocalDate today = LocalDate.now(NutritionMetrics.ZONE);
+            Map<String, Double> result = scenario.apply(today);
+            if (today.equals(LocalDate.now(NutritionMetrics.ZONE))) {
+                return result;
+            }
+        }
+        throw new IllegalStateException("O dia de São Paulo mudou duas vezes durante o teste.");
     }
 
     @Test

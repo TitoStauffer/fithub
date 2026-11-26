@@ -193,6 +193,166 @@
                 "--test",
                 "infra/compose/prod.test.mjs"
             ]
+        },
+        {
+            "id": "M11",
+            "description": "Uma métrica fora de fithub.* passa a ser registrada como agregada",
+            "area": "java",
+            "file": "libs/java-commons/src/main/java/com/fithub/commons/metrics/AggregateGauges.java",
+            "find": "        if (name == null || !name.startsWith(\"fithub.\")) {",
+            "replace": "        if (name == null) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "libs/java-commons",
+                "-am",
+                "test",
+                "-Dtest=AggregateGaugesTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "O profissional com o teste ainda valendo passa a contar como expirado",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/metrics/SubscriptionMetrics.java",
+            "find": "EXPIRED = \"not coalesce(s.paid_until > :now, false) and s.trial_ends_at <= :now\"",
+            "replace": "EXPIRED = \"not coalesce(s.paid_until > :now, false)\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M13",
+            "description": "No treino, o cliente que voltou a ter vínculo ativo passa a contar como uso depois do vínculo",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/metrics/TrainingMetrics.java",
+            "find": "\" group by client_id having bool_and(status = 'ENDED')) ended where exists (\"",
+            "replace": "\" group by client_id) ended where exists (\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M14",
+            "description": "As fichas publicadas antes dos 30 dias passam a contar como prescrição",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/metrics/TrainingMetrics.java",
+            "find": "\"select count(*) from workout_plan_version v join workout_plan p on p.id = v.plan_id\"\n                                + \" where p.author = 'PERSONAL' and v.published_at >= :since\"",
+            "replace": "\"select count(*) from workout_plan_version v join workout_plan p on p.id = v.plan_id\"\n                                + \" where p.author = 'PERSONAL' and v.published_at is not null\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M15",
+            "description": "O treino depois do fim do vínculo, mas há mais de 30 dias, passa a contar",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/metrics/TrainingMetrics.java",
+            "find": "\" and s.started_at > ended.last_end and s.started_at >= :since)\"",
+            "replace": "\" and s.started_at > ended.last_end)\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M16",
+            "description": "Na nutrição, o cliente que voltou a ter vínculo ativo passa a contar como uso depois do vínculo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/metrics/NutritionMetrics.java",
+            "find": "\" group by client_id having bool_and(status = 'ENDED')) ended where exists (\"",
+            "replace": "\" group by client_id) ended where exists (\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=NutritionMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M17",
+            "description": "A refeição antes do fim do vínculo passa a contar como uso depois dele",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/metrics/NutritionMetrics.java",
+            "find": "\" and m.logged_on > (ended.last_end at time zone 'America/Sao_Paulo')::date\"",
+            "replace": "\" and true\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=NutritionMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M18",
+            "description": "Os planos publicados antes dos 30 dias passam a contar como prescrição",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/metrics/NutritionMetrics.java",
+            "find": "\"select count(*) from meal_plan_version v where v.published_at >= :since\"",
+            "replace": "\"select count(*) from meal_plan_version v where v.published_at is not null\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=NutritionMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
         }
     ]
 }

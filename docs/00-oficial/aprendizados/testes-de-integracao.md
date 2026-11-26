@@ -73,3 +73,19 @@ os próprios dados com ids novos e lê de novo.
     que conta evento órfão do último minuto, falhou.
   - **Correção:** o teste das métricas confere o acréscimo, sem apagar nada, como os das outras métricas.
   - **Prevenção:** esta regra.
+
+## cada-condicao-da-consulta-tem-mutante
+
+**Regra:** numa consulta que define uma regra (métrica, filtro de acesso, expurgo), cada condição do `where` e do
+`having` é uma guarda: a janela de tempo, o estado, o tipo e o "sem outro vínculo ativo". Antes do PR, liste as
+condições de cada consulta e declare um mutante para cada uma no manifesto da tarefa, mesmo quando o teste já tem o
+caso de limite. Sem o mutante, o PR não prova que o teste pega a condição.
+
+### Ocorrências
+
+- **Revisão:** Code Review CHANGES_REQUESTED do PR #326, no SHA `0a97e3e` (MEDIUM) — DEV-0113 (#105) · **PR:** #326
+  - **Impacto:** sete condições das métricas tinham teste, mas não tinham mutante. Eram a recusa de nome fora de
+    `fithub.*`, o estado expirado, o "sem vínculo ativo" nos dois serviços, o dia do fim do vínculo na nutrição e as
+    janelas de 30 dias. O critério de aceitação afirmava uma cobertura que não estava provada.
+  - **Correção:** mutantes M11 a M18 de `mutations/DEV-0113.json`.
+  - **Prevenção:** esta regra.
