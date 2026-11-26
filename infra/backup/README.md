@@ -23,7 +23,10 @@ Backup diário e restauração dos bancos do FitHub (DEV-0108, ADR-012, item 4; 
   - a lista tem o mesmo formato nos quatro serviços que a usam (account, client, training e nutrition):
     `deleted_account(client_id uuid primary key, deleted_at timestamptz not null)`;
   - um backup de antes da migration da lista é restaurado: a restauração cria a tabela, como dono do banco, e regrava
-    nela a lista de agora (DEV-0173). As migrations da lista e do marcador usam `if not exists`;
+    nela a lista de agora (DEV-0173). Isso vale para o account-service, cuja migration da lista (V6) usa
+    `if not exists`. No client, no training e no nutrition, a lista existe desde antes do backup (DEV-0105, DEV-0162 e
+    DEV-0163 vieram antes da DEV-0108), então nenhum backup é de antes dela; as migrations do marcador usam
+    `if not exists` nos quatro;
   - grava um marcador em `restore_pending` nos bancos com a lista, criando a tabela se o backup for de antes dela: o client-service, o training e o nutrition
     reapagam o dado dessas contas na subida e apagam o marcador (DEV-0172), e o account-service reapaga o login no
     Keycloak (DEV-0173);

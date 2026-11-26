@@ -9,7 +9,8 @@
 #
 # A lista tem o mesmo formato nos quatro serviços que a usam (account, client, training e nutrition):
 # deleted_account(client_id uuid primary key, deleted_at timestamptz not null). Um backup de antes da migration da lista
-# não a tem: a restauração cria a tabela, como dono do banco, e as migrations dela usam "if not exists" (DEV-0173).
+# não a tem: a restauração cria a tabela, como dono do banco (DEV-0173). Só o account-service tem backup de antes da
+# lista, e a migration dela (V6) usa "if not exists"; nos outros três, a lista veio antes do primeiro backup.
 #
 # Ambiente: PGHOST, PGPORT, PGUSER e PGPASSWORD de um superusuário; FITHUB_DATABASES; BACKUP_DIR (padrão /backups).
 # Cada banco é restaurado com o papel do próprio banco (o dono, como em postgres/init-databases.sh).
