@@ -149,6 +149,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Exporta todos os dados que o training tem do cliente
+         * @description Fichas (as dos personais nas versões publicadas; a própria com os rascunhos), sessões com as séries e os comentários, recordes e restrições de mobilidade. O app junta com a exportação do client-service e do nutrition.
+         */
+        get: operations["export"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/own-plans": {
         parameters: {
             query?: never;
@@ -961,6 +981,71 @@ export interface components {
             expected?: number;
             /** Format: date */
             start?: string;
+        };
+        /** @description Todos os dados que o training tem do cliente. */
+        TrainingExport: {
+            /** Format: date-time */
+            exportedAt?: string;
+            plans?: components["schemas"]["TrainingExportPlan"][];
+            records?: components["schemas"]["ExerciseRecords"][];
+            restrictions?: components["schemas"]["MobilityRestriction"][];
+            sessions?: components["schemas"]["TrainingExportSession"][];
+        };
+        /** @description Ficha com as versões que o cliente vê. */
+        TrainingExportPlan: {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: uuid */
+            id?: string;
+            /**
+             * Format: uuid
+             * @description Ausente na ficha própria do cliente.
+             */
+            personalId?: string;
+            /** @enum {string} */
+            status?: "DRAFT" | "PUBLISHED" | "REPLACED";
+            versions?: components["schemas"]["WorkoutPlanVersion"][];
+        };
+        /** @description Sessão de treino com as séries. */
+        TrainingExportSession: {
+            /** @description Ausente se o cliente não comentou. */
+            comment?: string;
+            /** Format: int32 */
+            divisionPosition?: number;
+            /**
+             * Format: int32
+             * @description De 1 (muito fácil) a 5 (exaustivo); ausente se não informada.
+             */
+            feeling?: number;
+            /**
+             * Format: date-time
+             * @description Ausente na sessão ainda aberta.
+             */
+            finishedAt?: string;
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            planId?: string;
+            sets?: components["schemas"]["TrainingExportSet"][];
+            /** Format: date-time */
+            startedAt?: string;
+            /** Format: int32 */
+            versionNumber?: number;
+        };
+        /** @description Série registrada. */
+        TrainingExportSet: {
+            /** Format: uuid */
+            exerciseId?: string;
+            exerciseName?: string;
+            /** Format: int32 */
+            itemPosition?: number;
+            loadKg?: number;
+            /** Format: date-time */
+            recordedAt?: string;
+            /** Format: int32 */
+            reps?: number;
+            /** Format: int32 */
+            setNumber?: number;
         };
         /** @description A evolução do treino no período (FR-56, FR-58). */
         TrainingProgress: {
@@ -1861,6 +1946,44 @@ export interface operations {
             };
             /** @description O exercício não existe, é de outro personal ou do catálogo. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    export: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Os dados do cliente. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainingExport"];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não tem o papel de cliente. */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

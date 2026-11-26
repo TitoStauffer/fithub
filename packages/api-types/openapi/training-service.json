@@ -860,6 +860,147 @@
         },
         "type" : "object"
       },
+      "TrainingExport" : {
+        "description" : "Todos os dados que o training tem do cliente.",
+        "properties" : {
+          "exportedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "plans" : {
+            "items" : {
+              "$ref" : "#/components/schemas/TrainingExportPlan"
+            },
+            "type" : "array"
+          },
+          "records" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ExerciseRecords"
+            },
+            "type" : "array"
+          },
+          "restrictions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/MobilityRestriction"
+            },
+            "type" : "array"
+          },
+          "sessions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/TrainingExportSession"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "TrainingExportPlan" : {
+        "description" : "Ficha com as versões que o cliente vê.",
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "personalId" : {
+            "description" : "Ausente na ficha própria do cliente.",
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "DRAFT", "PUBLISHED", "REPLACED" ],
+            "type" : "string"
+          },
+          "versions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/WorkoutPlanVersion"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "TrainingExportSession" : {
+        "description" : "Sessão de treino com as séries.",
+        "properties" : {
+          "comment" : {
+            "description" : "Ausente se o cliente não comentou.",
+            "type" : "string"
+          },
+          "divisionPosition" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "feeling" : {
+            "description" : "De 1 (muito fácil) a 5 (exaustivo); ausente se não informada.",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "finishedAt" : {
+            "description" : "Ausente na sessão ainda aberta.",
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "planId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "sets" : {
+            "items" : {
+              "$ref" : "#/components/schemas/TrainingExportSet"
+            },
+            "type" : "array"
+          },
+          "startedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "versionNumber" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "TrainingExportSet" : {
+        "description" : "Série registrada.",
+        "properties" : {
+          "exerciseId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "exerciseName" : {
+            "type" : "string"
+          },
+          "itemPosition" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "loadKg" : {
+            "type" : "number"
+          },
+          "recordedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "reps" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "setNumber" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "TrainingProgress" : {
         "description" : "A evolução do treino no período (FR-56, FR-58).",
         "properties" : {
@@ -2142,6 +2283,46 @@
         },
         "summary" : "Edita um exercício próprio do personal",
         "tags" : [ "Exercícios" ]
+      }
+    },
+    "/me/export" : {
+      "get" : {
+        "description" : "Fichas (as dos personais nas versões publicadas; a própria com os rascunhos), sessões com as séries e os comentários, recordes e restrições de mobilidade. O app junta com a exportação do client-service e do nutrition.",
+        "operationId" : "export",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TrainingExport"
+                }
+              }
+            },
+            "description" : "Os dados do cliente."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não tem o papel de cliente."
+          }
+        },
+        "summary" : "Exporta todos os dados que o training tem do cliente",
+        "tags" : [ "Exportação" ]
       }
     },
     "/me/own-plans" : {
@@ -3628,5 +3809,8 @@
   }, {
     "description" : "Fichas de treino que o personal monta para o aluno",
     "name" : "Fichas de treino"
+  }, {
+    "description" : "Exportação dos dados do cliente autenticado",
+    "name" : "Exportação"
   } ]
 }
