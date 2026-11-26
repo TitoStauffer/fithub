@@ -5,6 +5,7 @@ import com.fithub.client.application.ExportClientData;
 import com.fithub.client.domain.account.PrivacyRecords;
 import com.fithub.client.domain.invitation.SharedData;
 import com.fithub.client.domain.link.Link;
+import com.fithub.client.domain.link.ProfessionalAccessAudit;
 import com.fithub.client.domain.professional.ProfessionalType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -92,6 +93,21 @@ class ClientExportController {
         }
     }
 
+    // O nome some quando o profissional saiu da projeção.
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @Schema(name = "ClientExportAccess", description = "Leitura de dado sensível pelo profissional, sem o conteúdo.")
+    record AccessExport(
+            UUID professionalId,
+            String professionalName,
+            ProfessionalAccessAudit.Resource resource,
+            Instant accessedAt) {
+
+        static AccessExport of(PrivacyRecords.AccessRecord access) {
+            return new AccessExport(
+                    access.professionalId(), access.professionalName(), access.resource(), access.accessedAt());
+        }
+    }
+
     // Sem perfil ou sem saúde, o campo some.
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @Schema(name = "ClientExport", description = "Todos os dados que o client-service tem do cliente.")
@@ -106,7 +122,14 @@ class ClientExportController {
 
             List<AssessmentExport> assessments,
             List<LinkExport> links,
-            List<HealthReadExport> healthReads) {
+
+            @Schema(description = "Só as leituras da saúde; o registro completo está em accessLog.")
+            List<HealthReadExport> healthReads,
+
+            @Schema(
+                    description =
+                            "Todas as leituras de dados sensíveis pelos profissionais (saúde, avaliações e fotos).")
+            List<AccessExport> accessLog) {
 
         static ExportResponse of(ExportClientData.Export export) {
             return new ExportResponse(
@@ -125,7 +148,8 @@ class ClientExportController {
                                             .toList()))
                             .toList(),
                     export.links().stream().map(LinkExport::of).toList(),
-                    export.healthReads().stream().map(HealthReadExport::of).toList());
+                    export.healthReads().stream().map(HealthReadExport::of).toList(),
+                    export.accessLog().stream().map(AccessExport::of).toList());
         }
     }
 

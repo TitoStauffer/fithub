@@ -7,6 +7,7 @@ import com.fithub.client.domain.assessment.Photo;
 import com.fithub.client.domain.assessment.PhotoRepository;
 import com.fithub.client.domain.assessment.PhotoStorage;
 import com.fithub.client.domain.link.LinkRepository;
+import com.fithub.client.domain.link.ProfessionalAccessAudit;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
@@ -31,6 +32,7 @@ public class ManagePhotos {
     private final PhotoRepository photos;
     private final PhotoStorage storage;
     private final LinkRepository links;
+    private final ProfessionalAccessAudit audit;
     private final Clock clock;
 
     public ManagePhotos(
@@ -38,11 +40,13 @@ public class ManagePhotos {
             PhotoRepository photos,
             PhotoStorage storage,
             LinkRepository links,
+            ProfessionalAccessAudit audit,
             Clock clock) {
         this.assessments = assessments;
         this.photos = photos;
         this.storage = storage;
         this.links = links;
+        this.audit = audit;
         this.clock = clock;
     }
 
@@ -105,9 +109,16 @@ public class ManagePhotos {
                 .findById(assessmentId)
                 .filter(found -> found.clientId().equals(clientId))
                 .orElseThrow(() -> new ManageAssessments.NotFoundException("Avaliação não encontrada."));
-        return photos.listByAssessment(assessmentId).stream()
+        List<Viewable> found = photos.listByAssessment(assessmentId).stream()
                 .map(this::viewable)
                 .toList();
+        // Cada leitura pelo profissional fica registrada (DEV-0106, NFR-03).
+        audit.record(
+                UUID.fromString(professionalAccount),
+                clientId,
+                ProfessionalAccessAudit.Resource.PHOTOS,
+                clock.instant());
+        return found;
     }
 
     /** Exclui a foto da pose: o registro e todos os objetos da pose no bucket, inclusive envios não confirmados. */

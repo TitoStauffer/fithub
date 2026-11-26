@@ -1,0 +1,165 @@
+{
+    "issue": "DEV-0106",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "A leitura das avaliações pelo profissional deixa de ser registrada",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManageAssessments.java",
+            "find": "        audit.record(professionalId, clientId, ProfessionalAccessAudit.Resource.ASSESSMENTS, clock.instant());\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalAccessAuditTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "A leitura das avaliações passa a ser registrada como saúde",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManageAssessments.java",
+            "find": "ProfessionalAccessAudit.Resource.ASSESSMENTS",
+            "replace": "ProfessionalAccessAudit.Resource.HEALTH",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalAccessAuditTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "A leitura das fotos pelo profissional deixa de ser registrada",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManagePhotos.java",
+            "find": "        // Cada leitura pelo profissional fica registrada (DEV-0106, NFR-03).\n        audit.record(",
+            "replace": "        // Cada leitura pelo profissional fica registrada (DEV-0106, NFR-03).\n        if (false) audit.record(",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalAccessAuditTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "O expurgo passa a tirar também o que fez exatamente 6 meses",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcProfessionalAccessAudit.java",
+            "find": "where accessed_at < :cutoff",
+            "replace": "where accessed_at <= :cutoff",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalAccessAuditTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O expurgo passa a guardar 7 meses",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/AccessLogRetention.java",
+            "find": ".minusMonths(RETENTION_MONTHS)",
+            "replace": ".minusMonths(RETENTION_MONTHS + 1)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalAccessAuditTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "A exportação deixa de trazer o registro completo",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ExportClientData.java",
+            "find": "                privacy.accessLogOf(clientId));",
+            "replace": "                List.of());",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalAccessAuditTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "O healthReads passa a trazer também as leituras de avaliações",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcPrivacyRecords.java",
+            "find": " and a.resource = 'HEALTH'",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalAccessAuditTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "O banco passa a aceitar qualquer recurso",
+            "area": "java",
+            "file": "services/client-service/src/main/resources/db/migration/V14__auditoria_de_acesso.sql",
+            "find": "check (resource in ('HEALTH', 'ASSESSMENTS', 'PHOTOS'))",
+            "replace": "check (resource is not null)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ProfessionalAccessAuditTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

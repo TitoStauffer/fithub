@@ -499,15 +499,28 @@ export interface components {
         };
         /** @description Todos os dados que o client-service tem do cliente. */
         ClientExport: {
+            /** @description Todas as leituras de dados sensíveis pelos profissionais (saúde, avaliações e fotos). */
+            accessLog?: components["schemas"]["ClientExportAccess"][];
             assessments?: components["schemas"]["ClientExportAssessment"][];
             /** Format: date-time */
             exportedAt?: string;
             /** @description Ausente se o cliente nunca preencheu o perfil de saúde. */
             health?: components["schemas"]["HealthProfile"];
+            /** @description Só as leituras da saúde; o registro completo está em accessLog. */
             healthReads?: components["schemas"]["ClientExportHealthRead"][];
             links?: components["schemas"]["ClientExportLink"][];
             /** @description Ausente se a conta ainda não tem perfil. */
             profile?: components["schemas"]["ClientProfile"];
+        };
+        /** @description Leitura de dado sensível pelo profissional, sem o conteúdo. */
+        ClientExportAccess: {
+            /** Format: date-time */
+            accessedAt?: string;
+            /** Format: uuid */
+            professionalId?: string;
+            professionalName?: string;
+            /** @enum {string} */
+            resource?: "HEALTH" | "ASSESSMENTS" | "PHOTOS";
         };
         /** @description Avaliação com as fotos, cada uma com a URL temporária. */
         ClientExportAssessment: {
