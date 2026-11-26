@@ -35,7 +35,10 @@ edge() {
   curl -sk --resolve "$domain:$https:127.0.0.1" "$@"
 }
 
-$compose up -d --wait --wait-timeout 420 traefik keycloak seaweedfs rabbitmq rabbitmq-users backup otel-lgtm || fail "o compose não subiu saudável"
+$compose up -d --wait --wait-timeout 420 traefik keycloak seaweedfs rabbitmq backup otel-lgtm || fail "o compose não subiu saudável"
+# O rabbitmq-users roda e termina: no deploy, os serviços dependem dele (service_completed_successfully), e o
+# up --wait aceita a saída 0; sem os serviços, ele roda aqui pelo run.
+$compose run --rm rabbitmq-users >/dev/null || fail "o rabbitmq-users não criou os usuários dos serviços"
 
 # HTTP vira HTTPS.
 location=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' --resolve "$domain:$http:127.0.0.1" "http://$domain:$http/auth/")
