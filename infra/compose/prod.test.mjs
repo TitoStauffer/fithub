@@ -76,27 +76,57 @@ test('cada segredo do .env é obrigatório: sem ele, o compose não sobe', () =>
   }
 });
 
-test('cada usuário de banco tem senha própria, e só o dono do banco a recebe', () => {
-  const owners = {
-    ACCOUNT_DB_PASSWORD: 'account-service',
-    CLIENT_DB_PASSWORD: 'client-service',
-    TRAINING_DB_PASSWORD: 'training-service',
-    NUTRITION_DB_PASSWORD: 'nutrition-service',
-    KEYCLOAK_DB_PASSWORD: 'keycloak',
-  };
-  // Um valor diferente por senha, para saber quem recebeu qual.
-  const distinct = example.replace(/^([A-Z]+_DB_PASSWORD)=.*$/gm, (_, name) => `${name}=senha-de-${name.toLowerCase()}`);
+// Quem pode receber cada credencial: o dono e o container que cria a credencial (Code Review do PR #322).
+const CREDENTIAL_RECEIVERS = {
+  ACCOUNT_DB_PASSWORD: ['account-service', 'postgres'],
+  CLIENT_DB_PASSWORD: ['client-service', 'postgres'],
+  TRAINING_DB_PASSWORD: ['postgres', 'training-service'],
+  NUTRITION_DB_PASSWORD: ['nutrition-service', 'postgres'],
+  KEYCLOAK_DB_PASSWORD: ['keycloak', 'postgres'],
+  POSTGRES_PASSWORD: ['backup', 'postgres'],
+  RABBITMQ_ADMIN_PASSWORD: ['rabbitmq', 'rabbitmq-users'],
+  ACCOUNT_RABBITMQ_PASSWORD: ['account-service', 'rabbitmq-users'],
+  CLIENT_RABBITMQ_PASSWORD: ['client-service', 'rabbitmq-users'],
+  TRAINING_RABBITMQ_PASSWORD: ['rabbitmq-users', 'training-service'],
+  NUTRITION_RABBITMQ_PASSWORD: ['nutrition-service', 'rabbitmq-users'],
+  CLIENT_S3_ACCESS_KEY: ['client-service', 'seaweedfs'],
+  CLIENT_S3_SECRET_KEY: ['client-service', 'seaweedfs'],
+  NUTRITION_S3_ACCESS_KEY: ['nutrition-service', 'seaweedfs'],
+  NUTRITION_S3_SECRET_KEY: ['nutrition-service', 'seaweedfs'],
+  FITHUB_ACCOUNT_SERVICE_SECRET: ['account-service', 'keycloak'],
+  KEYCLOAK_ADMIN_PASSWORD: ['keycloak'],
+  SMTP_PASSWORD: ['client-service'],
+};
+
+test('cada credencial chega só ao dono e a quem a cria', () => {
+  // Um valor diferente por credencial, para saber quem recebeu qual.
+  const distinct = example.replace(/^([A-Z0-9_]+)=<[a-z-]+>$/gm, (_, name) => `${name}=valor-de-${name.toLowerCase()}`);
   const { config } = compose(distinct);
-  for (const [name, owner] of Object.entries(owners)) {
-    const value = `senha-de-${name.toLowerCase()}`;
+  for (const [name, expected] of Object.entries(CREDENTIAL_RECEIVERS)) {
+    const value = `valor-de-${name.toLowerCase()}`;
     const receivers = Object.entries(config.services)
       .filter(([, service]) => Object.values(service.environment ?? {}).includes(value))
       .map(([service]) => service)
       .sort();
-    // O Postgres cria os usuários (init-databases.sh), então recebe todas.
-    assert.deepEqual(receivers, [owner, 'postgres'].sort(), `${name} chegou a ${receivers.join(', ')}`);
+    assert.deepEqual(receivers, expected, `${name} chegou a ${receivers.join(', ')}`);
   }
-  assert.doesNotMatch(read(COMPOSE), /FITHUB_DB_PASSWORD/);
+  assert.doesNotMatch(read(COMPOSE), /FITHUB_DB_PASSWORD|\$\{RABBITMQ_(USER|PASSWORD)|\$\{S3_(ACCESS|SECRET)_KEY/);
+});
+
+test('cada serviço entra no RabbitMQ com o próprio usuário, que só publica na própria exchange', () => {
+  for (const name of Object.keys(SERVICES)) {
+    assert.equal(resolved.config.services[name].environment.RABBITMQ_USER, name.replace('-service', ''));
+  }
+  const script = read('infra/compose/rabbitmq/init-users.sh');
+  assert.ok(script.includes('--write "^($service\\..*|fithub\\.$service)\\$"'), 'permissão de escrita do serviço');
+  assert.ok(script.includes('--tags ""'), 'usuário de serviço sem tag de administração');
+});
+
+test('cada identidade S3 só tem o bucket do seu serviço', () => {
+  const script = read('infra/compose/seaweedfs/start.sh');
+  assert.ok(script.includes('\n  identity client-service "$client_key" "$client_secret" fithub-photos\n'));
+  assert.ok(script.includes('\n  identity nutrition-service "$nutrition_key" "$nutrition_secret" fithub-meal-photos\n'));
+  assert.equal((script.match(/\n {2}identity /g) ?? []).length, 2);
 });
 
 test('o console do Keycloak abre pelo túnel SSH, não pelo domínio público', () => {

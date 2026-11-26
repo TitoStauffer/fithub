@@ -10,8 +10,8 @@ x-service: &service
   depends_on: &service-depends-on
     postgres:
       condition: service_healthy
-    rabbitmq:
-      condition: service_healthy
+    rabbitmq-users:
+      condition: service_completed_successfully
     keycloak:
       condition: service_healthy
     logs-init:
@@ -27,8 +27,6 @@ x-service: &service
 x-service-environment: &service-environment
   DB_HOST: postgres
   RABBITMQ_HOST: rabbitmq
-  RABBITMQ_USER: ${RABBITMQ_USER:?defina RABBITMQ_USER no .env}
-  RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?defina RABBITMQ_PASSWORD no .env}
   # O iss do token é o endereço público; as chaves vêm do Keycloak pela rede interna, sem sair da VPS.
   KEYCLOAK_ISSUER_URI: https://${FITHUB_DOMAIN:?defina FITHUB_DOMAIN no .env}/auth/realms/fithub
   SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/auth/realms/fithub/protocol/openid-connect/certs
@@ -98,8 +96,9 @@ services:
     image: rabbitmq:4.3.8-management
     restart: unless-stopped
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?defina RABBITMQ_USER no .env}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?defina RABBITMQ_PASSWORD no .env}
+      # Administrador do broker, só para a operação; cada serviço tem o seu usuário (rabbitmq-users).
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_ADMIN_USER:?defina RABBITMQ_ADMIN_USER no .env}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_ADMIN_PASSWORD:?defina RABBITMQ_ADMIN_PASSWORD no .env}
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
     healthcheck:
@@ -107,6 +106,24 @@ services:
       interval: 10s
       timeout: 10s
       retries: 20
+    logging: *logging
+
+  # Um usuário por serviço, com permissão só no que é dele (rabbitmq/init-users.sh); roda a cada deploy.
+  rabbitmq-users:
+    image: rabbitmq:4.3.8-management
+    entrypoint: ["sh", "/init/init-users.sh"]
+    environment:
+      RABBITMQ_ADMIN_USER: ${RABBITMQ_ADMIN_USER:?defina RABBITMQ_ADMIN_USER no .env}
+      RABBITMQ_ADMIN_PASSWORD: ${RABBITMQ_ADMIN_PASSWORD:?defina RABBITMQ_ADMIN_PASSWORD no .env}
+      ACCOUNT_RABBITMQ_PASSWORD: ${ACCOUNT_RABBITMQ_PASSWORD:?defina ACCOUNT_RABBITMQ_PASSWORD no .env}
+      CLIENT_RABBITMQ_PASSWORD: ${CLIENT_RABBITMQ_PASSWORD:?defina CLIENT_RABBITMQ_PASSWORD no .env}
+      TRAINING_RABBITMQ_PASSWORD: ${TRAINING_RABBITMQ_PASSWORD:?defina TRAINING_RABBITMQ_PASSWORD no .env}
+      NUTRITION_RABBITMQ_PASSWORD: ${NUTRITION_RABBITMQ_PASSWORD:?defina NUTRITION_RABBITMQ_PASSWORD no .env}
+    volumes:
+      - ./rabbitmq/init-users.sh:/init/init-users.sh:ro
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
     logging: *logging
 
   keycloak:
@@ -152,12 +169,16 @@ services:
   seaweedfs:
     image: chrislusf/seaweedfs:4.54
     restart: unless-stopped
-    command: server -s3 -dir=/data -master.telemetry=false
+    # Uma identidade S3 por serviço, só com o próprio bucket (seaweedfs/start.sh).
+    entrypoint: ["sh", "/init/start.sh"]
     environment:
-      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY:?defina S3_ACCESS_KEY no .env}
-      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:?defina S3_SECRET_KEY no .env}
+      CLIENT_S3_ACCESS_KEY: ${CLIENT_S3_ACCESS_KEY:?defina CLIENT_S3_ACCESS_KEY no .env}
+      CLIENT_S3_SECRET_KEY: ${CLIENT_S3_SECRET_KEY:?defina CLIENT_S3_SECRET_KEY no .env}
+      NUTRITION_S3_ACCESS_KEY: ${NUTRITION_S3_ACCESS_KEY:?defina NUTRITION_S3_ACCESS_KEY no .env}
+      NUTRITION_S3_SECRET_KEY: ${NUTRITION_S3_SECRET_KEY:?defina NUTRITION_S3_SECRET_KEY no .env}
     volumes:
       - seaweedfs-data:/data
+      - ./seaweedfs/start.sh:/init/start.sh:ro
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8333/healthz"]
       interval: 5s
@@ -180,6 +201,8 @@ services:
       DB_NAME: account
       DB_USER: account
       DB_PASSWORD: ${ACCOUNT_DB_PASSWORD:?defina ACCOUNT_DB_PASSWORD no .env}
+      RABBITMQ_USER: account
+      RABBITMQ_PASSWORD: ${ACCOUNT_RABBITMQ_PASSWORD:?defina ACCOUNT_RABBITMQ_PASSWORD no .env}
       KEYCLOAK_URL: http://keycloak:8080/auth
       FITHUB_ACCOUNT_SERVICE_SECRET: ${FITHUB_ACCOUNT_SERVICE_SECRET:?defina FITHUB_ACCOUNT_SERVICE_SECRET no .env}
       LOGGING_FILE_NAME: /logs/account-service.log
@@ -196,6 +219,8 @@ services:
       DB_NAME: client
       DB_USER: client
       DB_PASSWORD: ${CLIENT_DB_PASSWORD:?defina CLIENT_DB_PASSWORD no .env}
+      RABBITMQ_USER: client
+      RABBITMQ_PASSWORD: ${CLIENT_RABBITMQ_PASSWORD:?defina CLIENT_RABBITMQ_PASSWORD no .env}
       MAIL_HOST: ${SMTP_HOST:?defina SMTP_HOST no .env}
       MAIL_PORT: ${SMTP_PORT:?defina SMTP_PORT no .env}
       SPRING_MAIL_USERNAME: ${SMTP_USERNAME:?defina SMTP_USERNAME no .env}
@@ -207,8 +232,8 @@ services:
       S3_ENDPOINT: http://seaweedfs:8333
       # As URLs pré-assinadas das fotos saem pelo Traefik, no mesmo domínio.
       S3_PUBLIC_ENDPOINT: https://${FITHUB_DOMAIN:?defina FITHUB_DOMAIN no .env}
-      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?defina S3_ACCESS_KEY no .env}
-      S3_SECRET_KEY: ${S3_SECRET_KEY:?defina S3_SECRET_KEY no .env}
+      S3_ACCESS_KEY: ${CLIENT_S3_ACCESS_KEY:?defina CLIENT_S3_ACCESS_KEY no .env}
+      S3_SECRET_KEY: ${CLIENT_S3_SECRET_KEY:?defina CLIENT_S3_SECRET_KEY no .env}
       LOGGING_FILE_NAME: /logs/client-service.log
 
   training-service:
@@ -219,6 +244,8 @@ services:
       DB_NAME: training
       DB_USER: training
       DB_PASSWORD: ${TRAINING_DB_PASSWORD:?defina TRAINING_DB_PASSWORD no .env}
+      RABBITMQ_USER: training
+      RABBITMQ_PASSWORD: ${TRAINING_RABBITMQ_PASSWORD:?defina TRAINING_RABBITMQ_PASSWORD no .env}
       LOGGING_FILE_NAME: /logs/training-service.log
 
   nutrition-service:
@@ -233,10 +260,12 @@ services:
       DB_NAME: nutrition
       DB_USER: nutrition
       DB_PASSWORD: ${NUTRITION_DB_PASSWORD:?defina NUTRITION_DB_PASSWORD no .env}
+      RABBITMQ_USER: nutrition
+      RABBITMQ_PASSWORD: ${NUTRITION_RABBITMQ_PASSWORD:?defina NUTRITION_RABBITMQ_PASSWORD no .env}
       S3_ENDPOINT: http://seaweedfs:8333
       S3_PUBLIC_ENDPOINT: https://${FITHUB_DOMAIN:?defina FITHUB_DOMAIN no .env}
-      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?defina S3_ACCESS_KEY no .env}
-      S3_SECRET_KEY: ${S3_SECRET_KEY:?defina S3_SECRET_KEY no .env}
+      S3_ACCESS_KEY: ${NUTRITION_S3_ACCESS_KEY:?defina NUTRITION_S3_ACCESS_KEY no .env}
+      S3_SECRET_KEY: ${NUTRITION_S3_SECRET_KEY:?defina NUTRITION_S3_SECRET_KEY no .env}
       LOGGING_FILE_NAME: /logs/nutrition-service.log
 
   # Backup diário dos bancos (DEV-0108) às 03:00 UTC, num volume próprio; a cópia para fora da VPS é do Tito.

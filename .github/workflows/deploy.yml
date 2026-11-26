@@ -70,8 +70,9 @@ jobs:
       - name: Copy the infrastructure files
         run: |
           dir="${DEPLOY_DIR:-fithub}"
-          tar -czf - infra/compose/docker-compose.prod.yml infra/compose/postgres infra/traefik infra/backup \
-              infra/observability infra/keycloak/realm-fithub.json infra/keycloak/themes \
+          tar -czf - infra/compose/docker-compose.prod.yml infra/compose/postgres infra/compose/rabbitmq \
+              infra/compose/seaweedfs infra/traefik infra/backup infra/observability \
+              infra/keycloak/realm-fithub.json infra/keycloak/themes \
             | ssh fithub-vps "mkdir -p '$dir' && tar -xzf - -C '$dir'"
 
       - name: Pull and start

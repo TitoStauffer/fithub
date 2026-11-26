@@ -130,6 +130,58 @@
                 "--test",
                 "infra/compose/prod.test.mjs"
             ]
+        },
+        {
+            "id": "M11",
+            "description": "O training-service passa a usar a senha do RabbitMQ do client",
+            "area": "tools",
+            "file": "infra/compose/docker-compose.prod.yml",
+            "find": "      RABBITMQ_PASSWORD: ${TRAINING_RABBITMQ_PASSWORD:?defina TRAINING_RABBITMQ_PASSWORD no .env}",
+            "replace": "      RABBITMQ_PASSWORD: ${CLIENT_RABBITMQ_PASSWORD:?defina CLIENT_RABBITMQ_PASSWORD no .env}",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "O nutrition-service passa a usar a identidade S3 do client",
+            "area": "tools",
+            "file": "infra/compose/docker-compose.prod.yml",
+            "find": "      S3_SECRET_KEY: ${NUTRITION_S3_SECRET_KEY:?defina NUTRITION_S3_SECRET_KEY no .env}",
+            "replace": "      S3_SECRET_KEY: ${CLIENT_S3_SECRET_KEY:?defina CLIENT_S3_SECRET_KEY no .env}",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M13",
+            "description": "Cada serviço passa a poder publicar na exchange de qualquer serviço",
+            "area": "tools",
+            "file": "infra/compose/rabbitmq/init-users.sh",
+            "find": "--write \"^($service\\..*|fithub\\.$service)\\$\"",
+            "replace": "--write \"^($service\\..*|$exchanges)\\$\"",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M14",
+            "description": "A identidade S3 do client passa a ter o bucket das fotos de prato",
+            "area": "tools",
+            "file": "infra/compose/seaweedfs/start.sh",
+            "find": "  identity client-service \"$client_key\" \"$client_secret\" fithub-photos\n",
+            "replace": "  identity client-service \"$client_key\" \"$client_secret\" fithub-meal-photos\n",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
         }
     ]
 }

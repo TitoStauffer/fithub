@@ -140,6 +140,9 @@ O console usa o endereço do túnel (`KC_HOSTNAME_ADMIN`): abra pela porta 8080 
 3. Crie a pasta do deploy (padrão `~/fithub`) e, nela, `infra/compose/.env` a partir de
    `compose/.env.prod.example`, com cada `<...>` trocado e `chmod 600`. Cada usuário de banco tem a sua senha
    (`ACCOUNT_DB_PASSWORD`, `CLIENT_DB_PASSWORD`…, `KEYCLOAK_DB_PASSWORD`), e cada serviço recebe só a do seu banco.
+   No RabbitMQ, o administrador (`RABBITMQ_ADMIN_*`) fica só para a operação: cada serviço tem o seu usuário
+   (`<SERVIÇO>_RABBITMQ_PASSWORD`), que só publica na própria exchange. No S3, o client e o nutrition têm cada um
+   a sua identidade (`CLIENT_S3_*`, `NUTRITION_S3_*`), só com o próprio bucket.
 4. No GitHub, crie o environment `production` com os segredos `DEPLOY_SSH_HOST`, `DEPLOY_SSH_USER`, `DEPLOY_SSH_KEY`
    (chave só para o deploy), `DEPLOY_SSH_KNOWN_HOSTS` (saída de `ssh-keyscan <vps>`, conferida) e, se a pasta não for
    a padrão, `DEPLOY_DIR`; e a variável `FITHUB_DOMAIN`. Em **Deployment branches**, deixe só a `master`: o

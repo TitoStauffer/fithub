@@ -63,7 +63,7 @@ tabela que o backup restaurado talvez não tenha: a restauração cria a tabela 
 
 ## credencial-de-producao-isolada-por-servico
 
-**Regra:** em produção, cada serviço recebe só as credenciais do que é dele: uma senha por usuário de banco, nunca
+**Regra:** em produção, cada serviço recebe só as credenciais do que é dele (banco, broker, storage): uma senha por usuário de banco, nunca
 uma compartilhada, e nenhuma credencial de outro serviço ou do Keycloak no container. O isolamento por banco
 (ADR-001) só vale se a senha também for separada. Uma guarda confere quem recebe cada senha no compose resolvido.
 
@@ -75,6 +75,19 @@ uma compartilhada, e nenhuma credencial de outro serviço ou do Keycloak no cont
   - **Correção:** uma variável de senha por usuário, lida pelo `init-databases.sh` e passada só ao serviço dono.
   - **Prevenção:** esta regra, o teste `cada usuário de banco tem senha própria, e só o dono do banco a recebe` e o
     mutante M9 de `mutations/DEV-0110.json`.
+- **Revisão:** Code Review CHANGES_REQUESTED do PR #322, no SHA `8fe606b` (2 MEDIUM) — DEV-0110 (#102) · **PR:** #322
+  - **Impacto:** a mesma falha, no broker e no storage.
+    - Os quatro serviços usavam o administrador do RabbitMQ. Um serviço comprometido publicaria um `VinculoAtivado`
+      forjado na exchange do client e ganharia acesso a dados de outro.
+    - O client e o nutrition usavam a mesma identidade S3. Cada um leria as fotos do outro, inclusive as corporais,
+      sem a verificação de vínculo.
+  - **Correção:**
+    - um usuário do RabbitMQ por serviço (`rabbitmq/init-users.sh`), que só publica na própria exchange e só lê as
+      próprias filas; o administrador fica só para a operação;
+    - uma identidade S3 por serviço, só com o próprio bucket (`seaweedfs/start.sh`).
+  - **Prevenção:** a regra passa a valer para toda credencial, não só para a de banco. O teste
+    `cada credencial chega só ao dono e a quem a cria` cobre todos os segredos do `.env`. A fumaça confere que a
+    publicação forjada e o acesso ao bucket alheio são recusados. Mutantes M11 a M14.
 
 ## acesso-administrativo-testado-pelo-caminho-documentado
 

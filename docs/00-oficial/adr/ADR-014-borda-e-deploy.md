@@ -38,7 +38,13 @@ via SSH. Faltava o desenho da borda e do deploy. Três fatos pesam:
    do Keycloak pela rede interna (`jwk-set-uri`), sem sair da VPS.
 5. **Segredos:** num `.env` na VPS (modelo `infra/compose/.env.prod.example`, só com marcadores). O compose recusa
    subir sem cada um (`${VAR:?}`). Cada usuário de banco tem a sua senha, e cada serviço recebe só a do seu banco:
-   comprometer um serviço não abre o banco de outro nem o do Keycloak (Code Review do PR #322). O workflow guarda só o acesso SSH, no environment `production` do GitHub.
+   comprometer um serviço não abre o banco de outro nem o do Keycloak (Code Review do PR #322). Vale o mesmo para o
+   broker e o storage:
+   - cada serviço tem um usuário no RabbitMQ que só publica na própria exchange e só lê as próprias filas, e o
+     administrador fica só para a operação. Assim, ninguém forja evento de outro serviço, como um `VinculoAtivado`;
+   - o client e o nutrition têm cada um a sua identidade S3, só com o próprio bucket.
+
+   O workflow guarda só o acesso SSH, no environment `production` do GitHub.
 6. **Deploy (`.github/workflows/deploy.yml`):**
    - só manual, com o SHA completo de um commit da master que já tem as imagens no GHCR (DEV-0017);
    - copia por SSH só os arquivos da infra desse commit e roda `pull` e `up --wait`;
