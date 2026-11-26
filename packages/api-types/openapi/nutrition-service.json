@@ -896,6 +896,36 @@
         },
         "type" : "object"
       },
+      "NutritionExport" : {
+        "description" : "Todos os dados que o nutrition tem do cliente.",
+        "properties" : {
+          "exportedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "logs" : {
+            "description" : "Registros de refeição, com a foto do prato por URL temporária quando houver.",
+            "items" : {
+              "$ref" : "#/components/schemas/MealLog"
+            },
+            "type" : "array"
+          },
+          "planVersions" : {
+            "description" : "Cada versão recebida de cada plano alimentar, com refeições, alimentos e macros.",
+            "items" : {
+              "$ref" : "#/components/schemas/MealPlan"
+            },
+            "type" : "array"
+          },
+          "restrictions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/FoodRestriction"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
       "PatientActivity" : {
         "description" : "A última atividade de um paciente vinculado.",
         "properties" : {
@@ -1886,6 +1916,46 @@
         "tags" : [ "Alimentos" ]
       }
     },
+    "/me/export" : {
+      "get" : {
+        "description" : "Planos alimentares recebidos (cada versão), registros de refeição com trocas, desvios e a foto do prato (URL temporária de 5 minutos) e restrições alimentares. O app junta com a exportação do client-service e do training.",
+        "operationId" : "export",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NutritionExport"
+                }
+              }
+            },
+            "description" : "Os dados do cliente."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "A conta não tem o papel de cliente."
+          }
+        },
+        "summary" : "Exporta todos os dados que o nutrition tem do cliente",
+        "tags" : [ "Exportação" ]
+      }
+    },
     "/me/food-restrictions" : {
       "get" : {
         "operationId" : "listMyFoodRestrictions",
@@ -2789,6 +2859,9 @@
   }, {
     "description" : "Aderência, alternativas, desvios e a última atividade dos pacientes",
     "name" : "Evolução da dieta"
+  }, {
+    "description" : "Exportação dos dados do cliente autenticado",
+    "name" : "Exportação"
   }, {
     "description" : "Base de alimentos da nutricionista: TACO e alimentos próprios",
     "name" : "Alimentos"

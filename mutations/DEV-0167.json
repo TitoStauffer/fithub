@@ -1,0 +1,125 @@
+{
+    "issue": "DEV-0167",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "A rota deixa de exigir o papel de cliente",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/interfaces/rest/NutritionExportController.java",
+            "find": "    @PreAuthorize(\"hasRole('CLIENT')\")\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=NutritionExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O rascunho da nutricionista passa a ser exportado",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/JdbcNutritionExportReader.java",
+            "find": "where client_id = :c and status <> 'DRAFT'",
+            "replace": "where client_id = :c",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=NutritionExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "Os planos passam a trazer os de outros clientes",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/JdbcNutritionExportReader.java",
+            "find": "where client_id = :c and status <> 'DRAFT'",
+            "replace": "where :c is not null and status <> 'DRAFT'",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=NutritionExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Os registros passam a trazer os de outros clientes",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/JdbcNutritionExportReader.java",
+            "find": "select id from meal_log where client_id = :c order by",
+            "replace": "select id from meal_log where :c is not null order by",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=NutritionExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "A exportação deixa de trazer os registros",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ExportNutritionData.java",
+            "find": ".map(photos::view)",
+            "replace": ".map(photos::view).filter(view -> false)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=NutritionExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "A exportação deixa de trazer as restrições",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ExportNutritionData.java",
+            "find": "return new Export(clock.instant(), planVersions, exportedLogs, restrictions.mine(clientAccount));",
+            "replace": "return new Export(clock.instant(), planVersions, exportedLogs, List.of());",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=NutritionExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}
