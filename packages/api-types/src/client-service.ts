@@ -150,7 +150,7 @@ export interface paths {
         };
         /**
          * Exporta todos os dados que o client-service tem do cliente
-         * @description Perfil, saúde, avaliações com as fotos (URL temporária de 5 minutos), vínculos com o consentimento de cada um e as leituras da saúde pelos profissionais, sem o conteúdo. O app junta com a exportação do training e do nutrition.
+         * @description Perfil, saúde, avaliações com as fotos (URL temporária de 5 minutos), vínculos com o consentimento de cada um, as leituras da saúde (healthReads) e o registro completo das leituras de dados sensíveis pelos profissionais (accessLog), sem o conteúdo. O app junta com a exportação do training e do nutrition.
          */
         get: operations["export"];
         put?: never;

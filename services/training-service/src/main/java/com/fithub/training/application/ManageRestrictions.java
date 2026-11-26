@@ -1,5 +1,6 @@
 package com.fithub.training.application;
 
+import com.fithub.training.domain.access.ProfessionalAccessAudit;
 import com.fithub.training.domain.restriction.BodyRegion;
 import com.fithub.training.domain.restriction.MobilityRestriction;
 import com.fithub.training.domain.restriction.RestrictionNotFoundException;
@@ -18,17 +19,27 @@ public class ManageRestrictions {
 
     private final ClientAccess clientAccess;
     private final RestrictionRepository restrictions;
+    private final ProfessionalAccessAudit audit;
     private final Clock clock;
 
-    public ManageRestrictions(ClientAccess clientAccess, RestrictionRepository restrictions, Clock clock) {
+    public ManageRestrictions(
+            ClientAccess clientAccess, RestrictionRepository restrictions, ProfessionalAccessAudit audit, Clock clock) {
         this.clientAccess = clientAccess;
         this.restrictions = restrictions;
+        this.audit = audit;
         this.clock = clock;
     }
 
+    /** Cada leitura pelo personal fica registrada (DEV-0170, NFR-03): é dado de saúde do aluno. */
     public List<MobilityRestriction> list(String personalAccount, UUID clientId) {
         clientAccess.requireActiveLink(personalAccount, clientId);
-        return restrictions.findByClient(clientId);
+        List<MobilityRestriction> found = restrictions.findByClient(clientId);
+        audit.record(
+                UUID.fromString(personalAccount),
+                clientId,
+                ProfessionalAccessAudit.Resource.MOBILITY_RESTRICTIONS,
+                clock.instant());
+        return found;
     }
 
     public MobilityRestriction create(String personalAccount, UUID clientId, BodyRegion region, String description) {

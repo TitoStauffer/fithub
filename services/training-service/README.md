@@ -251,3 +251,12 @@ O consumidor dos eventos do client-service também recebe o `ContaExcluida` (`cl
   (com os rascunhos), as sessões com as séries, os comentários e a sensação, os recordes e as restrições de mobilidade.
 - O rascunho da ficha do personal fica de fora: ainda não foi entregue ao cliente.
 - O app junta com a exportação do client-service (DEV-0104) e do nutrition (DEV-0167), na tela da DEV-0168.
+
+## Auditoria de acesso (DEV-0170)
+
+- Cada leitura das restrições de mobilidade do aluno pelo personal vinculado (`GET /clients/{clientId}/restrictions`)
+  fica registrada em `professional_access_log` (V17): quem leu, de quem, o quê e quando, nunca o conteúdo. A leitura
+  do próprio aluno não grava.
+- **Expurgo:** a cada `fithub.access-log.purge-interval` (padrão 6 h), sai o que passou de 6 meses (ADR-012, item 6).
+  Fica mesmo depois da exclusão da conta, até o prazo.
+- **Exportação:** `GET /me/export` traz o registro em `accessLog`.

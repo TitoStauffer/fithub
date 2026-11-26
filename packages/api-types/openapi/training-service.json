@@ -863,6 +863,13 @@
       "TrainingExport" : {
         "description" : "Todos os dados que o training tem do cliente.",
         "properties" : {
+          "accessLog" : {
+            "description" : "Leituras das restrições de mobilidade pelo personal (DEV-0170), sem o conteúdo.",
+            "items" : {
+              "$ref" : "#/components/schemas/TrainingExportAccess"
+            },
+            "type" : "array"
+          },
           "exportedAt" : {
             "format" : "date-time",
             "type" : "string"
@@ -890,6 +897,24 @@
               "$ref" : "#/components/schemas/TrainingExportSession"
             },
             "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "TrainingExportAccess" : {
+        "description" : "Leitura de dado sensível pelo personal, sem o conteúdo.",
+        "properties" : {
+          "accessedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "professionalId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "resource" : {
+            "enum" : [ "MOBILITY_RESTRICTIONS" ],
+            "type" : "string"
           }
         },
         "type" : "object"

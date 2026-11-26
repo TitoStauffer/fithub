@@ -1,5 +1,6 @@
 package com.fithub.training.application;
 
+import com.fithub.training.domain.access.ProfessionalAccessAudit;
 import com.fithub.training.domain.account.TrainingExportReader;
 import com.fithub.training.domain.plan.PlanRepository;
 import com.fithub.training.domain.plan.PlanVersion;
@@ -23,6 +24,7 @@ public class ExportTrainingData {
     private final PlanRepository plans;
     private final ClientRecords records;
     private final ViewOwnRestrictions restrictions;
+    private final ProfessionalAccessAudit audit;
     private final Clock clock;
 
     public ExportTrainingData(
@@ -30,11 +32,13 @@ public class ExportTrainingData {
             PlanRepository plans,
             ClientRecords records,
             ViewOwnRestrictions restrictions,
+            ProfessionalAccessAudit audit,
             Clock clock) {
         this.reader = reader;
         this.plans = plans;
         this.records = records;
         this.restrictions = restrictions;
+        this.audit = audit;
         this.clock = clock;
     }
 
@@ -46,7 +50,8 @@ public class ExportTrainingData {
             List<PlanWithVersions> plans,
             List<TrainingExportReader.ExportedSession> sessions,
             ClientRecords.Records records,
-            List<MobilityRestriction> restrictions) {}
+            List<MobilityRestriction> restrictions,
+            List<ProfessionalAccessAudit.AccessRecord> accessLog) {}
 
     public Export mine(String clientAccount) {
         UUID clientId = ViewExercise.accountId(clientAccount);
@@ -56,7 +61,8 @@ public class ExportTrainingData {
                     List.of(),
                     List.of(),
                     records.mine(clientAccount),
-                    restrictions.list(clientAccount));
+                    restrictions.list(clientAccount),
+                    List.of());
         }
         List<PlanWithVersions> exportedPlans = reader.planIdsOf(clientId).stream()
                 .flatMap(id -> plans.findById(id).stream())
@@ -69,7 +75,8 @@ public class ExportTrainingData {
                 exportedPlans,
                 reader.sessionsOf(clientId),
                 records.mine(clientAccount),
-                restrictions.list(clientAccount));
+                restrictions.list(clientAccount),
+                audit.logOf(clientId));
     }
 
     private PlanWithVersions withVersions(WorkoutPlan plan) {
