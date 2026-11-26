@@ -54,3 +54,15 @@ O account-service consome o `ContaExcluida` (`client.account-deleted.v1`, fila `
   papel padrão do realm e fica com ela.
 - **Consumo idempotente** pela `java-commons`. Falha do Keycloak volta para a fila (3 tentativas) e, esgotadas, vai
   para a `.dlq`. Payload fora do contrato vai direto para a `.dlq`. Nada do payload vai para log.
+
+## Lista de logins apagados (DEV-0173)
+
+O banco do Keycloak volta do backup com o usuário de quem excluiu a conta depois do backup (ADR-012, item 4):
+
+- O consumo do `ContaExcluida` que apaga o login grava o id na lista `deleted_account`, com a data do evento. A conta
+  que também é de profissional não entra. Gravar de novo o mesmo id mantém uma linha, com a data mais recente.
+- Depois de restaurar um backup, a `infra/backup/restore.sh` grava um marcador em `restore_pending`. O expurgo
+  periódico (`fithub.deleted-accounts.purge-interval`, 6 h), que também roda na subida, reapaga no Keycloak cada login
+  da lista e apaga o marcador no fim. O usuário já ausente conta como apagado. Falha do Keycloak mantém o marcador, e
+  o próximo ciclo tenta de novo. Sem marcador, nada é reapagado.
+- O id sai da lista depois de 30 dias, quando nenhum backup tem mais o usuário. O log traz só quantidades.

@@ -7,8 +7,10 @@
 # a conta depois do backup continua listado, e o serviço reaplica a exclusão (DEV-0172). A pasta só é apagada no fim,
 # com tudo restaurado: se algo falhar no meio, ela fica, e a mensagem diz onde (Code Review do PR #314).
 #
-# A lista tem o mesmo formato nos três serviços que a usam (client, training e nutrition):
-# deleted_account(client_id uuid primary key, deleted_at timestamptz not null).
+# A lista tem o mesmo formato nos quatro serviços que a usam (account, client, training e nutrition):
+# deleted_account(client_id uuid primary key, deleted_at timestamptz not null). Um backup de antes da migration da lista
+# não a tem: a restauração cria a tabela, como dono do banco (DEV-0173). Só o account-service tem backup de antes da
+# lista, e a migration dela (V6) usa "if not exists"; nos outros três, a lista veio antes do primeiro backup.
 #
 # Ambiente: PGHOST, PGPORT, PGUSER e PGPASSWORD de um superusuário; FITHUB_DATABASES; BACKUP_DIR (padrão /backups).
 # Cada banco é restaurado com o papel do próprio banco (o dono, como em postgres/init-databases.sh).
@@ -59,6 +61,7 @@ has_deleted_list() {
 restore_deleted_list() {
   psql -X -q -v ON_ERROR_STOP=1 -d "$1" <<SQL
 set role "$1";
+create table if not exists deleted_account (client_id uuid primary key, deleted_at timestamptz not null);
 create temp table restored_deleted_account (client_id uuid, deleted_at timestamptz);
 \\copy restored_deleted_account from '$saved/$1.csv' csv
 insert into deleted_account (client_id, deleted_at)
@@ -81,19 +84,14 @@ for db in $FITHUB_DATABASES; do
   fi
 done
 
-# Cada banco com lista guardada precisa de um backup que também a tenha: senão, a lista não teria onde voltar. Confere
-# antes de mexer em qualquer banco (achado do PR #314); nada mudou, então a cópia sai.
+# O dump de cada banco com lista guardada precisa ser legível antes de mexer em qualquer banco (achado do PR #314); nada
+# mudou, então a cópia sai. O backup sem a lista é restaurado: a lista guardada volta numa tabela criada pela restauração
+# (DEV-0173).
 for db in $FITHUB_DATABASES; do
   [ -f "$saved/$db.csv" ] || continue
-  # A listagem numa atribuição própria: um dump ilegível não pode virar "não tem a lista" (Code Review do PR #316).
-  if ! contents=$(pg_restore -l "$source/$db.dump" 2>/dev/null); then
+  if ! pg_restore -l "$source/$db.dump" >/dev/null 2>&1; then
     rm -rf "$saved"
     echo "O dump de $db no backup $stamp está ilegível: nada foi restaurado." >&2
-    exit 1
-  fi
-  if ! echo "$contents" | grep -q ' TABLE public deleted_account '; then
-    rm -rf "$saved"
-    echo "O backup $stamp de $db não tem a lista de contas excluídas: nada foi restaurado." >&2
     exit 1
   fi
 done
@@ -108,12 +106,9 @@ for db in $FITHUB_DATABASES; do
       "regrave-as antes de subir os serviços." >&2
     exit 1
   fi
-  if [ -f "$saved/$db.csv" ]; then
-    if ! has_deleted_list "$db"; then
-      echo "O backup de $db não tem a lista de contas excluídas; a lista de agora está em $saved/$db.csv." >&2
-      exit 1
-    fi
-    restore_deleted_list "$db"
+  if [ -f "$saved/$db.csv" ] && ! restore_deleted_list "$db"; then
+    echo "A lista de contas excluídas de $db não voltou; a lista de antes da restauração está em $saved/$db.csv." >&2
+    exit 1
   fi
 done
 

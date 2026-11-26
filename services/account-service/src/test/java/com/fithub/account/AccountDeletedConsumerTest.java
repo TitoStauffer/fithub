@@ -8,8 +8,10 @@ import com.fithub.account.domain.login.LoginAccounts;
 import com.fithub.account.domain.professional.ProfessionalRoles;
 import com.fithub.testing.service.ServiceIntegrationTest;
 import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -112,13 +114,16 @@ class AccountDeletedConsumerTest extends ServiceIntegrationTest {
         logins.failuresLeft.set(0);
     }
 
+    /** Data do evento relativa a agora: o expurgo de 30 dias roda com o relógio real (aprendizado da DEV-0172). */
+    private final Instant occurredAt = Instant.now().minus(1, ChronoUnit.HOURS).truncatedTo(ChronoUnit.MILLIS);
+
     private void publish(String eventId, UUID clientId) {
         MessageProperties properties = new MessageProperties();
         properties.setMessageId(eventId);
         properties.setContentType(MessageProperties.CONTENT_TYPE_JSON);
         String payload = """
-                {"clientId": "%s", "occurredAt": "2026-11-25T12:00:00Z"}
-                """.formatted(clientId);
+                {"clientId": "%s", "occurredAt": "%s"}
+                """.formatted(clientId, occurredAt);
         rabbit.send(
                 "fithub.client",
                 "client.account-deleted.v1",
@@ -153,6 +158,19 @@ class AccountDeletedConsumerTest extends ServiceIntegrationTest {
         awaitProcessed(marker);
 
         assertThat(logins.deleted).containsOnlyOnce(client);
+        // O id entra na lista de logins apagados com a data do evento (DEV-0173).
+        assertThat(listedAt(client)).containsExactly(occurredAt);
+    }
+
+    private List<Instant> listedAt(UUID id) {
+        return jdbc
+                .sql("select deleted_at from deleted_account where client_id = :id")
+                .param("id", id)
+                .query(Timestamp.class)
+                .list()
+                .stream()
+                .map(Timestamp::toInstant)
+                .toList();
     }
 
     @Test
@@ -172,6 +190,7 @@ class AccountDeletedConsumerTest extends ServiceIntegrationTest {
         awaitProcessed(eventId);
 
         assertThat(logins.deleted).doesNotContain(account);
+        assertThat(listedAt(account)).isEmpty();
     }
 
     @Test

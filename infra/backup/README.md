@@ -20,13 +20,18 @@ Backup diário e restauração dos bancos do FitHub (DEV-0108, ADR-012, item 4; 
     do backup continua listado;
   - apaga a pasta durável só com tudo restaurado. Se algo falhar no meio, ela fica, e a mensagem diz onde: regrave as
     listas antes de subir os serviços;
-  - a lista tem o mesmo formato nos três serviços que a usam: `deleted_account(client_id uuid primary key, deleted_at
-    timestamptz not null)`;
-  - antes de mexer em qualquer banco, confere que o dump de cada banco com lista guardada também tem a
-    `deleted_account`; senão, recusa sem restaurar nada;
+  - a lista tem o mesmo formato nos quatro serviços que a usam (account, client, training e nutrition):
+    `deleted_account(client_id uuid primary key, deleted_at timestamptz not null)`;
+  - um backup de antes da migration da lista é restaurado: a restauração cria a tabela, como dono do banco, e regrava
+    nela a lista de agora (DEV-0173). Isso vale para o account-service, cuja migration da lista (V6) usa
+    `if not exists`. No client, no training e no nutrition, a lista existe desde antes do backup (DEV-0105, DEV-0162 e
+    DEV-0163 vieram antes da DEV-0108), então nenhum backup é de antes dela; as migrations do marcador usam
+    `if not exists` nos quatro;
   - grava um marcador em `restore_pending` nos bancos com a lista, criando a tabela se o backup for de antes dela: o client-service, o training e o nutrition
-    reapagam o dado dessas contas na subida e apagam o marcador (DEV-0172). O login no Keycloak é a DEV-0173 (#315);
-  - um dump ilegível na conferência é recusado como ilegível, sem restaurar nada.
+    reapagam o dado dessas contas na subida e apagam o marcador (DEV-0172), e o account-service reapaga o login no
+    Keycloak (DEV-0173);
+  - antes de mexer em qualquer banco, recusa como ilegível o dump de um banco com lista guardada que o `pg_restore`
+    não consegue ler, sem restaurar nada.
 
 ## Ambiente
 
@@ -71,9 +76,10 @@ Infrastructure). Ele confere:
 - a falha no meio da restauração (dump corrompido depois do `client`): a lista do `client` já voltou e a cópia
   durável fica;
 - o dono das tabelas restauradas e a tabela posterior ao backup removida;
-- a recusa de um backup de antes de a lista existir, com a lista de agora guardada.
+- a recusa de um dump ilegível de um banco com lista, sem mudar o banco e sem deixar cópia;
+- a restauração de um backup de antes de a lista existir: a lista de agora volta numa tabela do dono do banco, com o
+  marcador.
 
 ## Pendências
 
 - **Cópia fora da VPS:** depende do Tito (provedor e custo). Até lá, os backups ficam num volume da própria VPS.
-- **Reapagar o login no Keycloak depois da restauração:** DEV-0173 (#315).

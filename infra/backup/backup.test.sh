@@ -125,14 +125,25 @@ copy=$(run sh -c "ls -d /backups/restore-2026-11-21T000000Z-*")
 run test -f "$copy/client.csv" || fail "a cópia durável da lista não ficou depois da falha"
 [ "$(run stat -c %a "$copy")" = 700 ] || fail "a cópia durável não ficou só para o dono (700)"
 
-# Um backup de antes de a lista existir é recusado antes de mexer em qualquer banco (achado do PR #314).
+# Um dump ilegível de um banco com lista é recusado antes de mexer em qualquer banco, sem deixar cópia.
 lines=$(sql client 'select count(*) from sample')
-if message=$(run sh /scripts/restore.sh "$before_list" 2>&1); then fail "restaurou um backup sem a lista"; fi
-echo "$message" | grep -q "não tem a lista de contas excluídas: nada foi restaurado" \
-  || fail "a recusa do backup sem a lista não diz que nada foi restaurado"
-[ "$(sql client 'select count(*) from sample')" = "$lines" ] || fail "a recusa do backup sem a lista mudou o banco"
-[ -z "$(run sh -c "ls -d /backups/restore-$before_list-* 2>/dev/null || true")" ] \
+run sh -c "mkdir -p /backups/2026-11-23T000000Z && cp /backups/$stamp/* /backups/2026-11-23T000000Z/ &&
+  echo corrompido > /backups/2026-11-23T000000Z/client.dump"
+if message=$(run sh /scripts/restore.sh 2026-11-23T000000Z 2>&1); then fail "restaurou um dump ilegível"; fi
+echo "$message" | grep -q "está ilegível: nada foi restaurado" || fail "a recusa do dump ilegível não diz o motivo"
+[ "$(sql client 'select count(*) from sample')" = "$lines" ] || fail "a recusa do dump ilegível mudou o banco"
+[ -z "$(run sh -c "ls -d /backups/restore-2026-11-23T000000Z-* 2>/dev/null || true")" ] \
   || fail "a recusa sem mudança deixou uma cópia da lista"
+
+# Um backup de antes de a lista existir (o account-service antes da DEV-0173) é restaurado: a restauração cria a lista,
+# como dono do banco, regrava nela a lista de agora e grava o marcador.
+run sh /scripts/restore.sh "$before_list" >/dev/null || fail "não restaurou o backup de antes da lista"
+[ "$(sql client 'select count(*) from deleted_account')" = 3 ] \
+  || fail "a lista de agora não voltou no backup de antes da lista"
+[ "$(sql client "select pg_get_userbyid(relowner) from pg_class where relname = 'deleted_account'")" = client ] \
+  || fail "a lista criada pela restauração não ficou com o dono do banco"
+[ "$(sql client 'select count(*) from restore_pending')" = 1 ] \
+  || fail "a restauração do backup de antes da lista não gravou o marcador"
 
 sql client "set role client; drop table if exists deleted_account, sample, later, restore_pending;" >/dev/null
 echo "Backup e restauração: OK."
