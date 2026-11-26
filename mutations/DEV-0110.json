@@ -1,0 +1,200 @@
+{
+    "issue": "DEV-0110",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O console do Keycloak passa a ser publicado em todas as interfaces",
+            "area": "tools",
+            "file": "infra/compose/docker-compose.prod.yml",
+            "find": "\"127.0.0.1:${KEYCLOAK_ADMIN_PORT:-8080}:8080\"",
+            "replace": "\"${KEYCLOAK_ADMIN_PORT:-8080}:8080\"",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O e-mail do Let's Encrypt ganha um valor padrão e deixa de ser obrigatório",
+            "area": "tools",
+            "file": "infra/compose/docker-compose.prod.yml",
+            "find": "${ACME_EMAIL:?defina ACME_EMAIL no .env}",
+            "replace": "${ACME_EMAIL:-admin@example.com}",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O Traefik passa a montar o socket do Docker",
+            "area": "tools",
+            "file": "infra/compose/docker-compose.prod.yml",
+            "find": "      - letsencrypt:/letsencrypt\n",
+            "replace": "      - letsencrypt:/letsencrypt\n      - /var/run/docker.sock:/var/run/docker.sock:ro\n",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "A borda passa a expor todo o Keycloak, com o console de administração",
+            "area": "tools",
+            "file": "infra/traefik/dynamic.yml",
+            "find": "(PathPrefix(`/auth/realms/fithub/`) || PathPrefix(`/auth/resources/`))",
+            "replace": "PathPrefix(`/auth/`)",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "A rota do client-service deixa de tirar o prefixo /api/client",
+            "area": "tools",
+            "file": "infra/traefik/dynamic.yml",
+            "find": "middlewares: [strip-api-client, security-headers]",
+            "replace": "middlewares: [security-headers]",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "O Loki deixa de aplicar a retenção de 30 dias",
+            "area": "tools",
+            "file": "infra/observability/loki-config.yaml",
+            "find": "  retention_enabled: true\n",
+            "replace": "  retention_enabled: false\n",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "O deploy passa a aceitar chave nova do host",
+            "area": "tools",
+            "file": ".github/workflows/deploy.yml",
+            "find": "StrictHostKeyChecking yes",
+            "replace": "StrictHostKeyChecking accept-new",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "O deploy deixa de validar a tag como SHA completo",
+            "area": "tools",
+            "file": ".github/workflows/deploy.yml",
+            "find": "[[ \"$IMAGE_TAG\" =~ ^[0-9a-f]{40}$ ]] || { echo \"image_tag precisa ser o SHA completo do commit.\"; exit 1; }",
+            "replace": "true",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "O training-service passa a receber a senha do banco do client",
+            "area": "tools",
+            "file": "infra/compose/docker-compose.prod.yml",
+            "find": "      DB_PASSWORD: ${TRAINING_DB_PASSWORD:?defina TRAINING_DB_PASSWORD no .env}",
+            "replace": "      DB_PASSWORD: ${CLIENT_DB_PASSWORD:?defina CLIENT_DB_PASSWORD no .env}",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "O console do Keycloak volta a usar o domínio público",
+            "area": "tools",
+            "file": "infra/compose/docker-compose.prod.yml",
+            "find": "      KC_HOSTNAME_ADMIN: http://localhost:${KEYCLOAK_ADMIN_PORT:-8080}/auth\n",
+            "replace": "",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "O training-service passa a usar a senha do RabbitMQ do client",
+            "area": "tools",
+            "file": "infra/compose/docker-compose.prod.yml",
+            "find": "      RABBITMQ_PASSWORD: ${TRAINING_RABBITMQ_PASSWORD:?defina TRAINING_RABBITMQ_PASSWORD no .env}",
+            "replace": "      RABBITMQ_PASSWORD: ${CLIENT_RABBITMQ_PASSWORD:?defina CLIENT_RABBITMQ_PASSWORD no .env}",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "O nutrition-service passa a usar a identidade S3 do client",
+            "area": "tools",
+            "file": "infra/compose/docker-compose.prod.yml",
+            "find": "      S3_SECRET_KEY: ${NUTRITION_S3_SECRET_KEY:?defina NUTRITION_S3_SECRET_KEY no .env}",
+            "replace": "      S3_SECRET_KEY: ${CLIENT_S3_SECRET_KEY:?defina CLIENT_S3_SECRET_KEY no .env}",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M13",
+            "description": "Cada serviço passa a poder publicar na exchange de qualquer serviço",
+            "area": "tools",
+            "file": "infra/compose/rabbitmq/init-users.sh",
+            "find": "--write \"^($service\\..*|fithub\\.$service)\\$\"",
+            "replace": "--write \"^($service\\..*|$exchanges)\\$\"",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M14",
+            "description": "A identidade S3 do client passa a ter o bucket das fotos de prato",
+            "area": "tools",
+            "file": "infra/compose/seaweedfs/start.sh",
+            "find": "  identity client-service \"$client_key\" \"$client_secret\" fithub-photos\n",
+            "replace": "  identity client-service \"$client_key\" \"$client_secret\" fithub-meal-photos\n",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M15",
+            "description": "O filer, o master e o volume do SeaweedFS voltam a atender a rede interna",
+            "area": "tools",
+            "file": "infra/compose/seaweedfs/start.sh",
+            "find": "-ip=127.0.0.1 -ip.bind=127.0.0.1 -s3.ip.bind=0.0.0.0",
+            "replace": "-s3.ip.bind=0.0.0.0",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        }
+    ]
+}

@@ -306,7 +306,7 @@ jobs:
     name: Local Infrastructure
     needs: changes
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30
     env:
       RUN_AREA: ${{ needs.changes.outputs.infra }}
     steps:
@@ -363,6 +363,16 @@ jobs:
       - name: Stop local infrastructure compose
         if: always() && env.RUN_AREA == 'true'
         run: docker compose -f infra/compose/docker-compose.dev.yml --profile observability down -v
+
+      # Compose de produção (DEV-0110): guardas de portas, segredos, rotas, retenção e do workflow de deploy, e a
+      # fumaça da borda (Traefik, Keycloak em modo de produção, S3, backup agendado e otel-lgtm), sem os serviços.
+      - name: Check production compose guards
+        if: env.RUN_AREA == 'true'
+        run: node --test infra/compose/prod.test.mjs
+
+      - name: Smoke test production compose
+        if: env.RUN_AREA == 'true'
+        run: sh infra/compose/prod-smoke.test.sh
 
   # Imagens no GHCR (DEV-0017): só no push na master, depois de o Java Services passar no mesmo
   # commit, para todos os serviços (idempotente). Tag = SHA do commit; deploy continua manual (ADR-005).

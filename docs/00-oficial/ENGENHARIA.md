@@ -411,9 +411,12 @@ teste pulado sem `DEV-xxxx` na justificativa derruba o job (DEV-0016; detalhes e
    Dockerfile multi-stage (build Maven e runtime só com o JRE, usuário sem
    privilégio). No PR, o `Java Services` já constrói a imagem dos serviços
    alterados e barra imagem que rode como root (DEV-0017).
-3. **Deploy:** workflow manual (`workflow_dispatch`) que entra na VPS por SSH
-   e roda `docker compose pull && up -d` para o serviço escolhido. Vira
-   automático quando houver staging.
+3. **Deploy:** workflow manual `Deploy` (`workflow_dispatch`, DEV-0110,
+   [ADR-014](adr/ADR-014-borda-e-deploy.md)) com o SHA de um commit da master:
+   copia por SSH a infra desse commit e roda `docker compose pull` e
+   `up -d --wait` com o `docker-compose.prod.yml`, todos os serviços na mesma
+   tag. Um domínio só, com o Traefik roteando por caminho e TLS do Let's
+   Encrypt. Vira automático quando houver staging.
 4. **Mobile:** EAS Build e EAS Update disparados manualmente.
 5. **Dependências:** Renovate ou Dependabot semanal.
 

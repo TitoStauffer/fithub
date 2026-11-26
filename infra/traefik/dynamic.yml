@@ -1,0 +1,80 @@
+# Rotas do Traefik em produção (DEV-0110, ADR-014): um domínio só (FITHUB_DOMAIN), roteado por caminho. Com a web,
+# as APIs e o Keycloak na mesma origem, o navegador não precisa de CORS.
+# Lido pelo provider de arquivo; {{ env "FITHUB_DOMAIN" }} vem do ambiente do container do Traefik.
+http:
+  routers:
+    # Cada serviço tem um prefixo próprio, tirado antes de chegar nele: os caminhos se repetem entre serviços.
+    account:
+      rule: Host(`{{ env "FITHUB_DOMAIN" }}`) && PathPrefix(`/api/account`)
+      entryPoints: [websecure]
+      middlewares: [strip-api-account, security-headers]
+      service: account
+    client:
+      rule: Host(`{{ env "FITHUB_DOMAIN" }}`) && PathPrefix(`/api/client`)
+      entryPoints: [websecure]
+      middlewares: [strip-api-client, security-headers]
+      service: client
+    training:
+      rule: Host(`{{ env "FITHUB_DOMAIN" }}`) && PathPrefix(`/api/training`)
+      entryPoints: [websecure]
+      middlewares: [strip-api-training, security-headers]
+      service: training
+    nutrition:
+      rule: Host(`{{ env "FITHUB_DOMAIN" }}`) && PathPrefix(`/api/nutrition`)
+      entryPoints: [websecure]
+      middlewares: [strip-api-nutrition, security-headers]
+      service: nutrition
+    # Só o realm fithub e os recursos estáticos do Keycloak: o console de administração e o realm master ficam fora
+    # da borda (acesso por túnel SSH).
+    keycloak:
+      rule: Host(`{{ env "FITHUB_DOMAIN" }}`) && (PathPrefix(`/auth/realms/fithub/`) || PathPrefix(`/auth/resources/`))
+      entryPoints: [websecure]
+      middlewares: [security-headers]
+      service: keycloak
+    # Fotos pelas URLs pré-assinadas: o caminho chega sem mudança, porque ele faz parte da assinatura.
+    photos:
+      rule: Host(`{{ env "FITHUB_DOMAIN" }}`) && (PathPrefix(`/fithub-photos/`) || PathPrefix(`/fithub-meal-photos/`))
+      entryPoints: [websecure]
+      middlewares: [security-headers]
+      service: seaweedfs
+
+  middlewares:
+    strip-api-account:
+      stripPrefix:
+        prefixes: ["/api/account"]
+    strip-api-client:
+      stripPrefix:
+        prefixes: ["/api/client"]
+    strip-api-training:
+      stripPrefix:
+        prefixes: ["/api/training"]
+    strip-api-nutrition:
+      stripPrefix:
+        prefixes: ["/api/nutrition"]
+    security-headers:
+      headers:
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        contentTypeNosniff: true
+        frameDeny: true
+        referrerPolicy: no-referrer
+
+  services:
+    account:
+      loadBalancer:
+        servers: [{ url: "http://account-service:8081" }]
+    client:
+      loadBalancer:
+        servers: [{ url: "http://client-service:8082" }]
+    training:
+      loadBalancer:
+        servers: [{ url: "http://training-service:8083" }]
+    nutrition:
+      loadBalancer:
+        servers: [{ url: "http://nutrition-service:8084" }]
+    keycloak:
+      loadBalancer:
+        servers: [{ url: "http://keycloak:8080" }]
+    seaweedfs:
+      loadBalancer:
+        servers: [{ url: "http://seaweedfs:8333" }]

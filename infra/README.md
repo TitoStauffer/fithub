@@ -2,11 +2,11 @@
 
 Infraestrutura local e de produção.
 
-- `compose/` — `docker-compose.dev.yml`, ambiente local (DEV-0012)
+- `compose/` — `docker-compose.dev.yml`, ambiente local (DEV-0012); `docker-compose.prod.yml`, produção (DEV-0110)
 - `backup/` — backup diário dos bancos e restauração, com o teste de ponta a ponta (DEV-0108)
 - `keycloak/` — realm `fithub` versionado (DEV-0024), com o teste das guardas e a checagem no Keycloak de pé
 - `observability/` — configuração do coletor OpenTelemetry do `otel-lgtm`, com o teste de ponta a ponta (DEV-0109)
-- `traefik/` — borda e TLS em produção
+- `traefik/` — rotas da borda em produção (DEV-0110)
 
 ## Ambiente local
 
@@ -108,3 +108,74 @@ Os bancos e usuários são criados só na primeira subida, com o volume vazio
 ```sh
 docker compose -f infra/compose/docker-compose.dev.yml down -v
 ```
+
+## Produção (DEV-0110)
+
+Docker Compose numa VPS, com o Traefik na borda ([ADR-005](../docs/00-oficial/adr/ADR-005-deploy-compose-vps.md),
+[ADR-014](../docs/00-oficial/adr/ADR-014-borda-e-deploy.md)). **Nada foi implantado ainda:** o deploy depende das
+peças abaixo, que são do Tito.
+
+### Borda
+
+Um domínio só (`FITHUB_DOMAIN`), com TLS do Let's Encrypt e HTTP redirecionado para HTTPS:
+
+| Caminho | Destino |
+|---|---|
+| `/api/account`, `/api/client`, `/api/training`, `/api/nutrition` | o serviço, sem o prefixo (`/api/client/clients/me` chega como `/clients/me`) |
+| `/auth/realms/fithub/`, `/auth/resources/` | Keycloak |
+| `/fithub-photos/`, `/fithub-meal-photos/` | SeaweedFS (URLs pré-assinadas das fotos) |
+
+Só o Traefik publica portas (80 e 443). O console do Keycloak e o Grafana ficam em `127.0.0.1` na VPS:
+
+```sh
+ssh -L 8080:127.0.0.1:8080 -L 3000:127.0.0.1:3000 <usuario>@<vps>   # console em http://localhost:8080/auth/admin, Grafana em http://localhost:3000
+```
+
+O console usa o endereço do túnel (`KC_HOSTNAME_ADMIN`): abra pela porta 8080 local, ou ajuste `KEYCLOAK_ADMIN_PORT`.
+
+### Preparar a VPS (uma vez)
+
+1. Instale o Docker e faça login no GHCR com um token só de leitura de pacotes: `docker login ghcr.io`.
+2. Aponte o DNS do domínio para a VPS e libere só as portas 22, 80 e 443 no firewall.
+3. Crie a pasta do deploy (padrão `~/fithub`) e, nela, `infra/compose/.env` a partir de
+   `compose/.env.prod.example`, com cada `<...>` trocado e `chmod 600`. Cada usuário de banco tem a sua senha
+   (`ACCOUNT_DB_PASSWORD`, `CLIENT_DB_PASSWORD`…, `KEYCLOAK_DB_PASSWORD`), e cada serviço recebe só a do seu banco.
+   No RabbitMQ, o administrador (`RABBITMQ_ADMIN_*`) fica só para a operação: cada serviço tem o seu usuário
+   (`<SERVIÇO>_RABBITMQ_PASSWORD`), que só publica na própria exchange. No S3, o client e o nutrition têm cada um
+   a sua identidade (`CLIENT_S3_*`, `NUTRITION_S3_*`), só com o próprio bucket.
+4. No GitHub, crie o environment `production` com os segredos `DEPLOY_SSH_HOST`, `DEPLOY_SSH_USER`, `DEPLOY_SSH_KEY`
+   (chave só para o deploy), `DEPLOY_SSH_KNOWN_HOSTS` (saída de `ssh-keyscan <vps>`, conferida) e, se a pasta não for
+   a padrão, `DEPLOY_DIR`; e a variável `FITHUB_DOMAIN`. Em **Deployment branches**, deixe só a `master`: o
+   `workflow_dispatch` roda o arquivo do workflow da branch escolhida, e sem essa regra uma branch com o `deploy.yml`
+   alterado receberia a chave SSH. Se quiser uma segunda trava, ative **Required reviewers** com você mesmo.
+
+### Implantar
+
+Actions → **Deploy** → *Run workflow*, com o SHA completo de um commit da master cujo `Publish Images` passou. O
+workflow:
+1. confere que o commit está na master;
+2. copia a infra desse commit para a VPS;
+3. roda `pull` e `up -d --wait` com as imagens desse SHA;
+4. confere o health de cada serviço e o realm pela borda.
+
+Voltar uma versão é rodar de novo com o SHA anterior.
+
+### Operação
+
+- **Backup:** o container `backup` roda a `backup/backup.sh` todo dia às 03:00 UTC (`BACKUP_SCHEDULE`), no volume
+  `backups`, com 30 dias de retenção. A cópia para fora da VPS ainda é do Tito. Para restaurar, veja
+  [backup/README.md](backup/README.md).
+- **Logs e traces:** o `otel-lgtm` guarda 30 dias no Loki e no Tempo (`observability/loki-config.yaml` e
+  `tempo-config.yaml`); cada serviço escreve um arquivo de log por dia no volume `logs`, com 30 dias.
+- **Até a DEV-0176:** sem imagem da web, e o realm importado só tem os endereços de desenvolvimento (login da web e
+  SMTP do Mailpit).
+
+### Testes
+
+- `node --test infra/compose/prod.test.mjs`: guardas das portas, dos segredos obrigatórios, das imagens fixadas, das
+  rotas, da retenção e do workflow de deploy (lê o compose resolvido pelo Docker Compose).
+- `sh infra/compose/prod-smoke.test.sh`: sobe a borda, o Keycloak em modo de produção, o SeaweedFS, o backup e o
+  `otel-lgtm` com valores de teste, e confere as rotas, o HSTS, o realm `master` fora da borda e o backup agendado.
+  Usa as portas 8880 e 8443 (`FITHUB_HTTP_PORT`, `FITHUB_HTTPS_PORT`).
+
+Os dois rodam no job Local Infrastructure.

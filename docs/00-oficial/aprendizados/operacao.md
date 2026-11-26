@@ -60,3 +60,52 @@ tabela que o backup restaurado talvez não tenha: a restauração cria a tabela 
   - **Correção:** a `restore.sh` cria `restore_pending` como dono do banco antes de gravar, e as migrations usam
     `create table if not exists`.
   - **Prevenção:** o `backup.test.sh` restaura um backup sem a tabela e confere o marcador e o dono dela.
+
+## credencial-de-producao-isolada-por-servico
+
+**Regra:** em produção, cada serviço recebe só as credenciais do que é dele (banco, broker, storage): uma senha por usuário de banco, nunca
+uma compartilhada, e nenhuma credencial de outro serviço ou do Keycloak no container. O isolamento por banco
+(ADR-001) só vale se a senha também for separada. Uma guarda confere quem recebe cada senha no compose resolvido.
+
+### Ocorrências
+
+- **Revisão:** Code Review CHANGES_REQUESTED do PR #322, no SHA `e4af180` (MEDIUM) — DEV-0110 (#102) · **PR:** #322
+  - **Impacto:** com uma senha só para os usuários `account`, `client`, `training`, `nutrition` e `keycloak`, quem
+    comprometesse um serviço lia o dado de saúde do client e a base do Keycloak, inclusive o secret que atribui papel.
+  - **Correção:** uma variável de senha por usuário, lida pelo `init-databases.sh` e passada só ao serviço dono.
+  - **Prevenção:** esta regra, o teste `cada usuário de banco tem senha própria, e só o dono do banco a recebe` e o
+    mutante M9 de `mutations/DEV-0110.json`.
+- **Revisão:** Code Review CHANGES_REQUESTED do PR #322, no SHA `8fe606b` (2 MEDIUM) — DEV-0110 (#102) · **PR:** #322
+  - **Impacto:** a mesma falha, no broker e no storage.
+    - Os quatro serviços usavam o administrador do RabbitMQ. Um serviço comprometido publicaria um `VinculoAtivado`
+      forjado na exchange do client e ganharia acesso a dados de outro.
+    - O client e o nutrition usavam a mesma identidade S3. Cada um leria as fotos do outro, inclusive as corporais,
+      sem a verificação de vínculo.
+  - **Correção:**
+    - um usuário do RabbitMQ por serviço (`rabbitmq/init-users.sh`), que só publica na própria exchange e só lê as
+      próprias filas; o administrador fica só para a operação;
+    - uma identidade S3 por serviço, só com o próprio bucket (`seaweedfs/start.sh`).
+  - **Prevenção:** a regra passa a valer para toda credencial, não só para a de banco. O teste
+    `cada credencial chega só ao dono e a quem a cria` cobre todos os segredos do `.env`. A fumaça confere que a
+    publicação forjada e o acesso ao bucket alheio são recusados. Mutantes M11 a M14.
+- **Revisão:** Code Review CHANGES_REQUESTED do PR #322, no SHA `3221b48` (MEDIUM) — DEV-0110 (#102) · **PR:** #322
+  - **Impacto:** as identidades S3 só valiam no gateway. O filer, o master e o volume do SeaweedFS atendiam sem
+    credencial na rede interna, e um serviço comprometido leria as fotos do outro direto pelo filer.
+  - **Correção:** master, volume e filer só no loopback do container (`-ip.bind=127.0.0.1`), e só o gateway S3 na
+    rede.
+  - **Prevenção:** a credencial isolada vale para **todas as portas** do componente, não só para a API usada. A
+    fumaça testa as portas internas a partir de outro container, e há o mutante M15.
+
+## acesso-administrativo-testado-pelo-caminho-documentado
+
+**Regra:** quando a borda esconde uma interface de administração, o caminho de acesso documentado (túnel SSH, porta
+local) é testado de verdade: a interface tem que abrir por ele, sem redirecionar para o endereço público que a borda
+bloqueia.
+
+### Ocorrências
+
+- **Revisão:** Code Review CHANGES_REQUESTED do PR #322, no SHA `e4af180` (MEDIUM) — DEV-0110 (#102) · **PR:** #322
+  - **Impacto:** sem `KC_HOSTNAME_ADMIN`, o console do Keycloak aberto pelo túnel mandava o login para o domínio
+    público, onde a borda responde 404, e o operador ficava sem administração.
+  - **Correção:** `KC_HOSTNAME_ADMIN` com o endereço do túnel.
+  - **Prevenção:** esta regra, a checagem do console pelo `127.0.0.1` no `prod-smoke.test.sh` e o mutante M10.

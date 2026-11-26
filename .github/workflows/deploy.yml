@@ -1,0 +1,99 @@
+# Deploy em produção (DEV-0110, ADR-005, ADR-014). Só manual: o Tito dispara com o SHA de um commit da master que já
+# tem as imagens no GHCR (job Publish Images do CI). O workflow copia o compose e a configuração da infra desse commit
+# para a VPS por SSH e sobe com as imagens desse SHA. Os segredos ficam no environment "production" do GitHub e no
+# .env da VPS; nada sensível passa pelo log.
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: SHA completo (40 caracteres) do commit da master a implantar
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# Um deploy de cada vez; o segundo espera o primeiro terminar.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-24.04
+    environment: production
+    timeout-minutes: 20
+    env:
+      IMAGE_TAG: ${{ inputs.image_tag }}
+      DEPLOY_HOST: ${{ secrets.DEPLOY_SSH_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_SSH_USER }}
+      DEPLOY_DIR: ${{ secrets.DEPLOY_DIR }}
+      FITHUB_DOMAIN: ${{ vars.FITHUB_DOMAIN }}
+    steps:
+      # A entrada vira argumento de comando: só um SHA completo passa.
+      - name: Validate inputs
+        run: |
+          [[ "$IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]] || { echo "image_tag precisa ser o SHA completo do commit."; exit 1; }
+          [ -n "$DEPLOY_HOST" ] && [ -n "$DEPLOY_USER" ] || { echo "Faltam os segredos DEPLOY_SSH_HOST e DEPLOY_SSH_USER."; exit 1; }
+          [ -n "$FITHUB_DOMAIN" ] || { echo "Falta a variável FITHUB_DOMAIN do environment production."; exit 1; }
+
+      - name: Checkout the deployed commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.image_tag }}
+          persist-credentials: false
+
+      # O commit precisa estar na master: nada de branch de PR em produção.
+      - name: Check the commit is on master
+        run: |
+          git fetch --no-tags --quiet origin master
+          git merge-base --is-ancestor "$IMAGE_TAG" FETCH_HEAD || { echo "O commit $IMAGE_TAG não está na master."; exit 1; }
+
+      # Chave só para este job; o host é conferido pelo known_hosts guardado no segredo (sem aceitar chave nova).
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}
+        run: |
+          [ -n "$SSH_KEY" ] && [ -n "$SSH_KNOWN_HOSTS" ] || { echo "Faltam os segredos DEPLOY_SSH_KEY e DEPLOY_SSH_KNOWN_HOSTS."; exit 1; }
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/deploy_key ~/.ssh/known_hosts
+          printf 'Host fithub-vps\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/deploy_key\n  IdentitiesOnly yes\n  StrictHostKeyChecking yes\n  BatchMode yes\n' \
+            "$DEPLOY_HOST" "$DEPLOY_USER" > ~/.ssh/config
+
+      # Só a infra usada pelo compose de produção; o .env da VPS fica onde está.
+      - name: Copy the infrastructure files
+        run: |
+          dir="${DEPLOY_DIR:-fithub}"
+          tar -czf - infra/compose/docker-compose.prod.yml infra/compose/postgres infra/compose/rabbitmq \
+              infra/compose/seaweedfs infra/traefik infra/backup infra/observability \
+              infra/keycloak/realm-fithub.json infra/keycloak/themes \
+            | ssh fithub-vps "mkdir -p '$dir' && tar -xzf - -C '$dir'"
+
+      - name: Pull and start
+        run: |
+          dir="${DEPLOY_DIR:-fithub}"
+          ssh fithub-vps "cd '$dir' && export FITHUB_IMAGE_TAG='$IMAGE_TAG' && \
+            docker compose -f infra/compose/docker-compose.prod.yml pull --quiet && \
+            docker compose -f infra/compose/docker-compose.prod.yml up -d --wait --wait-timeout 600 --remove-orphans"
+
+      # A borda responde: health de cada serviço e o realm pelo Traefik, com o certificado válido.
+      - name: Check the public endpoints
+        run: |
+          for service in account client training nutrition; do
+            curl -fsS --retry 10 --retry-delay 6 --retry-all-errors -o /dev/null "https://$FITHUB_DOMAIN/api/$service/actuator/health"
+            echo "$service: ok"
+          done
+          # O Keycloak fica saudável antes de terminar de importar o realm (503 nesse meio-tempo).
+          curl -fsS --retry 30 --retry-delay 4 --retry-all-errors -o /dev/null \
+            "https://$FITHUB_DOMAIN/auth/realms/fithub/.well-known/openid-configuration"
+          echo "keycloak: ok"
+
+      - name: Remove the SSH key
+        if: always()
+        run: rm -rf ~/.ssh

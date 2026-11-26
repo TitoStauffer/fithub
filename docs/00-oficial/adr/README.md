@@ -18,5 +18,6 @@ superado ganha status "substituído por ADR-NNN" em vez de ser apagado.
 | [ADR-011](ADR-011-base-de-alimentos-taco.md) | Base de alimentos inicial: Tabela TACO em CSV versionado | aceito |
 | [ADR-012](ADR-012-retencao-e-exclusao.md) | Retenção e exclusão dos dados do cliente | aceito |
 | [ADR-013](ADR-013-observabilidade.md) | Observabilidade: logs e traces centralizados no Grafana (Loki e Tempo) | aceito |
+| [ADR-014](ADR-014-borda-e-deploy.md) | Borda e deploy em produção: um domínio, Traefik sem socket do Docker, deploy manual por SSH | aceito |
 
 Formato: contexto, decisão, alternativas consideradas e consequências.

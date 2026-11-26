@@ -48,7 +48,8 @@ const MATCHERS = {
   apps: (path) => path.startsWith('apps/') || path.startsWith('packages/') || SERVICE_DOCKERFILE(path)
     || APPS_CODE_STYLE(path)
     || ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.nvmrc', '.npmrc'].includes(path),
-  infra: (path) => path.startsWith('infra/'),
+  // O workflow de deploy (DEV-0110) é conferido pelas guardas do compose de produção, no job da infra.
+  infra: (path) => path.startsWith('infra/') || path === '.github/workflows/deploy.yml',
 };
 
 function normalize(files) {
