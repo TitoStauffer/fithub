@@ -39,8 +39,10 @@ $compose up -d --wait --wait-timeout 420 traefik keycloak seaweedfs backup otel-
 location=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' --resolve "$domain:$http:127.0.0.1" "http://$domain:$http/auth/")
 case "$location" in 30[178]\ https://$domain*) ;; *) fail "HTTP não redirecionou para HTTPS: $location" ;; esac
 
-# O realm fithub responde pela borda, com o emissor público (o que os serviços conferem no token).
-discovery=$(edge -f "https://$domain:$https/auth/realms/fithub/.well-known/openid-configuration") \
+# O realm fithub responde pela borda, com o emissor público (o que os serviços conferem no token). O Keycloak fica
+# saudável antes de terminar de importar o realm e responde 503 nesse meio-tempo: até 2 minutos de novas tentativas.
+discovery=$(edge -f --retry 30 --retry-delay 4 --retry-all-errors \
+  "https://$domain:$https/auth/realms/fithub/.well-known/openid-configuration") \
   || fail "o realm fithub não respondeu pela borda"
 echo "$discovery" | grep -q "\"issuer\":\"https://$domain/auth/realms/fithub\"" || fail "o emissor do realm não é o endereço público"
 edge -D - -o /dev/null "https://$domain:$https/auth/realms/fithub/.well-known/openid-configuration" \
