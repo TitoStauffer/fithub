@@ -179,6 +179,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Exporta todos os dados que o nutrition tem do cliente
+         * @description Planos alimentares recebidos (cada versão), registros de refeição com trocas, desvios e a foto do prato (URL temporária de 5 minutos) e restrições alimentares. O app junta com a exportação do client-service e do training.
+         */
+        get: operations["export"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me/food-restrictions": {
         parameters: {
             query?: never;
@@ -838,6 +858,16 @@ export interface components {
             /** @description Ausente quando algum alimento da soma não traz a fibra. */
             fiberG?: number;
             proteinG?: number;
+        };
+        /** @description Todos os dados que o nutrition tem do cliente. */
+        NutritionExport: {
+            /** Format: date-time */
+            exportedAt?: string;
+            /** @description Registros de refeição, com a foto do prato por URL temporária quando houver. */
+            logs?: components["schemas"]["MealLog"][];
+            /** @description Cada versão recebida de cada plano alimentar, com refeições, alimentos e macros. */
+            planVersions?: components["schemas"]["MealPlan"][];
+            restrictions?: components["schemas"]["FoodRestriction"][];
         };
         /** @description A última atividade de um paciente vinculado. */
         PatientActivity: {
@@ -1570,6 +1600,44 @@ export interface operations {
             };
             /** @description A medida não existe, é de outro alimento ou de outra nutricionista. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    export: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Os dados do cliente. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NutritionExport"];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta não tem o papel de cliente. */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -181,3 +181,14 @@ O consumidor dos eventos do client-service também recebe o `ContaExcluida` (`cl
   `fithub.deleted-accounts.purge-interval` (padrão 6 h) do que passou de 30 dias.
 - O `VinculoEncerrado` da exclusão chega antes do `ContaExcluida` (mesma fila, ordem do outbox) e corta o acesso
   mesmo que o consumo do segundo atrase.
+
+## Exportação dos dados (DEV-0167)
+
+| Rota | Quem | Resposta |
+|---|---|---|
+| `GET /me/export` | cliente | Todos os dados que o nutrition tem do cliente do token |
+
+- **O que entra:** cada versão recebida de cada plano alimentar (refeições, alimentos e macros), os registros de
+  refeição com trocas, desvios e a foto do prato (URL pré-assinada de 5 minutos) e as restrições alimentares.
+- O rascunho da nutricionista fica de fora: ainda não foi entregue ao cliente.
+- O app junta com a exportação do client-service (DEV-0104) e do training (DEV-0166), na tela da DEV-0168.
