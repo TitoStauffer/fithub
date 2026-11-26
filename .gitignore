@@ -7,3 +7,6 @@ node_modules/
 # Ferramentas Node (tools/)
 dist/
 coverage/
+
+# Logs locais dos serviços, lidos pelo coletor do compose (DEV-0109)
+.logs/

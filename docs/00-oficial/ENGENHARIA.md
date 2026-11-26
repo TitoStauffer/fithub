@@ -381,8 +381,11 @@ novos serviços quando cada épico chegar. Ele não é evoluído no lugar.
   teste de restauração mensal.
 - **Observabilidade:** logs JSON com `traceId` (Micrometer Tracing /
   OpenTelemetry) desde o início, mais Actuator health. Coleta centralizada
-  (Grafana + Loki/Tempo, em container ou plano gratuito de nuvem) a partir do
-  épico de operação.
+  num Grafana com Loki e Tempo, no container `grafana/otel-lgtm`, sem custo
+  (DEV-0109, [ADR-013](adr/ADR-013-observabilidade.md)): os serviços exportam
+  os spans por OTLP quando o endpoint está configurado, o coletor lê os
+  arquivos de log JSON, e o trace atravessa o RabbitMQ pelo `traceparent`
+  gravado no outbox.
 
 ---
 

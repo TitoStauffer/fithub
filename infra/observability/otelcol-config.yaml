@@ -1,0 +1,92 @@
+# Coletor OpenTelemetry da imagem grafana/otel-lgtm, com a configuração do FitHub (DEV-0109, ADR-013).
+# Igual à configuração padrão da imagem, mais a leitura dos arquivos de log JSON dos serviços
+# (/var/log/fithub/*.log), que vão para o Loki com o traceId de cada linha. Os spans chegam por OTLP
+# (porta 4318) e vão para o Tempo.
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+  prometheus/collector:
+    config:
+      scrape_configs:
+        - job_name: "opentelemetry-collector"
+          scrape_interval: 10s
+          static_configs:
+            - targets: ["127.0.0.1:8888"]
+  # Logs dos serviços no formato ECS do Spring Boot (java-commons): uma linha JSON por evento.
+  filelog/fithub:
+    include: [/var/log/fithub/*.log]
+    start_at: end
+    operators:
+      - type: json_parser
+        parse_to: body
+        timestamp:
+          parse_from: body["@timestamp"]
+          layout_type: gotime
+          layout: "2006-01-02T15:04:05.999999999Z07:00"
+        severity:
+          parse_from: body.log.level
+      # O traceId e o spanId da linha ligam o log ao trace no Tempo.
+      - type: trace_parser
+        if: 'body.traceId != nil'
+        trace_id:
+          parse_from: body.traceId
+        span_id:
+          parse_from: body.spanId
+      - type: move
+        if: 'body.service?.name != nil'
+        from: body.service.name
+        to: resource["service.name"]
+      - type: move
+        if: 'body.log?.logger != nil'
+        from: body.log.logger
+        to: attributes["log.logger"]
+      - type: move
+        if: 'body.error != nil'
+        from: body.error
+        to: attributes["error"]
+      # O corpo fica só com a mensagem; o resto da linha (processo, versão do ECS, ids) sai.
+      - type: move
+        from: body.message
+        to: body
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+    path: "/ready"
+
+processors:
+  batch:
+
+exporters:
+  otlp_http/metrics:
+    endpoint: http://127.0.0.1:9090/api/v1/otlp
+    tls:
+      insecure: true
+  otlp_http/traces:
+    endpoint: http://127.0.0.1:4418
+    tls:
+      insecure: true
+  otlp_http/logs:
+    endpoint: http://127.0.0.1:3100/otlp
+    tls:
+      insecure: true
+
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp_http/traces]
+    metrics:
+      receivers: [otlp, prometheus/collector]
+      processors: [batch]
+      exporters: [otlp_http/metrics]
+    logs:
+      receivers: [otlp, filelog/fithub]
+      processors: [batch]
+      exporters: [otlp_http/logs]

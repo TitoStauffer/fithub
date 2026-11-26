@@ -5,6 +5,7 @@ Infraestrutura local e de produção.
 - `compose/` — `docker-compose.dev.yml`, ambiente local (DEV-0012)
 - `backup/` — backup diário dos bancos e restauração, com o teste de ponta a ponta (DEV-0108)
 - `keycloak/` — realm `fithub` versionado (DEV-0024), com o teste das guardas e a checagem no Keycloak de pé
+- `observability/` — configuração do coletor OpenTelemetry do `otel-lgtm`, com o teste de ponta a ponta (DEV-0109)
 - `traefik/` — borda e TLS em produção
 
 ## Ambiente local
@@ -30,6 +31,37 @@ Para trocar porta ou senha, copie `compose/.env.example` para `compose/.env` (ig
 | Mailpit | 1025 (SMTP), 8025 (painel) | sem autenticação — e-mails em http://localhost:8025 |
 
 Cada serviço só conecta no próprio banco: o `CONNECT` público é revogado na criação.
+
+### Observabilidade (logs e traces)
+
+O `otel-lgtm` (coletor OpenTelemetry, Loki, Tempo, Prometheus e Grafana num container só,
+[ADR-013](../docs/00-oficial/adr/ADR-013-observabilidade.md)) fica no perfil `observability`, porque a
+imagem tem 2,8 GB. Na raiz:
+
+```sh
+mkdir -p .logs   # antes de subir: o coletor lê os logs dos serviços daqui
+docker compose -f infra/compose/docker-compose.dev.yml --profile observability up -d --wait
+```
+
+| Serviço | Porta | Acesso |
+|---|---|---|
+| Grafana | 3000 (`GRAFANA_PORT`) | sem login, só local — http://localhost:3000 |
+| Coletor OTLP/HTTP | 4318 (`OTLP_HTTP_PORT`) | recebe os spans dos serviços |
+
+Para o serviço mandar traces e logs, rode-o com estas variáveis (exemplo do client-service):
+
+```sh
+MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT=http://localhost:4318/v1/traces
+LOGGING_FILE_NAME=<raiz do repositório>/.logs/client-service.log
+```
+
+- Sem o endpoint, o serviço não exporta nada; sem o arquivo, só escreve no console.
+- No Grafana, **Explore → Tempo** mostra o trace de uma requisição, inclusive o consumidor do evento no RabbitMQ.
+  **Explore → Loki** mostra os logs: `{service_name="client-service"} | trace_id="<traceId>"`.
+- O container não tem volume: os dados somem quando ele é removido (`down`).
+- **Teste de ponta a ponta:** `sh infra/observability/observability.test.sh`, com o perfil de pé. Ele manda um span
+  e uma linha de log com o mesmo `traceId` e confere que o Tempo e o Loki mostram os dois. Roda no job Local
+  Infrastructure.
 
 ### Realm do Keycloak
 

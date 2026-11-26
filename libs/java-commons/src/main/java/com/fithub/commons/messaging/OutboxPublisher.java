@@ -37,6 +37,12 @@ public class OutboxPublisher implements SmartLifecycle {
     /** Chave fixa do lock consultivo que serializa o publicador entre instâncias do mesmo serviço. */
     public static final long ADVISORY_LOCK_KEY = 0x6669746875624FL; // "fithubO"
 
+    /**
+     * Cabeçalho W3C com o contexto do trace da requisição que gravou o evento (DEV-0109). A observação do
+     * listener do consumidor lê este cabeçalho e continua o mesmo trace.
+     */
+    public static final String TRACE_PARENT_HEADER = "traceparent";
+
     private static final Logger log = LoggerFactory.getLogger(OutboxPublisher.class);
 
     private final JdbcClient jdbc;
@@ -56,7 +62,8 @@ public class OutboxPublisher implements SmartLifecycle {
         this.settings = settings;
     }
 
-    private record PendingEvent(UUID id, String exchange, String routingKey, String payload, Timestamp createdAt) {}
+    private record PendingEvent(
+            UUID id, String exchange, String routingKey, String payload, Timestamp createdAt, String traceParent) {}
 
     /** Publica um lote de pendentes; devolve quantos foram confirmados pelo broker. */
     public int publishPending() {
@@ -67,7 +74,7 @@ public class OutboxPublisher implements SmartLifecycle {
                     .single();
             if (!Boolean.TRUE.equals(locked)) return 0;
             List<PendingEvent> pending = jdbc.sql("""
-                    select id, exchange, routing_key, payload::text as payload, created_at
+                    select id, exchange, routing_key, payload::text as payload, created_at, trace_parent
                     from fithub_outbox_event
                     where published_at is null
                     order by sequence
@@ -78,7 +85,8 @@ public class OutboxPublisher implements SmartLifecycle {
                             rs.getString("exchange"),
                             rs.getString("routing_key"),
                             rs.getString("payload"),
-                            rs.getTimestamp("created_at")))
+                            rs.getTimestamp("created_at"),
+                            rs.getString("trace_parent")))
                     .list();
             int count = 0;
             for (PendingEvent event : pending) {
@@ -126,6 +134,9 @@ public class OutboxPublisher implements SmartLifecycle {
                 .setTimestamp(event.createdAt())
                 .setDeliveryMode(MessageDeliveryMode.PERSISTENT)
                 .build();
+        if (event.traceParent() != null) {
+            message.getMessageProperties().setHeader(TRACE_PARENT_HEADER, event.traceParent());
+        }
         rabbit.invoke(operations -> {
             operations.send(event.exchange(), event.routingKey(), message);
             operations.waitForConfirmsOrDie(settings.confirmTimeout().toMillis());
