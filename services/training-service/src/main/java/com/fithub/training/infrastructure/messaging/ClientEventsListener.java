@@ -1,5 +1,6 @@
 package com.fithub.training.infrastructure.messaging;
 
+import com.fithub.commons.messaging.FithubMessagingProperties;
 import com.fithub.commons.messaging.ProcessedEvents;
 import com.fithub.training.application.EraseDeletedClient;
 import com.fithub.training.application.ProjectClientEvents;
@@ -65,8 +66,8 @@ class ClientEventsListener {
     record AccountDeleted(UUID clientId, Instant occurredAt) {}
 
     @Bean
-    Declarables clientEventsTopology() {
-        TopicExchange exchange = new TopicExchange(EXCHANGE, true, false);
+    Declarables clientEventsTopology(FithubMessagingProperties messaging) {
+        TopicExchange exchange = messaging.sourceExchange(EXCHANGE);
         Queue queue = QueueBuilder.durable(QUEUE)
                 .deadLetterExchange("")
                 .deadLetterRoutingKey(DEAD_LETTER_QUEUE)

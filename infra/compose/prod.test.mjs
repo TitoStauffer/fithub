@@ -125,6 +125,15 @@ test('cada serviço entra no RabbitMQ com o próprio usuário, que só publica n
   const script = read('infra/compose/rabbitmq/init-users.sh');
   assert.ok(script.includes('--write "^($service\\..*|fithub\\.$service)\\$"'), 'permissão de escrita do serviço');
   assert.ok(script.includes('--tags ""'), 'usuário de serviço sem tag de administração');
+  // configure também vale para apagar: só as próprias filas e a própria exchange (DEV-0177).
+  assert.ok(script.includes('--configure "^($service\\..*|fithub\\.$service)\\$"'), 'permissão de configurar do serviço');
+  assert.ok(
+    script.includes('admin declare exchange --name "fithub.$service" --type topic --durable true'),
+    'exchanges declaradas pelo administrador',
+  );
+  for (const name of Object.keys(SERVICES)) {
+    assert.equal(resolved.config.services[name].environment.FITHUB_MESSAGING_DECLARE_SOURCE_EXCHANGES, 'false', name);
+  }
 });
 
 test('cada identidade S3 só tem o bucket do seu serviço', () => {

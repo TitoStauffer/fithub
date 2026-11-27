@@ -7,12 +7,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
-
+import java.util.stream.Stream;
 import javax.sql.DataSource;
-
 import org.junit.jupiter.api.Test;
+import org.springframework.amqp.core.Declarables;
+import org.springframework.amqp.core.Exchange;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -35,6 +37,12 @@ public abstract class ServiceSkeletonContract extends ServiceIntegrationTest {
     @Value("${spring.application.name}")
     private String serviceName;
 
+    @Value("${fithub.messaging.exchange:}")
+    private String ownExchange;
+
+    @Autowired
+    private ApplicationContext context;
+
     @Test
     void healthIsPublicAndUpWithDatabaseAndBroker() throws Exception {
         // O status agregado só fica UP com os indicadores do Postgres e do RabbitMQ saudáveis.
@@ -52,14 +60,18 @@ public abstract class ServiceSkeletonContract extends ServiceIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.info.title").value(serviceName))
                 .andExpect(jsonPath("$.components.securitySchemes.bearer.type").value("http"))
-                .andExpect(jsonPath("$.components.securitySchemes.bearer.scheme").value("bearer"))
+                .andExpect(
+                        jsonPath("$.components.securitySchemes.bearer.scheme").value("bearer"))
                 .andExpect(jsonPath("$.security[0].bearer").isArray());
     }
 
     @Test
     void openApiMatchesTheContractCommittedForTheApps() throws Exception {
         // DEV-0022: o JSON versionado em packages/api-types/openapi é a fonte dos tipos dos apps.
-        String live = mvc.perform(get("/v3/api-docs")).andExpect(status().isOk()).andReturn().getResponse()
+        String live = mvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
                 .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
         OpenApiContract.verify(serviceName, live);
     }
@@ -78,13 +90,36 @@ public abstract class ServiceSkeletonContract extends ServiceIntegrationTest {
         JdbcClient jdbc = JdbcClient.create(dataSource);
         assertThat(successfulVersions(jdbc, "flyway_schema_history")).contains("1");
         assertThat(successfulVersions(jdbc, "flyway_fithub_commons_history")).contains("1");
-        assertThat(jdbc.sql("select to_regclass('fithub_outbox_event') is not null").query(Boolean.class).single())
+        assertThat(jdbc.sql("select to_regclass('fithub_outbox_event') is not null")
+                        .query(Boolean.class)
+                        .single())
                 .isTrue();
+    }
+
+    // O serviço só declara a própria exchange: as dos outros vêm do administrador do broker, e o usuário do serviço
+    // não tem permissão de configurá-las, o que incluiria apagá-las (DEV-0177).
+    @Test
+    void theServiceDeclaresNoExchangeOfAnotherService() {
+        List<Exchange> exchanges = Stream.concat(
+                        context.getBeansOfType(Exchange.class).values().stream(),
+                        context.getBeansOfType(Declarables.class).values().stream()
+                                .flatMap(declarables -> declarables.getDeclarablesByType(Exchange.class).stream()))
+                .toList();
+        List<Exchange> others = exchanges.stream()
+                .filter(exchange -> !exchange.getName().equals(ownExchange))
+                .toList();
+
+        assertThat(others).as("o serviço consome de outro serviço").isNotEmpty();
+        assertThat(others)
+                .allSatisfy(exchange -> assertThat(exchange.shouldDeclare())
+                        .as(exchange.getName())
+                        .isFalse());
     }
 
     private static List<String> successfulVersions(JdbcClient jdbc, String historyTable) {
         // Nome de tabela fixo deste teste, nunca entrada externa.
         return jdbc.sql("select version from " + historyTable + " where success and version is not null")
-                .query(String.class).list();
+                .query(String.class)
+                .list();
     }
 }

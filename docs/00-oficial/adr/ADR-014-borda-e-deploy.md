@@ -42,10 +42,11 @@ via SSH. Faltava o desenho da borda e do deploy. Três fatos pesam:
    comprometer um serviço não abre o banco de outro nem o do Keycloak (Code Review do PR #322). Vale o mesmo para o
    broker e o storage:
    - cada serviço tem um usuário no RabbitMQ que só publica na própria exchange e só lê as próprias filas, e o
-     administrador fica só para a operação. Assim, ninguém forja evento de outro serviço, como um `VinculoAtivado`;
+     administrador fica só para a operação. Assim, ninguém forja evento de outro serviço, como um `VinculoAtivado`.
+     O administrador declara as quatro exchanges, e cada serviço só configura as próprias filas e a própria exchange:
+     no RabbitMQ, configurar também vale para apagar, e um serviço comprometido apagaria a exchange de outro (DEV-0177);
    - o client e o nutrition têm cada um a sua identidade S3, só com o próprio bucket. O filer, o master e o volume do
-     SeaweedFS ficam no loopback do container, e só o gateway S3, que confere as identidades, atende a rede;
-   - cada serviço ainda pode declarar, e portanto apagar, a exchange de origem que consome (débito #323, DEV-0177).
+     SeaweedFS ficam no loopback do container, e só o gateway S3, que confere as identidades, atende a rede.
 
    O workflow guarda só o acesso SSH, no environment `production` do GitHub.
 6. **Deploy (`.github/workflows/deploy.yml`):**

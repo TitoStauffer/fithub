@@ -115,11 +115,8 @@ broker() {
 }
 admin="--username smoke-RABBITMQ_ADMIN_USER --password smoke-RABBITMQ_ADMIN_PASSWORD"
 nutrition="--username nutrition --password smoke-NUTRITION_RABBITMQ_PASSWORD"
+# As exchanges vêm do rabbitmq-users, que rodou acima (DEV-0177).
 # shellcheck disable=SC2086 # as credenciais são argumentos separados.
-broker $admin declare exchange --name fithub.client --type topic || fail "o administrador não declarou a exchange"
-# shellcheck disable=SC2086
-broker $admin declare exchange --name fithub.nutrition --type topic || fail "o administrador não declarou a exchange"
-# shellcheck disable=SC2086
 broker $admin declare user --name nutrition --password smoke-NUTRITION_RABBITMQ_PASSWORD --tags management \
   || fail "não deu a tag de teste ao usuário nutrition"
 # shellcheck disable=SC2086
@@ -128,6 +125,17 @@ broker $nutrition publish message --exchange fithub.nutrition --routing-key nutr
 # shellcheck disable=SC2086
 broker $nutrition publish message --exchange fithub.client --routing-key client.link-activated.v1 --payload '{}' \
   && fail "o nutrition-service publicou na exchange do client-service"
+# configure também vale para apagar: o serviço não apaga a exchange de outro nem a recria (DEV-0177).
+# shellcheck disable=SC2086
+broker $nutrition delete exchange --name fithub.client && fail "o nutrition-service apagou a exchange do client-service"
+# shellcheck disable=SC2086
+broker $nutrition declare exchange --name fithub.client --type topic --durable true \
+  && fail "o nutrition-service declarou a exchange do client-service"
+# shellcheck disable=SC2086
+exchanges=$($compose exec -T rabbitmq rabbitmqadmin --non-interactive --host localhost $admin list exchanges 2>/dev/null)
+for service in account client training nutrition; do
+  echo "$exchanges" | grep -q "^fithub\.$service " || fail "o rabbitmq-users não declarou a exchange fithub.$service"
+done
 
 # Cada API tem a sua rota: sem o serviço de pé, o Traefik responde 502 (rota existe), não 404.
 for service in account client training nutrition; do
