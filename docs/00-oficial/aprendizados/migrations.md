@@ -62,3 +62,11 @@ caso, escreva `coluna IS NOT NULL AND coluna IN (...)`, e teste a constraint com
   - **Prevenção:** quinta ocorrência. A tabela condição × teste × mutante percorre **todo arquivo alterado**, na
     ordem do diff: migration (cada `constraint`, `check`, `unique`), domínio, aplicação, adaptadores externos
     (cada validação de resposta) e configuração.
+- **Revisão:** Code Review do PR #328, no SHA `157b682` (MEDIUM) — DEV-0100 (#92) · **PR:** #328
+  - **Impacto:** a PK de `subscription_payment.payment_id` e o `on conflict do nothing` do `addPayment`, que fazem o
+    webhook idempotente, não tinham mutante. Na rodada anterior, a correção cobriu só as constraints que a revisão
+    citou, e não a migration inteira.
+  - **Correção:** mutantes da idempotência (M71 e M72) e de **toda** chave da V7: cada PK e cada FK, com um teste de
+    escrita direta que espera o nome de cada constraint (M73 a M79).
+  - **Prevenção:** quando a revisão aponta uma constraint sem prova, a correção percorre a migration inteira, não só
+    a linha citada. Cada `primary key`, `references`, `unique`, `check` e `on conflict` ganha teste e mutante.

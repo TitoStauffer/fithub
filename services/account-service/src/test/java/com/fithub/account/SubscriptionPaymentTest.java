@@ -542,6 +542,79 @@ class SubscriptionPaymentTest extends ServiceIntegrationTest {
     }
 
     @Test
+    void aConfirmedPaymentWithoutValueIsIgnored() throws Exception {
+        String account = registered();
+        String subscription = paidCheckout(account);
+
+        webhook(paymentEvent(
+                                "evt_" + UUID.randomUUID(),
+                                "PAYMENT_CONFIRMED",
+                                "pay_" + UUID.randomUUID(),
+                                subscription,
+                                "2026-12-10")
+                        .replace("\"value\": 150.00", "\"value\": null"))
+                .andExpect(status().isOk());
+
+        assertThat(paidUntil(account)).isNull();
+    }
+
+    // Grava direto no banco: as chaves da V7 recusam linha duplicada ou órfã, que a aplicação nunca grava.
+    @Test
+    void theDatabaseRefusesDuplicateOrOrphanPaymentRows() throws Exception {
+        String account = registered();
+        checkout(account).andExpect(status().isCreated());
+        String checkoutId = (String) asaas.checkouts.getLast().get("id");
+        UUID professional = (UUID) asaas.checkouts.getLast().get("professional");
+        UUID stranger = UUID.randomUUID();
+        String subscription = "sub_" + UUID.randomUUID();
+        insertSubscription(subscription, checkoutId, professional);
+        String other = "chk_" + UUID.randomUUID();
+        insertCheckout(other, professional);
+
+        assertRefusedBy("payment_checkout_pkey", () -> insertCheckout(checkoutId, professional));
+        assertRefusedBy(
+                "payment_checkout_professional_id_fkey", () -> insertCheckout("chk_" + UUID.randomUUID(), stranger));
+        assertRefusedBy("payment_subscription_pkey", () -> insertSubscription(subscription, other, professional));
+        assertRefusedBy(
+                "payment_subscription_checkout_id_fkey",
+                () -> insertSubscription("sub_" + UUID.randomUUID(), "chk_" + UUID.randomUUID(), professional));
+        assertRefusedBy(
+                "payment_subscription_professional_id_fkey",
+                () -> insertSubscription("sub_" + UUID.randomUUID(), other, stranger));
+        assertRefusedBy(
+                "subscription_payment_subscription_id_fkey",
+                () -> insertPayment("pay_" + UUID.randomUUID(), "sub_" + UUID.randomUUID(), professional));
+        assertRefusedBy(
+                "subscription_payment_professional_id_fkey",
+                () -> insertPayment("pay_" + UUID.randomUUID(), subscription, stranger));
+    }
+
+    private void insertCheckout(String id, UUID professional) {
+        jdbc.sql("insert into payment_checkout (id, link, professional_id, launch, value, created_at)"
+                        + " values (?, 'https://asaas.test/c', ?, false, 150, now())")
+                .params(id, professional)
+                .update();
+    }
+
+    private void insertSubscription(String id, String checkoutId, UUID professional) {
+        jdbc.sql(
+                        "insert into payment_subscription (id, checkout_id, professional_id, created_at) values (?, ?, ?, now())")
+                .params(id, checkoutId, professional)
+                .update();
+    }
+
+    private void insertPayment(String id, String subscription, UUID professional) {
+        jdbc.sql("insert into subscription_payment (payment_id, subscription_id, professional_id, value, due_date,"
+                        + " confirmed_at) values (?, ?, ?, 150, current_date, now())")
+                .params(id, subscription, professional)
+                .update();
+    }
+
+    private static void assertRefusedBy(String constraint, Runnable write) {
+        assertThatThrownBy(write::run).as(constraint).hasMessageContaining(constraint);
+    }
+
+    @Test
     void anotherSubscriptionForAnAlreadyLinkedCheckoutIsIgnored() throws Exception {
         String account = registered();
         String subscription = paidCheckout(account);

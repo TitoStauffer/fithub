@@ -98,8 +98,11 @@ public class HandlePaymentEvent {
 
     /** Cobrança confirmada: grava uma vez e estende o período pago. */
     private void handlePayment(Payment payment, Instant now) {
-        if (payment.id() == null || payment.subscriptionId() == null || payment.dueDate() == null) {
-            log.warn("Cobrança {} sem id, assinatura ou vencimento; ignorada", payment.id());
+        if (payment.id() == null
+                || payment.subscriptionId() == null
+                || payment.value() == null
+                || payment.dueDate() == null) {
+            log.warn("Cobrança {} sem id, assinatura, valor ou vencimento; ignorada", payment.id());
             return;
         }
         Optional<PaymentRecords.SubscriptionRecord> subscription = subscriptionOf(payment.subscriptionId(), now);
