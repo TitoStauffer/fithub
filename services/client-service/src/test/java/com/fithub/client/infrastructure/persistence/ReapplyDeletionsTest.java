@@ -144,7 +144,8 @@ class ReapplyDeletionsTest extends ServiceIntegrationTest {
 
     // DEV-0174: o convite pendente que voltou com o backup, enviado para o e-mail de quem excluiu a conta, perde o
     // e-mail na reaplicação, pelo hash guardado na lista (a reaplicação não tem o token). O hash fica na lista, e o
-    // convite para outro e-mail continua.
+    // convite para outro e-mail continua. O convite para o mesmo e-mail criado depois da exclusão (a pessoa voltou com
+    // uma conta nova) também continua (Code Review do PR #352).
     @Test
     void aReaplicacaoLimpaOEmailDosConvitesRestauradosPeloHashDaLista() {
         UUID deleted = UUID.randomUUID();
@@ -160,14 +161,16 @@ class ReapplyDeletionsTest extends ServiceIntegrationTest {
                         values (:id, 'PERSONAL_TRAINER', 'Paulo Personal', :code, now(), now())
                         """).param("id", professional).param("code", inviteCode()).update();
         UUID restored =
-                invitation(professional, "Restaurado-" + deleted.toString().toUpperCase() + "@Teste.Fithub");
-        UUID other = invitation(professional, "outro-" + deleted + "@teste.fithub");
+                invitation(professional, "Restaurado-" + deleted.toString().toUpperCase() + "@Teste.Fithub", "2 days");
+        UUID other = invitation(professional, "outro-" + deleted + "@teste.fithub", "2 days");
+        UUID later = invitation(professional, "restaurado-" + deleted + "@teste.fithub", "1 hour");
         jdbc.sql("insert into restore_pending (restored_at) values (now())").update();
 
         scheduler.purge();
 
         assertThat(emailOf(restored)).isNull();
         assertThat(emailOf(other)).isEqualTo("outro-" + deleted + "@teste.fithub");
+        assertThat(emailOf(later)).isEqualTo("restaurado-" + deleted + "@teste.fithub");
         assertThat(jdbc.sql("select email_hash from deleted_account where client_id = :id")
                         .param("id", deleted)
                         .query(String.class)
@@ -175,13 +178,16 @@ class ReapplyDeletionsTest extends ServiceIntegrationTest {
                 .isEqualTo(hash);
     }
 
-    private UUID invitation(UUID professional, String email) {
+    /** Convite pendente criado há {@code age} (um intervalo do Postgres, como "2 days"). */
+    private UUID invitation(UUID professional, String email, String age) {
         UUID id = UUID.randomUUID();
         jdbc.sql("""
                         insert into invitation (id, professional_id, email, token_hash, code_hash, status, expires_at,
                                                 created_at)
-                        values (:id, :p, :email, :token, :code, 'PENDING', now() + interval '7 days', now())
+                        values (:id, :p, :email, :token, :code, 'PENDING', now() + interval '7 days',
+                                now() - cast(:age as interval))
                         """)
+                .param("age", age)
                 .param("id", id)
                 .param("p", professional)
                 .param("email", email)

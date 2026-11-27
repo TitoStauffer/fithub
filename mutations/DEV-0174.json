@@ -66,8 +66,8 @@
             "description": "Os convites pendentes deixam de perder o e-mail pelo hash",
             "area": "java",
             "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
-            "find": "where encode(sha256(convert_to(lower(email), 'UTF8')), 'hex')",
-            "replace": "where false and encode(sha256(convert_to(lower(email), 'UTF8')), 'hex')",
+            "find": "and encode(sha256(convert_to(lower(i.email), 'UTF8')), 'hex') = d.email_hash",
+            "replace": "and false and encode(sha256(convert_to(lower(i.email), 'UTF8')), 'hex') = d.email_hash",
             "command": [
                 "mvn",
                 "-B",
@@ -86,8 +86,28 @@
             "description": "O convite com o e-mail em maiúsculas deixa de bater com o hash",
             "area": "java",
             "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
-            "find": "where encode(sha256(convert_to(lower(email), 'UTF8')), 'hex')",
-            "replace": "where encode(sha256(convert_to(email, 'UTF8')), 'hex')",
+            "find": "convert_to(lower(i.email), 'UTF8')",
+            "replace": "convert_to(i.email, 'UTF8')",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest,ReapplyDeletionsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "O convite criado depois da exclusão também perde o e-mail",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
+            "find": "                           and i.created_at <= d.deleted_at\n",
+            "replace": "",
             "command": [
                 "mvn",
                 "-B",

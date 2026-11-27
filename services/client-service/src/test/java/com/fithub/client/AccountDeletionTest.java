@@ -229,11 +229,16 @@ class AccountDeletionTest extends ServiceIntegrationTest {
         return client;
     }
 
+    /**
+     * Convite criado antes da exclusão, no relógio fixo do serviço nos testes (2026-11-23T12:00:00Z, ClientApiFakes): a
+     * exclusão só limpa os convites criados até ela (DEV-0174).
+     */
     private void invitation(String professional, String email, String invitationStatus) {
         jdbc.sql("""
                         insert into invitation (id, professional_id, email, token_hash, code_hash, status, expires_at,
                                                 created_at, cancelled_at)
-                        values (:id, :p, :email, :token, :code, :status, now() + interval '7 days', now(),
+                        values (:id, :p, :email, :token, :code, :status, now() + interval '7 days',
+                                timestamptz '2026-11-23T11:00:00Z',
                                 case when :status = 'CANCELLED' then now() end)
                         """)
                 .param("id", UUID.randomUUID())

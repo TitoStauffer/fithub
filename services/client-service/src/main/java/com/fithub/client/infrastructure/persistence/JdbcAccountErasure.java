@@ -45,11 +45,15 @@ class JdbcAccountErasure implements AccountErasure {
                         update invitation set email = null
                          where id in (select invitation_id from client_link where client_id = :clientId)
                         """).param("clientId", clientId).update();
-        // Os convites pendentes enviados para o e-mail da conta, pelo hash da lista.
+        // Os convites enviados para o e-mail da conta até a exclusão, pelo hash da lista. Um convite posterior, para a
+        // mesma pessoa de volta com uma conta nova, fica (Code Review do PR #352). As duas datas são do relógio deste
+        // serviço.
         jdbc.sql("""
-                        update invitation set email = null
-                         where encode(sha256(convert_to(lower(email), 'UTF8')), 'hex')
-                               = (select email_hash from deleted_account where client_id = :clientId)
+                        update invitation i set email = null
+                          from deleted_account d
+                         where d.client_id = :clientId
+                           and encode(sha256(convert_to(lower(i.email), 'UTF8')), 'hex') = d.email_hash
+                           and i.created_at <= d.deleted_at
                         """).param("clientId", clientId).update();
         jdbc.sql("delete from client_link where client_id = :clientId")
                 .param("clientId", clientId)
