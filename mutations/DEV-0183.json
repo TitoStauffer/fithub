@@ -19,6 +19,26 @@
                 "-Dtest=DatabaseErrorDetailTest",
                 "-Dsurefire.failIfNoSpecifiedTests=false"
             ]
+        },
+        {
+            "id": "M2",
+            "description": "Um serviço liga o batch do Hibernate, e o SQL com os valores volta à mensagem de erro",
+            "area": "java",
+            "file": "services/account-service/src/main/resources/application.yml",
+            "find": "      ddl-auto: validate\n  rabbitmq:",
+            "replace": "      ddl-auto: validate\n    properties:\n      hibernate.jdbc.batch_size: 20\n  rabbitmq:",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AccountServiceSkeletonTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
         }
     ]
 }

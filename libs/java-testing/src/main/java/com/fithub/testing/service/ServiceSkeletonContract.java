@@ -15,6 +15,7 @@ import org.springframework.amqp.core.Exchange;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
+import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -36,6 +37,9 @@ public abstract class ServiceSkeletonContract extends ServiceIntegrationTest {
 
     @Value("${spring.application.name}")
     private String serviceName;
+
+    @Autowired
+    private Environment environment;
 
     @Value("${fithub.messaging.exchange:}")
     private String ownExchange;
@@ -114,6 +118,16 @@ public abstract class ServiceSkeletonContract extends ServiceIntegrationTest {
                 .allSatisfy(exchange -> assertThat(exchange.shouldDeclare())
                         .as(exchange.getName())
                         .isFalse());
+    }
+
+    // Com o batch do Hibernate, a primeira linha do BatchUpdateException traz o SQL com os valores da linha, e ela
+    // chegaria ao log mesmo com o driver sem o Detail (DEV-0183).
+    @Test
+    void hibernateJdbcBatchingStaysOff() {
+        String batchSize = environment.getProperty("spring.jpa.properties.hibernate.jdbc.batch_size");
+        assertThat(batchSize == null || Integer.parseInt(batchSize.trim()) <= 1)
+                .as("hibernate.jdbc.batch_size = %s", batchSize)
+                .isTrue();
     }
 
     private static List<String> successfulVersions(JdbcClient jdbc, String historyTable) {
