@@ -68,7 +68,8 @@ atualização e confere que ela continua lá.
 **Regra:** quando o FitHub abre no provedor algo que cobra sozinho todo mês (assinatura recorrente), o estado local
 não pode esperar a primeira cobrança para saber que ela existe. A ligação ao dono acontece no evento de criação, e
 enquanto houver uma viva o caso de uso recusa abrir outra (409). O link ainda aberto é reaproveitado em vez de gerar
-outro, dentro de uma janela menor que a validade dele no provedor. Evento do webhook sem os campos de que precisa é
+outro, dentro de uma janela menor que a validade dele no provedor. A leitura "já existe um aberto?" e a criação ficam sob a
+mesma trava por dono (`pg_advisory_xact_lock` na transação): sem ela, dois cliques simultâneos criam dois. Evento do webhook sem os campos de que precisa é
 ignorado com aviso de ids, nunca vira 500: o provedor reentrega sem fim.
 
 ### Ocorrências
@@ -82,4 +83,9 @@ ignorado com aviso de ids, nunca vira 500: o provedor reentrega sem fim.
     responde 409 com assinatura viva e reaproveita o checkout aberto de até 23 h; `SUBSCRIPTION_INACTIVATED` e
     `SUBSCRIPTION_DELETED` liberam assinar de novo; campos nulos e conflito de checkout são ignorados com aviso.
   - **Prevenção:** testes de dois checkouts seguidos no teste grátis, da janela de 23 h e da assinatura viva de outra
-    conta; mutantes M41 a M61 de `mutations/DEV-0100.json`.
+    conta; mutantes M41 a M60 e M68 de `mutations/DEV-0100.json`.
+- **Revisão:** Code Review do PR #328, no SHA `a52cd2d` (LOW, resolvido na rodada) — DEV-0100 (#92) · **PR:** #328
+  - **Impacto:** dois pedidos simultâneos passavam juntos pelo "não há checkout aberto" e criavam dois checkouts;
+    pagos os dois, voltavam as duas assinaturas.
+  - **Correção:** `StartCheckout` transacional com `lockCheckouts` (lock consultivo do Postgres pelo profissional).
+  - **Prevenção:** teste com dois pedidos em paralelo e o Asaas simulado lento; mutantes M66 e M67.

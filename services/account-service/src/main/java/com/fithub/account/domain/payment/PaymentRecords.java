@@ -17,6 +17,12 @@ public interface PaymentRecords {
     /** O checkout criado depois de {@code createdAfter} que ainda não gerou assinatura, para reaproveitar o link. */
     Optional<OpenCheckout> openCheckout(UUID professionalId, Instant createdAfter);
 
+    /**
+     * Trava, até o fim da transação, a criação de checkout do profissional: dois cliques ao mesmo tempo não criam dois
+     * checkouts (Code Review do PR #328).
+     */
+    void lockCheckouts(UUID professionalId);
+
     /** Se o profissional tem assinatura do meio de pagamento ligada e ainda não terminada. */
     boolean hasLiveSubscription(UUID professionalId);
 

@@ -54,6 +54,15 @@ class JdbcPaymentRecords implements PaymentRecords {
     }
 
     @Override
+    public void lockCheckouts(UUID professionalId) {
+        // Lock de sessão de transação do Postgres, pela chave do profissional; solta sozinho no commit ou no rollback.
+        jdbc.sql("select pg_advisory_xact_lock(hashtextextended(?, 0))")
+                .param(professionalId.toString())
+                .query((row, index) -> 1)
+                .single();
+    }
+
+    @Override
     public boolean hasLiveSubscription(UUID professionalId) {
         return jdbc.sql(
                         "select exists (select 1 from payment_subscription where professional_id = ? and ended_at is null)")

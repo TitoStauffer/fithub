@@ -14,6 +14,7 @@ import java.time.ZoneId;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Checkout da assinatura mensal no Asaas para o profissional da conta autenticada (DEV-0100). O valor é o da oferta do
@@ -23,7 +24,7 @@ import org.springframework.stereotype.Service;
  * <li>Com período pago valendo, ou com uma assinatura do Asaas viva, não há checkout novo: duas assinaturas cobrariam o
  * cartão todo mês (Code Review do PR #328).</li>
  * <li>Um checkout ainda aberto, que não gerou assinatura, é reaproveitado: um segundo clique ou a volta da página de
- * pagamento não criam outro.</li>
+ * pagamento não criam outro. A criação é serializada por profissional: dois cliques ao mesmo tempo também não.</li>
  * </ul>
  */
 @Service
@@ -69,6 +70,7 @@ public class StartCheckout {
         record AlreadySubscribed() implements Result {}
     }
 
+    @Transactional
     public Result start(String accountId) {
         Instant now = clock.instant();
         var professional = professionals.findByAccountId(accountId);
@@ -76,6 +78,7 @@ public class StartCheckout {
             return new Result.NotProfessional();
         }
         UUID professionalId = professional.get().id();
+        records.lockCheckouts(professionalId);
         Subscription subscription = subscriptions
                 .findByProfessional(professionalId)
                 .orElseThrow(() -> new IllegalStateException("Profissional sem assinatura."));

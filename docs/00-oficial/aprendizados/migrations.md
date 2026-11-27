@@ -52,3 +52,13 @@ caso, escreva `coluna IS NOT NULL AND coluna IN (...)`, e teste a constraint com
   - **Prevenção:** quarta ocorrência do mesmo padrão. Ao escrever uma migration, abrir o arquivo e listar cada
     `constraint` e cada `check` dele no manifesto antes de rodar os mutantes; a tabela nova conta inteira, não só a
     regra que motivou a migration.
+- **Revisão:** Code Review do PR #328, no SHA `a52cd2d` (MEDIUM) — DEV-0100 (#92) · **PR:** #328
+  - **Impacto:** a CHECK `ck_payment_checkout_value` e a UNIQUE `uq_payment_subscription_checkout` da V7 não
+    tinham mutante (a CHECK nem teste), e a validação da resposta do Asaas (`id` e `link`) não tinha teste nem
+    mutante, com o PR afirmando "um por condição". A tabela do manifesto foi montada a partir do código Java e
+    esqueceu a migration e o adaptador HTTP.
+  - **Correção:** escrita direta de checkout de valor zero esperando o nome da constraint; teste do gateway com
+    resposta sem id, sem link e sem corpo; mutantes M61 a M65 de `mutations/DEV-0100.json`.
+  - **Prevenção:** quinta ocorrência. A tabela condição × teste × mutante percorre **todo arquivo alterado**, na
+    ordem do diff: migration (cada `constraint`, `check`, `unique`), domínio, aplicação, adaptadores externos
+    (cada validação de resposta) e configuração.

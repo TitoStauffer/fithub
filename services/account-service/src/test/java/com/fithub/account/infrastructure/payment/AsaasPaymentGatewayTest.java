@@ -1,6 +1,7 @@
 package com.fithub.account.infrastructure.payment;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
@@ -67,6 +68,21 @@ class AsaasPaymentGatewayTest {
                 .isEqualTo(new PaymentGateway.Checkout(
                         "chk_1", "https://sandbox.asaas.com/checkoutSession/show?id=chk_1"));
         server.verify();
+    }
+
+    /** Sem id ou sem link, o checkout não pode ser gravado nem mostrado: falha em vez de gravar um checkout vazio. */
+    @Test
+    void aCheckoutResponseWithoutIdLinkOrBodyIsRefused() {
+        for (String body : new String[] {"{\"link\": \"https://sandbox.asaas.com/c\"}", "{\"id\": \"chk_1\"}", ""}) {
+            server.reset();
+            server.expect(requestTo(BASE + "/checkouts")).andRespond(withSuccess(body, MediaType.APPLICATION_JSON));
+
+            assertThatThrownBy(() -> gateway.createCheckout(
+                            UUID.randomUUID(), new BigDecimal("150.00"), LocalDate.of(2026, 12, 10)))
+                    .as("resposta %s", body)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("O Asaas não devolveu o checkout.");
+        }
     }
 
     @Test

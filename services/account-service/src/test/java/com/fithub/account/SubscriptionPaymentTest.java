@@ -1,6 +1,7 @@
 package com.fithub.account;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -11,6 +12,7 @@ import com.fithub.account.domain.professional.ProfessionalRoles;
 import com.fithub.testing.service.ServiceIntegrationTest;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -99,9 +101,20 @@ class SubscriptionPaymentTest extends ServiceIntegrationTest {
         final List<Map<String, Object>> checkouts = new CopyOnWriteArrayList<>();
         final List<Map<String, Object>> valueChanges = new CopyOnWriteArrayList<>();
         final Map<String, String> checkoutOfSubscription = new ConcurrentHashMap<>();
+        volatile Duration createDelay = Duration.ZERO;
+
+        private static void sleep(Duration delay) {
+            try {
+                Thread.sleep(delay);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
 
         @Override
         public Checkout createCheckout(UUID professionalId, BigDecimal value, LocalDate firstDueDate) {
+            // Demora como a API real, para dois pedidos simultâneos se cruzarem antes de gravar o checkout.
+            sleep(createDelay);
             String id = "chk_" + UUID.randomUUID();
             checkouts.add(Map.of("id", id, "professional", professionalId, "value", value, "due", firstDueDate));
             return new Checkout(id, "https://sandbox.asaas.com/checkoutSession/show?id=" + id);
@@ -122,6 +135,7 @@ class SubscriptionPaymentTest extends ServiceIntegrationTest {
     void reset() {
         asaas.checkouts.clear();
         asaas.valueChanges.clear();
+        asaas.createDelay = Duration.ZERO;
     }
 
     // --- Checkout ---
@@ -412,6 +426,35 @@ class SubscriptionPaymentTest extends ServiceIntegrationTest {
                 .update();
 
         assertThat(checkoutUrl(account)).isEqualTo(first);
+    }
+
+    @Test
+    void twoSimultaneousCheckoutsOfTheSameProfessionalCreateOnlyOne() throws Exception {
+        String account = registered();
+        asaas.createDelay = Duration.ofMillis(300);
+
+        try (var pool = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            var first = pool.submit(() -> checkoutUrl(account));
+            var second = pool.submit(() -> checkoutUrl(account));
+
+            assertThat(first.get()).isEqualTo(second.get());
+        }
+        assertThat(asaas.checkouts).hasSize(1);
+    }
+
+    // Grava direto no banco: a aplicação nunca cria checkout de valor zero, a guarda é a CHECK da V7.
+    @Test
+    void theDatabaseRefusesACheckoutWithoutValue() throws Exception {
+        String account = registered();
+        checkout(account).andExpect(status().isCreated());
+        Object professional = asaas.checkouts.getLast().get("professional");
+
+        assertThatThrownBy(() -> jdbc.sql(
+                                "insert into payment_checkout (id, link, professional_id, launch, value, created_at)"
+                                        + " values (?, 'https://asaas.test/c', ?, false, 0, now())")
+                        .params("chk_" + UUID.randomUUID(), professional)
+                        .update())
+                .hasMessageContaining("ck_payment_checkout_value");
     }
 
     @Test

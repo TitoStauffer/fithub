@@ -1189,6 +1189,146 @@
         },
         {
             "id": "M61",
+            "description": "O checkout de valor zero passa a ser aceito pelo banco",
+            "area": "java",
+            "file": "services/account-service/src/main/resources/db/migration/V7__pagamento.sql",
+            "find": "    created_at timestamptz not null,\n    constraint ck_payment_checkout_value check (value > 0)",
+            "replace": "    created_at timestamptz not null",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M62",
+            "description": "Duas assinaturas passam a ser ligadas ao mesmo checkout",
+            "area": "java",
+            "file": "services/account-service/src/main/resources/db/migration/V7__pagamento.sql",
+            "find": ",\n    constraint uq_payment_subscription_checkout unique (checkout_id)",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M63",
+            "description": "A resposta do Asaas sem corpo deixa de ser recusada com mensagem clara",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/payment/AsaasPaymentGateway.java",
+            "find": "response == null || response.id() == null",
+            "replace": "response.id() == null",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AsaasPaymentGatewayTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M64",
+            "description": "A resposta do Asaas sem id passa a gerar checkout",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/payment/AsaasPaymentGateway.java",
+            "find": " || response.id() == null",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AsaasPaymentGatewayTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M65",
+            "description": "A resposta do Asaas sem link passa a gerar checkout",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/payment/AsaasPaymentGateway.java",
+            "find": " || response.link() == null",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AsaasPaymentGatewayTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M66",
+            "description": "Dois cliques simultâneos voltam a criar dois checkouts",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/StartCheckout.java",
+            "find": "        records.lockCheckouts(professionalId);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M67",
+            "description": "A trava do checkout passa a soltar antes de gravar",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/StartCheckout.java",
+            "find": "    @Transactional\n    public Result start(",
+            "replace": "    public Result start(",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M68",
             "description": "O evento de cobrança passa a exigir a assinatura no corpo",
             "area": "java",
             "file": "services/account-service/src/main/java/com/fithub/account/interfaces/rest/AsaasWebhookController.java",
