@@ -235,3 +235,21 @@ test('procura relatórios nas pastas do surefire, ignora node_modules e exige ao
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+// --- Dockerfiles dos serviços (DEV-0155) ---
+
+test('o build de cada serviço monta o repositório Maven opcional do contexto m2, vazio por padrão', async () => {
+  const { readdirSync, readFileSync, existsSync } = await import('node:fs');
+  const services = readdirSync('services').filter((name) => existsSync(join('services', name, 'Dockerfile')));
+  assert.ok(services.length >= 4);
+  for (const service of services) {
+    const dockerfile = readFileSync(join('services', service, 'Dockerfile'), 'utf8').replace(/\r\n/g, '\n');
+    // Sem --build-context m2=..., vale o estágio vazio, e o docker build local baixa tudo, como antes.
+    assert.match(dockerfile, /^FROM scratch AS m2$/m, `${service}: estágio m2 vazio`);
+    const run = [
+      'RUN --mount=type=bind,from=m2,target=/root/.m2/repository,rw \\',
+      `    mvn -B -ntp -q -pl services/${service} -am package -DskipTests`,
+    ].join('\n');
+    assert.ok(dockerfile.includes(`\n${run}\n`), `${service}: o mvn package usa o repositório do contexto m2`);
+  }
+});

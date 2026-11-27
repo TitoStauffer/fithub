@@ -3,13 +3,18 @@
 #   docker build -f services/client-service/Dockerfile -t fithub-client-service .
 # O CI publica no GHCR com a tag do commit a cada merge na master (todos os serviços, DEV-0017).
 
+# Repositório Maven opcional (DEV-0155): o CI passa o que o job já baixou, com --build-context m2=<repositório>, e
+# o build não volta ao Maven Central. Sem ele, vale este estágio vazio e o Maven baixa tudo, como no build local.
+FROM scratch AS m2
+
 # Build: compila só este serviço e o que ele usa. Os testes rodam no job Java Services do CI.
 FROM maven:3.9.16-eclipse-temurin-25@sha256:93b8a14ea2f412782e4e842651273b4d903e35cc496284f178fbbe2d67d00976 AS build
 WORKDIR /ws
 COPY pom.xml ./
 COPY libs/ libs/
 COPY services/ services/
-RUN mvn -B -ntp -q -pl services/client-service -am package -DskipTests
+RUN --mount=type=bind,from=m2,target=/root/.m2/repository,rw \
+    mvn -B -ntp -q -pl services/client-service -am package -DskipTests
 
 # Runtime: só o JRE e o jar, com usuário sem privilégio. As duas imagens base ficam fixadas por digest
 # (JDK 25.0.4.1 no build e no runtime); atualizar uma exige trocar o digest aqui nos quatro serviços.

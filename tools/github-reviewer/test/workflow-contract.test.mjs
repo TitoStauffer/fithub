@@ -186,3 +186,14 @@ test('keeps the npm cache off the self-hosted jobs and on the hosted ones', () =
     assert.match(job, /^\s+cache: npm$/m);
   }
 });
+
+// DEV-0155: a imagem do PR reaproveita o repositório Maven que o mvn verify do job já baixou, em vez de voltar ao
+// Maven Central (que às vezes respondia 429 e reprovava o PR com build e testes verdes).
+test('builds the PR service images with the Maven repository the job already downloaded', () => {
+  const step = ciWorkflow.replace(/\r\n/g, '\n').split('      - name: Build service images\n')[1].split('\n      - name: ')[0];
+  const build = [
+    '            docker build --build-context m2="$HOME/.m2/repository" \\',
+    '              --file "services/$service/Dockerfile" --tag "fithub-$service:ci" .',
+  ].join('\n');
+  assert.ok(step.includes(build), 'o docker build do PR recebe o repositório Maven do job');
+});

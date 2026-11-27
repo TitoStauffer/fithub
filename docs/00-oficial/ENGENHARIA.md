@@ -419,7 +419,9 @@ teste pulado sem `DEV-xxxx` na justificativa derruba o job (DEV-0016; detalhes e
    job tem `packages: write`, com o `GITHUB_TOKEN`. Cada serviço tem um
    Dockerfile multi-stage (build Maven e runtime só com o JRE, usuário sem
    privilégio). No PR, o `Java Services` já constrói a imagem dos serviços
-   alterados e barra imagem que rode como root (DEV-0017).
+   alterados e barra imagem que rode como root (DEV-0017). Esse build recebe o repositório Maven que o
+   `mvn verify` do job já baixou (`--build-context m2=...`), em vez de voltar ao Maven Central; sem o contexto,
+   como no build local, o Dockerfile usa um estágio vazio e baixa tudo (DEV-0155).
 3. **Deploy:** workflow manual `Deploy` (`workflow_dispatch`, DEV-0110,
    [ADR-014](adr/ADR-014-borda-e-deploy.md)) com o SHA de um commit da master:
    copia por SSH a infra desse commit e roda `docker compose pull` e
