@@ -28,6 +28,12 @@ pnpm --filter web test        # Vitest; JUnit em reports/junit.xml para a guarda
 pnpm --filter web build       # typecheck e build em dist/
 ```
 
+**APIs no `pnpm dev` (DEV-0156):** o servidor do Vite repassa `/api/<serviço>` ao serviço local sem o prefixo
+(`src/devProxy.ts`), como o Traefik em produção: `/api/account` vai à porta 8081, `/api/client` à 8082,
+`/api/training` à 8083 e `/api/nutrition` à 8084. O `.env.development` aponta as APIs para esses caminhos. Com a web e
+as APIs na mesma origem, nenhum serviço precisa de CORS. O Keycloak continua em `http://localhost:8080`, que aceita a
+origem da web pelo client `fithub-web`.
+
 O CI (job `Apps`) roda lint, typecheck, testes, build e a guarda de teste pulado. Teste pulado precisa
 da issue no nome: `it.skip('motivo DEV-xxxx', ...)`.
 
@@ -43,7 +49,7 @@ sh apps/web/image.test.sh   # constrói, confere o usuário sem root e o que o n
 
 - **Endereços:** o build usa caminhos, `VITE_KEYCLOAK_URL=/auth` e `VITE_*_API_URL=/api/<serviço>`.
   `src/lib/config.ts` resolve cada caminho na origem da página, e a mesma imagem serve qualquer domínio. No
-  desenvolvimento, os padrões continuam os endereços completos do compose local.
+  `pnpm dev`, as APIs vão pelo proxy do Vite (seção Comandos).
 - **Rotas do app:** caminho sem arquivo volta para o `index.html`, que vai sem cache. Os assets com hash no nome
   vão com cache longo.
 - **Caminhos de outros serviços:** `/api`, `/auth` e os buckets que chegarem à web dão 404, não o index.
