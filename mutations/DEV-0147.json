@@ -1,0 +1,122 @@
+{
+    "issue": "DEV-0147",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "As permissões finas de administração ficam desligadas",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"adminPermissionsEnabled\": true",
+            "replace": "\"adminPermissionsEnabled\": false",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "A conta de serviço volta a ter manage-users, que atribui qualquer papel",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"clientRoles\": {\n        \"realm-management\": [\n          \"view-realm\"",
+            "replace": "\"clientRoles\": {\n        \"realm-management\": [\n          \"manage-users\",\n          \"view-realm\"",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O token do client volta a levar manage-users",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"client\": \"fithub-account-service\",\n        \"roles\": [\n          \"view-realm\"",
+            "replace": "\"client\": \"fithub-account-service\",\n        \"roles\": [\n          \"manage-users\",\n          \"view-realm\"",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "A política passa a valer também para o client da web",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"clients\": \"[\\\"fithub-account-service\\\"]\"",
+            "replace": "\"clients\": \"[\\\"fithub-account-service\\\",\\\"fithub-web\\\"]\"",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O client passa a poder personificar usuários",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"scopes\": \"[\\\"view\\\",\\\"manage\\\",\\\"map-roles\\\"]\"",
+            "replace": "\"scopes\": \"[\\\"view\\\",\\\"manage\\\",\\\"map-roles\\\",\\\"impersonate\\\"]\"",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "O client passa a poder mapear qualquer papel de realm",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"resources\": \"[\\\"7d1c2b3a-0147-4f00-9a01-000000000001\\\",\\\"7d1c2b3a-0147-4f00-9a01-000000000002\\\"]\"",
+            "replace": "\"resources\": \"[\\\"Roles\\\"]\"",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "O client passa a poder mudar a composição dos papéis profissionais",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"scopes\": \"[\\\"map-role\\\"]\"",
+            "replace": "\"scopes\": \"[\\\"map-role\\\",\\\"map-role-composite\\\"]\"",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "O client das permissões passa a ter conta de serviço",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"serviceAccountsEnabled\": false,\n      \"authorizationServicesEnabled\": true",
+            "replace": "\"serviceAccountsEnabled\": true,\n      \"authorizationServicesEnabled\": true",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "O client das permissões passa a aceitar login direto por senha",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"directAccessGrantsEnabled\": false,\n      \"serviceAccountsEnabled\": false,\n      \"authorizationServicesEnabled\": true",
+            "replace": "\"directAccessGrantsEnabled\": true,\n      \"serviceAccountsEnabled\": false,\n      \"authorizationServicesEnabled\": true",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        }
+    ]
+}

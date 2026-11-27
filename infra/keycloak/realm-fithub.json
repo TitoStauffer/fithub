@@ -69,11 +69,13 @@
       },
       {
         "name": "personal",
-        "description": "Personal trainer. Atribuído pelo account-service no cadastro do profissional."
+        "description": "Personal trainer. Atribuído pelo account-service no cadastro do profissional.",
+        "id": "7d1c2b3a-0147-4f00-9a01-000000000001"
       },
       {
         "name": "nutritionist",
-        "description": "Nutricionista. Atribuído pelo account-service no cadastro do profissional."
+        "description": "Nutricionista. Atribuído pelo account-service no cadastro do profissional.",
+        "id": "7d1c2b3a-0147-4f00-9a01-000000000002"
       },
       {
         "name": "admin",
@@ -152,6 +154,250 @@
       ],
       "optionalClientScopes": [],
       "attributes": {}
+    },
+    {
+      "clientId": "admin-permissions",
+      "enabled": true,
+      "bearerOnly": false,
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "authorizationServicesEnabled": true,
+      "attributes": {
+        "realm_client": "false"
+      },
+      "authorizationSettings": {
+        "allowRemoteResourceManagement": true,
+        "policyEnforcementMode": "ENFORCING",
+        "decisionStrategy": "UNANIMOUS",
+        "resources": [
+          {
+            "name": "Users",
+            "type": "Users",
+            "scopes": [
+              {
+                "name": "view"
+              },
+              {
+                "name": "manage"
+              },
+              {
+                "name": "map-roles"
+              },
+              {
+                "name": "manage-group-membership"
+              },
+              {
+                "name": "impersonate"
+              },
+              {
+                "name": "reset-password"
+              },
+              {
+                "name": "delegate"
+              }
+            ]
+          },
+          {
+            "name": "Roles",
+            "type": "Roles",
+            "scopes": [
+              {
+                "name": "map-role"
+              },
+              {
+                "name": "map-role-composite"
+              },
+              {
+                "name": "map-role-client-scope"
+              }
+            ]
+          },
+          {
+            "name": "Clients",
+            "type": "Clients",
+            "scopes": [
+              {
+                "name": "view"
+              },
+              {
+                "name": "manage"
+              },
+              {
+                "name": "map-roles"
+              },
+              {
+                "name": "map-roles-composite"
+              },
+              {
+                "name": "map-roles-client-scope"
+              }
+            ]
+          },
+          {
+            "name": "Groups",
+            "type": "Groups",
+            "scopes": [
+              {
+                "name": "view"
+              },
+              {
+                "name": "manage"
+              },
+              {
+                "name": "view-members"
+              },
+              {
+                "name": "manage-members"
+              },
+              {
+                "name": "manage-membership"
+              },
+              {
+                "name": "manage-membership-of-members"
+              },
+              {
+                "name": "delegate-members"
+              },
+              {
+                "name": "impersonate-members"
+              }
+            ]
+          },
+          {
+            "name": "Organizations",
+            "type": "Organizations",
+            "scopes": [
+              {
+                "name": "view"
+              },
+              {
+                "name": "manage"
+              }
+            ]
+          },
+          {
+            "name": "7d1c2b3a-0147-4f00-9a01-000000000001",
+            "scopes": [
+              {
+                "name": "map-role"
+              },
+              {
+                "name": "map-role-composite"
+              },
+              {
+                "name": "map-role-client-scope"
+              }
+            ]
+          },
+          {
+            "name": "7d1c2b3a-0147-4f00-9a01-000000000002",
+            "scopes": [
+              {
+                "name": "map-role"
+              },
+              {
+                "name": "map-role-composite"
+              },
+              {
+                "name": "map-role-client-scope"
+              }
+            ]
+          }
+        ],
+        "policies": [
+          {
+            "name": "account-service",
+            "type": "client",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "clients": "[\"fithub-account-service\"]"
+            }
+          },
+          {
+            "name": "account-service-users",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "defaultResourceType": "Users",
+              "resources": "[\"Users\"]",
+              "scopes": "[\"view\",\"manage\",\"map-roles\"]",
+              "applyPolicies": "[\"account-service\"]"
+            }
+          },
+          {
+            "name": "account-service-professional-roles",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "defaultResourceType": "Roles",
+              "resources": "[\"7d1c2b3a-0147-4f00-9a01-000000000001\",\"7d1c2b3a-0147-4f00-9a01-000000000002\"]",
+              "scopes": "[\"map-role\"]",
+              "applyPolicies": "[\"account-service\"]"
+            }
+          }
+        ],
+        "scopes": [
+          {
+            "name": "view"
+          },
+          {
+            "name": "manage"
+          },
+          {
+            "name": "map-roles"
+          },
+          {
+            "name": "manage-group-membership"
+          },
+          {
+            "name": "impersonate"
+          },
+          {
+            "name": "reset-password"
+          },
+          {
+            "name": "delegate"
+          },
+          {
+            "name": "map-role"
+          },
+          {
+            "name": "map-role-composite"
+          },
+          {
+            "name": "map-role-client-scope"
+          },
+          {
+            "name": "map-roles-composite"
+          },
+          {
+            "name": "map-roles-client-scope"
+          },
+          {
+            "name": "view-members"
+          },
+          {
+            "name": "manage-members"
+          },
+          {
+            "name": "manage-membership"
+          },
+          {
+            "name": "manage-membership-of-members"
+          },
+          {
+            "name": "delegate-members"
+          },
+          {
+            "name": "impersonate-members"
+          }
+        ]
+      }
     }
   ],
   "users": [
@@ -162,7 +408,6 @@
       "realmRoles": [],
       "clientRoles": {
         "realm-management": [
-          "manage-users",
           "view-realm"
         ]
       }
@@ -173,10 +418,10 @@
       {
         "client": "fithub-account-service",
         "roles": [
-          "manage-users",
           "view-realm"
         ]
       }
     ]
-  }
+  },
+  "adminPermissionsEnabled": true
 }

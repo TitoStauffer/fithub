@@ -61,3 +61,25 @@ dos buckets continuam com DENY.
     buckets continuam com DENY.
   - **Prevenção:** vale para toda rota que serve página que o `keycloak-js` embute, não só para a web. Guarda das
     duas rotas e mutante M8.
+
+## permissao-de-servico-no-keycloak-limita-o-alvo
+
+**Regra:** a conta de serviço que fala com a API de administração do Keycloak recebe só o que precisa, pelas
+permissões finas (admin permissions v2), e cada permissão é lida pelos **alvos** que ela alcança, não só pela ação.
+`manage-users` e `manage` em todos os usuários parecem estreitos, mas alcançam qualquer conta, inclusive as
+administrativas: editar o e-mail de um admin já basta para tomá-lo pela recuperação de senha. A checagem no Keycloak de
+pé prova cada recusa que importa (papel de realm, papel administrativo do `realm-management`) e compara com o realm
+anterior, que precisa falhar nela.
+
+### Ocorrências
+
+- **Revisão:** Code Review do PR #339, no SHA `0878c08` (MEDIUM não bloqueante: o `manage` nos usuários vale para
+  todos, inclusive contas `admin`; LOW: a checagem de pé não provava papel do `realm-management`) — DEV-0147 (#197) ·
+  **PR:** #339
+  - **Impacto:** quem tivesse o secret do `fithub-account-service` editaria o perfil de um admin e poderia tomar a
+    conta, mesmo sem conseguir se dar o papel `admin`.
+  - **Correção:** o ADR-008 cita o limite, e restringir o `manage` a contas sem papel administrativo virou o débito
+    DEV-0184 (#340). A checagem de pé passou a recusar `realm-admin` e `manage-users` do `realm-management`. Contra o
+    realm anterior, ela falha em `manage-users`.
+  - **Prevenção:** ao dar uma permissão fina, listar os alvos que ela alcança e provar no Keycloak de pé a recusa nos
+    alvos administrativos.

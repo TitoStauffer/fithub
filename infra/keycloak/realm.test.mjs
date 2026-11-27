@@ -17,8 +17,11 @@ const APP_CLIENTS = ['fithub-web', 'fithub-mobile'];
 // Client confidencial do account-service, só para atribuir o papel de profissional (DEV-0029, ADR-008).
 const SERVICE_CLIENT = 'fithub-account-service';
 const SERVICE_ACCOUNT = `service-account-${SERVICE_CLIENT}`;
-// Papéis de administração mínimos para atribuir papel de realm, conferidos no Keycloak 26.8.
-const SERVICE_ADMIN_ROLES = ['manage-users', 'view-realm'];
+// Só ler o realm (o papel que atribui); o resto vem das permissões finas abaixo (DEV-0147). Com manage-users, o client
+// atribuiria qualquer papel de realm, inclusive admin.
+const SERVICE_ADMIN_ROLES = ['view-realm'];
+// Client que o Keycloak usa para guardar as permissões finas de administração (admin permissions v2).
+const PERMISSIONS_CLIENT = 'admin-permissions';
 const REALM_ROLES = ['client', 'personal', 'nutritionist', 'admin'];
 
 test('o realm se chama fithub e está habilitado', () => {
@@ -26,8 +29,11 @@ test('o realm se chama fithub e está habilitado', () => {
   assert.equal(realm.enabled, true);
 });
 
-test('só os clients do web, do mobile e do account-service são declarados', () => {
-  assert.deepEqual(realm.clients.map(({ clientId }) => clientId).sort(), [...APP_CLIENTS, SERVICE_CLIENT].sort());
+test('só os clients do web, do mobile, do account-service e o das permissões finas são declarados', () => {
+  assert.deepEqual(
+    realm.clients.map(({ clientId }) => clientId).sort(),
+    [...APP_CLIENTS, SERVICE_CLIENT, PERMISSIONS_CLIENT].sort(),
+  );
 });
 
 test(`${SERVICE_CLIENT}: confidencial, só client credentials, secret por variável de ambiente`, () => {
@@ -45,6 +51,43 @@ test(`${SERVICE_CLIENT}: confidencial, só client credentials, secret por variá
   // Sem full scope, o token só leva os papéis mapeados abaixo; kc-admin-api é exigido pela API de admin.
   assert.equal(candidate.fullScopeAllowed, false);
   assert.deepEqual(candidate.defaultClientScopes, ['kc-admin-api']);
+});
+
+// O client das permissões só guarda a autorização: nenhum login, nenhuma conta de serviço (Code Review do PR #339).
+test(`${PERMISSIONS_CLIENT}: sem fluxo de login nem conta de serviço`, () => {
+  const candidate = client(PERMISSIONS_CLIENT);
+  assert.equal(candidate.publicClient, false);
+  assert.equal(candidate.standardFlowEnabled, false);
+  assert.notEqual(candidate.implicitFlowEnabled, true);
+  assert.equal(candidate.directAccessGrantsEnabled, false);
+  assert.equal(candidate.serviceAccountsEnabled, false);
+  assert.equal(candidate.authorizationServicesEnabled, true);
+});
+
+test(`${SERVICE_CLIENT} só mapeia personal e nutritionist, pelas permissões finas (DEV-0147)`, () => {
+  assert.equal(realm.adminPermissionsEnabled, true);
+  const settings = client(PERMISSIONS_CLIENT).authorizationSettings;
+  const roleId = (name) => realm.roles.realm.find((role) => role.name === name).id;
+  const config = (name) => settings.policies.find((policy) => policy.name === name)?.config;
+  // Uma política: o próprio client do account-service, e só ele.
+  assert.deepEqual(
+    settings.policies.filter((policy) => policy.type !== 'scope').map(({ name, type, logic, config: c }) => [name, type, logic, c]),
+    [['account-service', 'client', 'POSITIVE', { clients: JSON.stringify([SERVICE_CLIENT]) }]],
+  );
+  assert.deepEqual(
+    settings.policies.filter((policy) => policy.type === 'scope').map(({ name }) => name).sort(),
+    ['account-service-professional-roles', 'account-service-users'],
+  );
+  // Nos usuários: ler, apagar (exclusão de conta, DEV-0161) e mapear papéis.
+  assert.deepEqual(JSON.parse(config('account-service-users').scopes).sort(), ['manage', 'map-roles', 'view']);
+  assert.deepEqual(JSON.parse(config('account-service-users').resources), ['Users']);
+  // Nos papéis: só mapear, e só personal e nutritionist.
+  assert.deepEqual(JSON.parse(config('account-service-professional-roles').scopes), ['map-role']);
+  assert.deepEqual(
+    JSON.parse(config('account-service-professional-roles').resources).sort(),
+    [roleId('personal'), roleId('nutritionist')].sort(),
+  );
+  assert.ok(roleId('personal') && roleId('nutritionist'), 'os papéis têm id fixo, citado na permissão');
 });
 
 test(`a conta de serviço do ${SERVICE_CLIENT} tem só ${SERVICE_ADMIN_ROLES.join(' e ')}`, () => {
