@@ -1,5 +1,7 @@
 package com.fithub.client.application;
 
+import com.fithub.client.domain.invitation.InvalidInvitationException;
+import com.fithub.client.domain.link.ConsentTerms;
 import com.fithub.client.domain.link.Link;
 import com.fithub.client.domain.link.LinkEvents;
 import com.fithub.client.domain.link.LinkRepository;
@@ -9,7 +11,10 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionOperations;
 
-/** Vínculos depois do aceite (DEV-0037, FR-12): listar e encerrar, pelo cliente ou pelo profissional. */
+/**
+ * Vínculos depois do aceite (DEV-0037, FR-12): listar e encerrar, pelo cliente ou pelo profissional, e aceitar de novo
+ * o termo quando ele muda de versão (DEV-0160).
+ */
 @Service
 public class ManageLinks {
 
@@ -61,5 +66,38 @@ public class ManageLinks {
             }
             return links.findById(linkId).orElseThrow(NotFoundException::new);
         });
+    }
+
+    /** Vínculo encerrado não recebe novo aceite: o cliente faz outro vínculo, se quiser. */
+    public static final class EndedLinkException extends RuntimeException {
+
+        public EndedLinkException() {
+            super("O vínculo foi encerrado.");
+        }
+    }
+
+    /**
+     * O cliente aceita o termo vigente num vínculo ativo aceito numa versão anterior (DEV-0160). Aceitar de novo a
+     * versão que já vale não grava nada. O profissional não aceita pelo cliente (404).
+     */
+    public String renewConsent(String clientAccount, UUID linkId, Boolean consent, String termsVersion) {
+        if (!Boolean.TRUE.equals(consent)) {
+            throw new InvalidInvitationException("consent", "Para aceitar, confirme o consentimento.");
+        }
+        if (!ConsentTerms.isCurrent(termsVersion)) {
+            throw new AcceptInvitation.TermsOutdatedException();
+        }
+        Link link = links.findById(linkId).orElseThrow(NotFoundException::new);
+        if (link.partyOf(UUID.fromString(clientAccount))
+                .filter(Link.Party.CLIENT::equals)
+                .isEmpty()) {
+            throw new NotFoundException();
+        }
+        if (link.status() != Link.Status.ACTIVE) {
+            throw new EndedLinkException();
+        }
+        // Aceitar de novo a versão que já vale não grava nada: o banco guarda um aceite por vínculo e versão (V16).
+        links.addConsent(link, ConsentTerms.SCOPE, ConsentTerms.CURRENT_VERSION, clock.instant());
+        return ConsentTerms.CURRENT_VERSION;
     }
 }

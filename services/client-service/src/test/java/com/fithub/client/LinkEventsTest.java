@@ -142,7 +142,7 @@ class LinkEventsTest extends ServiceIntegrationTest {
         return mvc.perform(post("/links")
                 .header("Authorization", "Bearer conta-" + client)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"code\": \"%s\", \"consent\": true, \"termsVersion\": \"v1\"}".formatted(code)));
+                .content("{\"code\": \"%s\", \"consent\": true, \"termsVersion\": \"v2\"}".formatted(code)));
     }
 
     private String linkOf(String client, String professional) throws Exception {

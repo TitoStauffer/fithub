@@ -16,8 +16,8 @@ public interface LinkRepository {
     /** Se o profissional tem vínculo ativo com o cliente (BR-02). */
     boolean hasActiveLink(UUID professionalId, UUID clientId);
 
-    /** Vínculo com o nome do profissional, para a lista do cliente. */
-    record WithProfessional(Link link, String professionalName) {}
+    /** Vínculo com o nome do profissional e a versão do último termo aceito, para a lista do cliente. */
+    record WithProfessional(Link link, String professionalName, String consentVersion) {}
 
     /** Vínculo ativo com o nome do cliente, para a lista do profissional. */
     record ActiveClient(UUID linkId, UUID clientId, String clientName, Instant startedAt) {}
@@ -43,6 +43,12 @@ public interface LinkRepository {
      * simultâneos).
      */
     void saveWithConsent(Link link, Set<SharedData> scope, String termsVersion, Instant grantedAt);
+
+    /**
+     * Grava um novo aceite do termo num vínculo que já existe (DEV-0160); o anterior continua no histórico. Um aceite por
+     * vínculo e versão: dois pedidos simultâneos gravam um só.
+     */
+    void addConsent(Link link, Set<SharedData> scope, String termsVersion, Instant grantedAt);
 
     /** O banco recusou o vínculo: já existe um ativo do mesmo tipo para o cliente (BR-07). */
     final class ActiveLinkConflict extends RuntimeException {

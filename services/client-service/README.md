@@ -67,9 +67,9 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
 
 | Rota | Quem | Resposta |
 |---|---|---|
-| `POST /links` | cliente (perfil já criado) | `{"token"}` ou `{"code"}` (convite ou código pessoal), `"consent": true`, `"termsVersion": "v1"`: 201 com o vínculo; 400 sem consentimento; 404 desconhecido; 409 vínculo ativo do mesmo tipo, consigo mesmo, termo desatualizado ou sem perfil; 410 convite sem validade |
+| `POST /links` | cliente (perfil já criado) | `{"token"}` ou `{"code"}` (convite ou código pessoal), `"consent": true`, `"termsVersion": "v2"`: 201 com o vínculo; 400 sem consentimento; 404 desconhecido; 409 vínculo ativo do mesmo tipo, consigo mesmo, termo desatualizado ou sem perfil; 410 convite sem validade |
 
-- O termo (`ConsentTerms`, versão `v1`) e o escopo vêm na consulta do convite (`termsVersion`, `termsText`,
+- O termo (`ConsentTerms`, versão `v2` desde a DEV-0160, com as restrições) e o escopo vêm na consulta do convite (`termsVersion`, `termsText`,
   `sharedData`); o aceite repete a versão mostrada. Mudar o texto exige uma versão nova.
 - Vínculo, consentimento (data, escopo e versão; sem IP nem aparelho) e a baixa do convite numa transação.
 - Garantias no banco: `ux_client_link_active_type` (1 ativo de cada tipo por cliente, BR-07),
@@ -81,7 +81,8 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
 | Rota | Quem | Resposta |
 |---|---|---|
 | `POST /links/{id}/end` | cliente ou profissional que é parte | 200 com `status`, `endedAt` e `endedBy` (repetir devolve o primeiro encerramento); 404 se a conta não for parte |
-| `GET /links` | cliente | Vínculos ativos e encerrados, com o nome do profissional |
+| `GET /links` | cliente | Vínculos ativos e encerrados, com o nome do profissional, a versão do último termo aceito (`consentVersion`) e `consentOutdated` (ativo com termo de versão anterior) |
+| `POST /links/{id}/consent` | cliente do vínculo | `"consent": true`, `"termsVersion"` vigente: 200 com a versão que passou a valer; aceitar de novo a vigente não grava nada; 400 sem consentimento; 404 se a conta não for o cliente; 409 termo desatualizado ou vínculo encerrado (DEV-0160) |
 | `GET /professionals/me/clients` | `personal` ou `nutritionist` | Clientes com vínculo ativo (só nome e data; perfil e saúde são da DEV-0040) |
 
 - O encerramento é imediato e definitivo (BR-05): o vínculo encerrado não volta, e o cliente pode aceitar outro
@@ -195,8 +196,8 @@ Aplica o [ADR-012](../../docs/00-oficial/adr/ADR-012-retencao-e-exclusao.md):
   leu, de quem, o quê (`resource`: `HEALTH`, `ASSESSMENTS` ou `PHOTOS`) e quando, nunca o conteúdo.
 - Gravam: a saúde (DEV-0040), a lista de avaliações, a série corporal e as fotos de uma avaliação. A leitura do
   próprio cliente não grava.
-- **Expurgo:** a cada `fithub.access-log.purge-interval` (padrão 6 h), sai o que passou de 6 meses (Marco Civil,
-  art. 15; ADR-012, item 6). Fica mesmo depois da exclusão da conta, até o prazo.
+- **Expurgo:** a cada `fithub.access-log.purge-interval` (padrão 6 h), sai o que passou de 6 meses (legítimo
+  interesse e dever de segurança, LGPD art. 7º, IX, e art. 46; ADR-012, item 6). Fica mesmo depois da exclusão da conta, até o prazo.
 - **Exportação:** `accessLog` traz todas as leituras; `healthReads` segue só com as da saúde, por compatibilidade.
 
 ## Reaplicar as exclusões depois de restaurar um backup (DEV-0172)

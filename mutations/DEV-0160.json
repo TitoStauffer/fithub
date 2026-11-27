@@ -1,0 +1,205 @@
+{
+    "issue": "DEV-0160",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O novo aceite deixa de exigir o consentimento explícito",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManageLinks.java",
+            "find": "        if (!Boolean.TRUE.equals(consent)) {",
+            "replace": "        if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkConsentRenewalTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O novo aceite passa a valer com a versão antiga do termo",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManageLinks.java",
+            "find": "        if (!ConsentTerms.isCurrent(termsVersion)) {",
+            "replace": "        if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkConsentRenewalTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O profissional passa a aceitar o termo pelo cliente",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManageLinks.java",
+            "find": ".filter(Link.Party.CLIENT::equals)",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkConsentRenewalTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "O vínculo encerrado passa a receber novo aceite",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ManageLinks.java",
+            "find": "        if (link.status() != Link.Status.ACTIVE) {",
+            "replace": "        if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkConsentRenewalTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O vínculo encerrado passa a aparecer com o consentimento desatualizado",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/interfaces/rest/LinkController.java",
+            "find": "link.status() == Link.Status.ACTIVE && !ConsentTerms.isCurrent(consentVersion)",
+            "replace": "!ConsentTerms.isCurrent(consentVersion)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkConsentRenewalTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "O vínculo novo passa a aparecer com o consentimento desatualizado",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/interfaces/rest/LinkController.java",
+            "find": "link.status() == Link.Status.ACTIVE && !ConsentTerms.isCurrent(consentVersion)",
+            "replace": "link.status() == Link.Status.ACTIVE",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkConsentRenewalTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "A lista passa a mostrar o aceite mais antigo, não o último",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcLinkRepository.java",
+            "find": "where c.link_id = l.id order by c.granted_at desc",
+            "replace": "where c.link_id = l.id order by c.granted_at asc",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkConsentRenewalTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "O termo vigente volta a ser a v1, sem as restrições",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/domain/link/ConsentTerms.java",
+            "find": "public static final String CURRENT_VERSION = \"v2\";",
+            "replace": "public static final String CURRENT_VERSION = \"v1\";",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkAcceptanceTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "Dois novos aceites da mesma versão passam a dar erro no banco",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcLinkRepository.java",
+            "find": "                        on conflict (link_id, terms_version) do nothing\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkConsentRenewalTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "O banco deixa de garantir um aceite por vínculo e versão",
+            "area": "java",
+            "file": "services/client-service/src/main/resources/db/migration/V16__um_aceite_por_vinculo_e_versao.sql",
+            "find": "alter table consent add constraint uq_consent_link_version unique (link_id, terms_version);",
+            "replace": "select 1;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkConsentRenewalTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

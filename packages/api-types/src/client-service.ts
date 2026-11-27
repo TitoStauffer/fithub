@@ -267,6 +267,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/links/{id}/consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Aceita o termo de consentimento vigente num vínculo ativo (DEV-0160) */
+        post: operations["renewConsent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/links/{id}/end": {
         parameters: {
             query?: never;
@@ -417,7 +434,7 @@ export interface components {
             consent?: boolean;
             /**
              * @description Versão do termo que a tela mostrou.
-             * @example v1
+             * @example v2
              */
             termsVersion?: string;
             token?: string | null;
@@ -563,6 +580,13 @@ export interface components {
         };
         /** @description Vínculo visto pelo cliente. */
         ClientLink: {
+            /** @description Vínculo ativo com termo aceito numa versão anterior: o cliente precisa aceitar o termo vigente (POST /links/{id}/consent). */
+            consentOutdated?: boolean;
+            /**
+             * @description Versão do último termo de consentimento aceito no vínculo.
+             * @example v2
+             */
+            consentVersion?: string;
             /** Format: date-time */
             endedAt?: string | null;
             /** @enum {string|null} */
@@ -687,6 +711,12 @@ export interface components {
             /** Format: date-time */
             startedAt?: string;
         };
+        /** @description Versão do termo que passou a valer no vínculo. */
+        LinkConsent: {
+            consentVersion?: string;
+            /** Format: uuid */
+            id?: string;
+        };
         /** @description Situação do vínculo depois do encerramento. */
         LinkStatus: {
             /** Format: date-time */
@@ -754,6 +784,16 @@ export interface components {
             linkId?: string;
             /** Format: date-time */
             startedAt?: string;
+        };
+        /** @description Novo aceite do termo vigente num vínculo ativo. */
+        RenewConsentRequest: {
+            /** @description Consentimento explícito; precisa ser true. */
+            consent?: boolean;
+            /**
+             * @description Versão do termo que a tela mostrou.
+             * @example v2
+             */
+            termsVersion?: string;
         };
         /** @description Dobras cutâneas em mm, só na avaliação presencial. */
         Skinfolds: {
@@ -1666,6 +1706,68 @@ export interface operations {
             };
             /** @description Convite vencido, já usado ou cancelado. */
             410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    renewConsent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenewConsentRequest"];
+            };
+        };
+        responses: {
+            /** @description Termo vigente aceito (ou já estava; aceitar de novo não muda nada). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkConsent"];
+                };
+            };
+            /** @description Consentimento não confirmado. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Vínculo não encontrado, ou a conta não é o cliente dele. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description O termo mudou depois que a tela o mostrou, ou o vínculo foi encerrado. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

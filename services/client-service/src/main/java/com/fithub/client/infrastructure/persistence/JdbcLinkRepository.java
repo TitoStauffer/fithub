@@ -22,6 +22,10 @@ import org.springframework.stereotype.Repository;
 @Repository
 class JdbcLinkRepository implements LinkRepository {
 
+    /** O último termo aceito no vínculo: um reaceite (DEV-0160) grava uma linha nova, e vale a mais recente. */
+    private static final String LATEST_CONSENT =
+            "select c.terms_version from consent c where c.link_id = l.id order by c.granted_at desc, c.id desc limit 1";
+
     private static final String COLUMNS =
             "id, client_id, professional_id, professional_type, status, invitation_id, started_at, ended_at, ended_by";
 
@@ -56,11 +60,13 @@ class JdbcLinkRepository implements LinkRepository {
 
     @Override
     public List<WithProfessional> listByClient(UUID clientId) {
-        return jdbc.sql("select " + prefixed("l") + ", p.name as professional_name"
+        return jdbc.sql("select " + prefixed("l") + ", p.name as professional_name, (" + LATEST_CONSENT
+                        + ") as consent_version"
                         + " from client_link l join professional p on p.id = l.professional_id"
                         + " where l.client_id = :clientId order by l.started_at desc, l.id desc")
                 .param("clientId", clientId)
-                .query((row, index) -> new WithProfessional(map(row, index), row.getString("professional_name")))
+                .query((row, index) -> new WithProfessional(
+                        map(row, index), row.getString("professional_name"), row.getString("consent_version")))
                 .list();
     }
 
@@ -132,9 +138,15 @@ class JdbcLinkRepository implements LinkRepository {
             // O índice parcial ux_client_link_active_type recusou: outro aceite do mesmo tipo ganhou a corrida.
             throw new ActiveLinkConflict(duplicate);
         }
+        addConsent(link, scope, termsVersion, grantedAt);
+    }
+
+    @Override
+    public void addConsent(Link link, Set<SharedData> scope, String termsVersion, Instant grantedAt) {
         jdbc.sql("""
                         insert into consent (id, link_id, client_id, scope, terms_version, granted_at)
                         values (:id, :linkId, :clientId, :scope, :termsVersion, :grantedAt)
+                        on conflict (link_id, terms_version) do nothing
                         """)
                 .param("id", UuidV7.next(clock))
                 .param("linkId", link.id())

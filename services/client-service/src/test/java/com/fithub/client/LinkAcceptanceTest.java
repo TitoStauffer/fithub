@@ -95,7 +95,7 @@ class LinkAcceptanceTest extends ServiceIntegrationTest {
     }
 
     private ResultActions acceptToken(String client, JsonNode invitation) throws Exception {
-        return accept(client, "\"token\": \"%s\"".formatted(tokenOf(invitation)), "true", "v1");
+        return accept(client, "\"token\": \"%s\"".formatted(tokenOf(invitation)), "true", "v2");
     }
 
     private int count(String sql, Object id) {
@@ -144,7 +144,7 @@ class LinkAcceptanceTest extends ServiceIntegrationTest {
                 .param("invitation", UUID.fromString(invitation.get("id").asString()))
                 .query(String.class)
                 .single();
-        assertThat(consent).startsWith("v1|PROFILE,HEALTH,ASSESSMENTS,PHOTOS|2026-11-23 12:00:00");
+        assertThat(consent).startsWith("v2|PROFILE,HEALTH,ASSESSMENTS,PHOTOS|2026-11-23 12:00:00");
     }
 
     @Test
@@ -158,9 +158,9 @@ class LinkAcceptanceTest extends ServiceIntegrationTest {
                 .query(String.class)
                 .single();
 
-        accept(client, "\"code\": \"%s\"".formatted(invitation.get("code").asString()), "true", "v1")
+        accept(client, "\"code\": \"%s\"".formatted(invitation.get("code").asString()), "true", "v2")
                 .andExpect(status().isCreated());
-        accept(client, "\"code\": \"%s\"".formatted(personalCode.toLowerCase()), "true", "v1")
+        accept(client, "\"code\": \"%s\"".formatted(personalCode.toLowerCase()), "true", "v2")
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.professionalType").value("NUTRITIONIST"));
 
@@ -179,10 +179,10 @@ class LinkAcceptanceTest extends ServiceIntegrationTest {
                 invite(professional(ProfessionalType.PERSONAL_TRAINER, "Paula"), ProfessionalType.PERSONAL_TRAINER);
         String target = "\"token\": \"%s\"".formatted(tokenOf(invitation));
 
-        accept(client, target, "false", "v1")
+        accept(client, target, "false", "v2")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].field").value("consent"));
-        accept(client, target, "null", "v1").andExpect(status().isBadRequest());
+        accept(client, target, "null", "v2").andExpect(status().isBadRequest());
 
         assertThat(activeLinks(client)).isZero();
         assertThat(consents(client)).isZero();

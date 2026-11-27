@@ -81,7 +81,7 @@ class ProfessionalAccessAuditTest extends ServiceIntegrationTest {
         mvc.perform(post("/links")
                         .header("Authorization", "Bearer conta-" + client)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"token\": \"%s\", \"consent\": true, \"termsVersion\": \"v1\"}"
+                        .content("{\"token\": \"%s\", \"consent\": true, \"termsVersion\": \"v2\"}"
                                 .formatted(invitation.substring(invitation.lastIndexOf('/') + 1))))
                 .andExpect(status().isCreated());
         return assessment;
