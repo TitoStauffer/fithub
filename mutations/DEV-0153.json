@@ -163,6 +163,86 @@
         },
         {
             "id": "M9",
+            "description": "O expurgo do training passa a manter a cópia de quem só tem vínculo encerrado",
+            "area": "java",
+            "file": "services/training-service/src/main/resources/db/migration/V19__copia_de_cliente_so_com_vinculo.sql",
+            "find": " and l.status = 'ACTIVE');",
+            "replace": ");",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientCopyPurgeMigrationTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "O expurgo do training passa a apagar a cópia de quem tem vínculo ativo",
+            "area": "java",
+            "file": "services/training-service/src/main/resources/db/migration/V19__copia_de_cliente_so_com_vinculo.sql",
+            "find": " where not exists (",
+            "replace": " where exists (",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientCopyPurgeMigrationTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "O expurgo do nutrition passa a manter a cópia de quem só tem vínculo encerrado",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V16__copia_de_cliente_so_com_vinculo.sql",
+            "find": " and l.status = 'ACTIVE');",
+            "replace": ");",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ClientCopyPurgeMigrationTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "O expurgo do nutrition passa a apagar a cópia de quem tem vínculo ativo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V16__copia_de_cliente_so_com_vinculo.sql",
+            "find": " where not exists (",
+            "replace": " where exists (",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ClientCopyPurgeMigrationTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M13",
             "description": "O aceite deixa de republicar os dados básicos do cliente",
             "area": "java",
             "file": "services/client-service/src/main/java/com/fithub/client/application/AcceptInvitation.java",

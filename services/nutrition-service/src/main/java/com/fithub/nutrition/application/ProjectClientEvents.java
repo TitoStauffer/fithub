@@ -10,6 +10,10 @@ import org.springframework.stereotype.Service;
  * Mantém as projeções a partir dos eventos do client-service (DEV-0151). A cópia dos dados básicos do cliente só existe
  * enquanto ele tem vínculo ativo neste serviço (DEV-0153, minimização): o client-service republica o
  * {@code ClienteAtualizado} logo depois do {@code VinculoAtivado}, e a cópia sai quando o último vínculo termina.
+ *
+ * <p>Premissa: um consumidor por fila (o padrão do listener) e uma instância do serviço. A conferência do vínculo e a
+ * gravação são passos separados; com consumidores concorrentes na mesma fila, um {@code ClienteAtualizado} e um
+ * {@code VinculoEncerrado} simultâneos poderiam deixar uma cópia órfã (Code Review do PR #345).
  */
 @Service
 public class ProjectClientEvents {
