@@ -62,7 +62,7 @@ class CheckoutController {
                                         schema = @Schema(implementation = ApiProblem.class))),
                 @ApiResponse(
                         responseCode = "409",
-                        description = "A assinatura já tem período pago valendo.",
+                        description = "A assinatura já tem período pago valendo, ou já existe assinatura no Asaas.",
                         content =
                                 @Content(
                                         mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
@@ -80,6 +80,11 @@ class CheckoutController {
                         "Esta conta ainda não tem cadastro de profissional.");
             case StartCheckout.Result.AlreadyActive ignored ->
                 throw problem(HttpStatus.CONFLICT, "Assinatura ativa", "A assinatura já tem período pago valendo.");
+            case StartCheckout.Result.AlreadySubscribed ignored ->
+                throw problem(
+                        HttpStatus.CONFLICT,
+                        "Assinatura em andamento",
+                        "Já existe uma assinatura no Asaas para esta conta. O cartão é atualizado pela fatura do Asaas.");
         };
     }
 

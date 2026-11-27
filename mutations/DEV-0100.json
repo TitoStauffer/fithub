@@ -246,7 +246,7 @@
             "description": "Evento que não é de cobrança confirmada passa a estender o período pago",
             "area": "java",
             "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
-            "find": "!CONFIRMED.contains(type) || ",
+            "find": "CONFIRMED.contains(type) && ",
             "replace": "",
             "command": [
                 "mvn",
@@ -785,6 +785,426 @@
                 "node",
                 "--test",
                 "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M41",
+            "description": "O evento de cobrança sem a cobrança deixa de ser ignorado",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": "CONFIRMED.contains(type) && payment != null",
+            "replace": "CONFIRMED.contains(type)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M42",
+            "description": "A cobrança recebida sem a confirmada deixa de estender o período pago",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": "Set.of(\"PAYMENT_CONFIRMED\", \"PAYMENT_RECEIVED\")",
+            "replace": "Set.of(\"PAYMENT_CONFIRMED\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M43",
+            "description": "O evento de assinatura sem a assinatura deixa de ser ignorado",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": "        if (subscriptionId != null) {",
+            "replace": "        if (true) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M44",
+            "description": "A assinatura criada deixa de ser ligada ao checkout",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": "if (SUBSCRIPTION_CREATED.equals(type)",
+            "replace": "if (false",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M45",
+            "description": "A assinatura apagada ou inativada deixa de liberar novo checkout",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": "        if (SUBSCRIPTION_ENDED.contains(type)) {",
+            "replace": "        if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M46",
+            "description": "A assinatura inativada deixa de liberar novo checkout",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": "Set.of(\"SUBSCRIPTION_INACTIVATED\", \"SUBSCRIPTION_DELETED\")",
+            "replace": "Set.of(\"SUBSCRIPTION_DELETED\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M47",
+            "description": "A assinatura apagada deixa de liberar novo checkout",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": "Set.of(\"SUBSCRIPTION_INACTIVATED\", \"SUBSCRIPTION_DELETED\")",
+            "replace": "Set.of(\"SUBSCRIPTION_INACTIVATED\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M48",
+            "description": "A cobrança sem id deixa de ser ignorada",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": "payment.id() == null || ",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M49",
+            "description": "A cobrança sem vencimento deixa de ser ignorada",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": " || payment.dueDate() == null",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M50",
+            "description": "Outra assinatura do mesmo checkout passa a ser aceita",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": "return records.findSubscription(subscriptionId);",
+            "replace": "return Optional.of(new PaymentRecords.SubscriptionRecord(subscriptionId, checkout.professionalId(), checkout.launch(), false));",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M51",
+            "description": "A ligação repetida de um checkout passa a falhar",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/persistence/JdbcPaymentRecords.java",
+            "find": " values (?, ?, ?, ?)\"\n                        + \" on conflict do nothing\")",
+            "replace": " values (?, ?, ?, ?)\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M52",
+            "description": "Com assinatura viva no Asaas, passa a abrir outro checkout",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/StartCheckout.java",
+            "find": "        if (records.hasLiveSubscription(professionalId)) {",
+            "replace": "        if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M53",
+            "description": "A assinatura encerrada continua bloqueando novo checkout",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/persistence/JdbcPaymentRecords.java",
+            "find": " and ended_at is null)\")",
+            "replace": ")\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M54",
+            "description": "A assinatura viva de outro profissional passa a bloquear o checkout",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/persistence/JdbcPaymentRecords.java",
+            "find": "from payment_subscription where professional_id = ? and",
+            "replace": "from payment_subscription where cast(? as uuid) is not null and",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M55",
+            "description": "O checkout aberto deixa de ser reaproveitado",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/StartCheckout.java",
+            "find": "        if (open.isPresent()) {",
+            "replace": "        if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M56",
+            "description": "O checkout de 23 h passa a ser reaproveitado",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/StartCheckout.java",
+            "find": "Duration.ofHours(23)",
+            "replace": "Duration.ofHours(24)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M57",
+            "description": "O checkout de 22 h 59 min deixa de ser reaproveitado",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/StartCheckout.java",
+            "find": "Duration.ofHours(23)",
+            "replace": "Duration.ofHours(22)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M58",
+            "description": "O checkout aberto de outro profissional passa a ser reaproveitado",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/persistence/JdbcPaymentRecords.java",
+            "find": "where c.professional_id = ? and c.created_at > ?",
+            "replace": "where cast(? as uuid) is not null and c.created_at > ?",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M59",
+            "description": "O checkout vencido passa a ser reaproveitado",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/persistence/JdbcPaymentRecords.java",
+            "find": "where c.professional_id = ? and c.created_at > ?",
+            "replace": "where c.professional_id = ? and cast(? as timestamptz) is not null",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M60",
+            "description": "O checkout que já gerou assinatura passa a ser reaproveitado",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/persistence/JdbcPaymentRecords.java",
+            "find": "                        + \" and not exists (select 1 from payment_subscription s where s.checkout_id = c.id)\"\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M61",
+            "description": "O evento de cobrança passa a exigir a assinatura no corpo",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/interfaces/rest/AsaasWebhookController.java",
+            "find": "event.subscription() == null ? null : event.subscription().id()",
+            "replace": "event.subscription().id()",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
             ]
         }
     ]

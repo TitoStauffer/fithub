@@ -328,7 +328,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description A assinatura já tem período pago valendo. */
+            /** @description A assinatura já tem período pago valendo, ou já existe assinatura no Asaas. */
             409: {
                 headers: {
                     [name: string]: unknown;

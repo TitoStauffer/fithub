@@ -36,9 +36,11 @@ class AsaasWebhookController {
     }
 
     /** O evento, só com os campos usados; o resto do payload (inclusive o id do evento) é ignorado. */
-    record Event(String event, PaymentPayload payment) {}
+    record Event(String event, PaymentPayload payment, SubscriptionPayload subscription) {}
 
     record PaymentPayload(String id, String subscription, BigDecimal value, LocalDate dueDate) {}
+
+    record SubscriptionPayload(String id) {}
 
     @PostMapping("/webhooks/asaas")
     ResponseEntity<Void> receive(
@@ -55,7 +57,8 @@ class AsaasWebhookController {
                 payment == null
                         ? null
                         : new HandlePaymentEvent.Payment(
-                                payment.id(), payment.subscription(), payment.value(), payment.dueDate()));
+                                payment.id(), payment.subscription(), payment.value(), payment.dueDate()),
+                event.subscription() == null ? null : event.subscription().id());
         return ResponseEntity.ok().build();
     }
 

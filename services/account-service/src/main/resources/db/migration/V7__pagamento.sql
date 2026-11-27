@@ -1,9 +1,11 @@
 -- Pagamento da assinatura pelo checkout do Asaas (DEV-0100, PRD seção 9.2). Só ids do Asaas, valores e datas: o
 -- Asaas coleta os dados do pagador (CPF/CNPJ, cartão), e o FitHub não guarda nenhum deles.
 
--- Cada checkout criado para um profissional, com o valor da primeira cobrança e se ele entrou no preço de lançamento.
+-- Cada checkout criado para um profissional, com o link, o valor da primeira cobrança e se ele entrou no preço de
+-- lançamento. O checkout ainda aberto é reaproveitado, em vez de criar outro (Code Review do PR #328).
 create table payment_checkout (
     id varchar(100) primary key,
+    link varchar(500) not null,
     professional_id uuid not null references professional (id),
     launch boolean not null,
     value numeric(10, 2) not null,
@@ -13,14 +15,16 @@ create table payment_checkout (
 
 create index ix_payment_checkout_professional on payment_checkout (professional_id);
 
--- A assinatura do Asaas que um checkout pago gerou, ligada pelo checkoutSession dela. O preço de lançamento termina
--- quando o valor passa ao cheio (launch_ended_at).
+-- A assinatura do Asaas que um checkout pago gerou, ligada pelo checkoutSession dela quando nasce. O preço de
+-- lançamento termina quando o valor passa ao cheio (launch_ended_at). Enquanto ela não termina (ended_at), o
+-- profissional não abre outro checkout: duas assinaturas cobrariam o cartão todo mês.
 create table payment_subscription (
     id varchar(100) primary key,
     checkout_id varchar(100) not null references payment_checkout (id),
     professional_id uuid not null references professional (id),
     created_at timestamptz not null,
     launch_ended_at timestamptz,
+    ended_at timestamptz,
     constraint uq_payment_subscription_checkout unique (checkout_id)
 );
 
@@ -38,3 +42,4 @@ create table subscription_payment (
 
 create index ix_subscription_payment_subscription on subscription_payment (subscription_id);
 create index ix_subscription_payment_due on subscription_payment (due_date);
+create index ix_payment_subscription_professional on payment_subscription (professional_id) where ended_at is null;

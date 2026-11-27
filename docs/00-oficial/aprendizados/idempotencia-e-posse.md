@@ -62,3 +62,24 @@ atualização e confere que ela continua lá.
   - **Prevenção:** testes que gravam pelo repositório um rascunho lido antes da publicação e uma publicação lida antes
     da edição; mutantes M51 a M54 de `mutations/DEV-0081.json`. Quando o fluxo troca a linha inteira (o conteúdo do
     rascunho), a guarda é a versão lida, não `coalesce`.
+
+## recorrencia-externa-tem-uma-so-por-dono
+
+**Regra:** quando o FitHub abre no provedor algo que cobra sozinho todo mês (assinatura recorrente), o estado local
+não pode esperar a primeira cobrança para saber que ela existe. A ligação ao dono acontece no evento de criação, e
+enquanto houver uma viva o caso de uso recusa abrir outra (409). O link ainda aberto é reaproveitado em vez de gerar
+outro, dentro de uma janela menor que a validade dele no provedor. Evento do webhook sem os campos de que precisa é
+ignorado com aviso de ids, nunca vira 500: o provedor reentrega sem fim.
+
+### Ocorrências
+
+- **Revisão:** Code Review do PR #328, no SHA `eb41d76` (MEDIUM: a única guarda era o período pago valendo; durante
+  o teste grátis a primeira cobrança só vence no fim, então um segundo checkout podia ser pago e gerar duas
+  assinaturas recorrentes no cartão; LOW: evento com `id` ou `dueDate` nulos, ou outra assinatura do mesmo checkout,
+  respondia 500) — DEV-0100 (#92) · **PR:** #328
+  - **Impacto:** cobrança dupla todo mês no cartão do profissional, sem o FitHub perceber nem conseguir cancelar.
+  - **Correção:** `SUBSCRIPTION_CREATED` liga a assinatura ao checkout pelo `checkoutSession`; `StartCheckout`
+    responde 409 com assinatura viva e reaproveita o checkout aberto de até 23 h; `SUBSCRIPTION_INACTIVATED` e
+    `SUBSCRIPTION_DELETED` liberam assinar de novo; campos nulos e conflito de checkout são ignorados com aviso.
+  - **Prevenção:** testes de dois checkouts seguidos no teste grátis, da janela de 23 h e da assinatura viva de outra
+    conta; mutantes M41 a M61 de `mutations/DEV-0100.json`.

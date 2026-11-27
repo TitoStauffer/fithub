@@ -24,9 +24,13 @@ cada mês. Também não existe desconto nativo para as N primeiras cobranças.
    - o account-service cria o checkout (`POST /professionals/me/subscription/checkout`) sem os dados do pagador;
    - o pagador informa os dados, inclusive o CPF/CNPJ, na página do Asaas, e nada disso passa pelo FitHub;
    - Pix e boleto ficam para depois do MVP.
-2. **Ligação com o profissional:** o checkout fica gravado com o profissional. No primeiro pagamento de uma assinatura
-   desconhecida, o account-service consulta a assinatura no Asaas e liga pelo `checkoutSession` dela. A documentação
-   não garante que o `externalReference` do checkout chegue às cobranças, e ele não é usado para ligar.
+2. **Ligação com o profissional:** o checkout fica gravado com o profissional. Quando o Asaas avisa que a assinatura foi
+   criada (ou, se esse aviso falhar, no primeiro pagamento), o account-service consulta a assinatura e liga pelo
+   `checkoutSession` dela. O sandbox confirmou que o `externalReference` do checkout não chega à assinatura, por isso
+   ele não é usado para ligar.
+   - **Uma assinatura viva por profissional:** com uma assinatura ligada e não encerrada, o checkout novo dá 409, e o
+     checkout aberto de até 23 h é reaproveitado. Sem isso, um segundo checkout pago no teste grátis geraria duas
+     cobranças recorrentes no cartão (Code Review do PR #328).
 3. **Webhook (`POST /webhooks/asaas`):**
    - fica fora do JWT e só aceita o token configurado no header `asaas-access-token`, comparado em tempo constante;
    - sem token, ou com token de menos de 32 caracteres, recusa tudo;
@@ -56,7 +60,6 @@ cada mês. Também não existe desconto nativo para as N primeiras cobranças.
 - A conta de produção do Asaas pede CNPJ (MEI serve) e conta bancária; o sandbox é gratuito.
 - O **Tito** cria a conta e cadastra o webhook no painel do Asaas (URL `https://<domínio>/api/account/webhooks/asaas`,
   fila sequencial e o token do `.env`).
-- A ligação pelo `checkoutSession` precisa ser conferida no sandbox antes do primeiro profissional pagar. Essa
-  conferência é um critério da DEV-0100.
+- A ligação pelo `checkoutSession` foi conferida no sandbox: a assinatura criada pelo checkout traz o id dele.
 - O cartão renova sozinho. Uma cobrança recusada não estende o período, e a assinatura vence no dia seguinte ao
   vencimento.

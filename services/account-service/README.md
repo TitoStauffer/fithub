@@ -51,7 +51,7 @@ guarda nenhum deles.
 
 | Rota | Quem | Resultado |
 |---|---|---|
-| `POST /professionals/me/subscription/checkout` | profissional | 201 com o link do checkout, o valor e se é o preço de lançamento; 404 sem cadastro; 409 com período pago valendo |
+| `POST /professionals/me/subscription/checkout` | profissional | 201 com o link do checkout, o valor e se é o preço de lançamento; 404 sem cadastro; 409 com período pago valendo ou com assinatura viva no Asaas. O checkout aberto de até 23 h é reaproveitado |
 | `POST /webhooks/asaas` | o Asaas | 200; 401 sem o token certo no header `asaas-access-token`; 400 sem o tipo do evento. Fora do JWT e do OpenAPI |
 
 - **Primeira cobrança:** vence no fim do teste grátis, ou hoje se ele já acabou.
@@ -65,9 +65,13 @@ guarda nenhum deles.
     dela;
   - cada pagamento estende o `paid_until` até o vencimento seguinte, com 1 dia de folga, e grava o
     `AssinaturaAlterada`;
+  - `SUBSCRIPTION_CREATED` liga a assinatura ao checkout; `SUBSCRIPTION_INACTIVATED` e `SUBSCRIPTION_DELETED` registram
+    o fim e liberam um checkout novo;
+  - evento sem os campos de que precisa é ignorado com aviso de ids (um erro faria o Asaas reentregar sem fim);
   - os demais eventos são aceitos e ignorados.
-- **Ligação:** a assinatura do Asaas é ligada ao profissional pelo `checkoutSession` dela, consultado no primeiro
-  pagamento.
+- **Ligação:** a assinatura do Asaas é ligada ao profissional pelo `checkoutSession` dela, consultado na criação da
+  assinatura (ou no primeiro pagamento, se a criação não chegou). Uma assinatura viva por profissional: duas
+  cobrariam o cartão todo mês.
 - **Configuração:**
   - `fithub.payment.asaas.base-url` (padrão o sandbox);
   - `api-key` e `webhook-token`, só do ambiente (`ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN`);

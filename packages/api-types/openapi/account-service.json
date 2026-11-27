@@ -373,7 +373,7 @@
                 }
               }
             },
-            "description" : "A assinatura já tem período pago valendo."
+            "description" : "A assinatura já tem período pago valendo, ou já existe assinatura no Asaas."
           }
         },
         "summary" : "Cria o checkout da assinatura mensal no Asaas e devolve o link de pagamento",

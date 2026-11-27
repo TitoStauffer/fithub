@@ -232,6 +232,23 @@ class SubscriptionPaymentTest extends ServiceIntegrationTest {
     }
 
     @Test
+    void aReceivedPaymentWithoutTheConfirmedEventAlsoExtendsThePaidPeriod() throws Exception {
+        String account = registered();
+        String subscription = paidCheckout(account);
+
+        webhook(paymentEvent(
+                        "evt_" + UUID.randomUUID(),
+                        "PAYMENT_RECEIVED",
+                        "pay_" + UUID.randomUUID(),
+                        subscription,
+                        "2026-12-10"))
+                .andExpect(status().isOk());
+
+        assertThat(paidUntil(account))
+                .isEqualTo(LocalDate.of(2027, 1, 11).atStartOfDay(ZONE).toInstant());
+    }
+
+    @Test
     void theReceivedEventOfAnAlreadyConfirmedPaymentChangesNothing() throws Exception {
         String account = registered();
         String subscription = paidCheckout(account);
@@ -357,7 +374,167 @@ class SubscriptionPaymentTest extends ServiceIntegrationTest {
         assertThat(paidUntil(account)).isNull();
     }
 
+    // --- Um checkout por vez (Code Review do PR #328) ---
+
+    @Test
+    void aSecondCheckoutDuringTheTrialReusesTheOpenOne() throws Exception {
+        String account = registered();
+
+        String first = checkoutUrl(account);
+        String second = checkoutUrl(account);
+
+        assertThat(second).isEqualTo(first);
+        assertThat(asaas.checkouts).hasSize(1);
+    }
+
+    @Test
+    void anOpenCheckoutOlderThanTheReuseWindowIsReplaced() throws Exception {
+        String account = registered();
+        String first = checkoutUrl(account);
+        jdbc.sql(
+                        "update payment_checkout set created_at = now() - interval '23 hours 1 minute' where professional_id = ?")
+                .param(UUID.fromString(account))
+                .update();
+
+        String second = checkoutUrl(account);
+
+        assertThat(second).isNotEqualTo(first);
+        assertThat(asaas.checkouts).hasSize(2);
+    }
+
+    @Test
+    void anOpenCheckoutInsideTheReuseWindowIsReused() throws Exception {
+        String account = registered();
+        String first = checkoutUrl(account);
+        jdbc.sql(
+                        "update payment_checkout set created_at = now() - interval '22 hours 59 minutes' where professional_id = ?")
+                .param(UUID.fromString(account))
+                .update();
+
+        assertThat(checkoutUrl(account)).isEqualTo(first);
+    }
+
+    @Test
+    void anotherProfessionalsOpenCheckoutIsNotReused() throws Exception {
+        String one = registered();
+        String other = registered();
+
+        assertThat(checkoutUrl(other)).isNotEqualTo(checkoutUrl(one));
+    }
+
+    @Test
+    void whileTheAsaasSubscriptionLivesThereIsNoNewCheckout() throws Exception {
+        String account = registered();
+        String subscription = paidCheckout(account);
+
+        webhook(subscriptionEvent("SUBSCRIPTION_CREATED", subscription)).andExpect(status().isOk());
+        checkout(account).andExpect(status().isConflict());
+
+        assertThat(asaas.checkouts).hasSize(1);
+        // A assinatura viva é só da conta dela.
+        checkout(registered()).andExpect(status().isCreated());
+    }
+
+    @Test
+    void afterTheAsaasSubscriptionIsDeletedANewCheckoutIsAllowed() throws Exception {
+        String account = registered();
+        String subscription = paidCheckout(account);
+        webhook(subscriptionEvent("SUBSCRIPTION_CREATED", subscription));
+
+        webhook(subscriptionEvent("SUBSCRIPTION_DELETED", subscription)).andExpect(status().isOk());
+
+        checkout(account).andExpect(status().isCreated());
+        assertThat(asaas.checkouts).hasSize(2);
+    }
+
+    @Test
+    void afterTheAsaasSubscriptionIsInactivatedANewCheckoutIsAllowed() throws Exception {
+        String account = registered();
+        String subscription = paidCheckout(account);
+        webhook(subscriptionEvent("SUBSCRIPTION_CREATED", subscription));
+
+        webhook(subscriptionEvent("SUBSCRIPTION_INACTIVATED", subscription)).andExpect(status().isOk());
+
+        checkout(account).andExpect(status().isCreated());
+    }
+
+    @Test
+    void aSubscriptionCreatedWithoutAFithubCheckoutIsIgnored() throws Exception {
+        webhook(subscriptionEvent("SUBSCRIPTION_CREATED", "sub_" + UUID.randomUUID()))
+                .andExpect(status().isOk());
+    }
+
+    // --- Evento incompleto não vira erro (Code Review do PR #328) ---
+
+    @Test
+    void aSubscriptionEventWithoutTheSubscriptionIsIgnored() throws Exception {
+        webhook("""
+                        {"id": "evt_%s", "event": "SUBSCRIPTION_CREATED"}
+                        """.formatted(UUID.randomUUID())).andExpect(status().isOk());
+    }
+
+    @Test
+    void aConfirmedPaymentEventWithoutThePaymentIsIgnored() throws Exception {
+        webhook("""
+                        {"id": "evt_%s", "event": "PAYMENT_CONFIRMED"}
+                        """.formatted(UUID.randomUUID())).andExpect(status().isOk());
+    }
+
+    @Test
+    void aConfirmedPaymentWithoutIdOrDueDateIsIgnored() throws Exception {
+        String account = registered();
+        String subscription = paidCheckout(account);
+
+        webhook(paymentEvent("evt_" + UUID.randomUUID(), "PAYMENT_CONFIRMED", null, subscription, "2026-12-10"))
+                .andExpect(status().isOk());
+        webhook(paymentEvent(
+                        "evt_" + UUID.randomUUID(),
+                        "PAYMENT_CONFIRMED",
+                        "pay_" + UUID.randomUUID(),
+                        subscription,
+                        null))
+                .andExpect(status().isOk());
+
+        assertThat(paidUntil(account)).isNull();
+    }
+
+    @Test
+    void anotherSubscriptionForAnAlreadyLinkedCheckoutIsIgnored() throws Exception {
+        String account = registered();
+        String subscription = paidCheckout(account);
+        webhook(subscriptionEvent("SUBSCRIPTION_CREATED", subscription));
+        String other = "sub_" + UUID.randomUUID();
+        asaas.checkoutOfSubscription.put(other, asaas.checkoutOfSubscription.get(subscription));
+
+        webhook(paymentEvent(
+                        "evt_" + UUID.randomUUID(),
+                        "PAYMENT_CONFIRMED",
+                        "pay_" + UUID.randomUUID(),
+                        other,
+                        "2026-12-10"))
+                .andExpect(status().isOk());
+
+        assertThat(paidUntil(account)).isNull();
+    }
+
     // --- Apoio ---
+
+    private String checkoutUrl(String account) throws Exception {
+        String body = checkout(account)
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        return com.jayway.jsonpath.JsonPath.read(body, "$.checkoutUrl");
+    }
+
+    private static String subscriptionEvent(String type, String subscription) {
+        return """
+                {"id": "evt_%s", "event": "%s",
+                 "subscription": {"object": "subscription", "id": "%s", "customer": "cus_000", "value": 150.00,
+                                  "cycle": "MONTHLY", "billingType": "CREDIT_CARD", "status": "ACTIVE"}}
+                """.formatted(UUID.randomUUID(), type, subscription);
+    }
 
     private String registered() throws Exception {
         String account = UUID.randomUUID().toString();
@@ -393,13 +570,17 @@ class SubscriptionPaymentTest extends ServiceIntegrationTest {
     }
 
     private static String paymentEvent(String id, String type, String payment, String subscription, String due) {
-        String subscriptionField = subscription == null ? "null" : "\"" + subscription + "\"";
         return """
                 {"id": "%s", "event": "%s", "dateCreated": "2026-12-10 10:00:00",
-                 "payment": {"object": "payment", "id": "%s", "customer": "cus_000", "subscription": %s,
+                 "payment": {"object": "payment", "id": %s, "customer": "cus_000", "subscription": %s,
                              "value": 150.00, "netValue": 145.00, "billingType": "CREDIT_CARD", "status": "CONFIRMED",
-                             "dueDate": "%s", "description": "FitHub mensal"}}
-                """.formatted(id, type, payment, subscriptionField, due);
+                             "dueDate": %s, "description": "FitHub mensal"}}
+                """.formatted(id, type, json(payment), json(subscription), json(due));
+    }
+
+    /** O texto entre aspas no JSON, ou {@code null} sem aspas. */
+    private static String json(String value) {
+        return value == null ? "null" : "\"" + value + "\"";
     }
 
     private Instant paidUntil(String account) {

@@ -18,16 +18,28 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Eventos do webhook do Asaas (DEV-0100). O Asaas entrega pelo menos uma vez: a cobrança conta uma vez só, pelo id dela. A cobrança
- * confirmada de uma assinatura grava o pagamento e estende o período pago até o vencimento seguinte, com 1 dia de
- * folga para a próxima cobrança confirmar; no último mês do preço de lançamento, o valor passa ao cheio. Os demais
- * eventos são aceitos e ignorados. O log traz só ids do Asaas.
+ * Eventos do webhook do Asaas (DEV-0100). O log traz só ids do Asaas.
+ * <ul>
+ * <li><b>Assinatura criada:</b> liga a assinatura ao checkout do FitHub pelo {@code checkoutSession} dela, para o
+ * profissional não abrir outro checkout enquanto ela vive (Code Review do PR #328).</li>
+ * <li><b>Assinatura inativada ou apagada:</b> registra o fim; o profissional pode assinar de novo.</li>
+ * <li><b>Cobrança confirmada:</b> conta uma vez só, pelo id dela (o Asaas entrega pelo menos uma vez), e estende o
+ * período pago até o vencimento seguinte, com 1 dia de folga para a próxima cobrança confirmar. No último mês do preço
+ * de lançamento, o valor passa ao cheio.</li>
+ * <li>Um evento sem os campos de que precisa, ou de assinatura sem checkout do FitHub, é ignorado com aviso: um erro
+ * faria o Asaas reentregar sem fim.</li>
+ * </ul>
  */
 @Service
 public class HandlePaymentEvent {
 
     /** Cobrança confirmada: no cartão, o CONFIRMED chega primeiro e o RECEIVED cerca de 32 dias depois. */
     static final Set<String> CONFIRMED = Set.of("PAYMENT_CONFIRMED", "PAYMENT_RECEIVED");
+
+    static final String SUBSCRIPTION_CREATED = "SUBSCRIPTION_CREATED";
+
+    /** A assinatura deixou de existir no Asaas. */
+    static final Set<String> SUBSCRIPTION_ENDED = Set.of("SUBSCRIPTION_INACTIVATED", "SUBSCRIPTION_DELETED");
 
     private static final Logger log = LoggerFactory.getLogger(HandlePaymentEvent.class);
     private static final ZoneId ZONE = ZoneId.of("America/Sao_Paulo");
@@ -57,11 +69,37 @@ public class HandlePaymentEvent {
     /** A cobrança do evento, quando ele traz uma. */
     public record Payment(String id, String subscriptionId, BigDecimal value, LocalDate dueDate) {}
 
-    /** Processa o evento; uma falha desfaz tudo, e o Asaas entrega de novo. */
+    /**
+     * Processa o evento; uma falha desfaz tudo, e o Asaas entrega de novo.
+     *
+     * @param subscriptionId a assinatura dos eventos de assinatura; nulo nos de cobrança
+     */
     @Transactional
-    public void handle(String type, Payment payment) {
+    public void handle(String type, Payment payment, String subscriptionId) {
         Instant now = clock.instant();
-        if (!CONFIRMED.contains(type) || payment == null || payment.subscriptionId() == null) {
+        if (subscriptionId != null) {
+            handleSubscription(type, subscriptionId, now);
+        }
+        if (CONFIRMED.contains(type) && payment != null) {
+            handlePayment(payment, now);
+        }
+    }
+
+    /** Assinatura criada: liga ao checkout. Inativada ou apagada: registra o fim. */
+    private void handleSubscription(String type, String subscriptionId, Instant now) {
+        if (SUBSCRIPTION_CREATED.equals(type)
+                && subscriptionOf(subscriptionId, now).isEmpty()) {
+            log.warn("Assinatura {} sem checkout do FitHub; ignorada", subscriptionId);
+        }
+        if (SUBSCRIPTION_ENDED.contains(type)) {
+            records.endSubscription(subscriptionId, now);
+        }
+    }
+
+    /** Cobrança confirmada: grava uma vez e estende o período pago. */
+    private void handlePayment(Payment payment, Instant now) {
+        if (payment.id() == null || payment.subscriptionId() == null || payment.dueDate() == null) {
+            log.warn("Cobrança {} sem id, assinatura ou vencimento; ignorada", payment.id());
             return;
         }
         Optional<PaymentRecords.SubscriptionRecord> subscription = subscriptionOf(payment.subscriptionId(), now);
@@ -83,15 +121,18 @@ public class HandlePaymentEvent {
         endLaunchAfterLastMonth(subscription.get(), now);
     }
 
-    /** A assinatura já ligada ou, no primeiro pagamento, a que o checkout do FitHub gerou (checkoutSession). */
+    /**
+     * A assinatura já ligada ou a que o checkout do FitHub gerou ({@code checkoutSession}). Outra assinatura para um
+     * checkout já ligado fica sem ligação.
+     */
     private Optional<PaymentRecords.SubscriptionRecord> subscriptionOf(String subscriptionId, Instant now) {
         Optional<PaymentRecords.SubscriptionRecord> known = records.findSubscription(subscriptionId);
         if (known.isPresent()) {
             return known;
         }
-        return gateway.checkoutOf(subscriptionId).flatMap(records::findCheckout).map(checkout -> {
+        return gateway.checkoutOf(subscriptionId).flatMap(records::findCheckout).flatMap(checkout -> {
             records.linkSubscription(subscriptionId, checkout, now);
-            return records.findSubscription(subscriptionId).orElseThrow();
+            return records.findSubscription(subscriptionId);
         });
     }
 

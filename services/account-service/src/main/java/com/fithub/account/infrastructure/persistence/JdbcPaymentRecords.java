@@ -10,7 +10,7 @@ import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Checkouts, assinaturas do Asaas, cobranças confirmadas no Postgres (migration V7). */
+/** Checkouts, assinaturas do Asaas e cobranças confirmadas no Postgres (migration V7). */
 @Repository
 class JdbcPaymentRecords implements PaymentRecords {
 
@@ -22,9 +22,10 @@ class JdbcPaymentRecords implements PaymentRecords {
 
     @Override
     public void addCheckout(
-            String checkoutId, UUID professionalId, boolean launch, BigDecimal value, Instant createdAt) {
-        jdbc.sql("insert into payment_checkout (id, professional_id, launch, value, created_at) values (?, ?, ?, ?, ?)")
-                .params(checkoutId, professionalId, launch, value, Timestamp.from(createdAt))
+            String checkoutId, String link, UUID professionalId, boolean launch, BigDecimal value, Instant createdAt) {
+        jdbc.sql("insert into payment_checkout (id, link, professional_id, launch, value, created_at)"
+                        + " values (?, ?, ?, ?, ?, ?)")
+                .params(checkoutId, link, professionalId, launch, value, Timestamp.from(createdAt))
                 .update();
     }
 
@@ -35,6 +36,30 @@ class JdbcPaymentRecords implements PaymentRecords {
                 .query((row, index) -> new CheckoutRecord(
                         row.getString("id"), row.getObject("professional_id", UUID.class), row.getBoolean("launch")))
                 .optional();
+    }
+
+    @Override
+    public Optional<OpenCheckout> openCheckout(UUID professionalId, Instant createdAfter) {
+        return jdbc.sql("select c.id, c.link, c.value, c.launch from payment_checkout c"
+                        + " where c.professional_id = ? and c.created_at > ?"
+                        + " and not exists (select 1 from payment_subscription s where s.checkout_id = c.id)"
+                        + " limit 1")
+                .params(professionalId, Timestamp.from(createdAfter))
+                .query((row, index) -> new OpenCheckout(
+                        row.getString("id"),
+                        row.getString("link"),
+                        row.getBigDecimal("value"),
+                        row.getBoolean("launch")))
+                .optional();
+    }
+
+    @Override
+    public boolean hasLiveSubscription(UUID professionalId) {
+        return jdbc.sql(
+                        "select exists (select 1 from payment_subscription where professional_id = ? and ended_at is null)")
+                .param(professionalId)
+                .query(Boolean.class)
+                .single();
     }
 
     @Override
@@ -56,6 +81,13 @@ class JdbcPaymentRecords implements PaymentRecords {
                         row.getBoolean("launch"),
                         row.getBoolean("launch_ended")))
                 .optional();
+    }
+
+    @Override
+    public void endSubscription(String subscriptionId, Instant now) {
+        jdbc.sql("update payment_subscription set ended_at = ? where id = ?")
+                .params(Timestamp.from(now), subscriptionId)
+                .update();
     }
 
     @Override

@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus;
 class AsaasWebhookAuthTest {
 
     private static final AsaasWebhookController.Event EVENT =
-            new AsaasWebhookController.Event("PAYMENT_CONFIRMED", null);
+            new AsaasWebhookController.Event("PAYMENT_CONFIRMED", null, null);
 
     @Test
     void withoutAConfiguredTokenEveryRequestIsRefused() {

@@ -152,8 +152,8 @@ class PaymentMetricsTest extends ServiceIntegrationTest {
         }
         String checkout = "chk_" + UUID.randomUUID();
         String subscription = "sub_" + UUID.randomUUID();
-        jdbc.sql(
-                        "insert into payment_checkout (id, professional_id, launch, value, created_at) values (?, ?, true, 150, now())")
+        jdbc.sql("insert into payment_checkout (id, link, professional_id, launch, value, created_at)"
+                        + " values (?, 'https://sandbox.asaas.com/teste', ?, true, 150, now())")
                 .params(checkout, id)
                 .update();
         jdbc.sql(
