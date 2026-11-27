@@ -118,6 +118,19 @@ function withData() {
                     source: 'SET',
                 },
             },
+            {
+                // Lançado à mão pelo aluno (DEV-0158).
+                exerciseId: 'e3',
+                exerciseName: 'Remada curvada',
+                maxLoad: { date: '2026-11-12', loadKg: 50, reps: 5, valueKg: 50, source: 'MANUAL' },
+                estimatedOneRepMax: {
+                    date: '2026-11-12',
+                    loadKg: 50,
+                    reps: 5,
+                    valueKg: 58.3,
+                    source: 'MANUAL',
+                },
+            },
         ],
     });
     replies.set(SERIES, { status: 200, body: SERIES_BODY });
@@ -148,6 +161,10 @@ describe('evolução do aluno (DEV-0094)', () => {
         const records = await screen.findByRole('table', { name: 'Recordes por exercício' });
         expect(within(records).getByRole('row', { name: /Supino reto/ })).toHaveTextContent(
             'Supino reto42,5 kg × 8 em 10/11/202653,8 kg',
+        );
+        // O recorde manual vem marcado nas duas colunas; o do treino, não (FR-54, DEV-0158).
+        expect(within(records).getByRole('row', { name: /Remada curvada/ })).toHaveTextContent(
+            'Remada curvada50 kg × 5 em 12/11/2026 (manual)58,3 kg (manual)',
         );
 
         // O % de gordura vem por método, sem misturar (BR-12).

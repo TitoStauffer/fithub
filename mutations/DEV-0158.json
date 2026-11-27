@@ -1,0 +1,56 @@
+{
+    "issue": "DEV-0158",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "A maior carga lançada à mão perde a marca",
+            "area": "apps",
+            "file": "apps/web/src/features/progress/ClientProgressSection.tsx",
+            "find": "                                        <ManualMark source={record.maxLoad?.source} />\n",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "exec",
+                "vitest",
+                "run",
+                "src/features/progress/progress.test.tsx"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O 1RM estimado de lançamento manual perde a marca",
+            "area": "apps",
+            "file": "apps/web/src/features/progress/ClientProgressSection.tsx",
+            "find": "                                        <ManualMark source={record.estimatedOneRepMax?.source} />\n",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "exec",
+                "vitest",
+                "run",
+                "src/features/progress/progress.test.tsx"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O recorde vindo do treino também ganha a marca de manual",
+            "area": "apps",
+            "file": "apps/web/src/features/progress/ClientProgressSection.tsx",
+            "find": "source === 'MANUAL' ?",
+            "replace": "source !== undefined ?",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "exec",
+                "vitest",
+                "run",
+                "src/features/progress/progress.test.tsx"
+            ]
+        }
+    ]
+}
