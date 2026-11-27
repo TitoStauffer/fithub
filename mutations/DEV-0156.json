@@ -1,0 +1,80 @@
+{
+    "issue": "DEV-0156",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O proxy deixa de tirar o prefixo /api/<serviço> do caminho",
+            "area": "apps",
+            "file": "apps/web/src/devProxy.ts",
+            "find": "rewrite: (path: string) => path.slice(prefix.length),",
+            "replace": "rewrite: (path: string) => path,",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Caminho que só começa com o nome do serviço passa a cair nele",
+            "area": "apps",
+            "file": "apps/web/src/devProxy.ts",
+            "find": "`^${prefix}(/|$)`,",
+            "replace": "`^${prefix}`,",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O proxy passa a trocar o Host, e o Spring trataria a chamada como CORS",
+            "area": "apps",
+            "file": "apps/web/src/devProxy.ts",
+            "find": "target: `http://127.0.0.1:${port}`,",
+            "replace": "target: `http://127.0.0.1:${port}`,\n                    changeOrigin: true,",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "O pnpm dev deixa de usar o proxy",
+            "area": "apps",
+            "file": "apps/web/vite.config.ts",
+            "find": "server: { proxy: devApiProxy() },",
+            "replace": "server: {},",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O pnpm dev volta a chamar o account-service em outra origem",
+            "area": "apps",
+            "file": "apps/web/.env.development",
+            "find": "VITE_ACCOUNT_API_URL=/api/account",
+            "replace": "VITE_ACCOUNT_API_URL=http://localhost:8081",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}
