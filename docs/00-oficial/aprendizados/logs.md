@@ -27,4 +27,13 @@ O teste grava uma linha recusada com um marcador e confere que o marcador não a
     com o `Detail`.
   - **Correção:** `spring.datasource.hikari.data-source-properties.logServerErrorDetail=false` como padrão da
     `java-commons`. O driver deixa de pôr o `Detail` na mensagem, e nenhum caminho o recebe.
-  - **Prevenção:** `DatabaseErrorDetailTest` confere toda a cadeia de causas; mutante de `mutations/DEV-0183.json`.
+  - **Prevenção:** `DatabaseErrorDetailTest` confere toda a cadeia de causas, inclusive num batch; o contrato do
+    esqueleto confere o valor efetivo no pool de cada serviço; mutantes de `mutations/DEV-0183.json`.
+- **Validação:** QA do PR #338 pediu prova de que o batch do Hibernate estava desligado. A guarda mostrou o
+  contrário: o Hibernate 7 liga o batch por padrão (o dialeto do Postgres usa 15), e com o `Detail` ligado a mensagem
+  da entrada recusada traz o SQL com os valores — DEV-0183 (#336) · **PR:** #338
+  - **Impacto:** na `master` anterior, todo erro de banco num batch levava a linha inteira ao log, mesmo sem nenhuma
+    configuração de batch no projeto.
+  - **Correção:** o mesmo `logServerErrorDetail=false`, que no pgjdbc também tira os parâmetros da mensagem do batch.
+  - **Prevenção:** não confiar no padrão de uma biblioteca para afirmar que um recurso está desligado: conferir o valor
+    efetivo em execução antes de escrever a afirmação no PR.

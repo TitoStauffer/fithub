@@ -53,6 +53,11 @@
       <groupId>org.springframework</groupId>
       <artifactId>spring-jdbc</artifactId>
     </dependency>
+    <!-- Valor efetivo do pool no contrato do esqueleto (DEV-0183). -->
+    <dependency>
+      <groupId>com.zaxxer</groupId>
+      <artifactId>HikariCP</artifactId>
+    </dependency>
     <!-- Os fixtures do teste das regras usam anotações de Spring e JPA para simular violações. -->
     <dependency>
       <groupId>jakarta.persistence</groupId>

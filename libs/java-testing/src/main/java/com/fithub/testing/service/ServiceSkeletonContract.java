@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.zaxxer.hikari.HikariDataSource;
 import java.util.List;
 import java.util.stream.Stream;
 import javax.sql.DataSource;
@@ -15,7 +16,6 @@ import org.springframework.amqp.core.Exchange;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
-import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -37,9 +37,6 @@ public abstract class ServiceSkeletonContract extends ServiceIntegrationTest {
 
     @Value("${spring.application.name}")
     private String serviceName;
-
-    @Autowired
-    private Environment environment;
 
     @Value("${fithub.messaging.exchange:}")
     private String ownExchange;
@@ -120,14 +117,14 @@ public abstract class ServiceSkeletonContract extends ServiceIntegrationTest {
                         .isFalse());
     }
 
-    // Com o batch do Hibernate, a primeira linha do BatchUpdateException traz o SQL com os valores da linha, e ela
-    // chegaria ao log mesmo com o driver sem o Detail (DEV-0183).
+    // O driver do Postgres sem o Detail na mensagem de erro, no pool de verdade do serviço (DEV-0183): o padrão da
+    // java-commons pode ser sobrescrito, e um serviço que o religasse passaria a levar a linha recusada ao log. Vale
+    // também para o batch, que o Hibernate 7 liga por padrão: com o Detail, a entrada recusada vem com os valores.
     @Test
-    void hibernateJdbcBatchingStaysOff() {
-        String batchSize = environment.getProperty("spring.jpa.properties.hibernate.jdbc.batch_size");
-        assertThat(batchSize == null || Integer.parseInt(batchSize.trim()) <= 1)
-                .as("hibernate.jdbc.batch_size = %s", batchSize)
-                .isTrue();
+    void postgresDriverOmitsTheErrorDetail() throws Exception {
+        HikariDataSource pool = dataSource.unwrap(HikariDataSource.class);
+        assertThat(pool.getDataSourceProperties().getProperty("logServerErrorDetail"))
+                .isEqualTo("false");
     }
 
     private static List<String> successfulVersions(JdbcClient jdbc, String historyTable) {

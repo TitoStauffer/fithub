@@ -22,11 +22,11 @@
         },
         {
             "id": "M2",
-            "description": "Um serviço liga o batch do Hibernate, e o SQL com os valores volta à mensagem de erro",
+            "description": "Um serviço religa o Detail do driver no próprio application.yml",
             "area": "java",
             "file": "services/account-service/src/main/resources/application.yml",
-            "find": "      ddl-auto: validate\n  rabbitmq:",
-            "replace": "      ddl-auto: validate\n    properties:\n      hibernate.jdbc.batch_size: 20\n  rabbitmq:",
+            "find": "    password: ${DB_PASSWORD:fithub}\n  jpa:",
+            "replace": "    password: ${DB_PASSWORD:fithub}\n    hikari:\n      data-source-properties:\n        logServerErrorDetail: true\n  jpa:",
             "command": [
                 "mvn",
                 "-B",

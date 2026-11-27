@@ -60,6 +60,33 @@ class DatabaseErrorDetailTest {
                 .anyMatch(message -> message.contains("detail_check_pkey"));
     }
 
+    // O Hibernate 7 grava em batch por padrão (o dialeto do Postgres usa 15). No batch, o driver monta a mensagem com o
+    // SQL da entrada recusada: os parâmetros também não podem aparecer nela.
+    @Test
+    void aRejectedBatchEntryIsNotInAnyExceptionMessage() throws Exception {
+        JdbcClient.create(dataSource)
+                .sql("create table detail_batch (id int primary key, note text, weight numeric"
+                        + " constraint ck_detail_batch_weight check (weight > 0))")
+                .update();
+        Throwable batch;
+        try (var connection = dataSource.getConnection();
+                var insert = connection.prepareStatement("insert into detail_batch values (?, ?, ?)")) {
+            for (int id = 1; id <= 3; id++) {
+                insert.setInt(1, id);
+                insert.setString(2, MARKER);
+                insert.setInt(3, id == 2 ? -1 : 10);
+                insert.addBatch();
+            }
+            batch = catchThrowable(insert::executeBatch);
+        }
+
+        List<String> messages = new ArrayList<>(messages(batch));
+        if (batch instanceof java.sql.SQLException sql && sql.getNextException() != null) {
+            messages.addAll(messages(sql.getNextException()));
+        }
+        assertThat(messages).as("batch").noneMatch(message -> message.contains(MARKER));
+    }
+
     /** As mensagens da exceção e de todas as causas, como um log com a pilha inteira as mostraria. */
     private static List<String> messages(Throwable error) {
         assertThat(error).isNotNull();
