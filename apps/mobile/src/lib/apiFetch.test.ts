@@ -109,6 +109,25 @@ describe('endereço base com caminho', () => {
     });
 });
 
+describe('URL enviada', () => {
+    it('é a mesma que o filtro validou, já normalizada', async () => {
+        const sent: string[] = [];
+        const apiFetch = createApiFetch({
+            getAccessToken: () => Promise.resolve('atual'),
+            onSessionRejected: () => Promise.resolve(),
+            allowedBases: ['https://fithub.example/api/client'],
+            fetch: jest.fn((input: RequestInfo | URL) => {
+                sent.push(String(input));
+                return Promise.resolve({ status: 200 } as Response);
+            }) as unknown as typeof fetch,
+        });
+
+        await apiFetch('https://fithub.example/api/client/x/../clients/me');
+
+        expect(sent).toEqual(['https://fithub.example/api/client/clients/me']);
+    });
+});
+
 describe('apiBases', () => {
     // Com os endereços de produção (caminhos no mesmo domínio), a base guarda o caminho, não só a origem.
     it('com os endereços de produção, guarda o caminho de cada API', () => {

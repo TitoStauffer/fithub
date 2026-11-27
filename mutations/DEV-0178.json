@@ -60,6 +60,21 @@
                 "run",
                 "test"
             ]
+        },
+        {
+            "id": "M5",
+            "description": "O fetch volta a receber a URL crua, diferente da que o filtro validou",
+            "area": "apps",
+            "file": "apps/mobile/src/lib/apiFetch.ts",
+            "find": "            return send(target.href, { ...init, headers });",
+            "replace": "            return send(url, { ...init, headers });",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
         }
     ]
 }
