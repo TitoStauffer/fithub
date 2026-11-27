@@ -17,14 +17,22 @@ no client-service. Mudar um exige mudar o outro, com versão nova.
 
 ## Escopo registrado
 
+O aceite grava o escopo de dados compartilhados (`scope`, o mesmo do `sharedData` e do `consentScope` do
+`VinculoAtivado`) e a versão do termo:
+
 - Perfil: nome, data de nascimento, gênero, altura e objetivo.
 - Perfil de saúde: condições informadas e observações.
 - Avaliações corporais: medidas, dobras e % de gordura.
 - Fotos de evolução.
-- **Restrições (desde a v2):**
-  - o personal registra e vê as restrições de mobilidade do cliente (região do corpo e descrição);
-  - a nutricionista registra e vê as restrições alimentares do paciente (alergias, intolerâncias e preferências);
-  - o cliente vê as próprias restrições, e elas só aparecem para o profissional com o vínculo ativo.
+
+## Restrições (desde a v2)
+
+As restrições não entram no `scope`, que continua com os quatro dados acima: estendê-lo mudaria o contrato do
+`VinculoAtivado`. O aceite delas fica registrado pela versão do termo (v2 em diante), cujo texto as cita:
+
+- o personal registra e vê as restrições de mobilidade do cliente (região do corpo e descrição);
+- a nutricionista registra e vê as restrições alimentares do paciente (alergias, intolerâncias e preferências);
+- o cliente vê as próprias restrições, e elas só aparecem para o profissional com o vínculo ativo.
 
 O personal nunca vê dados de nutrição, nem as restrições alimentares, e a nutricionista não vê as restrições de
 mobilidade (BR-03).

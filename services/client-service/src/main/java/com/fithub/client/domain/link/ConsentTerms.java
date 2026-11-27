@@ -18,7 +18,10 @@ public final class ConsentTerms {
 
     public static final String CURRENT_VERSION = "v2";
 
-    /** Escopo do BR-04: o profissional vinculado vê o perfil, a saúde, as avaliações e as fotos. */
+    /**
+     * Escopo do BR-04: o profissional vinculado vê o perfil, a saúde, as avaliações e as fotos. As restrições da v2 não
+     * entram aqui (mudaria o contrato do {@code VinculoAtivado}): o aceite delas é registrado pela versão do termo.
+     */
     public static final Set<SharedData> SCOPE = Collections.unmodifiableSet(EnumSet.allOf(SharedData.class));
 
     public static final String CURRENT_TEXT = """
