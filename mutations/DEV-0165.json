@@ -1,0 +1,205 @@
+{
+    "issue": "DEV-0165",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O training volta a projetar o vínculo ativado antes da exclusão da conta",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ProjectClientEvents.java",
+            "find": "        if (erasure.deletedAtOrAfter(clientId, occurredAt)) {\n            return;\n        }\n        if (LINK_TYPE.equals(type)) {\n            links.activate(",
+            "replace": "        if (LINK_TYPE.equals(type)) {\n            links.activate(",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O training volta a projetar o vínculo encerrado antes da exclusão da conta",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ProjectClientEvents.java",
+            "find": "        if (erasure.deletedAtOrAfter(clientId, occurredAt)) {\n            return;\n        }\n        if (LINK_TYPE.equals(type)) {\n            links.end(",
+            "replace": "        if (LINK_TYPE.equals(type)) {\n            links.end(",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "A lista de contas excluídas do training passa a valer para qualquer cliente",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcClientErasure.java",
+            "find": "where client_id = :c and deleted_at",
+            "replace": "where cast(:c as uuid) is not null and deleted_at",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "O training descarta o vínculo da conta que voltou depois da exclusão",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcClientErasure.java",
+            "find": "and deleted_at >= :at)",
+            "replace": "and cast(:at as timestamptz) is not null)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O training projeta o evento do mesmo instante da exclusão",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcClientErasure.java",
+            "find": "deleted_at >= :at",
+            "replace": "deleted_at > :at",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "O nutrition volta a projetar o vínculo ativado antes da exclusão da conta",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ProjectClientEvents.java",
+            "find": "        if (erasure.deletedAtOrAfter(clientId, occurredAt)) {\n            return;\n        }\n        if (LINK_TYPE.equals(type)) {\n            links.activate(",
+            "replace": "        if (LINK_TYPE.equals(type)) {\n            links.activate(",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "O nutrition volta a projetar o vínculo encerrado antes da exclusão da conta",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ProjectClientEvents.java",
+            "find": "        if (erasure.deletedAtOrAfter(clientId, occurredAt)) {\n            return;\n        }\n        if (LINK_TYPE.equals(type)) {\n            links.end(",
+            "replace": "        if (LINK_TYPE.equals(type)) {\n            links.end(",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "A lista de contas excluídas do nutrition passa a valer para qualquer cliente",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/JdbcClientErasure.java",
+            "find": "where client_id = :c and deleted_at",
+            "replace": "where cast(:c as uuid) is not null and deleted_at",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "O nutrition descarta o vínculo da conta que voltou depois da exclusão",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/JdbcClientErasure.java",
+            "find": "and deleted_at >= :at)",
+            "replace": "and cast(:at as timestamptz) is not null)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "O nutrition projeta o evento do mesmo instante da exclusão",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/JdbcClientErasure.java",
+            "find": "deleted_at >= :at",
+            "replace": "deleted_at > :at",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

@@ -9,8 +9,10 @@ import com.fithub.eventcontracts.EventContract;
 import com.fithub.eventcontracts.EventContracts;
 import com.fithub.testing.service.ServiceIntegrationTest;
 import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -313,6 +315,88 @@ class ClientEventsConsumerTest extends ServiceIntegrationTest {
         awaitProcessed(ending);
 
         assertThat(copies(client)).isEqualTo(1);
+    }
+
+    // DEV-0165: evento atrasado de quem já excluiu a conta (reprocessado da .dlq, por exemplo) não volta a gravar o id
+    // nem o
+    // nome do cliente. Um cliente que não excluiu a conta, no mesmo teste, continua sendo projetado.
+    // DEV-0165 (Code Review do PR #348): a conta que também é de profissional mantém o id ao excluir o lado cliente
+    // (DEV-0161). Se ela volta como cliente, o vínculo aceito depois da exclusão é projetado. O evento do mesmo
+    // instante da exclusão (o encerramento dos vínculos, na mesma transação) continua descartado. Os instantes são
+    // relativos ao relógio: o expurgo de 30 dias da lista, que roda na subida e a cada 6 h, não os alcança.
+    @Test
+    void vinculoDeContaQueVoltouDepoisDaExclusaoEProjetado() throws Exception {
+        UUID returned = UUID.randomUUID();
+        UUID sameInstant = UUID.randomUUID();
+        Instant event = Instant.now().truncatedTo(ChronoUnit.MICROS);
+        insertDeleted(returned, event.minus(Duration.ofHours(1)));
+        insertDeleted(sameInstant, event);
+
+        String activation = UUID.randomUUID().toString();
+        activateAt(UUID.randomUUID(), returned, UUID.randomUUID(), "personal_trainer", activation, event);
+        awaitProcessed(activation);
+        awaitProcessed(clientUpdated(returned, "Ana", event.plusSeconds(60).toString()));
+        String sameActivation = UUID.randomUUID().toString();
+        activateAt(UUID.randomUUID(), sameInstant, UUID.randomUUID(), "personal_trainer", sameActivation, event);
+        awaitProcessed(sameActivation);
+
+        assertThat(links(returned)).isEqualTo(1);
+        assertThat(copies(returned)).isEqualTo(1);
+        assertThat(links(sameInstant)).isZero();
+    }
+
+    private void insertDeleted(UUID client, Instant deletedAt) {
+        jdbc.sql("insert into deleted_account (client_id, deleted_at) values (:c, :at)")
+                .param("c", client)
+                .param("at", Timestamp.from(deletedAt))
+                .update();
+    }
+
+    private void activateAt(
+            UUID linkId, UUID client, UUID professional, String type, String eventId, Instant occurredAt) {
+        String payload = linkEvent(linkId, client, professional, type, "\"consentScope\": [\"profile\"]")
+                .replace("2026-11-23T12:00:00Z", occurredAt.toString());
+        assertThat(EventContracts.validate(EventContract.LINK_ACTIVATED_V1, payload))
+                .isEmpty();
+        publish("client.link-activated.v1", eventId, payload);
+    }
+
+    private int links(UUID client) {
+        return jdbc.sql("select count(*) from client_link where client_id = :c")
+                .param("c", client)
+                .query(Integer.class)
+                .single();
+    }
+
+    @Test
+    void eventoDeClienteQueJaExcluiuAContaNaoVoltaAProjecao() throws Exception {
+        UUID deleted = UUID.randomUUID();
+        UUID other = UUID.randomUUID();
+        jdbc.sql("insert into deleted_account (client_id, deleted_at) values (:c, now())")
+                .param("c", deleted)
+                .update();
+        UUID link = UUID.randomUUID();
+        UUID otherLink = UUID.randomUUID();
+
+        String activation = UUID.randomUUID().toString();
+        activate(link, deleted, UUID.randomUUID(), "personal_trainer", activation);
+        awaitProcessed(activation);
+        awaitProcessed(clientUpdated(deleted, "Excluída", "2026-11-23T10:00:00Z"));
+        String ending = UUID.randomUUID().toString();
+        end(UUID.randomUUID(), deleted, UUID.randomUUID(), "personal_trainer", ending);
+        awaitProcessed(ending);
+        String otherActivation = UUID.randomUUID().toString();
+        activate(otherLink, other, UUID.randomUUID(), "personal_trainer", otherActivation);
+        awaitProcessed(otherActivation);
+        awaitProcessed(clientUpdated(other, "Ana", "2026-11-23T10:00:00Z"));
+
+        assertThat(jdbc.sql("select count(*) from client_link where client_id = :c")
+                        .param("c", deleted)
+                        .query(Integer.class)
+                        .single())
+                .isZero();
+        assertThat(copies(deleted)).isZero();
+        assertThat(copies(other)).isEqualTo(1);
     }
 
     @Test

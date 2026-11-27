@@ -15,6 +15,12 @@ public interface ClientErasure {
      */
     void erase(UUID clientId, Instant at);
 
+    /**
+     * Se o cliente excluiu a conta no instante do evento ou depois dele (DEV-0165). Um evento posterior à exclusão
+     * é de uma conta que voltou: a conta que também é de profissional mantém o login e o id (DEV-0161).
+     */
+    boolean deletedAtOrAfter(UUID clientId, Instant occurredAt);
+
     /** Tira da lista as contas excluídas antes de {@code cutoff}. Devolve quantas saíram. */
     int purgeDeletedBefore(Instant cutoff);
 

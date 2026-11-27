@@ -57,6 +57,12 @@ microssegundos, a precisão do `timestamptz`. Data absoluta só com um relógio 
   - **Correção:** a data passou a ser `Instant.now().minus(1, DAYS).truncatedTo(MICROS)`, como no training e no
     nutrition.
   - **Prevenção:** esta regra.
+- **Revisão:** Code Review APPROVED do PR #348, no SHA `9ffef79` (LOW) — DEV-0165 (#297) · **PR:** #348
+  - **Impacto:** o `ClientEventsConsumerTest` do training e do nutrition semeava a lista `deleted_account` e os eventos
+    em 23/11/2026. O expurgo da lista roda na subida do contexto e a cada 6 h, numa thread própria; a partir de
+    23/12/2026, uma rodada no meio do teste apagaria a linha e faria o teste falhar às vezes.
+  - **Correção:** os instantes do teste (exclusão e eventos) são relativos a `Instant.now().truncatedTo(MICROS)`.
+  - **Prevenção:** vale também para o instante dentro do payload de evento, não só para a linha semeada no banco.
 
 ## teste-nao-apaga-dado-do-banco-compartilhado
 
