@@ -109,3 +109,21 @@ bloqueia.
     público, onde a borda responde 404, e o operador ficava sem administração.
   - **Correção:** `KC_HOSTNAME_ADMIN` com o endereço do túnel.
   - **Prevenção:** esta regra, a checagem do console pelo `127.0.0.1` no `prod-smoke.test.sh` e o mutante M10.
+
+## agendador-que-se-reagenda-tem-dono-e-intervalo-positivo
+
+**Regra:** trocar o `scheduleWithFixedDelay` por uma rodada que agenda a seguinte (para o intervalo variar com o
+resultado) tira duas garantias que o executor dava sozinho, e elas voltam no código: a rodada só se reagenda no
+executor que a criou e enquanto ele é o atual (senão, parar e voltar o serviço com uma rodada em curso abre uma segunda
+cadeia), e o intervalo configurado é recusado na subida quando é zero ou negativo (o `schedule` aceita e repete sem
+espera).
+
+### Ocorrências
+
+- **Revisão:** Code Review do PR #351, no SHA `4d504aa` (dois LOW) — DEV-0175 (#319) · **PR:** #351
+  - **Impacto:** no `DeletedLoginPurgeScheduler` do account-service, um `stop`/`start` durante uma rodada lenta no
+    Keycloak deixaria duas cadeias de rodadas; um `retry-interval` zero encheria o log com o Keycloak fora do ar.
+  - **Correção:** `cycle(owner)` só agenda se `scheduler == owner`, no próprio `owner`; o construtor recusa intervalos
+    que não são positivos.
+  - **Prevenção:** esta regra, os testes `pararEVoltarDuranteUmaRodadaNaoAbreUmaSegundaCadeia` e
+    `intervaloZeroOuNegativoERecusado` e os mutantes M4 a M7 de `mutations/DEV-0175.json`.
