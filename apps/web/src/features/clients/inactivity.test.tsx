@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
+import { Link, MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthProvider } from '@/features/auth/AuthProvider';
@@ -67,6 +67,8 @@ function renderAt(path: string, role: 'personal' | 'nutritionist' = 'personal') 
                                 <>
                                     <ClientsPage now={NOW} />
                                     <Search />
+                                    {/* Muda a URL na mesma rota, como voltar no navegador ou seguir um link. */}
+                                    <Link to="/app?inativos=14">limite de 14 dias</Link>
                                 </>
                             }
                         />
@@ -176,6 +178,36 @@ describe('clientes inativos (DEV-0097)', () => {
         expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível ler a última atividade');
         expect(screen.getByRole('link', { name: 'Carla' })).toBeInTheDocument();
         expect(screen.queryByText(/Sem atividade registrada|Inativo há/)).not.toBeInTheDocument();
+    });
+
+    // DEV-0159: com o filtro ligado e a atividade ainda sem resposta (carregando ou com erro), a tela não afirma que
+    // não há inativos.
+    it('sem a atividade, o filtro não diz que não há inativos', async () => {
+        const user = userEvent.setup();
+        replies.set(CLIENTS_URL, { status: 200, body: CLIENTS });
+        replies.set(TRAINING, { status: 500, body: { detail: 'Falhou.' } });
+        renderAt('/app');
+        await screen.findByRole('alert');
+
+        await user.click(screen.getByLabelText('Só os inativos'));
+        expect(screen.queryByText(/Nenhum cliente inativo/)).not.toBeInTheDocument();
+    });
+
+    // DEV-0159: o campo acompanha o limite quando a URL muda sem desmontar a tela.
+    it('mudar o limite na URL, na mesma rota, atualiza o campo', async () => {
+        const user = userEvent.setup();
+        replies.set(CLIENTS_URL, { status: 200, body: CLIENTS });
+        replies.set(TRAINING, {
+            status: 200,
+            body: [{ clientId: 'c2', lastActivityAt: '2026-11-10T12:00:00Z' }],
+        });
+        renderAt('/app?inativos=20');
+        await screen.findAllByText(/Sem atividade registrada/);
+        expect(screen.getByLabelText('Inativo depois de (dias)')).toHaveValue(20);
+
+        await user.click(screen.getByRole('link', { name: 'limite de 14 dias' }));
+        expect(screen.getByLabelText('Inativo depois de (dias)')).toHaveValue(14);
+        expect(item('Bruno')).toHaveTextContent('Inativo há 15 dias');
     });
 
     it('as regras: limite de 1 a 60, dias inteiros, sem registro conta como inativo, a mais recente vence', () => {

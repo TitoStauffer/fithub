@@ -227,5 +227,7 @@ suba o Keycloak pelo compose de `infra/`). A decisão dos papéis e dos clients 
   conta, vale a mais recente.
 - Quem está sem atividade há mais dias que o limite aparece como "Inativo há N dias"; quem nunca registrou, como "Sem
   atividade registrada", que também conta como inativo. O limite vai de 1 a 60 dias, com padrão 7, e fica na URL
-  (`?inativos=7`). "Só os inativos" filtra a lista.
-- Sem a atividade (erro da API), a tela avisa e não marca ninguém.
+  (`?inativos=7`); o campo acompanha a URL quando ela muda na mesma tela (voltar no navegador, link). "Só os
+  inativos" filtra a lista.
+- Sem a atividade (carregando ou com erro da API), a tela não marca ninguém nem afirma que não há inativos; com erro,
+  avisa (DEV-0159).

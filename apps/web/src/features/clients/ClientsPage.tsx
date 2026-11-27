@@ -41,6 +41,13 @@ export function ClientsPage({ now = new Date() }: { now?: Date }) {
     const threshold = inactiveThreshold(params.get('inativos'));
     // O campo guarda o que está sendo digitado; a URL só recebe um limite válido (apagar para digitar não volta a 7).
     const [draft, setDraft] = useState(String(threshold));
+    // A URL pode mudar na mesma rota (voltar no navegador, link para `?inativos=14`): o campo acompanha o limite novo.
+    // Ajuste durante a renderização, sem efeito, para o campo nunca mostrar um limite que a lista não usa (DEV-0159).
+    const [shownThreshold, setShownThreshold] = useState(threshold);
+    if (threshold !== shownThreshold) {
+        setShownThreshold(threshold);
+        setDraft(String(threshold));
+    }
     const [onlyInactive, setOnlyInactive] = useState(false);
 
     const clients = useQuery({ queryKey: CLIENTS_KEY, queryFn: () => api.listClients() });
@@ -116,7 +123,8 @@ export function ClientsPage({ now = new Date() }: { now?: Date }) {
                     Nenhum cliente vinculado ainda. Convide um cliente na aba Convites.
                 </p>
             ) : null}
-            {clients.data && clients.data.length > 0 && visible.length === 0 ? (
+            {/* Só com a atividade lida: carregando ou com erro, a tela ainda não sabe se há inativos (DEV-0159). */}
+            {activityReady && clients.data && clients.data.length > 0 && visible.length === 0 ? (
                 <p className="text-muted-foreground">Nenhum cliente inativo há mais de {threshold} dias.</p>
             ) : null}
             <ul className="space-y-2">
