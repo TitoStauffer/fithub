@@ -53,7 +53,22 @@ class HealthProfileController {
             List<HealthProfile.Condition> conditions,
 
             @Schema(description = "Texto livre opcional, até 1000 caracteres.", maxLength = HealthProfile.MAX_NOTES)
-            String notes) {}
+            String notes,
+
+            @Schema(
+                    nullable = true,
+                    description = "Aceite do termo do perfil de saúde; obrigatório (true) enquanto a conta não"
+                            + " aceitou a versão vigente (DEV-0179).")
+            Boolean consent,
+
+            @Schema(
+                    nullable = true,
+                    description = "Versão do termo que a tela mostrou, junto com o aceite.",
+                    example = "v1")
+            String termsVersion) {}
+
+    @Schema(name = "HealthConsentTerms", description = "Termo do perfil de saúde e se a conta já o aceitou (DEV-0179).")
+    record TermsResponse(String termsVersion, String termsText, boolean accepted) {}
 
     @Schema(name = "HealthProfile")
     record HealthResponse(
@@ -80,7 +95,8 @@ class HealthProfileController {
                                         schema = @Schema(implementation = HealthResponse.class))),
                 @ApiResponse(
                         responseCode = "400",
-                        description = "Campo inválido; errors[] traz o campo e a mensagem.",
+                        description =
+                                "Campo inválido, ou o termo do perfil de saúde ainda não aceito (campo consent); errors[] traz o campo e a mensagem.",
                         content =
                                 @Content(
                                         mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
@@ -94,15 +110,34 @@ class HealthProfileController {
                                         schema = @Schema(implementation = ApiProblem.class))),
                 @ApiResponse(
                         responseCode = "409",
-                        description = "A conta ainda não tem o perfil do cliente.",
+                        description =
+                                "A conta ainda não tem o perfil do cliente, ou o termo do perfil de saúde mudou depois que a tela o mostrou.",
                         content =
                                 @Content(
                                         mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
                                         schema = @Schema(implementation = ApiProblem.class)))
             })
     HealthResponse save(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody HealthRequest request) {
-        return HealthResponse.of(manageHealthProfile.save(
-                new ManageHealthProfile.Command(jwt.getSubject(), request.conditions(), request.notes())));
+        return HealthResponse.of(manageHealthProfile.save(new ManageHealthProfile.Command(
+                jwt.getSubject(), request.conditions(), request.notes(), request.consent(), request.termsVersion())));
+    }
+
+    @GetMapping(path = "/terms", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            summary = "Termo vigente do perfil de saúde e se a conta já o aceitou (DEV-0179)",
+            responses = {
+                @ApiResponse(responseCode = "200", description = "O termo e o aceite da conta."),
+                @ApiResponse(
+                        responseCode = "401",
+                        description = "Sem token válido.",
+                        content =
+                                @Content(
+                                        mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                                        schema = @Schema(implementation = ApiProblem.class)))
+            })
+    TermsResponse terms(@AuthenticationPrincipal Jwt jwt) {
+        ManageHealthProfile.Terms terms = manageHealthProfile.terms(jwt.getSubject());
+        return new TermsResponse(terms.version(), terms.text(), terms.accepted());
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
@@ -149,6 +184,13 @@ class HealthProfileController {
     @ExceptionHandler(InvalidProfileException.class)
     ProblemDetail invalidHealth(InvalidProfileException exception) {
         return ProfileProblems.invalid(exception);
+    }
+
+    @ExceptionHandler(ManageHealthProfile.TermsOutdatedException.class)
+    ProblemDetail termsOutdated(ManageHealthProfile.TermsOutdatedException exception) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.getMessage());
+        problem.setTitle("Termo desatualizado");
+        return problem;
     }
 
     @ExceptionHandler(ProfileRequiredException.class)

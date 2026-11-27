@@ -36,7 +36,7 @@ class HealthProfileApiTest extends ServiceIntegrationTest {
             """;
 
     private static final String HEALTH = """
-            {"conditions": ["HYPERTENSION", "DIABETES", "HYPERTENSION"], "notes": "  %s  "}
+            {"consent": true, "termsVersion": "v1", "conditions": ["HYPERTENSION", "DIABETES", "HYPERTENSION"], "notes": "  %s  "}
             """.formatted(MARKER);
 
     @Autowired
@@ -125,7 +125,7 @@ class HealthProfileApiTest extends ServiceIntegrationTest {
         save(account, HEALTH).andExpect(status().isOk());
 
         save(account, """
-                        {"conditions": []}
+                        {"consent": true, "termsVersion": "v1", "conditions": []}
                         """)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.conditions.length()").value(0))
@@ -152,7 +152,7 @@ class HealthProfileApiTest extends ServiceIntegrationTest {
         String account = accountWithProfile();
 
         save(account, """
-                        {"conditions": [], "notes": "%s"}
+                        {"consent": true, "termsVersion": "v1", "conditions": [], "notes": "%s"}
                         """.formatted(MARKER.repeat(60)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].field").value("notes"))
@@ -163,12 +163,12 @@ class HealthProfileApiTest extends ServiceIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].field").value("conditions"));
         save(account, """
-                        {"conditions": ["DIABETES", null]}
+                        {"consent": true, "termsVersion": "v1", "conditions": ["DIABETES", null]}
                         """)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].field").value("conditions"));
         save(account, """
-                        {"conditions": ["GRIPE"]}
+                        {"consent": true, "termsVersion": "v1", "conditions": ["GRIPE"]}
                         """).andExpect(status().isBadRequest());
 
         assertThat(healthRows(account)).isZero();
@@ -181,7 +181,7 @@ class HealthProfileApiTest extends ServiceIntegrationTest {
         save(account, HEALTH).andExpect(status().isOk());
         read(account).andExpect(status().isOk());
         save(account, """
-                        {"conditions": [], "notes": "%s"}
+                        {"consent": true, "termsVersion": "v1", "conditions": [], "notes": "%s"}
                         """.formatted(MARKER.repeat(60))).andExpect(status().isBadRequest());
         save(newAccount(), HEALTH).andExpect(status().isConflict());
 

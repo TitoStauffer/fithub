@@ -229,6 +229,13 @@
             "$ref" : "#/components/schemas/HealthProfile",
             "description" : "Ausente se o cliente nunca preencheu o perfil de saúde."
           },
+          "healthConsents" : {
+            "description" : "Aceites do termo do perfil de saúde (DEV-0179): versão e momento; vazio se nunca aceitou.",
+            "items" : {
+              "$ref" : "#/components/schemas/HealthConsentExport"
+            },
+            "type" : "array"
+          },
           "healthReads" : {
             "description" : "Só as leituras da saúde; o registro completo está em accessLog.",
             "items" : {
@@ -492,6 +499,34 @@
         },
         "type" : "object"
       },
+      "HealthConsentExport" : {
+        "description" : "Aceite do termo do perfil de saúde.",
+        "properties" : {
+          "grantedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "termsVersion" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "HealthConsentTerms" : {
+        "description" : "Termo do perfil de saúde e se a conta já o aceitou (DEV-0179).",
+        "properties" : {
+          "accepted" : {
+            "type" : "boolean"
+          },
+          "termsText" : {
+            "type" : "string"
+          },
+          "termsVersion" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "HealthProfile" : {
         "properties" : {
           "conditions" : {
@@ -523,10 +558,19 @@
             "type" : "array",
             "uniqueItems" : true
           },
+          "consent" : {
+            "description" : "Aceite do termo do perfil de saúde; obrigatório (true) enquanto a conta não aceitou a versão vigente (DEV-0179).",
+            "type" : [ "boolean", "null" ]
+          },
           "notes" : {
             "description" : "Texto livre opcional, até 1000 caracteres.",
             "maxLength" : 1000,
             "type" : "string"
+          },
+          "termsVersion" : {
+            "description" : "Versão do termo que a tela mostrou, junto com o aceite.",
+            "example" : "v1",
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "conditions" ],
@@ -1333,7 +1377,7 @@
     },
     "/clients/me/export" : {
       "get" : {
-        "description" : "Perfil, saúde, avaliações com as fotos (URL temporária de 5 minutos), vínculos com o consentimento de cada um, as leituras da saúde (healthReads) e o registro completo das leituras de dados sensíveis pelos profissionais (accessLog), sem o conteúdo. O app junta com a exportação do training e do nutrition.",
+        "description" : "Perfil, saúde e os aceites do termo do perfil de saúde, avaliações com as fotos (URL temporária de 5 minutos), vínculos com o consentimento de cada um, as leituras da saúde (healthReads) e o registro completo das leituras de dados sensíveis pelos profissionais (accessLog), sem o conteúdo. O app junta com a exportação do training e do nutrition.",
         "operationId" : "export",
         "responses" : {
           "200" : {
@@ -1440,7 +1484,7 @@
                 }
               }
             },
-            "description" : "Campo inválido; errors[] traz o campo e a mensagem."
+            "description" : "Campo inválido, ou o termo do perfil de saúde ainda não aceito (campo consent); errors[] traz o campo e a mensagem."
           },
           "401" : {
             "content" : {
@@ -1460,10 +1504,39 @@
                 }
               }
             },
-            "description" : "A conta ainda não tem o perfil do cliente."
+            "description" : "A conta ainda não tem o perfil do cliente, ou o termo do perfil de saúde mudou depois que a tela o mostrou."
           }
         },
         "summary" : "Grava o perfil de saúde da conta autenticada (substitui o anterior)",
+        "tags" : [ "Perfil de saúde" ]
+      }
+    },
+    "/clients/me/health/terms" : {
+      "get" : {
+        "operationId" : "terms",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HealthConsentTerms"
+                }
+              }
+            },
+            "description" : "O termo e o aceite da conta."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          }
+        },
+        "summary" : "Termo vigente do perfil de saúde e se a conta já o aceitou (DEV-0179)",
         "tags" : [ "Perfil de saúde" ]
       }
     },

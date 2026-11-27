@@ -28,6 +28,8 @@ const TODAY = new Date(2026, 10, 23);
 /** Nenhum link aberto pelo sistema. */
 const NO_LINK = { getInitialURL: async () => null, addEventListener: () => ({ remove: () => undefined }) };
 
+const TERMS_TEXT = 'Ao salvar, você autoriza o FitHub a guardar as condições de saúde.';
+
 function fakeApi(overrides: Partial<ProfileApi> = {}): ProfileApi & { saved: unknown[] } {
     const saved: unknown[] = [];
     return {
@@ -46,6 +48,11 @@ function fakeApi(overrides: Partial<ProfileApi> = {}): ProfileApi & { saved: unk
                 updatedAt: '2026-11-23T12:00:00Z',
             };
         }),
+        fetchHealthTerms: jest.fn(async () => ({
+            termsVersion: 'v1',
+            termsText: TERMS_TEXT,
+            accepted: true,
+        })),
         ...overrides,
     };
 }
@@ -186,6 +193,81 @@ describe('ProfileFormScreen', () => {
 });
 
 describe('HealthFormScreen', () => {
+    it('na primeira vez mostra o termo com a caixa desmarcada e só envia com ela marcada (DEV-0179)', async () => {
+        const user = userEvent.setup();
+        const api = fakeApi({
+            fetchProfile: jest.fn(async () => PROFILE),
+            fetchHealthTerms: jest.fn(async () => ({
+                termsVersion: 'v1',
+                termsText: TERMS_TEXT,
+                accepted: false,
+            })),
+        });
+        await render(<ClientArea api={api} linkSource={NO_LINK} />);
+        await user.press(await screen.findByRole('button', { name: 'Perfil de saúde' }));
+
+        expect(await screen.findByText(TERMS_TEXT)).toBeOnTheScreen();
+        const consent = screen.getByRole('checkbox', { name: 'Li e aceito o termo do perfil de saúde' });
+        expect(consent).not.toBeChecked();
+
+        await user.press(screen.getByRole('button', { name: 'Salvar saúde' }));
+        expect(screen.getByText('Para salvar, aceite o termo do perfil de saúde.')).toBeOnTheScreen();
+        expect(api.saveHealth).not.toHaveBeenCalled();
+
+        await user.press(consent);
+        await user.press(screen.getByRole('button', { name: 'Salvar saúde' }));
+
+        expect(await screen.findByText('Perfil de saúde salvo.')).toBeOnTheScreen();
+        expect(api.saved[0]).toEqual({ conditions: [], consent: true, termsVersion: 'v1' });
+        expect(screen.queryByText(TERMS_TEXT)).not.toBeOnTheScreen();
+    });
+
+    it('com o termo trocado enquanto a tela estava aberta, mostra o erro e volta a pedir o aceite', async () => {
+        const user = userEvent.setup();
+        const fetchHealthTerms = jest
+            .fn()
+            .mockResolvedValueOnce({ termsVersion: 'v1', termsText: TERMS_TEXT, accepted: true })
+            .mockResolvedValue({
+                termsVersion: 'v2',
+                termsText: 'Termo novo do perfil de saúde.',
+                accepted: false,
+            });
+        const api = fakeApi({
+            fetchProfile: jest.fn(async () => PROFILE),
+            fetchHealthTerms,
+            saveHealth: jest.fn(async () => {
+                throw new ApiProblemError(400, 'Um ou mais campos são inválidos.', {
+                    consent: 'Para salvar o perfil de saúde, aceite o termo do perfil de saúde.',
+                });
+            }),
+        });
+        await render(<ClientArea api={api} linkSource={NO_LINK} />);
+        await user.press(await screen.findByRole('button', { name: 'Perfil de saúde' }));
+
+        await user.press(await screen.findByRole('button', { name: 'Salvar saúde' }));
+
+        expect(
+            await screen.findByText('Para salvar o perfil de saúde, aceite o termo do perfil de saúde.'),
+        ).toBeOnTheScreen();
+        expect(await screen.findByText('Termo novo do perfil de saúde.')).toBeOnTheScreen();
+        expect(
+            screen.getByRole('checkbox', { name: 'Li e aceito o termo do perfil de saúde' }),
+        ).not.toBeChecked();
+    });
+
+    it('com o termo já aceito não mostra o termo nem manda o aceite', async () => {
+        const user = userEvent.setup();
+        const api = fakeApi({ fetchProfile: jest.fn(async () => PROFILE) });
+        await render(<ClientArea api={api} linkSource={NO_LINK} />);
+        await user.press(await screen.findByRole('button', { name: 'Perfil de saúde' }));
+
+        await user.press(await screen.findByRole('button', { name: 'Salvar saúde' }));
+
+        expect(await screen.findByText('Perfil de saúde salvo.')).toBeOnTheScreen();
+        expect(screen.queryByText(TERMS_TEXT)).not.toBeOnTheScreen();
+        expect(api.saved[0]).toEqual({ conditions: [] });
+    });
+
     it('mostra a saúde cadastrada e salva as condições e as observações', async () => {
         const user = userEvent.setup();
         const health: HealthProfile = {

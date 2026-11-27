@@ -87,7 +87,9 @@ class ClientExportTest extends ServiceIntegrationTest {
         mvc.perform(put("/clients/me/health")
                         .header("Authorization", "Bearer conta-" + client)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"conditions\": [\"HYPERTENSION\"], \"notes\": \"" + notes + "\"}"))
+                        .content(
+                                "{\"consent\": true, \"termsVersion\": \"v1\", \"conditions\": [\"HYPERTENSION\"], \"notes\": \""
+                                        + notes + "\"}"))
                 .andExpect(status().isOk());
         String assessment = json.readTree(mvc.perform(post("/clients/me/assessments")
                                 .header("Authorization", "Bearer conta-" + client)
@@ -132,6 +134,10 @@ class ClientExportTest extends ServiceIntegrationTest {
                 .andExpect(jsonPath("$.profile.name").value("Ana Cliente"))
                 .andExpect(jsonPath("$.health.notes").value("joelho"))
                 .andExpect(jsonPath("$.health.conditions[0]").value("HYPERTENSION"))
+                // O aceite do termo do perfil de saúde, base legal do dado (DEV-0179).
+                .andExpect(jsonPath("$.healthConsents.length()").value(1))
+                .andExpect(jsonPath("$.healthConsents[0].termsVersion").value("v1"))
+                .andExpect(jsonPath("$.healthConsents[0].grantedAt").value("2026-11-23T12:00:00Z"))
                 .andExpect(jsonPath("$.assessments.length()").value(1))
                 .andExpect(jsonPath("$.assessments[0].assessment.weightKg").value(64.0))
                 .andExpect(jsonPath("$.assessments[0].photos.length()").value(1))

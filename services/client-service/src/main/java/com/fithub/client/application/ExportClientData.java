@@ -3,6 +3,7 @@ package com.fithub.client.application;
 import com.fithub.client.domain.account.PrivacyRecords;
 import com.fithub.client.domain.assessment.Assessment;
 import com.fithub.client.domain.link.Link;
+import com.fithub.client.domain.profile.HealthConsents;
 import com.fithub.client.domain.profile.HealthProfile;
 import java.time.Clock;
 import java.time.Instant;
@@ -16,7 +17,8 @@ import org.springframework.stereotype.Service;
 
 /**
  * Exportação dos dados que o client-service tem do cliente (DEV-0104, NFR-01, LGPD art. 18, II e V): perfil, saúde,
- * avaliações com as fotos, vínculos com o consentimento de cada um e as leituras da saúde pelos profissionais. A conta
+ * avaliações com as fotos, vínculos com o consentimento de cada um, os aceites do termo do perfil de saúde (DEV-0179) e
+ * as leituras da saúde pelos profissionais. A conta
  * vem sempre do token; o app junta esta exportação com a do training e a do nutrition.
  */
 @Service
@@ -57,6 +59,7 @@ public class ExportClientData {
             Instant exportedAt,
             Optional<ManageClientProfile.Result> profile,
             Optional<HealthProfile> health,
+            List<HealthConsents.Accepted> healthConsents,
             List<AssessmentWithPhotos> assessments,
             List<LinkWithConsent> links,
             List<PrivacyRecords.HealthRead> healthReads,
@@ -71,6 +74,7 @@ public class ExportClientData {
                 clock.instant(),
                 profiles.findMine(clientAccount),
                 health.findMine(clientAccount),
+                health.consentsOf(clientAccount),
                 assessments.listMine(clientAccount).stream()
                         .map(assessment ->
                                 new AssessmentWithPhotos(assessment, photos.listMine(clientAccount, assessment.id())))

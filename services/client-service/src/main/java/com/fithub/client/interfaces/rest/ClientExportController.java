@@ -81,6 +81,9 @@ class ClientExportController {
         }
     }
 
+    @Schema(name = "HealthConsentExport", description = "Aceite do termo do perfil de saúde.")
+    record HealthConsentExport(String termsVersion, Instant grantedAt) {}
+
     // O nome some quando o profissional saiu da projeção.
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @Schema(
@@ -120,6 +123,11 @@ class ClientExportController {
             @Schema(description = "Ausente se o cliente nunca preencheu o perfil de saúde.")
             HealthProfileController.HealthResponse health,
 
+            @Schema(
+                    description =
+                            "Aceites do termo do perfil de saúde (DEV-0179): versão e momento; vazio se nunca aceitou.")
+            List<HealthConsentExport> healthConsents,
+
             List<AssessmentExport> assessments,
             List<LinkExport> links,
 
@@ -140,6 +148,9 @@ class ClientExportController {
                     export.health()
                             .map(HealthProfileController.HealthResponse::of)
                             .orElse(null),
+                    export.healthConsents().stream()
+                            .map(accepted -> new HealthConsentExport(accepted.termsVersion(), accepted.grantedAt()))
+                            .toList(),
                     export.assessments().stream()
                             .map(found -> new AssessmentExport(
                                     AssessmentController.AssessmentResponse.of(found.assessment()),
@@ -157,10 +168,11 @@ class ClientExportController {
     @PreAuthorize("hasRole('CLIENT')")
     @Operation(
             summary = "Exporta todos os dados que o client-service tem do cliente",
-            description = "Perfil, saúde, avaliações com as fotos (URL temporária de 5 minutos), vínculos com o"
-                    + " consentimento de cada um, as leituras da saúde (healthReads) e o registro completo das leituras"
-                    + " de dados sensíveis pelos profissionais (accessLog), sem o conteúdo. O app junta com a exportação"
-                    + " do training e do nutrition.",
+            description =
+                    "Perfil, saúde e os aceites do termo do perfil de saúde, avaliações com as fotos (URL temporária de 5 minutos), vínculos com o"
+                            + " consentimento de cada um, as leituras da saúde (healthReads) e o registro completo das leituras"
+                            + " de dados sensíveis pelos profissionais (accessLog), sem o conteúdo. O app junta com a exportação"
+                            + " do training e do nutrition.",
             responses = {
                 @ApiResponse(responseCode = "200", description = "Os dados do cliente."),
                 @ApiResponse(

@@ -34,6 +34,7 @@ Não coletamos IP nem identificador do aparelho no consentimento.
 |---|---|
 | Conta e funcionamento do app | Execução do contrato (art. 7º, V) |
 | Dados de saúde, avaliações, fotos e restrições compartilhados com o profissional, ou registrados por ele | Consentimento específico e destacado do cliente, no [termo de consentimento](termo-de-consentimento.md) de cada vínculo (art. 11, I). As restrições de mobilidade e alimentares estão no termo desde a versão v2 |
+| Perfil de saúde que o próprio cliente informa (condições e observações) | Consentimento específico do cliente, colhido no app na primeira vez que ele preenche o perfil de saúde, com a versão do termo e o momento (art. 11, I) |
 | Assinatura e cobrança do profissional | Execução do contrato e cumprimento de obrigação legal |
 | Registros de acesso de profissionais a dados sensíveis | Legítimo interesse e dever de segurança (art. 7º, IX, e art. 46; NFR-03) |
 

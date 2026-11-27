@@ -150,7 +150,7 @@ export interface paths {
         };
         /**
          * Exporta todos os dados que o client-service tem do cliente
-         * @description Perfil, saúde, avaliações com as fotos (URL temporária de 5 minutos), vínculos com o consentimento de cada um, as leituras da saúde (healthReads) e o registro completo das leituras de dados sensíveis pelos profissionais (accessLog), sem o conteúdo. O app junta com a exportação do training e do nutrition.
+         * @description Perfil, saúde e os aceites do termo do perfil de saúde, avaliações com as fotos (URL temporária de 5 minutos), vínculos com o consentimento de cada um, as leituras da saúde (healthReads) e o registro completo das leituras de dados sensíveis pelos profissionais (accessLog), sem o conteúdo. O app junta com a exportação do training e do nutrition.
          */
         get: operations["export"];
         put?: never;
@@ -172,6 +172,23 @@ export interface paths {
         get: operations["mine_1"];
         /** Grava o perfil de saúde da conta autenticada (substitui o anterior) */
         put: operations["save_1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clients/me/health/terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Termo vigente do perfil de saúde e se a conta já o aceitou (DEV-0179) */
+        get: operations["terms"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -523,6 +540,8 @@ export interface components {
             exportedAt?: string;
             /** @description Ausente se o cliente nunca preencheu o perfil de saúde. */
             health?: components["schemas"]["HealthProfile"];
+            /** @description Aceites do termo do perfil de saúde (DEV-0179): versão e momento; vazio se nunca aceitou. */
+            healthConsents?: components["schemas"]["HealthConsentExport"][];
             /** @description Só as leituras da saúde; o registro completo está em accessLog. */
             healthReads?: components["schemas"]["ClientExportHealthRead"][];
             links?: components["schemas"]["ClientExportLink"][];
@@ -643,6 +662,18 @@ export interface components {
             /** @description Link do convite; só aparece nesta resposta. */
             link?: string;
         };
+        /** @description Aceite do termo do perfil de saúde. */
+        HealthConsentExport: {
+            /** Format: date-time */
+            grantedAt?: string;
+            termsVersion?: string;
+        };
+        /** @description Termo do perfil de saúde e se a conta já o aceitou (DEV-0179). */
+        HealthConsentTerms: {
+            accepted?: boolean;
+            termsText?: string;
+            termsVersion?: string;
+        };
         HealthProfile: {
             conditions?: ("DIABETES" | "HYPERTENSION" | "PREGNANCY" | "RECENT_SURGERY" | "OTHER")[];
             notes?: string | null;
@@ -652,8 +683,15 @@ export interface components {
         HealthProfileRequest: {
             /** @description Condições marcadas; repetidas contam uma vez. */
             conditions: ("DIABETES" | "HYPERTENSION" | "PREGNANCY" | "RECENT_SURGERY" | "OTHER")[];
+            /** @description Aceite do termo do perfil de saúde; obrigatório (true) enquanto a conta não aceitou a versão vigente (DEV-0179). */
+            consent?: boolean | null;
             /** @description Texto livre opcional, até 1000 caracteres. */
             notes?: string;
+            /**
+             * @description Versão do termo que a tela mostrou, junto com o aceite.
+             * @example v1
+             */
+            termsVersion?: string | null;
         };
         Invitation: {
             /** Format: date-time */
@@ -1285,7 +1323,7 @@ export interface operations {
                     "application/json": components["schemas"]["HealthProfile"];
                 };
             };
-            /** @description Campo inválido; errors[] traz o campo e a mensagem. */
+            /** @description Campo inválido, ou o termo do perfil de saúde ainda não aceito (campo consent); errors[] traz o campo e a mensagem. */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1303,8 +1341,37 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description A conta ainda não tem o perfil do cliente. */
+            /** @description A conta ainda não tem o perfil do cliente, ou o termo do perfil de saúde mudou depois que a tela o mostrou. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    terms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O termo e o aceite da conta. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthConsentTerms"];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
