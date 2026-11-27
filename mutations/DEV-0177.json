@@ -1,0 +1,204 @@
+{
+    "issue": "DEV-0177",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "A exchange de outro serviço volta a ser declarada mesmo com declare-source-exchanges=false",
+            "area": "java",
+            "file": "libs/java-commons/src/main/java/com/fithub/commons/messaging/FithubMessagingProperties.java",
+            "find": "        exchange.setShouldDeclare(declareSourceExchanges);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AccountServiceSkeletonTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O account-service volta a declarar a exchange do client-service",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/messaging/ClientEventsListener.java",
+            "find": "messaging.sourceExchange(EXCHANGE)",
+            "replace": "new TopicExchange(EXCHANGE, true, false)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AccountServiceSkeletonTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O client-service volta a declarar a exchange do account-service",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/messaging/ProfessionalRegisteredListener.java",
+            "find": "messaging.sourceExchange(EXCHANGE)",
+            "replace": "new TopicExchange(EXCHANGE, true, false)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ClientServiceSkeletonTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "O training-service volta a declarar a exchange do account-service",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/messaging/AccountEventsListener.java",
+            "find": "messaging.sourceExchange(EXCHANGE)",
+            "replace": "new TopicExchange(EXCHANGE, true, false)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingServiceSkeletonTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O training-service volta a declarar a exchange do client-service",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/messaging/ClientEventsListener.java",
+            "find": "messaging.sourceExchange(EXCHANGE)",
+            "replace": "new TopicExchange(EXCHANGE, true, false)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=TrainingServiceSkeletonTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "O nutrition-service volta a declarar a exchange do account-service",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/messaging/AccountEventsListener.java",
+            "find": "messaging.sourceExchange(EXCHANGE)",
+            "replace": "new TopicExchange(EXCHANGE, true, false)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=NutritionServiceSkeletonTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "O nutrition-service volta a declarar a exchange do client-service",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/messaging/ClientEventsListener.java",
+            "find": "messaging.sourceExchange(EXCHANGE)",
+            "replace": "new TopicExchange(EXCHANGE, true, false)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=NutritionServiceSkeletonTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "Os testes dos serviços voltam a declarar as exchanges dos outros, diferente de produção",
+            "area": "java",
+            "file": "libs/java-testing/src/main/java/com/fithub/testing/service/ServiceIntegrationTest.java",
+            "find": "\"fithub.messaging.declare-source-exchanges=false\"",
+            "replace": "\"fithub.messaging.declare-source-exchanges=true\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AccountServiceSkeletonTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "O serviço volta a poder configurar (e apagar) as exchanges dos outros",
+            "area": "tools",
+            "file": "infra/compose/rabbitmq/init-users.sh",
+            "find": "--configure \"^($service\\..*|fithub\\.$service)\\$\"",
+            "replace": "--configure \"^($service\\..*|$exchanges)\\$\"",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "O administrador deixa de declarar as exchanges dos serviços",
+            "area": "tools",
+            "file": "infra/compose/rabbitmq/init-users.sh",
+            "find": "  admin declare exchange --name \"fithub.$service\" --type topic --durable true >/dev/null\n",
+            "replace": "",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "O compose de produção deixa de desligar a declaração das exchanges dos outros",
+            "area": "tools",
+            "file": "infra/compose/docker-compose.prod.yml",
+            "find": "  FITHUB_MESSAGING_DECLARE_SOURCE_EXCHANGES: \"false\"\n",
+            "replace": "",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        }
+    ]
+}

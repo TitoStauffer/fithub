@@ -1,5 +1,6 @@
 package com.fithub.nutrition.infrastructure.messaging;
 
+import com.fithub.commons.messaging.FithubMessagingProperties;
 import com.fithub.commons.messaging.ProcessedEvents;
 import com.fithub.nutrition.application.PrescriptionAccess;
 import java.time.Instant;
@@ -44,8 +45,8 @@ class AccountEventsListener {
     record SubscriptionChanged(UUID professionalId, Boolean active, Instant occurredAt, Instant validUntil) {}
 
     @Bean
-    Declarables accountEventsTopology() {
-        TopicExchange exchange = new TopicExchange(EXCHANGE, true, false);
+    Declarables accountEventsTopology(FithubMessagingProperties messaging) {
+        TopicExchange exchange = messaging.sourceExchange(EXCHANGE);
         Queue queue = QueueBuilder.durable(QUEUE)
                 .deadLetterExchange("")
                 .deadLetterRoutingKey(DEAD_LETTER_QUEUE)

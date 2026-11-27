@@ -144,7 +144,9 @@ O console usa o endereço do túnel (`KC_HOSTNAME_ADMIN`): abra pela porta 8080 
    `compose/.env.prod.example`, com cada `<...>` trocado e `chmod 600`. Cada usuário de banco tem a sua senha
    (`ACCOUNT_DB_PASSWORD`, `CLIENT_DB_PASSWORD`…, `KEYCLOAK_DB_PASSWORD`), e cada serviço recebe só a do seu banco.
    No RabbitMQ, o administrador (`RABBITMQ_ADMIN_*`) fica só para a operação: cada serviço tem o seu usuário
-   (`<SERVIÇO>_RABBITMQ_PASSWORD`), que só publica na própria exchange. No S3, o client e o nutrition têm cada um
+   (`<SERVIÇO>_RABBITMQ_PASSWORD`), que só publica na própria exchange e só configura as próprias filas e a própria
+   exchange. As quatro exchanges são declaradas pelo `rabbitmq-users`, e os serviços sobem com
+   `FITHUB_MESSAGING_DECLARE_SOURCE_EXCHANGES=false` (DEV-0177). No S3, o client e o nutrition têm cada um
    a sua identidade (`CLIENT_S3_*`, `NUTRITION_S3_*`), só com o próprio bucket.
 4. **Asaas (DEV-0100, [ADR-015](../docs/00-oficial/adr/ADR-015-pagamento-asaas.md)):**
    - crie a conta de produção (pede CNPJ, MEI serve, e conta bancária) e gere a chave da API;

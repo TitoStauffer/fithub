@@ -27,6 +27,8 @@ x-service: &service
 x-service-environment: &service-environment
   DB_HOST: postgres
   RABBITMQ_HOST: rabbitmq
+  # As exchanges dos outros serviços vêm do rabbitmq-users; o serviço não tem permissão de configurá-las (DEV-0177).
+  FITHUB_MESSAGING_DECLARE_SOURCE_EXCHANGES: "false"
   # O iss do token é o endereço público; as chaves vêm do Keycloak pela rede interna, sem sair da VPS.
   KEYCLOAK_ISSUER_URI: https://${FITHUB_DOMAIN:?defina FITHUB_DOMAIN no .env}/auth/realms/fithub
   SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/auth/realms/fithub/protocol/openid-connect/certs

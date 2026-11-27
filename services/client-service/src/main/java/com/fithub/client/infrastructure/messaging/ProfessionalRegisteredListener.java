@@ -2,6 +2,7 @@ package com.fithub.client.infrastructure.messaging;
 
 import com.fithub.client.application.RecordProfessional;
 import com.fithub.client.domain.professional.ProfessionalType;
+import com.fithub.commons.messaging.FithubMessagingProperties;
 import com.fithub.commons.messaging.ProcessedEvents;
 import java.time.Instant;
 import java.util.UUID;
@@ -46,9 +47,9 @@ class ProfessionalRegisteredListener {
     record Registered(UUID professionalId, String professionalType, String name, Instant occurredAt) {}
 
     @Bean
-    TopicExchange accountExchange() {
-        // Mesmas propriedades da declaração do account-service: durável, sem apagar sozinha.
-        return new TopicExchange(EXCHANGE, true, false);
+    TopicExchange accountExchange(FithubMessagingProperties messaging) {
+        // Mesmas propriedades da declaração do account-service; em produção, só o administrador do broker a declara.
+        return messaging.sourceExchange(EXCHANGE);
     }
 
     @Bean
@@ -65,9 +66,9 @@ class ProfessionalRegisteredListener {
     }
 
     @Bean
-    Binding professionalRegisteredBinding() {
+    Binding professionalRegisteredBinding(TopicExchange accountExchange) {
         return BindingBuilder.bind(professionalRegisteredQueue())
-                .to(accountExchange())
+                .to(accountExchange)
                 .with(ROUTING_KEY);
     }
 

@@ -128,6 +128,14 @@ broker $nutrition publish message --exchange fithub.nutrition --routing-key nutr
 # shellcheck disable=SC2086
 broker $nutrition publish message --exchange fithub.client --routing-key client.link-activated.v1 --payload '{}' \
   && fail "o nutrition-service publicou na exchange do client-service"
+# configure também vale para apagar: o serviço não apaga a exchange de outro nem a recria (DEV-0177).
+# shellcheck disable=SC2086
+broker $nutrition delete exchange --name fithub.client && fail "o nutrition-service apagou a exchange do client-service"
+# shellcheck disable=SC2086
+broker $nutrition declare exchange --name fithub.client --type topic --durable true \
+  && fail "o nutrition-service declarou a exchange do client-service"
+# shellcheck disable=SC2086
+$compose exec -T rabbitmq rabbitmqadmin --non-interactive --host localhost $admin list exchanges 2>/dev/null \n  | grep -q "fithub.account" || fail "o rabbitmq-users não declarou as exchanges dos serviços"
 
 # Cada API tem a sua rota: sem o serviço de pé, o Traefik responde 502 (rota existe), não 404.
 for service in account client training nutrition; do
