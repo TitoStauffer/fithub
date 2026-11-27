@@ -115,11 +115,8 @@ broker() {
 }
 admin="--username smoke-RABBITMQ_ADMIN_USER --password smoke-RABBITMQ_ADMIN_PASSWORD"
 nutrition="--username nutrition --password smoke-NUTRITION_RABBITMQ_PASSWORD"
+# As exchanges vêm do rabbitmq-users, que rodou acima (DEV-0177).
 # shellcheck disable=SC2086 # as credenciais são argumentos separados.
-broker $admin declare exchange --name fithub.client --type topic || fail "o administrador não declarou a exchange"
-# shellcheck disable=SC2086
-broker $admin declare exchange --name fithub.nutrition --type topic || fail "o administrador não declarou a exchange"
-# shellcheck disable=SC2086
 broker $admin declare user --name nutrition --password smoke-NUTRITION_RABBITMQ_PASSWORD --tags management \
   || fail "não deu a tag de teste ao usuário nutrition"
 # shellcheck disable=SC2086
@@ -135,7 +132,8 @@ broker $nutrition delete exchange --name fithub.client && fail "o nutrition-serv
 broker $nutrition declare exchange --name fithub.client --type topic --durable true \
   && fail "o nutrition-service declarou a exchange do client-service"
 # shellcheck disable=SC2086
-$compose exec -T rabbitmq rabbitmqadmin --non-interactive --host localhost $admin list exchanges 2>/dev/null \n  | grep -q "fithub.account" || fail "o rabbitmq-users não declarou as exchanges dos serviços"
+$compose exec -T rabbitmq rabbitmqadmin --non-interactive --host localhost $admin list exchanges 2>/dev/null \
+  | grep -q "fithub.account" || fail "o rabbitmq-users não declarou as exchanges dos serviços"
 
 # Cada API tem a sua rota: sem o serviço de pé, o Traefik responde 502 (rota existe), não 404.
 for service in account client training nutrition; do
