@@ -47,7 +47,10 @@ public interface LinkRepository {
     /** Versão do último termo aceito no vínculo (DEV-0160). */
     Optional<String> consentVersion(UUID linkId);
 
-    /** Grava um novo aceite do termo num vínculo que já existe (DEV-0160); o anterior continua no histórico. */
+    /**
+     * Grava um novo aceite do termo num vínculo que já existe (DEV-0160); o anterior continua no histórico. Um aceite por
+     * vínculo e versão: dois pedidos simultâneos gravam um só.
+     */
     void addConsent(Link link, Set<SharedData> scope, String termsVersion, Instant grantedAt);
 
     /** O banco recusou o vínculo: já existe um ativo do mesmo tipo para o cliente (BR-07). */

@@ -180,6 +180,46 @@
                 "-Dtest=LinkAcceptanceTest",
                 "-Dsurefire.failIfNoSpecifiedTests=false"
             ]
+        },
+        {
+            "id": "M10",
+            "description": "Dois novos aceites da mesma versão passam a dar erro no banco",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcLinkRepository.java",
+            "find": "                        on conflict (link_id, terms_version) do nothing\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkConsentRenewalTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "O banco deixa de garantir um aceite por vínculo e versão",
+            "area": "java",
+            "file": "services/client-service/src/main/resources/db/migration/V16__um_aceite_por_vinculo_e_versao.sql",
+            "find": "alter table consent add constraint uq_consent_link_version unique (link_id, terms_version);",
+            "replace": "select 1;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkConsentRenewalTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
         }
     ]
 }

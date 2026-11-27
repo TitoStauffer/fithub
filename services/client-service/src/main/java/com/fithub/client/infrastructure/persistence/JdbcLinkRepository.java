@@ -155,6 +155,7 @@ class JdbcLinkRepository implements LinkRepository {
         jdbc.sql("""
                         insert into consent (id, link_id, client_id, scope, terms_version, granted_at)
                         values (:id, :linkId, :clientId, :scope, :termsVersion, :grantedAt)
+                        on conflict (link_id, terms_version) do nothing
                         """)
                 .param("id", UuidV7.next(clock))
                 .param("linkId", link.id())

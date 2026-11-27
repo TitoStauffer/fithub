@@ -8,6 +8,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fithub.client.application.RecordProfessional;
+import com.fithub.client.domain.link.ConsentTerms;
+import com.fithub.client.domain.link.Link;
+import com.fithub.client.domain.link.LinkRepository;
 import com.fithub.client.domain.professional.ProfessionalType;
 import com.fithub.testing.service.ServiceIntegrationTest;
 import java.time.Instant;
@@ -39,6 +42,9 @@ class LinkConsentRenewalTest extends ServiceIntegrationTest {
 
     @Autowired
     RecordProfessional recordProfessional;
+
+    @Autowired
+    LinkRepository linkRepository;
 
     private String client(String name) throws Exception {
         String account = UUID.randomUUID().toString();
@@ -170,6 +176,35 @@ class LinkConsentRenewalTest extends ServiceIntegrationTest {
                 .andExpect(status().isNotFound());
 
         assertThat(consents(linkId)).isEqualTo(1);
+    }
+
+    // Dois novos aceites ao mesmo tempo chegariam ao repositório com o mesmo vínculo e a mesma versão (Code Review do
+    // PR #343): o banco grava um só.
+    @Test
+    void theSameVersionAcceptedTwiceOnALinkStaysOneRow() throws Exception {
+        String client = client("Ana");
+        String linkId = link(client, professional(ProfessionalType.PERSONAL_TRAINER, "Paula"));
+        acceptedOnV1(linkId);
+        Link link = linkRepository.findById(UUID.fromString(linkId)).orElseThrow();
+
+        linkRepository.addConsent(link, ConsentTerms.SCOPE, "v2", Instant.parse("2026-11-23T12:00:00Z"));
+        linkRepository.addConsent(link, ConsentTerms.SCOPE, "v2", Instant.parse("2026-11-23T12:00:01Z"));
+
+        assertThat(consents(linkId)).isEqualTo(2);
+    }
+
+    // A exportação mostra o vínculo uma vez, com o último aceite (Code Review do PR #343).
+    @Test
+    void theExportShowsTheLinkOnceWithTheLatestConsent() throws Exception {
+        String client = client("Ana");
+        String linkId = link(client, professional(ProfessionalType.NUTRITIONIST, "Nina"));
+        acceptedOnV1(linkId);
+        renew("conta-" + client, linkId, "true", "v2").andExpect(status().isOk());
+
+        mvc.perform(get("/clients/me/export").header("Authorization", "Bearer conta-" + client))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.links.length()").value(1))
+                .andExpect(jsonPath("$.links[0].consent.termsVersion").value("v2"));
     }
 
     @Test

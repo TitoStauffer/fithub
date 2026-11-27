@@ -196,8 +196,8 @@ Aplica o [ADR-012](../../docs/00-oficial/adr/ADR-012-retencao-e-exclusao.md):
   leu, de quem, o quê (`resource`: `HEALTH`, `ASSESSMENTS` ou `PHOTOS`) e quando, nunca o conteúdo.
 - Gravam: a saúde (DEV-0040), a lista de avaliações, a série corporal e as fotos de uma avaliação. A leitura do
   próprio cliente não grava.
-- **Expurgo:** a cada `fithub.access-log.purge-interval` (padrão 6 h), sai o que passou de 6 meses (Marco Civil,
-  art. 15; ADR-012, item 6). Fica mesmo depois da exclusão da conta, até o prazo.
+- **Expurgo:** a cada `fithub.access-log.purge-interval` (padrão 6 h), sai o que passou de 6 meses (legítimo
+  interesse e dever de segurança, LGPD art. 7º, IX, e art. 46; ADR-012, item 6). Fica mesmo depois da exclusão da conta, até o prazo.
 - **Exportação:** `accessLog` traz todas as leituras; `healthReads` segue só com as da saúde, por compatibilidade.
 
 ## Reaplicar as exclusões depois de restaurar um backup (DEV-0172)
