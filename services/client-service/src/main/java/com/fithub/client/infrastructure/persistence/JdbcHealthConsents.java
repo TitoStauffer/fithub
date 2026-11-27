@@ -6,7 +6,7 @@ import java.time.Instant;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Aceites do termo do perfil de saúde no Postgres do client-service (migration V16). */
+/** Aceites do termo do perfil de saúde no Postgres do client-service (migration V17). */
 @Repository
 class JdbcHealthConsents implements HealthConsents {
 
