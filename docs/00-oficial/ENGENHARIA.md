@@ -106,7 +106,8 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
   os dados básicos dos clientes (`ClienteAtualizado`). `ClientAccess` exige
   vínculo ativo em todo endpoint com `clientId` e responde 404 sem ele.
 - **Projeções locais:** cada serviço mantém uma cópia mínima do que precisa
-  dos outros. Exemplo: `training` mantém uma tabela de vínculos ativos para
+  dos outros. A cópia dos dados básicos do cliente só existe enquanto ele tem
+  vínculo ativo no serviço e sai quando o último vínculo termina (DEV-0153). Exemplo: `training` mantém uma tabela de vínculos ativos para
   decidir se o personal pode ver um aluno, sem perguntar ao `client-service` a
   cada request. Isso atende o NFR-06 (um lado cair não derruba o outro).
 - **Contratos de eventos** versionados em `libs/event-contracts` (JSON Schema).
@@ -122,7 +123,7 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
 |---|---|---|---|---|
 | `VinculoAtivado` (cliente, profissional, tipo, escopo) | `client.link-activated.v1` | client | training, nutrition | Liberar acesso do profissional |
 | `VinculoEncerrado` | `client.link-ended.v1` | client | training, nutrition | Cortar acesso |
-| `ClienteAtualizado` (nome, nascimento, gênero) | `client.client-updated.v1` | client | training, nutrition | Exibir dados básicos sem chamada síncrona |
+| `ClienteAtualizado` (nome, nascimento, gênero) | `client.client-updated.v1` | client | training, nutrition | Exibir dados básicos sem chamada síncrona. Também é gravado logo depois de cada `VinculoAtivado`, e os consumidores só guardam a cópia com vínculo ativo (DEV-0153) |
 | `ProfissionalCadastrado` / `AssinaturaAlterada` | `account.professional-registered.v1` / `account.subscription-changed.v1` | account | training, nutrition, client | Bloquear criação de prescrições sem assinatura |
 | `ContaExcluida` | `client.account-deleted.v1` | client | todos | Exclusão e anonimização (LGPD) |
 

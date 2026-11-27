@@ -12,6 +12,8 @@ import com.fithub.client.domain.link.LinkRuleException;
 import com.fithub.client.domain.professional.Professional;
 import com.fithub.client.domain.professional.ProfessionalDirectory;
 import com.fithub.client.domain.professional.ProfessionalType;
+import com.fithub.client.domain.profile.ClientEvents;
+import com.fithub.client.domain.profile.ClientProfile;
 import com.fithub.client.domain.profile.ClientProfileRepository;
 import com.fithub.client.domain.profile.ProfileRequiredException;
 import com.fithub.commons.ids.UuidV7;
@@ -35,6 +37,7 @@ public class AcceptInvitation {
     private final ClientProfileRepository profiles;
     private final LinkRepository links;
     private final LinkEvents events;
+    private final ClientEvents clientEvents;
     private final TransactionOperations transaction;
     private final Clock clock;
 
@@ -44,6 +47,7 @@ public class AcceptInvitation {
             ClientProfileRepository profiles,
             LinkRepository links,
             LinkEvents events,
+            ClientEvents clientEvents,
             TransactionOperations transaction,
             Clock clock) {
         this.invitations = invitations;
@@ -51,6 +55,7 @@ public class AcceptInvitation {
         this.profiles = profiles;
         this.links = links;
         this.events = events;
+        this.clientEvents = clientEvents;
         this.transaction = transaction;
         this.clock = clock;
     }
@@ -75,9 +80,8 @@ public class AcceptInvitation {
         if (!ConsentTerms.isCurrent(command.termsVersion())) {
             throw new TermsOutdatedException();
         }
-        if (profiles.findByAccountId(command.clientAccount()).isEmpty()) {
-            throw new ProfileRequiredException("Crie seu perfil antes de aceitar um convite.");
-        }
+        ClientProfile profile = profiles.findByAccountId(command.clientAccount())
+                .orElseThrow(() -> new ProfileRequiredException("Crie seu perfil antes de aceitar um convite."));
         UUID clientId = UUID.fromString(command.clientAccount());
         Target target = targetOf(command);
         Professional professional = target.professional();
@@ -103,6 +107,9 @@ public class AcceptInvitation {
                 links.saveWithConsent(link, ConsentTerms.SCOPE, ConsentTerms.CURRENT_VERSION, now);
                 // VinculoAtivado no outbox, na mesma transação do vínculo (DEV-0038).
                 events.activated(link, ConsentTerms.SCOPE);
+                // Logo depois, os dados básicos do cliente: o training e o nutrition só guardam a cópia com vínculo
+                // ativo (DEV-0153), então ela chega por aqui, na ordem do outbox.
+                clientEvents.updated(profile);
             } catch (LinkRepository.ActiveLinkConflict raced) {
                 // Outro aceite do mesmo tipo ganhou a corrida; a transação inteira (inclusive o convite) volta.
                 throw activeLinkRule(false, professional.type());

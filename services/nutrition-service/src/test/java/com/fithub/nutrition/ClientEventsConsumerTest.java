@@ -167,10 +167,11 @@ class ClientEventsConsumerTest extends ServiceIntegrationTest {
         UUID link = UUID.randomUUID();
         UUID client = UUID.randomUUID();
         UUID nutri = UUID.randomUUID();
-        clientUpdated(client, "Ana Cliente", "2026-11-23T10:00:00Z");
         String activation = UUID.randomUUID().toString();
         activate(link, client, nutri, "nutritionist", activation);
         awaitProcessed(activation);
+        // O client-service republica os dados básicos logo depois do VinculoAtivado (DEV-0153).
+        clientUpdated(client, "Ana Cliente", "2026-11-23T10:00:00Z");
         await(
                 () -> jdbc.sql("select count(*) from client where client_id = :id")
                                 .param("id", client)
@@ -256,6 +257,62 @@ class ClientEventsConsumerTest extends ServiceIntegrationTest {
         awaitProcessed(activation);
 
         assertThat(view(nutri, client)).isEqualTo(404);
+    }
+
+    private int copies(UUID client) {
+        return jdbc.sql("select count(*) from client where client_id = :id")
+                .param("id", client)
+                .query(Integer.class)
+                .single();
+    }
+
+    // Minimização (DEV-0153): sem vínculo ativo neste serviço, os dados básicos do cliente não são guardados.
+    @Test
+    void clienteSemVinculoAtivoNaoTemCopiaLocal() throws Exception {
+        UUID client = UUID.randomUUID();
+
+        awaitProcessed(clientUpdated(client, "Ana", "2026-11-23T10:00:00Z"));
+
+        assertThat(copies(client)).isZero();
+    }
+
+    @Test
+    void encerramentoDoUltimoVinculoApagaACopiaLocal() throws Exception {
+        UUID link = UUID.randomUUID();
+        UUID client = UUID.randomUUID();
+        UUID nutri = UUID.randomUUID();
+        String activation = UUID.randomUUID().toString();
+        activate(link, client, nutri, "nutritionist", activation);
+        awaitProcessed(activation);
+        awaitProcessed(clientUpdated(client, "Ana", "2026-11-23T10:00:00Z"));
+        assertThat(copies(client)).isEqualTo(1);
+
+        String ending = UUID.randomUUID().toString();
+        end(link, client, nutri, "nutritionist", ending);
+        awaitProcessed(ending);
+
+        assertThat(copies(client)).isZero();
+    }
+
+    // O encerramento de um vínculo antigo pode chegar depois da ativação de outro: a cópia continua.
+    @Test
+    void encerramentoDeVinculoAntigoNaoApagaACopiaDeQuemTemOutroAtivo() throws Exception {
+        UUID oldLink = UUID.randomUUID();
+        UUID newLink = UUID.randomUUID();
+        UUID client = UUID.randomUUID();
+        String first = UUID.randomUUID().toString();
+        activate(oldLink, client, UUID.randomUUID(), "nutritionist", first);
+        awaitProcessed(first);
+        String second = UUID.randomUUID().toString();
+        activate(newLink, client, UUID.randomUUID(), "nutritionist", second);
+        awaitProcessed(second);
+        awaitProcessed(clientUpdated(client, "Ana", "2026-11-23T10:00:00Z"));
+
+        String ending = UUID.randomUUID().toString();
+        end(oldLink, client, UUID.randomUUID(), "nutritionist", ending);
+        awaitProcessed(ending);
+
+        assertThat(copies(client)).isEqualTo(1);
     }
 
     @Test

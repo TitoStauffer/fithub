@@ -40,6 +40,13 @@ class JdbcClientDirectory implements ClientDirectory {
     }
 
     @Override
+    public void remove(UUID clientId) {
+        jdbc.sql("delete from client where client_id = :id")
+                .param("id", clientId)
+                .update();
+    }
+
+    @Override
     public Optional<ProjectedClient> find(UUID clientId) {
         return jdbc.sql("select client_id, name, birth_date, gender, updated_at from client where client_id = :id")
                 .param("id", clientId)

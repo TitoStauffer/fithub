@@ -18,4 +18,7 @@ public interface ClientDirectory {
     void update(ProjectedClient client);
 
     Optional<ProjectedClient> find(UUID clientId);
+
+    /** Apaga a cópia local do cliente (DEV-0153): sem vínculo ativo no serviço, ela não é mais necessária. */
+    void remove(UUID clientId);
 }

@@ -1,0 +1,265 @@
+{
+    "issue": "DEV-0153",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O training volta a guardar os dados de quem não tem vínculo ativo",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ProjectClientEvents.java",
+            "find": "        if (links.hasAnyActiveLink(client.clientId())) {",
+            "replace": "        if (true) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O training passa a apagar a cópia de quem ainda tem outro vínculo ativo",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ProjectClientEvents.java",
+            "find": "            if (!links.hasAnyActiveLink(clientId)) {",
+            "replace": "            if (true) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O training deixa de apagar a cópia no fim do último vínculo",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ProjectClientEvents.java",
+            "find": "                clients.remove(clientId);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "O training passa a contar vínculo encerrado como ativo",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcLinkProjection.java",
+            "find": "where client_id = :clientId and status = 'ACTIVE')",
+            "replace": "where client_id = :clientId)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O nutrition volta a guardar os dados de quem não tem vínculo ativo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ProjectClientEvents.java",
+            "find": "        if (links.hasAnyActiveLink(client.clientId())) {",
+            "replace": "        if (true) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "O nutrition passa a apagar a cópia de quem ainda tem outro vínculo ativo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ProjectClientEvents.java",
+            "find": "            if (!links.hasAnyActiveLink(clientId)) {",
+            "replace": "            if (true) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "O nutrition deixa de apagar a cópia no fim do último vínculo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ProjectClientEvents.java",
+            "find": "                clients.remove(clientId);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "O nutrition passa a contar vínculo encerrado como ativo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/JdbcLinkProjection.java",
+            "find": "where client_id = :clientId and status = 'ACTIVE')",
+            "replace": "where client_id = :clientId)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "O expurgo do training passa a manter a cópia de quem só tem vínculo encerrado",
+            "area": "java",
+            "file": "services/training-service/src/main/resources/db/migration/V19__copia_de_cliente_so_com_vinculo.sql",
+            "find": " and l.status = 'ACTIVE');",
+            "replace": ");",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientCopyPurgeMigrationTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "O expurgo do training passa a apagar a cópia de quem tem vínculo ativo",
+            "area": "java",
+            "file": "services/training-service/src/main/resources/db/migration/V19__copia_de_cliente_so_com_vinculo.sql",
+            "find": " where not exists (",
+            "replace": " where exists (",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientCopyPurgeMigrationTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "O expurgo do nutrition passa a manter a cópia de quem só tem vínculo encerrado",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V16__copia_de_cliente_so_com_vinculo.sql",
+            "find": " and l.status = 'ACTIVE');",
+            "replace": ");",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ClientCopyPurgeMigrationTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "O expurgo do nutrition passa a apagar a cópia de quem tem vínculo ativo",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/resources/db/migration/V16__copia_de_cliente_so_com_vinculo.sql",
+            "find": " where not exists (",
+            "replace": " where exists (",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ClientCopyPurgeMigrationTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M13",
+            "description": "O aceite deixa de republicar os dados básicos do cliente",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/AcceptInvitation.java",
+            "find": "                clientEvents.updated(profile);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=LinkEventsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

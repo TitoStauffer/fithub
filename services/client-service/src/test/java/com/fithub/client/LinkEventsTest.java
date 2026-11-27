@@ -236,6 +236,24 @@ class LinkEventsTest extends ServiceIntegrationTest {
         }
     }
 
+    // O training e o nutrition só guardam os dados básicos do cliente com vínculo ativo (DEV-0153): eles chegam
+    // num ClienteAtualizado gravado logo depois do VinculoAtivado, na mesma transação e na ordem do outbox.
+    @Test
+    void aceiteRepublicaOsDadosBasicosDoClienteLogoDepoisDoVinculoAtivado() throws Exception {
+        String client = client();
+        linkOf(client, professional());
+
+        List<String> sequence =
+                jdbc.sql("""
+                        select routing_key from fithub_outbox_event
+                         where payload ->> 'clientId' = :clientId order by sequence
+                        """).param("clientId", client).query(String.class).list();
+        assertThat(sequence).containsExactly("client.client-updated.v1", ACTIVATED, "client.client-updated.v1");
+        String republished = outbox("client.client-updated.v1", client).getLast();
+        assertThat(EventContracts.validate(EventContract.CLIENT_UPDATED_V1, republished))
+                .isEmpty();
+    }
+
     @Test
     void aceiteDesfeitoNaoDeixaVinculoNemEvento() throws Exception {
         String client = client();

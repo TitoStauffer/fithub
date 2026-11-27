@@ -50,6 +50,14 @@ class JdbcLinkProjection implements LinkProjection {
     }
 
     @Override
+    public boolean hasAnyActiveLink(UUID clientId) {
+        return jdbc.sql("select exists (select 1 from client_link where client_id = :clientId and status = 'ACTIVE')")
+                .param("clientId", clientId)
+                .query(Boolean.class)
+                .single();
+    }
+
+    @Override
     public boolean hasActiveLink(UUID professionalId, UUID clientId) {
         return jdbc.sql("""
                         select exists (select 1 from client_link
