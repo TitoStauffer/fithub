@@ -77,3 +77,12 @@ caso, escreva `coluna IS NOT NULL AND coluna IN (...)`, e teste a constraint com
     constraint; mutantes da PK e da FK em `mutations/DEV-0179.json`.
   - **Prevenção:** ao escrever a migration, montar a tabela condição × teste × mutante **antes** de abrir o PR, começando
     pela migration, e não depois da revisão.
+- **Revisão:** Code Review do PR #345, no SHA `c5ddbe4` (MEDIUM) — DEV-0153 (#215) · **PR:** #345
+  - **Impacto:** as migrations V19 (training) e V16 (nutrition) apagam dado com um `delete ... where not exists (...
+    status = 'ACTIVE')`, sem teste nem mutante. Com a condição errada, cópias de clientes com vínculo ativo seriam
+    apagadas de forma irreversível; frouxa, a minimização não aconteceria.
+  - **Correção:** `ClientCopyPurgeMigrationTest` por serviço roda o SQL do próprio arquivo da migration numa transação
+    desfeita no fim (o banco de teste é compartilhado) e confere quem fica; mutantes M9 a M12 de
+    `mutations/DEV-0153.json`.
+  - **Prevenção:** migration de dados (`delete`, `update` em massa) é guarda também: cada condição do `where` entra na
+    tabela de mutantes, com teste que lê o SQL do arquivo e roda numa transação desfeita.
