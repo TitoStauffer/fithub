@@ -5,6 +5,7 @@ import com.fithub.account.domain.subscription.SubscriptionRepository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -42,6 +43,20 @@ class JdbcSubscriptionRepository implements SubscriptionRepository {
                          where professional_id = :professionalId
                         """)
                 .param("professionalId", professionalId)
+                .query(JdbcSubscriptionRepository::map)
+                .optional();
+    }
+
+    @Override
+    public Optional<Subscription> extendPaidUntil(UUID professionalId, Instant until) {
+        return jdbc.sql("""
+                        update subscription
+                           set paid_until = greatest(coalesce(paid_until, :until), :until)
+                         where professional_id = :professionalId
+                        returning professional_id, plan, trial_ends_at, paid_until, created_at
+                        """)
+                .param("professionalId", professionalId)
+                .param("until", Timestamp.from(until))
                 .query(JdbcSubscriptionRepository::map)
                 .optional();
     }

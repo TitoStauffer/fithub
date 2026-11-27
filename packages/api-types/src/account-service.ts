@@ -42,6 +42,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/professionals/me/subscription/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cria o checkout da assinatura mensal no Asaas e devolve o link de pagamento */
+        post: operations["startSubscriptionCheckout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -121,6 +138,14 @@ export interface components {
              * @description Até quando o profissional pode prescrever: o maior entre o teste e o pago.
              */
             validUntil?: string;
+        };
+        SubscriptionCheckout: {
+            /** @description Página de pagamento do Asaas, só com cartão de crédito. */
+            checkoutUrl?: string;
+            /** @description Se o valor é o preço de lançamento, que vale nos primeiros meses pagos. */
+            launchPrice?: boolean;
+            /** @description Valor mensal da primeira cobrança. */
+            value?: number;
         };
     };
     responses: never;
@@ -258,6 +283,53 @@ export interface operations {
             };
             /** @description A conta ainda não tem cadastro de profissional. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    startSubscriptionCheckout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O checkout, com o link e o valor. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionCheckout"];
+                };
+            };
+            /** @description Sem token válido. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A conta ainda não tem cadastro de profissional. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description A assinatura já tem período pago valendo, ou já existe assinatura no Asaas. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

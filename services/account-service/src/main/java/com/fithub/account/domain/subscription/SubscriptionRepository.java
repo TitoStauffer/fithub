@@ -1,5 +1,6 @@
 package com.fithub.account.domain.subscription;
 
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -10,4 +11,10 @@ public interface SubscriptionRepository {
     void add(Subscription subscription);
 
     Optional<Subscription> findByProfessional(UUID professionalId);
+
+    /**
+     * Estende o período pago até {@code until} (DEV-0100); um pagamento mais antigo que chega depois nunca encurta.
+     * Devolve a assinatura como ficou, ou vazio se o profissional não tem assinatura.
+     */
+    Optional<Subscription> extendPaidUntil(UUID professionalId, Instant until);
 }

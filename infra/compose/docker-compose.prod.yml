@@ -218,6 +218,13 @@ services:
       KEYCLOAK_URL: http://keycloak:8080/auth
       FITHUB_ACCOUNT_SERVICE_SECRET: ${FITHUB_ACCOUNT_SERVICE_SECRET:?defina FITHUB_ACCOUNT_SERVICE_SECRET no .env}
       LOGGING_FILE_NAME: /logs/account-service.log
+      # Pagamento da assinatura pelo Asaas (DEV-0100): API de produção, a chave e o token do webhook só do .env. A
+      # volta do checkout leva o profissional à tela de assinatura da web.
+      ASAAS_BASE_URL: ${ASAAS_BASE_URL:-https://api.asaas.com/v3}
+      ASAAS_API_KEY: ${ASAAS_API_KEY:?defina ASAAS_API_KEY no .env}
+      ASAAS_WEBHOOK_TOKEN: ${ASAAS_WEBHOOK_TOKEN:?defina ASAAS_WEBHOOK_TOKEN no .env}
+      FITHUB_PAYMENT_SUCCESS_URL: https://${FITHUB_DOMAIN:?defina FITHUB_DOMAIN no .env}/assinatura?retorno=sucesso
+      FITHUB_PAYMENT_CANCEL_URL: https://${FITHUB_DOMAIN:?defina FITHUB_DOMAIN no .env}/assinatura?retorno=cancelado
 
   client-service:
     <<: *service

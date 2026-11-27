@@ -1,0 +1,1591 @@
+{
+    "issue": "DEV-0100",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "A conta sem cadastro de profissional deixa de receber 404",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/StartCheckout.java",
+            "find": "        if (professional.isEmpty()) {",
+            "replace": "        if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "A assinatura com período pago valendo passa a receber outro checkout",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/StartCheckout.java",
+            "find": "== Subscription.Status.ACTIVE",
+            "replace": "== null",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "A primeira cobrança passa a vencer hoje mesmo no teste grátis",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/StartCheckout.java",
+            "find": "trialEnd.isAfter(today) ? trialEnd : today",
+            "replace": "today",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "A primeira cobrança passa a vencer no fim do teste mesmo depois dele",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/StartCheckout.java",
+            "find": "trialEnd.isAfter(today) ? trialEnd : today",
+            "replace": "trialEnd",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O dia da data de corte deixa de ter o preço de lançamento",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/domain/payment/Pricing.java",
+            "find": "today.isAfter(launchUntil)",
+            "replace": "!today.isBefore(launchUntil)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=PricingTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "O preço de lançamento zero passa a ser aceito",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/domain/payment/Pricing.java",
+            "find": "if (launch.signum() <= 0) {",
+            "replace": "if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=PricingTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "O preço de lançamento acima do cheio passa a ser aceito",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/domain/payment/Pricing.java",
+            "find": "launch.compareTo(monthly) > 0",
+            "replace": "false",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=PricingTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "O preço de lançamento de 0 mês passa a ser aceito",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/domain/payment/Pricing.java",
+            "find": "launchMonths < 1",
+            "replace": "launchMonths < 0",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=PricingTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M9",
+            "description": "O token curto demais passa a valer",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/interfaces/rest/AsaasWebhookController.java",
+            "find": "token.length() >= MIN_TOKEN_LENGTH ?",
+            "replace": "true ?",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AsaasWebhookAuthTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M10",
+            "description": "A requisição sem o header do token deixa de ser recusada antes da comparação",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/interfaces/rest/AsaasWebhookController.java",
+            "find": "                && received != null\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AsaasWebhookAuthTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "O evento sem tipo deixa de ser recusado com 400",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/interfaces/rest/AsaasWebhookController.java",
+            "find": "event == null || event.event() == null",
+            "replace": "event == null",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "O webhook deixa de ser público e passa a exigir o JWT",
+            "area": "java",
+            "file": "services/account-service/src/main/resources/application.yml",
+            "find": "      - /webhooks/asaas\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M13",
+            "description": "Evento que não é de cobrança confirmada passa a estender o período pago",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": "CONFIRMED.contains(type) && ",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M14",
+            "description": "A cobrança sem assinatura deixa de ser ignorada",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": "\n                || payment.subscriptionId() == null",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M15",
+            "description": "A cobrança de assinatura sem checkout do FitHub deixa de ser ignorada",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": "        if (subscription.isEmpty()) {",
+            "replace": "        if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M16",
+            "description": "A mesma cobrança passa a estender o período de novo",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": "if (!records.addPayment(payment.id(), subscription.get(), payment.value(), payment.dueDate(), now)) {",
+            "replace": "if (!records.addPayment(payment.id(), subscription.get(), payment.value(), payment.dueDate(), now) && false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M17",
+            "description": "O período pago perde o dia de folga para a próxima cobrança",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": ".plusMonths(1).plusDays(1)",
+            "replace": ".plusMonths(1)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M18",
+            "description": "Um pagamento mais antigo que chega depois passa a encurtar o período pago",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/persistence/JdbcSubscriptionRepository.java",
+            "find": "set paid_until = greatest(coalesce(paid_until, :until), :until)",
+            "replace": "set paid_until = :until",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M19",
+            "description": "A assinatura sem preço de lançamento passa a mudar de valor",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": "!subscription.launch() || ",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M20",
+            "description": "O fim do lançamento passa a trocar o valor a cada pagamento",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": " || subscription.launchEnded()",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M21",
+            "description": "O preço de lançamento passa a terminar um mês depois",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": ">= pricing.launchMonths()",
+            "replace": "> pricing.launchMonths()",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M22",
+            "description": "O checkout passa a aceitar Pix",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/payment/AsaasPaymentGateway.java",
+            "find": "List.of(\"CREDIT_CARD\")",
+            "replace": "List.of(\"CREDIT_CARD\", \"PIX\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AsaasPaymentGatewayTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M23",
+            "description": "O checkout deixa de ser recorrente",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/payment/AsaasPaymentGateway.java",
+            "find": "List.of(\"RECURRENT\")",
+            "replace": "List.of(\"DETACHED\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AsaasPaymentGatewayTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M24",
+            "description": "A troca de valor deixa de valer para as cobranças já geradas",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/payment/AsaasPaymentGateway.java",
+            "find": "\"updatePendingPayments\", true",
+            "replace": "\"updatePendingPayments\", false",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AsaasPaymentGatewayTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M25",
+            "description": "A assinatura deixa de ser ligada pelo checkoutSession",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/payment/AsaasPaymentGateway.java",
+            "find": "SubscriptionResponse::checkoutSession",
+            "replace": "SubscriptionResponse::id",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AsaasPaymentGatewayTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M26",
+            "description": "O teste terminado deixa de separar por tipo",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/metrics/PaymentMetrics.java",
+            "find": "\" where p.type = :type and s.trial_ends_at <= :now\")",
+            "replace": "\" where cast(:type as text) is not null and s.trial_ends_at <= :now\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=PaymentMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M27",
+            "description": "O profissional ainda em teste passa a contar como teste terminado",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/metrics/PaymentMetrics.java",
+            "find": "\" where p.type = :type and s.trial_ends_at <= :now\")",
+            "replace": "\" where p.type = :type\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=PaymentMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M28",
+            "description": "O profissional ainda em teste passa a contar na conversão",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/metrics/PaymentMetrics.java",
+            "find": "\" where p.type = :type and s.trial_ends_at <= :now and exists (\"",
+            "replace": "\" where p.type = :type and exists (\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=PaymentMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M29",
+            "description": "A conversão deixa de exigir cobrança confirmada",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/metrics/PaymentMetrics.java",
+            "find": "\"select 1 from subscription_payment m where m.professional_id = p.id)\")",
+            "replace": "\"select 1)\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=PaymentMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M30",
+            "description": "A conversão deixa de separar por tipo",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/metrics/PaymentMetrics.java",
+            "find": "\" where p.type = :type and s.trial_ends_at <= :now and exists (\"",
+            "replace": "\" where cast(:type as text) is not null and s.trial_ends_at <= :now and exists (\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=PaymentMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M31",
+            "description": "A cobrança antes do mês passado passa a contar no mês passado",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/metrics/PaymentMetrics.java",
+            "find": "\" and m.due_date between :start and :end)\")",
+            "replace": "\" and m.due_date <= :end)\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=PaymentMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M32",
+            "description": "A cobrança deste mês passa a contar no mês passado",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/metrics/PaymentMetrics.java",
+            "find": "\" and m.due_date between :start and :end)\")",
+            "replace": "\" and m.due_date >= :start)\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=PaymentMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M33",
+            "description": "Os pagos no mês passado deixam de separar por tipo",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/metrics/PaymentMetrics.java",
+            "find": "\"select count(distinct p.id) from professional p where p.type = :type and exists (\"",
+            "replace": "\"select count(distinct p.id) from professional p where cast(:type as text) is not null and exists (\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=PaymentMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M34",
+            "description": "A retenção passa a aceitar cobrança antes do mês passado",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/metrics/PaymentMetrics.java",
+            "find": "\" and m.due_date between :lastStart and :lastEnd)\"",
+            "replace": "\" and m.due_date <= :lastEnd)\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=PaymentMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M35",
+            "description": "A retenção passa a aceitar cobrança deste mês como do mês passado",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/metrics/PaymentMetrics.java",
+            "find": "\" and m.due_date between :lastStart and :lastEnd)\"",
+            "replace": "\" and m.due_date >= :lastStart)\"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=PaymentMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M36",
+            "description": "A retenção passa a aceitar cobrança de meses passados como deste mês",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/metrics/PaymentMetrics.java",
+            "find": "\" and m.due_date between :currentStart and :currentEnd)\")",
+            "replace": "\" and m.due_date <= :currentEnd)\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=PaymentMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M37",
+            "description": "A retenção passa a aceitar cobrança do mês que vem como deste mês",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/metrics/PaymentMetrics.java",
+            "find": "\" and m.due_date between :currentStart and :currentEnd)\")",
+            "replace": "\" and m.due_date >= :currentStart)\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=PaymentMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M38",
+            "description": "A retenção deixa de separar por tipo",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/metrics/PaymentMetrics.java",
+            "find": "\"select count(distinct p.id) from professional p where p.type = :type\"\n",
+            "replace": "\"select count(distinct p.id) from professional p where cast(:type as text) is not null\"\n",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=PaymentMetricsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M39",
+            "description": "A chave do Asaas ganha valor padrão e deixa de ser obrigatória",
+            "area": "tools",
+            "file": "infra/compose/docker-compose.prod.yml",
+            "find": "${ASAAS_API_KEY:?defina ASAAS_API_KEY no .env}",
+            "replace": "${ASAAS_API_KEY:-}",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M40",
+            "description": "O token do webhook ganha valor padrão e deixa de ser obrigatório",
+            "area": "tools",
+            "file": "infra/compose/docker-compose.prod.yml",
+            "find": "${ASAAS_WEBHOOK_TOKEN:?defina ASAAS_WEBHOOK_TOKEN no .env}",
+            "replace": "${ASAAS_WEBHOOK_TOKEN:-}",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M41",
+            "description": "O evento de cobrança sem a cobrança deixa de ser ignorado",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": "CONFIRMED.contains(type) && payment != null",
+            "replace": "CONFIRMED.contains(type)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M42",
+            "description": "A cobrança recebida sem a confirmada deixa de estender o período pago",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": "Set.of(\"PAYMENT_CONFIRMED\", \"PAYMENT_RECEIVED\")",
+            "replace": "Set.of(\"PAYMENT_CONFIRMED\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M43",
+            "description": "O evento de assinatura sem a assinatura deixa de ser ignorado",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": "        if (subscriptionId != null) {",
+            "replace": "        if (true) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M44",
+            "description": "A assinatura criada deixa de ser ligada ao checkout",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": "if (SUBSCRIPTION_CREATED.equals(type)",
+            "replace": "if (false",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M45",
+            "description": "A assinatura apagada ou inativada deixa de liberar novo checkout",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": "        if (SUBSCRIPTION_ENDED.contains(type)) {",
+            "replace": "        if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M46",
+            "description": "A assinatura inativada deixa de liberar novo checkout",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": "Set.of(\"SUBSCRIPTION_INACTIVATED\", \"SUBSCRIPTION_DELETED\")",
+            "replace": "Set.of(\"SUBSCRIPTION_DELETED\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M47",
+            "description": "A assinatura apagada deixa de liberar novo checkout",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": "Set.of(\"SUBSCRIPTION_INACTIVATED\", \"SUBSCRIPTION_DELETED\")",
+            "replace": "Set.of(\"SUBSCRIPTION_INACTIVATED\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M48",
+            "description": "A cobrança sem id deixa de ser ignorada",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": "payment.id() == null\n                || ",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M49",
+            "description": "A cobrança sem vencimento deixa de ser ignorada",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": "\n                || payment.dueDate() == null",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M50",
+            "description": "Outra assinatura do mesmo checkout passa a ser aceita",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": "return records.findSubscription(subscriptionId);",
+            "replace": "return Optional.of(new PaymentRecords.SubscriptionRecord(subscriptionId, checkout.professionalId(), checkout.launch(), false));",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M51",
+            "description": "A ligação repetida de um checkout passa a falhar",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/persistence/JdbcPaymentRecords.java",
+            "find": " values (?, ?, ?, ?)\"\n                        + \" on conflict do nothing\")",
+            "replace": " values (?, ?, ?, ?)\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M52",
+            "description": "Com assinatura viva no Asaas, passa a abrir outro checkout",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/StartCheckout.java",
+            "find": "        if (records.hasLiveSubscription(professionalId)) {",
+            "replace": "        if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M53",
+            "description": "A assinatura encerrada continua bloqueando novo checkout",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/persistence/JdbcPaymentRecords.java",
+            "find": " and ended_at is null)\")",
+            "replace": ")\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M54",
+            "description": "A assinatura viva de outro profissional passa a bloquear o checkout",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/persistence/JdbcPaymentRecords.java",
+            "find": "from payment_subscription where professional_id = ? and",
+            "replace": "from payment_subscription where cast(? as uuid) is not null and",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M55",
+            "description": "O checkout aberto deixa de ser reaproveitado",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/StartCheckout.java",
+            "find": "        if (open.isPresent()) {",
+            "replace": "        if (false) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M56",
+            "description": "O checkout de 23 h passa a ser reaproveitado",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/StartCheckout.java",
+            "find": "Duration.ofHours(23)",
+            "replace": "Duration.ofHours(24)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M57",
+            "description": "O checkout de 22 h 59 min deixa de ser reaproveitado",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/StartCheckout.java",
+            "find": "Duration.ofHours(23)",
+            "replace": "Duration.ofHours(22)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M58",
+            "description": "O checkout aberto de outro profissional passa a ser reaproveitado",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/persistence/JdbcPaymentRecords.java",
+            "find": "where c.professional_id = ? and c.created_at > ?",
+            "replace": "where cast(? as uuid) is not null and c.created_at > ?",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M59",
+            "description": "O checkout vencido passa a ser reaproveitado",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/persistence/JdbcPaymentRecords.java",
+            "find": "where c.professional_id = ? and c.created_at > ?",
+            "replace": "where c.professional_id = ? and cast(? as timestamptz) is not null",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M60",
+            "description": "O checkout que já gerou assinatura passa a ser reaproveitado",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/persistence/JdbcPaymentRecords.java",
+            "find": "                        + \" and not exists (select 1 from payment_subscription s where s.checkout_id = c.id)\"\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M61",
+            "description": "O checkout de valor zero passa a ser aceito pelo banco",
+            "area": "java",
+            "file": "services/account-service/src/main/resources/db/migration/V7__pagamento.sql",
+            "find": "    created_at timestamptz not null,\n    constraint ck_payment_checkout_value check (value > 0)",
+            "replace": "    created_at timestamptz not null",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M62",
+            "description": "Duas assinaturas passam a ser ligadas ao mesmo checkout",
+            "area": "java",
+            "file": "services/account-service/src/main/resources/db/migration/V7__pagamento.sql",
+            "find": ",\n    constraint uq_payment_subscription_checkout unique (checkout_id)",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M63",
+            "description": "A resposta do Asaas sem corpo deixa de ser recusada com mensagem clara",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/payment/AsaasPaymentGateway.java",
+            "find": "response == null || response.id() == null",
+            "replace": "response.id() == null",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AsaasPaymentGatewayTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M64",
+            "description": "A resposta do Asaas sem id passa a gerar checkout",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/payment/AsaasPaymentGateway.java",
+            "find": " || response.id() == null",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AsaasPaymentGatewayTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M65",
+            "description": "A resposta do Asaas sem link passa a gerar checkout",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/payment/AsaasPaymentGateway.java",
+            "find": " || response.link() == null",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AsaasPaymentGatewayTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M66",
+            "description": "Dois cliques simultâneos voltam a criar dois checkouts",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/StartCheckout.java",
+            "find": "        records.lockCheckouts(professionalId);\n",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M67",
+            "description": "A trava do checkout passa a soltar antes de gravar",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/StartCheckout.java",
+            "find": "    @Transactional\n    public Result start(",
+            "replace": "    public Result start(",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M68",
+            "description": "A cobrança sem valor deixa de ser ignorada",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": "\n                || payment.value() == null",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M69",
+            "description": "O webhook com token e sem corpo passa a falhar em vez de 400",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/interfaces/rest/AsaasWebhookController.java",
+            "find": "event == null || event.event() == null",
+            "replace": "event.event() == null",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AsaasWebhookAuthTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M70",
+            "description": "O JSON inválido com token passa a falhar em vez de 400",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/interfaces/rest/AsaasWebhookController.java",
+            "find": "        } catch (JacksonException e) {\n            return null;",
+            "replace": "        } catch (JacksonException e) {\n            throw e;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=AsaasWebhookAuthTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M71",
+            "description": "A mesma cobrança entregue de novo passa a dar erro",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/persistence/JdbcPaymentRecords.java",
+            "find": " confirmed_at) values (?, ?, ?, ?, ?, ?) on conflict do nothing\")",
+            "replace": " confirmed_at) values (?, ?, ?, ?, ?, ?)\")",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M72",
+            "description": "A mesma cobrança passa a ser gravada duas vezes",
+            "area": "java",
+            "file": "services/account-service/src/main/resources/db/migration/V7__pagamento.sql",
+            "find": "    payment_id varchar(100) primary key,",
+            "replace": "    payment_id varchar(100) not null,",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M73",
+            "description": "O checkout passa a aceitar id repetido",
+            "area": "java",
+            "file": "services/account-service/src/main/resources/db/migration/V7__pagamento.sql",
+            "find": "    id varchar(100) primary key,\n    link",
+            "replace": "    id varchar(100) not null,\n    link",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M74",
+            "description": "O checkout passa a aceitar profissional inexistente",
+            "area": "java",
+            "file": "services/account-service/src/main/resources/db/migration/V7__pagamento.sql",
+            "find": "    professional_id uuid not null references professional (id),\n    launch",
+            "replace": "    professional_id uuid not null,\n    launch",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M75",
+            "description": "A assinatura passa a aceitar id repetido",
+            "area": "java",
+            "file": "services/account-service/src/main/resources/db/migration/V7__pagamento.sql",
+            "find": "    id varchar(100) primary key,\n    checkout_id",
+            "replace": "    id varchar(100) not null,\n    checkout_id",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M76",
+            "description": "A assinatura passa a aceitar checkout inexistente",
+            "area": "java",
+            "file": "services/account-service/src/main/resources/db/migration/V7__pagamento.sql",
+            "find": "    checkout_id varchar(100) not null references payment_checkout (id),",
+            "replace": "    checkout_id varchar(100) not null,",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M77",
+            "description": "A assinatura passa a aceitar profissional inexistente",
+            "area": "java",
+            "file": "services/account-service/src/main/resources/db/migration/V7__pagamento.sql",
+            "find": "    professional_id uuid not null references professional (id),\n    created_at timestamptz not null,\n    launch_ended_at",
+            "replace": "    professional_id uuid not null,\n    created_at timestamptz not null,\n    launch_ended_at",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M78",
+            "description": "A cobrança passa a aceitar assinatura inexistente",
+            "area": "java",
+            "file": "services/account-service/src/main/resources/db/migration/V7__pagamento.sql",
+            "find": "    subscription_id varchar(100) not null references payment_subscription (id),",
+            "replace": "    subscription_id varchar(100) not null,",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M79",
+            "description": "A cobrança passa a aceitar profissional inexistente",
+            "area": "java",
+            "file": "services/account-service/src/main/resources/db/migration/V7__pagamento.sql",
+            "find": "    professional_id uuid not null references professional (id),\n    value numeric(10, 2) not null,\n    due_date",
+            "replace": "    professional_id uuid not null,\n    value numeric(10, 2) not null,\n    due_date",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M80",
+            "description": "O evento de cobrança passa a exigir a assinatura no corpo",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/interfaces/rest/AsaasWebhookController.java",
+            "find": "event.subscription() == null ? null : event.subscription().id()",
+            "replace": "event.subscription().id()",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

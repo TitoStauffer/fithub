@@ -40,8 +40,44 @@ Esqueleto da DEV-0015 (estrutura, execução e testes em [services/README.md](..
 - O cadastro grava o `AssinaturaAlterada` (`account.subscription-changed.v1`) no outbox, na mesma transação, com
   `active` e o `validUntil` do teste (DEV-0101). Com a data, training e nutrition bloqueiam sozinhos quando ela passa,
   sem rotina agendada aqui.
-- Um plano no MVP (`PROFESSIONAL_MONTHLY`). O preço e o meio de pagamento esperam a decisão da DEV-0098; o período
-  pago só muda pelo pagamento (DEV-0100), que estende e nunca encurta.
+- Um plano no MVP (`PROFESSIONAL_MONTHLY`). O período pago só muda pelo pagamento (DEV-0100), que estende e nunca
+  encurta.
+
+## Pagamento pelo Asaas (DEV-0100)
+
+[ADR-015](../../docs/00-oficial/adr/ADR-015-pagamento-asaas.md). Só cartão de crédito, em cobrança recorrente mensal,
+pelo checkout hospedado do Asaas: o pagador informa os dados, inclusive o CPF/CNPJ, na página do Asaas, e o FitHub não
+guarda nenhum deles.
+
+| Rota | Quem | Resultado |
+|---|---|---|
+| `POST /professionals/me/subscription/checkout` | profissional | 201 com o link do checkout, o valor e se é o preço de lançamento; 404 sem cadastro; 409 com período pago valendo ou com assinatura viva no Asaas. O checkout aberto de até 23 h é reaproveitado |
+| `POST /webhooks/asaas` | o Asaas | 200; 401 sem o token certo no header `asaas-access-token`; 400 sem o tipo do evento. Fora do JWT e do OpenAPI |
+
+- **Primeira cobrança:** vence no fim do teste grátis, ou hoje se ele já acabou.
+- **Valor:** o preço de lançamento (`fithub.subscription.price.launch`, padrão R$ 150) vale para quem assina até
+  `launch-until` (padrão provisório 30/06/2027, o fim do beta; dia de São Paulo). Depois da data, vale o preço cheio
+  (`monthly`, R$ 200).
+- **Fim do lançamento:** no `launch-months`º pagamento confirmado (padrão 3º), o valor da assinatura passa ao cheio no
+  Asaas, inclusive na cobrança já gerada.
+- **Webhook:**
+  - `PAYMENT_CONFIRMED` e `PAYMENT_RECEIVED` de uma cobrança da assinatura gravam o pagamento uma vez só, pelo id
+    dela;
+  - cada pagamento estende o `paid_until` até o vencimento seguinte, com 1 dia de folga, e grava o
+    `AssinaturaAlterada`;
+  - `SUBSCRIPTION_CREATED` liga a assinatura ao checkout; `SUBSCRIPTION_INACTIVATED` e `SUBSCRIPTION_DELETED` registram
+    o fim e liberam um checkout novo;
+  - evento sem os campos de que precisa é ignorado com aviso de ids (um erro faria o Asaas reentregar sem fim);
+  - os demais eventos são aceitos e ignorados.
+- **Ligação:** a assinatura do Asaas é ligada ao profissional pelo `checkoutSession` dela, consultado na criação da
+  assinatura (ou no primeiro pagamento, se a criação não chegou). Uma assinatura viva por profissional: duas
+  cobrariam o cartão todo mês.
+- **Configuração:**
+  - `fithub.payment.asaas.base-url` (padrão o sandbox);
+  - `api-key` e `webhook-token`, só do ambiente (`ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN`);
+  - `success-url` e `cancel-url`, a volta para a tela de assinatura da web.
+- **Métricas:** `fithub.professionals.trial.ended` e `converted` (conversão do teste para pago), e
+  `fithub.professionals.paid.last.month` e `retained` (retenção mensal), só agregadas por tipo (DEV-0113).
 
 ## Login de quem excluiu a conta (DEV-0161)
 

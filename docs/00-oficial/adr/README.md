@@ -19,5 +19,6 @@ superado ganha status "substituído por ADR-NNN" em vez de ser apagado.
 | [ADR-012](ADR-012-retencao-e-exclusao.md) | Retenção e exclusão dos dados do cliente | aceito |
 | [ADR-013](ADR-013-observabilidade.md) | Observabilidade: logs e traces centralizados no Grafana (Loki e Tempo) | aceito |
 | [ADR-014](ADR-014-borda-e-deploy.md) | Borda e deploy em produção: um domínio, Traefik sem socket do Docker, deploy manual por SSH | aceito |
+| [ADR-015](ADR-015-pagamento-asaas.md) | Pagamento da assinatura pelo checkout do Asaas, só cartão recorrente | aceito |
 
 Formato: contexto, decisão, alternativas consideradas e consequências.
