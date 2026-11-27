@@ -1,0 +1,105 @@
+{
+    "issue": "DEV-0174",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "A lista deixa de guardar o hash do e-mail",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
+            "find": "encode(sha256(convert_to(lower(cast(:email as text)), 'UTF8')), 'hex'))",
+            "replace": "null)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest,ReapplyDeletionsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "A lista passa a guardar o e-mail em vez do hash",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
+            "find": "encode(sha256(convert_to(lower(cast(:email as text)), 'UTF8')), 'hex'))",
+            "replace": "lower(cast(:email as text)))",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest,ReapplyDeletionsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "A reaplicação apaga o hash guardado na exclusão",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
+            "find": "email_hash = coalesce(excluded.email_hash, deleted_account.email_hash)",
+            "replace": "email_hash = excluded.email_hash",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest,ReapplyDeletionsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Os convites pendentes deixam de perder o e-mail pelo hash",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
+            "find": "where encode(sha256(convert_to(lower(email), 'UTF8')), 'hex')",
+            "replace": "where false and encode(sha256(convert_to(lower(email), 'UTF8')), 'hex')",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest,ReapplyDeletionsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O convite com o e-mail em maiúsculas deixa de bater com o hash",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcAccountErasure.java",
+            "find": "where encode(sha256(convert_to(lower(email), 'UTF8')), 'hex')",
+            "replace": "where encode(sha256(convert_to(email, 'UTF8')), 'hex')",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=AccountDeletionTest,ReapplyDeletionsTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

@@ -39,6 +39,10 @@ DEV-0105), e cada serviço trata o que tem.
    - os dumps diários (DEV-0108) guardam o dado excluído até expirarem, em no máximo 30 dias;
    - durante esse prazo, cada serviço guarda só os ids dos clientes excluídos, sem nenhum outro dado, para reaplicar a
      exclusão se um backup for restaurado;
+   - o client-service guarda também o hash SHA-256 do e-mail da conta, em minúsculas, nunca o e-mail (DEV-0174). A
+     reaplicação não tem o token, e é pelo hash que ela limpa o e-mail dos convites pendentes que voltaram com o
+     backup. O hash é dado pseudonimizado: sai junto com a lista, em 30 dias, e a restauração o preserva como preserva
+     os ids;
    - depois de 30 dias, a lista de ids também é apagada.
 5. **Registros técnicos:**
    - o outbox e o rastro de consumo já têm expurgo (ENGENHARIA, mensageria);

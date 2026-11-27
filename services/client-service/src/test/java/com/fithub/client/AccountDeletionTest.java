@@ -16,9 +16,14 @@ import com.fithub.eventcontracts.EventContract;
 import com.fithub.eventcontracts.EventContracts;
 import com.fithub.testing.service.ServiceIntegrationTest;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.HexFormat;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -240,6 +245,17 @@ class AccountDeletionTest extends ServiceIntegrationTest {
                 .update();
     }
 
+    /** sha256 em hexadecimal do e-mail em minúsculas, como a lista de contas excluídas guarda (DEV-0174). */
+    static String sha256(String email) {
+        try {
+            return HexFormat.of()
+                    .formatHex(MessageDigest.getInstance("SHA-256")
+                            .digest(email.toLowerCase(Locale.ROOT).getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException impossible) {
+            throw new IllegalStateException(impossible);
+        }
+    }
+
     private static String hash() {
         return (UUID.randomUUID().toString() + UUID.randomUUID()).replace("-", "");
     }
@@ -308,6 +324,16 @@ class AccountDeletionTest extends ServiceIntegrationTest {
 
         assertThat(leftovers(client)).containsOnly(0);
         assertThat(deletedAccounts(client)).isEqualTo(1);
+        // DEV-0174: a lista guarda o hash do e-mail do token, em minúsculas, nunca o e-mail.
+        assertThat(jdbc.sql("select email_hash from deleted_account where client_id = :id")
+                        .param("id", UUID.fromString(client))
+                        .query(String.class)
+                        .single())
+                .isEqualTo(sha256(client + "@teste.fithub"));
+        assertThat(jdbc.sql("select count(*) from deleted_account d where position('@' in d::text) > 0")
+                        .query(Integer.class)
+                        .single())
+                .isZero();
         List<String> payloads = outboxPayloads(client);
         assertThat(payloads).hasSize(1);
         assertThat(EventContracts.validate(EventContract.ACCOUNT_DELETED_V1, payloads.getFirst()))

@@ -10,8 +10,10 @@ public interface AccountErasure {
     /**
      * Apaga de vez o que é do cliente: perfil, saúde, avaliações e fotos registradas, vínculos e consentimentos, e o
      * e-mail dos convites que ele aceitou ou que foram enviados para {@code email}, em qualquer estado (nulo quando
-     * o token não traz e-mail). Guarda o id na lista de contas excluídas. Fica o registro de leitura da saúde, que é obrigação legal
-     * por 6 meses, e o lado profissional da mesma conta. Chamado dentro da transação da exclusão.
+     * o token não traz e-mail). Guarda o id na lista de contas excluídas, com o hash do e-mail, nunca o e-mail
+     * (DEV-0174). Na reaplicação depois de restaurar um backup, {@code email} é nulo e vale o hash já guardado. Fica o
+     * registro de leitura da saúde, que é obrigação legal por 6 meses, e o lado profissional da mesma conta. Chamado
+     * dentro da transação da exclusão.
      */
     void erase(UUID clientId, String email, Instant at);
 
