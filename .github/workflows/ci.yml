@@ -228,7 +228,10 @@ jobs:
           images=()
           for service in $(jq -r '.[]' <<<"$SERVICES"); do
             [[ "$service" =~ ^[a-z0-9-]+$ ]] || { echo "Nome de serviço inválido: '$service'."; exit 1; }
-            docker build --file "services/$service/Dockerfile" --tag "fithub-$service:ci" .
+            # O repositório Maven que o mvn verify já preencheu vai para o estágio de build (DEV-0155): sem ele, cada
+            # imagem baixava tudo do Maven Central de novo, e o Central às vezes respondia 429.
+            docker build --build-context m2="$HOME/.m2/repository" \
+              --file "services/$service/Dockerfile" --tag "fithub-$service:ci" .
             images+=("fithub-$service:ci")
           done
           if [ "${#images[@]}" -gt 0 ]; then

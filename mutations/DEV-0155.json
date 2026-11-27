@@ -1,0 +1,83 @@
+{
+    "issue": "DEV-0155",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O docker build do PR volta a baixar tudo do Maven Central",
+            "area": "tools",
+            "file": ".github/workflows/ci.yml",
+            "find": "            docker build --build-context m2=\"$HOME/.m2/repository\" \\\n              --file \"services/$service/Dockerfile\"",
+            "replace": "            docker build \\\n              --file \"services/$service/Dockerfile\"",
+            "command": [
+                "node",
+                "--test",
+                "tools/github-reviewer/test/workflow-contract.test.mjs"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O build do account-service deixa de montar o repositório Maven do contexto",
+            "area": "tools",
+            "file": "services/account-service/Dockerfile",
+            "find": "RUN --mount=type=bind,from=m2,target=/root/.m2/repository,rw \\\n    mvn",
+            "replace": "RUN mvn",
+            "command": [
+                "node",
+                "--test",
+                "tools/repo-checks/ci-scripts.test.mjs"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O build do client-service deixa de montar o repositório Maven do contexto",
+            "area": "tools",
+            "file": "services/client-service/Dockerfile",
+            "find": "RUN --mount=type=bind,from=m2,target=/root/.m2/repository,rw \\\n    mvn",
+            "replace": "RUN mvn",
+            "command": [
+                "node",
+                "--test",
+                "tools/repo-checks/ci-scripts.test.mjs"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "O build do training-service deixa de montar o repositório Maven do contexto",
+            "area": "tools",
+            "file": "services/training-service/Dockerfile",
+            "find": "RUN --mount=type=bind,from=m2,target=/root/.m2/repository,rw \\\n    mvn",
+            "replace": "RUN mvn",
+            "command": [
+                "node",
+                "--test",
+                "tools/repo-checks/ci-scripts.test.mjs"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O build do nutrition-service deixa de montar o repositório Maven do contexto",
+            "area": "tools",
+            "file": "services/nutrition-service/Dockerfile",
+            "find": "RUN --mount=type=bind,from=m2,target=/root/.m2/repository,rw \\\n    mvn",
+            "replace": "RUN mvn",
+            "command": [
+                "node",
+                "--test",
+                "tools/repo-checks/ci-scripts.test.mjs"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "Sem o estágio vazio, o build local passa a exigir o contexto m2",
+            "area": "tools",
+            "file": "services/account-service/Dockerfile",
+            "find": "FROM scratch AS m2\n",
+            "replace": "",
+            "command": [
+                "node",
+                "--test",
+                "tools/repo-checks/ci-scripts.test.mjs"
+            ]
+        }
+    ]
+}
