@@ -61,7 +61,10 @@ está no ADR-007.
 - **Reabrir o app:** a sessão é retomada pelo refresh token (escopo `offline_access`). Refresh token
   recusado pelo Keycloak apaga o cofre e leva à tela de entrada. Sem conexão, a sessão guardada é
   mantida e a tela oferece "Tentar de novo".
-- **Sair:** apaga o cofre e revoga a sessão no Keycloak pelo refresh token, sem abrir o navegador.
+- **Sair:** apaga o cofre e revoga a sessão no Keycloak pelo refresh token, sem abrir o navegador. Sem token em
+  memória (retomando a sessão ou com o Keycloak fora do ar), revoga o que estava no cofre (DEV-0148).
+- **Entrar durante a retomada:** o login novo vale; a renovação pendente da sessão anterior é descartada e o refresh
+  token que ela gerar é revogado (DEV-0148).
 - **Chamar uma API:** use `apiFetch` de `useSession()`. Ele manda o Bearer token, renova num 401 e só
   aceita as origens de `apiOrigins()` (`features/auth/authConfig.ts`).
 - **Testes:** `createSession` recebe um `AuthGateway` e um `TokenStore`; os testes usam os falsos de

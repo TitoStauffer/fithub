@@ -1,0 +1,65 @@
+{
+    "issue": "DEV-0148",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O login durante a retomada deixa de invalidar a renovação pendente",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/session.ts",
+            "find": "            generation += 1;\n            renewal = undefined;\n            const startedIn = generation;",
+            "replace": "            const startedIn = generation;",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "A renovação de uma sessão que mudou deixa de ser descartada antes do cofre",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/session.ts",
+            "find": "                if (generation !== startedIn) {\n                    // A sessão mudou",
+            "replace": "                if (false) {\n                    // A sessão mudou",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O refresh token da renovação descartada deixa de ser revogado",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/session.ts",
+            "find": "                    gateway.signOut(fresh.refreshToken).catch(() => undefined);\n",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "O logout sem token em memória deixa de revogar o refresh token do cofre",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/session.ts",
+            "find": "tokens?.refreshToken ?? (await inVault(() => store.load()).catch(() => undefined));",
+            "replace": "tokens?.refreshToken;",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}

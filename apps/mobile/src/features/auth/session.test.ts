@@ -386,3 +386,54 @@ describe('cofre com defeito', () => {
 it('tokens() dos testes vence em 5 minutos, como o access token do realm', () => {
     expect(tokens('x').expiresAt - NOW).toBe(300_000);
 });
+
+// DEV-0148 (achados do Code Review do PR #196): login durante a retomada e logout sem token em memória.
+describe('ações durante a retomada da sessão', () => {
+    it('login concluído antes da resposta da retomada vale, e o token atrasado é revogado', async () => {
+        const { session, gateway, store } = setup('refresh-guardado');
+        const release = gateway.holdNextRefresh();
+        const restoring = session.restore();
+        // Deixa a retomada ler o cofre e chegar ao Keycloak.
+        await new Promise((resolve) => setImmediate(resolve));
+        expect(gateway.calls).toContain('refresh:refresh-guardado');
+
+        gateway.signInResult = tokens('login-novo');
+        await session.signIn();
+        release();
+        await restoring;
+
+        expect(session.status()).toBe('signedIn');
+        expect(store.value).toBe('refresh-login-novo');
+        await expect(session.getAccessToken()).resolves.toBe('access-login-novo');
+        expect(gateway.calls).toContain('signOut:refresh-renewed-1');
+    });
+
+    it('logout durante a retomada revoga o refresh token guardado no cofre', async () => {
+        const { session, gateway, store } = setup('refresh-guardado');
+        const release = gateway.holdNextRefresh();
+        const restoring = session.restore();
+        // Deixa a retomada ler o cofre e chegar ao Keycloak.
+        await new Promise((resolve) => setImmediate(resolve));
+        expect(gateway.calls).toContain('refresh:refresh-guardado');
+
+        await session.signOut();
+        release();
+        await restoring;
+
+        expect(gateway.calls).toContain('signOut:refresh-guardado');
+        expect(store.value).toBeUndefined();
+        expect(session.status()).toBe('signedOut');
+    });
+
+    it('logout com o Keycloak fora do ar revoga o refresh token guardado no cofre', async () => {
+        const { session, gateway, store } = setup('refresh-guardado');
+        gateway.refreshMode = 'offline';
+        await session.restore();
+        expect(session.status()).toBe('unavailable');
+
+        await session.signOut();
+
+        expect(gateway.calls).toContain('signOut:refresh-guardado');
+        expect(store.value).toBeUndefined();
+    });
+});
