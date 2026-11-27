@@ -128,6 +128,15 @@ async function checkProfessionalRolesOnly(service) {
     const status = await map(name);
     check(status === 403, `fithub-account-service não atribui ${name} (${status})`);
   }
+  // A escalada mais grave: papel administrativo do próprio Keycloak (client realm-management) na conta.
+  const [management] = await (await asAdmin('/clients?clientId=realm-management')).json();
+  for (const name of ['realm-admin', 'manage-users']) {
+    const role = await (await asAdmin(`/clients/${management.id}/roles/${name}`)).json();
+    const status = (
+      await service(`/users/${userId}/role-mappings/clients/${management.id}`, { method: 'POST', body: JSON.stringify([role]) })
+    ).status;
+    check(status === 403, `fithub-account-service não atribui ${name} do realm-management (${status})`);
+  }
   const removed = await service(`/users/${userId}`, { method: 'DELETE' });
   check(removed.status === 204, `fithub-account-service apaga a conta (${removed.status})`);
   if (removed.status !== 204) await asAdmin(`/users/${userId}`, { method: 'DELETE' });
