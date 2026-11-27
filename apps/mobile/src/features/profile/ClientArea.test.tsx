@@ -222,6 +222,39 @@ describe('HealthFormScreen', () => {
         expect(screen.queryByText(TERMS_TEXT)).not.toBeOnTheScreen();
     });
 
+    it('com o termo trocado enquanto a tela estava aberta, mostra o erro e volta a pedir o aceite', async () => {
+        const user = userEvent.setup();
+        const fetchHealthTerms = jest
+            .fn()
+            .mockResolvedValueOnce({ termsVersion: 'v1', termsText: TERMS_TEXT, accepted: true })
+            .mockResolvedValue({
+                termsVersion: 'v2',
+                termsText: 'Termo novo do perfil de saúde.',
+                accepted: false,
+            });
+        const api = fakeApi({
+            fetchProfile: jest.fn(async () => PROFILE),
+            fetchHealthTerms,
+            saveHealth: jest.fn(async () => {
+                throw new ApiProblemError(400, 'Um ou mais campos são inválidos.', {
+                    consent: 'Para salvar o perfil de saúde, aceite o termo do perfil de saúde.',
+                });
+            }),
+        });
+        await render(<ClientArea api={api} linkSource={NO_LINK} />);
+        await user.press(await screen.findByRole('button', { name: 'Perfil de saúde' }));
+
+        await user.press(await screen.findByRole('button', { name: 'Salvar saúde' }));
+
+        expect(
+            await screen.findByText('Para salvar o perfil de saúde, aceite o termo do perfil de saúde.'),
+        ).toBeOnTheScreen();
+        expect(await screen.findByText('Termo novo do perfil de saúde.')).toBeOnTheScreen();
+        expect(
+            screen.getByRole('checkbox', { name: 'Li e aceito o termo do perfil de saúde' }),
+        ).not.toBeChecked();
+    });
+
     it('com o termo já aceito não mostra o termo nem manda o aceite', async () => {
         const user = userEvent.setup();
         const api = fakeApi({ fetchProfile: jest.fn(async () => PROFILE) });

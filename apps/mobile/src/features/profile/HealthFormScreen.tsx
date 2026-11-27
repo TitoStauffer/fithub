@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import type { HealthConsentTerms } from '../../lib/api';
+import { ApiProblemError, type HealthConsentTerms } from '../../lib/api';
 import { messageOf, splitErrors, type ProfileApi } from './profileApi';
 import {
     CONDITIONS,
@@ -100,6 +100,15 @@ export function HealthFormScreen({ api, onDone }: { api: ProfileApi; onDone: () 
             const { fieldErrors, formError: general } = splitErrors(error, FIELDS);
             setErrors(fieldErrors);
             setFormError(general);
+            // O termo mudou com a tela aberta (409) ou a API pede o aceite (400 em consent): a tela busca o termo
+            // vigente e volta a pedir o aceite, com a caixa desmarcada.
+            if (
+                error instanceof ApiProblemError &&
+                (error.status === 409 || 'consent' in error.fieldErrors)
+            ) {
+                setAgreed(false);
+                api.fetchHealthTerms().then(setTerms, () => undefined);
+            }
         } finally {
             inFlight.current = false;
             setSaving(false);
@@ -140,9 +149,9 @@ export function HealthFormScreen({ api, onDone }: { api: ProfileApi; onDone: () 
                     >
                         <Text>Li e aceito o termo do perfil de saúde</Text>
                     </Pressable>
-                    {errors.consent ? <Text style={styles.error}>{errors.consent}</Text> : null}
                 </View>
             ) : null}
+            {errors.consent ? <Text style={styles.error}>{errors.consent}</Text> : null}
             {formError ? <Alert>{formError}</Alert> : null}
             {saved ? <Text accessibilityLiveRegion="polite">Perfil de saúde salvo.</Text> : null}
             <Button onPress={() => void submit()} disabled={saving}>

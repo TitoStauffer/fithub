@@ -150,7 +150,7 @@ export interface paths {
         };
         /**
          * Exporta todos os dados que o client-service tem do cliente
-         * @description Perfil, saúde, avaliações com as fotos (URL temporária de 5 minutos), vínculos com o consentimento de cada um, as leituras da saúde (healthReads) e o registro completo das leituras de dados sensíveis pelos profissionais (accessLog), sem o conteúdo. O app junta com a exportação do training e do nutrition.
+         * @description Perfil, saúde e os aceites do termo do perfil de saúde, avaliações com as fotos (URL temporária de 5 minutos), vínculos com o consentimento de cada um, as leituras da saúde (healthReads) e o registro completo das leituras de dados sensíveis pelos profissionais (accessLog), sem o conteúdo. O app junta com a exportação do training e do nutrition.
          */
         get: operations["export"];
         put?: never;
@@ -540,6 +540,8 @@ export interface components {
             exportedAt?: string;
             /** @description Ausente se o cliente nunca preencheu o perfil de saúde. */
             health?: components["schemas"]["HealthProfile"];
+            /** @description Aceites do termo do perfil de saúde (DEV-0179): versão e momento; vazio se nunca aceitou. */
+            healthConsents?: components["schemas"]["HealthConsentExport"][];
             /** @description Só as leituras da saúde; o registro completo está em accessLog. */
             healthReads?: components["schemas"]["ClientExportHealthRead"][];
             links?: components["schemas"]["ClientExportLink"][];
@@ -659,6 +661,12 @@ export interface components {
             id?: string;
             /** @description Link do convite; só aparece nesta resposta. */
             link?: string;
+        };
+        /** @description Aceite do termo do perfil de saúde. */
+        HealthConsentExport: {
+            /** Format: date-time */
+            grantedAt?: string;
+            termsVersion?: string;
         };
         /** @description Termo do perfil de saúde e se a conta já o aceitou (DEV-0179). */
         HealthConsentTerms: {

@@ -229,6 +229,13 @@
             "$ref" : "#/components/schemas/HealthProfile",
             "description" : "Ausente se o cliente nunca preencheu o perfil de saúde."
           },
+          "healthConsents" : {
+            "description" : "Aceites do termo do perfil de saúde (DEV-0179): versão e momento; vazio se nunca aceitou.",
+            "items" : {
+              "$ref" : "#/components/schemas/HealthConsentExport"
+            },
+            "type" : "array"
+          },
           "healthReads" : {
             "description" : "Só as leituras da saúde; o registro completo está em accessLog.",
             "items" : {
@@ -487,6 +494,19 @@
           },
           "link" : {
             "description" : "Link do convite; só aparece nesta resposta.",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "HealthConsentExport" : {
+        "description" : "Aceite do termo do perfil de saúde.",
+        "properties" : {
+          "grantedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "termsVersion" : {
             "type" : "string"
           }
         },
@@ -1357,7 +1377,7 @@
     },
     "/clients/me/export" : {
       "get" : {
-        "description" : "Perfil, saúde, avaliações com as fotos (URL temporária de 5 minutos), vínculos com o consentimento de cada um, as leituras da saúde (healthReads) e o registro completo das leituras de dados sensíveis pelos profissionais (accessLog), sem o conteúdo. O app junta com a exportação do training e do nutrition.",
+        "description" : "Perfil, saúde e os aceites do termo do perfil de saúde, avaliações com as fotos (URL temporária de 5 minutos), vínculos com o consentimento de cada um, as leituras da saúde (healthReads) e o registro completo das leituras de dados sensíveis pelos profissionais (accessLog), sem o conteúdo. O app junta com a exportação do training e do nutrition.",
         "operationId" : "export",
         "responses" : {
           "200" : {

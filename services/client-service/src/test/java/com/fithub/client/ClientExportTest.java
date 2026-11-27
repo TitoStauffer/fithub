@@ -134,6 +134,10 @@ class ClientExportTest extends ServiceIntegrationTest {
                 .andExpect(jsonPath("$.profile.name").value("Ana Cliente"))
                 .andExpect(jsonPath("$.health.notes").value("joelho"))
                 .andExpect(jsonPath("$.health.conditions[0]").value("HYPERTENSION"))
+                // O aceite do termo do perfil de saúde, base legal do dado (DEV-0179).
+                .andExpect(jsonPath("$.healthConsents.length()").value(1))
+                .andExpect(jsonPath("$.healthConsents[0].termsVersion").value("v1"))
+                .andExpect(jsonPath("$.healthConsents[0].grantedAt").value("2026-11-23T12:00:00Z"))
                 .andExpect(jsonPath("$.assessments.length()").value(1))
                 .andExpect(jsonPath("$.assessments[0].assessment.weightKg").value(64.0))
                 .andExpect(jsonPath("$.assessments[0].photos.length()").value(1))

@@ -1,6 +1,7 @@
 package com.fithub.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -129,6 +130,23 @@ class HealthConsentTest extends ServiceIntegrationTest {
                         .list())
                 .singleElement()
                 .satisfies(at -> assertThat(at.toInstant()).isEqualTo(java.time.Instant.parse("2026-11-23T12:00:00Z")));
+    }
+
+    // Grava direto no banco: as chaves da V17 recusam aceite de conta sem perfil e aceite repetido (migrations.md).
+    @Test
+    void theDatabaseRefusesAConsentWithoutProfileAndARepeatedOne() throws Exception {
+        String account = accountWithProfile();
+        insertConsent(account);
+
+        assertThatThrownBy(() -> insertConsent(UUID.randomUUID().toString()))
+                .hasMessageContaining("health_consent_account_id_fkey");
+        assertThatThrownBy(() -> insertConsent(account)).hasMessageContaining("pk_health_consent");
+    }
+
+    private void insertConsent(String account) {
+        jdbc.sql("insert into health_consent (account_id, terms_version, granted_at) values (:account, 'v1', now())")
+                .param("account", account)
+                .update();
     }
 
     @Test

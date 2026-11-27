@@ -69,3 +69,20 @@ significado de `operations["remove"]` nos tipos gerados. Rota nova cujo nome de 
   - **Correção:** `operationId` explícito nas rotas novas (`viewSession`, `recordSet`, `removeSet`); a restrição
     voltou a ser `remove`.
   - **Prevenção:** ao regenerar o contrato, conferir no diff do OpenAPI se algum `operationId` existente mudou.
+
+## tabela-nova-com-dado-do-cliente-entra-na-exportacao
+
+**Regra:** toda tabela nova que guarda dado do cliente (inclusive um registro de aceite ou de consentimento) entra na
+exportação do serviço no mesmo PR (NFR-01, LGPD art. 18). O schema da exportação promete "todos os dados", e o contrato
+público não pode afirmar uma cobertura que não existe. A exclusão da conta (ADR-012) e a exportação andam juntas: a
+tabela que a exclusão apaga, a exportação mostra.
+
+### Ocorrências
+
+- **Revisão:** Code Review do PR #344, no SHA `cee092d` (MEDIUM) — DEV-0179 (#329) · **PR:** #344
+  - **Impacto:** o aceite do termo do perfil de saúde, base legal do dado (art. 11, I), não saía em
+    `GET /clients/me/export`, embora a exclusão já o apagasse.
+  - **Correção:** `healthConsents` (versão e momento) no `ClientExport`, com teste e mutante.
+  - **Prevenção:** ao criar tabela com dado do cliente, conferir no mesmo PR as três pontas: a exclusão, a exportação e
+    o teste de cada uma.
+

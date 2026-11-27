@@ -170,6 +170,96 @@
                 "run",
                 "test"
             ]
+        },
+        {
+            "id": "M10",
+            "description": "A exportação deixa de trazer os aceites do termo do perfil de saúde",
+            "area": "java",
+            "file": "services/client-service/src/main/java/com/fithub/client/application/ExportClientData.java",
+            "find": "                health.consentsOf(clientAccount),",
+            "replace": "                java.util.List.of(),",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=ClientExportTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M11",
+            "description": "O aceite passa a valer para conta sem perfil do cliente",
+            "area": "java",
+            "file": "services/client-service/src/main/resources/db/migration/V17__aceite_do_perfil_de_saude.sql",
+            "find": "account_id varchar(64) not null references client_profile (account_id),",
+            "replace": "account_id varchar(64) not null,",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=HealthConsentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M12",
+            "description": "O banco passa a aceitar o mesmo aceite duas vezes",
+            "area": "java",
+            "file": "services/client-service/src/main/resources/db/migration/V17__aceite_do_perfil_de_saude.sql",
+            "find": ",\n    constraint pk_health_consent primary key (account_id, terms_version)",
+            "replace": "",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/client-service",
+                "-am",
+                "test",
+                "-Dtest=HealthConsentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M13",
+            "description": "O app deixa de buscar de novo o termo quando a API pede o aceite",
+            "area": "apps",
+            "file": "apps/mobile/src/features/profile/HealthFormScreen.tsx",
+            "find": "                setAgreed(false);",
+            "replace": "                return;",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M14",
+            "description": "O erro do aceite deixa de aparecer quando a tela acha que o termo já foi aceito",
+            "area": "apps",
+            "file": "apps/mobile/src/features/profile/HealthFormScreen.tsx",
+            "find": "            {errors.consent ? <Text style={styles.error}>{errors.consent}</Text> : null}",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
         }
     ]
 }

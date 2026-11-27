@@ -3,6 +3,7 @@ package com.fithub.client.infrastructure.persistence;
 import com.fithub.client.domain.profile.HealthConsents;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -26,6 +27,17 @@ class JdbcHealthConsents implements HealthConsents {
                 .param("termsVersion", termsVersion)
                 .query(Boolean.class)
                 .single());
+    }
+
+    @Override
+    public List<Accepted> acceptedBy(String accountId) {
+        return jdbc.sql(
+                        "select terms_version, granted_at from health_consent where account_id = :accountId order by granted_at")
+                .param("accountId", accountId)
+                .query((row, index) -> new Accepted(
+                        row.getString("terms_version"),
+                        row.getTimestamp("granted_at").toInstant()))
+                .list();
     }
 
     @Override

@@ -70,3 +70,10 @@ caso, escreva `coluna IS NOT NULL AND coluna IN (...)`, e teste a constraint com
     escrita direta que espera o nome de cada constraint (M73 a M79).
   - **Prevenção:** quando a revisão aponta uma constraint sem prova, a correção percorre a migration inteira, não só
     a linha citada. Cada `primary key`, `references`, `unique`, `check` e `on conflict` ganha teste e mutante.
+- **Revisão:** Code Review do PR #344, no SHA `cee092d` (MEDIUM) — DEV-0179 (#329) · **PR:** #344
+  - **Impacto:** a PK e a FK da tabela nova `health_consent` (V17) não tinham teste de escrita direta; a FK, nem
+    mutante. Sétima ocorrência, a primeira numa tabela criada depois da regra de percorrer a migration inteira.
+  - **Correção:** teste que grava direto um aceite de conta sem perfil e um repetido, esperando o nome de cada
+    constraint; mutantes da PK e da FK em `mutations/DEV-0179.json`.
+  - **Prevenção:** ao escrever a migration, montar a tabela condição × teste × mutante **antes** de abrir o PR, começando
+    pela migration, e não depois da revisão.

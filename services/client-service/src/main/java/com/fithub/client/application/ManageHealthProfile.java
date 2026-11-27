@@ -82,6 +82,11 @@ public class ManageHealthProfile {
         return repository.findByAccountId(accountId);
     }
 
+    /** Os aceites do termo do perfil de saúde da conta, para a exportação. */
+    public List<HealthConsents.Accepted> consentsOf(String accountId) {
+        return consents.acceptedBy(accountId);
+    }
+
     public Terms terms(String accountId) {
         return new Terms(
                 HealthConsentTerms.CURRENT_VERSION,
