@@ -132,8 +132,10 @@ broker $nutrition delete exchange --name fithub.client && fail "o nutrition-serv
 broker $nutrition declare exchange --name fithub.client --type topic --durable true \
   && fail "o nutrition-service declarou a exchange do client-service"
 # shellcheck disable=SC2086
-$compose exec -T rabbitmq rabbitmqadmin --non-interactive --host localhost $admin list exchanges 2>/dev/null \
-  | grep -q "fithub.account" || fail "o rabbitmq-users não declarou as exchanges dos serviços"
+exchanges=$($compose exec -T rabbitmq rabbitmqadmin --non-interactive --host localhost $admin list exchanges 2>/dev/null)
+for service in account client training nutrition; do
+  echo "$exchanges" | grep -q "^fithub\.$service " || fail "o rabbitmq-users não declarou a exchange fithub.$service"
+done
 
 # Cada API tem a sua rota: sem o serviço de pé, o Traefik responde 502 (rota existe), não 404.
 for service in account client training nutrition; do

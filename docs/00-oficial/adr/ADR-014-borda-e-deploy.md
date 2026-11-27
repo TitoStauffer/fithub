@@ -46,8 +46,7 @@ via SSH. Faltava o desenho da borda e do deploy. Três fatos pesam:
      O administrador declara as quatro exchanges, e cada serviço só configura as próprias filas e a própria exchange:
      no RabbitMQ, configurar também vale para apagar, e um serviço comprometido apagaria a exchange de outro (DEV-0177);
    - o client e o nutrition têm cada um a sua identidade S3, só com o próprio bucket. O filer, o master e o volume do
-     SeaweedFS ficam no loopback do container, e só o gateway S3, que confere as identidades, atende a rede;
-   - cada serviço ainda pode declarar, e portanto apagar, a exchange de origem que consome (débito #323, DEV-0177).
+     SeaweedFS ficam no loopback do container, e só o gateway S3, que confere as identidades, atende a rede.
 
    O workflow guarda só o acesso SSH, no environment `production` do GitHub.
 6. **Deploy (`.github/workflows/deploy.yml`):**
