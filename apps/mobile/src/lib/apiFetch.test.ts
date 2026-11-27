@@ -136,6 +136,8 @@ describe('apiBases', () => {
             'EXPO_PUBLIC_TRAINING_API_URL',
             'EXPO_PUBLIC_NUTRITION_API_URL',
         ];
+        // Guarda o valor anterior de cada variável para devolvê-lo no fim, sem mudar os testes seguintes.
+        const previous = keys.map((key) => process.env[key]);
         process.env.EXPO_PUBLIC_CLIENT_API_URL = 'https://fithub.example/api/client';
         process.env.EXPO_PUBLIC_TRAINING_API_URL = 'https://fithub.example/api/training';
         process.env.EXPO_PUBLIC_NUTRITION_API_URL = 'https://fithub.example/api/nutrition';
@@ -146,7 +148,10 @@ describe('apiBases', () => {
                 'https://fithub.example/api/nutrition',
             ]);
         } finally {
-            for (const key of keys) delete process.env[key];
+            keys.forEach((key, i) => {
+                if (previous[i] === undefined) delete process.env[key];
+                else process.env[key] = previous[i];
+            });
         }
     });
 
