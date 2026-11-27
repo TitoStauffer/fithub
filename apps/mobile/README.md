@@ -66,7 +66,8 @@ está no ADR-007.
 - **Entrar durante a retomada:** o login novo vale; a renovação pendente da sessão anterior é descartada e o refresh
   token que ela gerar é revogado (DEV-0148).
 - **Chamar uma API:** use `apiFetch` de `useSession()`. Ele manda o Bearer token, renova num 401 e só
-  aceita as origens de `apiOrigins()` (`features/auth/authConfig.ts`).
+  aceita os endereços de `apiBases()` (`features/auth/authConfig.ts`), com o caminho: em produção, as APIs dividem a
+  origem com o Keycloak e os buckets, e o token não vai para eles (DEV-0178).
 - **Testes:** `createSession` recebe um `AuthGateway` e um `TokenStore`; os testes usam os falsos de
   `features/auth/fakes.ts`. Nenhum teste fala com o Keycloak nem com o cofre real.
 - **Rodar no aparelho:** o esquema `fithub://` e o cofre exigem um build de desenvolvimento

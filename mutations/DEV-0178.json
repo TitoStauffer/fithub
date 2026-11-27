@@ -1,0 +1,80 @@
+{
+    "issue": "DEV-0178",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O token passa a ir para outra origem com o mesmo caminho",
+            "area": "apps",
+            "file": "apps/mobile/src/lib/apiFetch.ts",
+            "find": "        if (!allowed || allowed.origin !== target.origin) return false;",
+            "replace": "        if (!allowed) return false;",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O token passa a ir para qualquer caminho da origem da API",
+            "area": "apps",
+            "file": "apps/mobile/src/lib/apiFetch.ts",
+            "find": "        return target.pathname === prefix || target.pathname.startsWith(`${prefix}/`);",
+            "replace": "        return true;",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O token passa a ir para um caminho que só começa com o nome da API",
+            "area": "apps",
+            "file": "apps/mobile/src/lib/apiFetch.ts",
+            "find": "target.pathname.startsWith(`${prefix}/`)",
+            "replace": "target.pathname.startsWith(prefix)",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "O token passa a ir para a origem inteira em vez de só para o caminho da base",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/authConfig.ts",
+            "find": "    return [clientApiUrl(), trainingApiUrl(), nutritionApiUrl()];",
+            "replace": "    return [new URL(clientApiUrl()).origin, trainingApiUrl(), nutritionApiUrl()];",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O fetch volta a receber a URL crua, diferente da que o filtro validou",
+            "area": "apps",
+            "file": "apps/mobile/src/lib/apiFetch.ts",
+            "find": "            return send(target.href, { ...init, headers });",
+            "replace": "            return send(url, { ...init, headers });",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "run",
+                "test"
+            ]
+        }
+    ]
+}

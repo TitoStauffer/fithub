@@ -83,3 +83,20 @@ anterior, que precisa falhar nela.
     realm anterior, ela falha em `manage-users`.
   - **Prevenção:** ao dar uma permissão fina, listar os alvos que ela alcança e provar no Keycloak de pé a recusa nos
     alvos administrativos.
+
+## filtro-e-envio-usam-a-mesma-url
+
+**Regra:** quando uma guarda decide para onde vai uma credencial (token só para as APIs), o envio usa a **mesma URL
+já interpretada** que a guarda validou (`target.href`), nunca a string crua recebida. Dois leitores de URL (o `URL`
+do JavaScript e o cliente HTTP nativo) podem discordar em `..`, barra invertida ou codificação, e o token iria para o
+endereço que o segundo leu.
+
+### Ocorrências
+
+- **Revisão:** Code Review do PR #347, no SHA `e234534` (LOW) — DEV-0178 (#325) · **PR:** #347
+  - **Impacto:** o filtro validava `new URL(url)`, mas o `fetch` recebia `url`. No mobile, o fetch nativo (OkHttp ou
+    NSURLSession) poderia resolver o caminho de outro jeito e mandar o token para fora da base da API, por exemplo
+    para `/auth` ou para um bucket na mesma origem.
+  - **Correção:** `createApiFetch` envia `target.href`.
+  - **Prevenção:** esta regra, o teste "é a mesma que o filtro validou, já normalizada" e o mutante M5 de
+    `mutations/DEV-0178.json`. Vale para a web e para qualquer guarda futura de destino.

@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useSyncExternalStore, type ReactNode } from 'react';
 
 import { createApiFetch, type ApiFetch } from '../../lib/apiFetch';
-import { apiOrigins } from './authConfig';
+import { apiBases } from './authConfig';
 import type { Session, SessionStatus } from './session';
 
 interface SessionContextValue {
@@ -27,7 +27,7 @@ export function SessionProvider({ session, children }: { session: Session; child
             apiFetch: createApiFetch({
                 getAccessToken: (options) => session.getAccessToken(options),
                 onSessionRejected: () => session.reject(),
-                allowedOrigins: apiOrigins(),
+                allowedBases: apiBases(),
             }),
         }),
         [session, status],
