@@ -428,7 +428,8 @@ Cliente mantém todo o histórico
   apenas para ele e para os clientes que receberam prescrições com eles.
 - **BR-14** — Profissional sem assinatura ativa não cria nem edita prescrições.
   O que já foi entregue continua visível para o cliente.
-- **BR-15** — Cliente menor de idade: QUESTÃO-05.
+- **BR-15** — Cliente menor de idade não usa o app no MVP: o perfil exige 18 anos
+  ou mais (QUESTÃO-05).
 
 ---
 
@@ -686,14 +687,15 @@ Então um novo recorde de supino é registrado
   (checkout com cartão recorrente; Pix e boleto depois do MVP). O lançamento já cobra. Detalhes na seção 9.2.
 - ~~**QUESTÃO-02**~~ — **Decidida pelo Tito em 22/11/2026:** sim, a mesma
   conta pode ser profissional e cliente.
-- **QUESTÃO-03** — Quando o cliente tem ficha própria e passa a ter personal, a
-  ficha própria fica arquivada, coexiste ou é visível ao personal?
-- **QUESTÃO-04** — Por quanto tempo o cliente pode corrigir um registro de
-  execução?
-- **QUESTÃO-05** — Clientes menores de idade: permitidos? Se sim, exigem
-  consentimento do responsável (LGPD, art. 14). **Enquanto aberta:** o perfil
-  do cliente exige 18 anos ou mais (decisão do Agent na ausência do Tito, para
-  revisão; DEV-0032).
+- ~~**QUESTÃO-03**~~ — **Decidida pelo Tito em 26/11/2026:** a ficha própria do
+  cliente coexiste com a do personal e é invisível ao personal (decisão provisória
+  da DEV-0069 confirmada).
+- ~~**QUESTÃO-04**~~ — **Decidida pelo Tito em 26/11/2026:** o cliente corrige
+  o registro de treino ou de refeição até o fim do dia (America/Sao_Paulo);
+  depois ele fica imutável.
+- ~~**QUESTÃO-05**~~ — **Decidida pelo Tito em 26/11/2026:** no MVP, o perfil
+  do cliente exige 18 anos ou mais. Liberar menores exige o consentimento do
+  responsável (LGPD, art. 14) e fica para depois do MVP.
 - ~~**QUESTÃO-06**~~ — **Decidida pelo Agent na ausência do Tito, para revisão
   (DEV-0107, [ADR-012](adr/ADR-012-retencao-e-exclusao.md)):** o que é do
   cliente é apagado de vez em todos os serviços, sem carência; as prescrições
@@ -709,7 +711,9 @@ Então um novo recorde de supino é registrado
   permitir verificação futura. O formato exato (número de 1 a 6 dígitos, UF e,
   no CREF, categoria G ou P) foi decisão do Agent na ausência do Tito, para
   revisão (DEV-0029).
-- **QUESTÃO-09** — O cliente vê as restrições que o profissional registrou
-  sobre ele? (premissa atual: sim)
-- **QUESTÃO-10** — Qual o período padrão de "inatividade" para sinalizar um
-  cliente ao profissional?
+- ~~**QUESTÃO-09**~~ — **Decidida pelo Tito em 26/11/2026:** sim, o cliente vê
+  as restrições que o profissional registrou sobre ele (com o termo v2 da
+  DEV-0160, que as inclui no consentimento).
+- ~~**QUESTÃO-10**~~ — **Decidida pelo Tito em 26/11/2026:** o cliente aparece
+  como inativo depois de 7 dias sem registro, e o profissional ajusta de 1 a 60
+  dias na tela.
