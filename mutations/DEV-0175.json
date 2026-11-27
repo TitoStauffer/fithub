@@ -1,0 +1,65 @@
+{
+    "issue": "DEV-0175",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "A rodada que falha volta a esperar o ciclo do expurgo",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/keycloak/DeletedLoginPurgeScheduler.java",
+            "find": "                    retryInterval);\n            return retryInterval;",
+            "replace": "                    retryInterval);\n            return interval;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=DeletedLoginReapplyTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "A rodada que dá certo passa a usar o intervalo curto",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/keycloak/DeletedLoginPurgeScheduler.java",
+            "find": "            purge();\n            return interval;",
+            "replace": "            purge();\n            return retryInterval;",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=DeletedLoginReapplyTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O agendador ignora o intervalo da rodada e usa sempre o do expurgo",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/keycloak/DeletedLoginPurgeScheduler.java",
+            "find": "scheduler.schedule(this::cycle, next.toMillis(), TimeUnit.MILLISECONDS);",
+            "replace": "scheduler.schedule(this::cycle, interval.toMillis(), TimeUnit.MILLISECONDS);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=DeletedLoginReapplyTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

@@ -99,6 +99,7 @@ O banco do Keycloak volta do backup com o usuário de quem excluiu a conta depoi
   que também é de profissional não entra. Gravar de novo o mesmo id mantém uma linha, com a data mais recente.
 - Depois de restaurar um backup, a `infra/backup/restore.sh` grava um marcador em `restore_pending`. O expurgo
   periódico (`fithub.deleted-accounts.purge-interval`, 6 h), que também roda na subida, reapaga no Keycloak cada login
-  da lista e apaga o marcador no fim. O usuário já ausente conta como apagado. Falha do Keycloak mantém o marcador, e
-  o próximo ciclo tenta de novo. Sem marcador, nada é reapagado.
+  da lista e apaga o marcador no fim. O usuário já ausente conta como apagado. Falha do Keycloak (ou do banco) mantém
+  o marcador, e a rodada é tentada de novo em 1 minuto (`fithub.deleted-accounts.retry-interval`), não no ciclo de
+  6 h; quando ela passa, o intervalo volta ao do expurgo (DEV-0175). Sem marcador, nada é reapagado.
 - O id sai da lista depois de 30 dias, quando nenhum backup tem mais o usuário. O log traz só quantidades.

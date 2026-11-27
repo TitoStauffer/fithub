@@ -32,7 +32,9 @@ import org.springframework.test.context.TestPropertySource;
  * na subida, reapaga no Keycloak cada login da lista e apaga o marcador; sem restauração, nada é reapagado; o id sai
  * da lista depois de 30 dias. O Keycloak é um falso que registra as chamadas.
  */
-@TestPropertySource(properties = "fithub.professional.role-retry.enabled=false")
+// O intervalo curto depois de falha fica em 100 ms, para o teste do agendador rodando não esperar 1 minuto.
+@TestPropertySource(
+        properties = {"fithub.professional.role-retry.enabled=false", "fithub.deleted-accounts.retry-interval=PT0.1S"})
 class DeletedLoginReapplyTest extends ServiceIntegrationTest {
 
     @Autowired
@@ -158,6 +160,54 @@ class DeletedLoginReapplyTest extends ServiceIntegrationTest {
 
         assertThat(logins.deleted).containsExactly(id);
         assertThat(pending()).isZero();
+    }
+
+    // DEV-0175: com o Keycloak ainda subindo depois da restauração, a próxima tentativa vem no intervalo curto (1 min
+    // em
+    // produção, 100 ms aqui), não em 6 h.
+    // Quando a reaplicação passa (o marcador sai), o intervalo volta a ser o do expurgo.
+    @Test
+    void rodadaQueFalhaETentadaDeNovoEmMinutosEAQueDaCertoVoltaAoIntervaloDoExpurgo() {
+        UUID id = listed(Instant.now().minus(Duration.ofDays(1)));
+        restored();
+        logins.failuresLeft.set(1);
+
+        assertThat(scheduler.runOnce()).isEqualTo(Duration.ofMillis(100));
+        assertThat(pending()).isEqualTo(1);
+
+        assertThat(scheduler.runOnce()).isEqualTo(Duration.ofHours(6));
+        assertThat(logins.deleted).containsExactly(id);
+        assertThat(pending()).isZero();
+    }
+
+    // DEV-0175: com o agendador rodando, a rodada que falha é agendada de novo pelo intervalo curto: duas falhas do
+    // Keycloak seguidas e o login sai em menos de 10 s, não em 6 h.
+    @Test
+    void comOAgendadorRodandoAFalhaETentadaDeNovoLogo() throws InterruptedException {
+        scheduler.stop();
+        UUID id = listed(Instant.now().minus(Duration.ofDays(1)));
+        restored();
+        logins.failuresLeft.set(2);
+        try {
+            scheduler.start();
+            Instant deadline = Instant.now().plusSeconds(10);
+            while (pending() > 0 && Instant.now().isBefore(deadline)) {
+                Thread.sleep(50);
+            }
+            assertThat(pending()).isZero();
+            assertThat(logins.deleted).containsExactly(id);
+        } finally {
+            // Parado até o fim da classe: os outros testes chamam a rodada direto, sem o agendador em paralelo.
+            scheduler.stop();
+        }
+    }
+
+    // DEV-0175: sem restauração, a rodada usa o intervalo do expurgo.
+    @Test
+    void semRestauracaoAProximaRodadaEDaquiASeisHoras() {
+        listed(Instant.now().minus(Duration.ofDays(1)));
+
+        assertThat(scheduler.runOnce()).isEqualTo(Duration.ofHours(6));
     }
 
     @Test
