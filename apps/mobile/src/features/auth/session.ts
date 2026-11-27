@@ -125,6 +125,12 @@ export function createSession(
         const current: Promise<Tokens> = gateway
             .refresh(refreshToken)
             .then(async (fresh) => {
+                if (generation !== startedIn) {
+                    // A sessão mudou enquanto o Keycloak respondia (logout ou login novo, DEV-0148): o refresh token
+                    // offline que acabou de nascer não vai ser usado, então é revogado em vez de ficar órfão.
+                    gateway.signOut(fresh.refreshToken).catch(() => undefined);
+                    throw new InvalidSessionError();
+                }
                 await saveIfCurrent(fresh.refreshToken, startedIn);
                 // O cofre pode ter demorado: confere de novo antes de pôr o token em memória.
                 if (generation !== startedIn) throw new InvalidSessionError();
@@ -171,6 +177,10 @@ export function createSession(
         async signIn() {
             const fresh = await gateway.signIn();
             if (!fresh) return;
+            // O login novo vale mais que uma renovação ainda pendente (a retomada da sessão anterior, DEV-0148):
+            // a geração muda, e a resposta atrasada não sobrescreve o cofre nem a memória.
+            generation += 1;
+            renewal = undefined;
             const startedIn = generation;
             // Guarda antes de abrir a sessão: se o cofre falhar, não sobra token em memória sem sessão.
             await saveIfCurrent(fresh.refreshToken, startedIn);
@@ -179,7 +189,9 @@ export function createSession(
             setStatus('signedIn');
         },
         async signOut() {
-            const refreshToken = tokens?.refreshToken;
+            // Sem token em memória (retomando ou com o Keycloak fora do ar), revoga o que está no cofre (DEV-0148).
+            const refreshToken =
+                tokens?.refreshToken ?? (await inVault(() => store.load()).catch(() => undefined));
             // Apaga primeiro: mesmo sem rede para revogar, nada da sessão fica no aparelho.
             await forget();
             if (refreshToken) await gateway.signOut(refreshToken).catch(() => undefined);
