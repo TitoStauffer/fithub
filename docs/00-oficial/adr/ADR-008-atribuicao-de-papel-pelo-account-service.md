@@ -56,6 +56,10 @@ Conferido no Keycloak 26.8.2 local:
 
 - O secret do `fithub-account-service` continua sensível: com ele, dá para apagar contas e dar papel de
   profissional. Mas não dá mais para se dar `admin`, nem mexer em clients ou no realm.
+- **Limite conhecido:** o `manage` nos usuários vale para todos, porque o client apaga o login de quem excluiu a
+  conta. Com ele, quem tiver o secret ainda pode editar o perfil de qualquer usuário, inclusive o e-mail de uma conta
+  `admin`, e tentar tomá-la pela recuperação de senha. Restringir o `manage` a contas sem papel administrativo é o
+  débito DEV-0184 (#340) (Code Review do PR #339).
 - Os papéis `personal` e `nutritionist` têm id fixo no realm, porque a permissão os cita pelo id.
   Recriar esses papéis com outro id quebra a atribuição, e o teste do realm confere os ids.
 - O front precisa renovar a sessão depois do cadastro para o token trazer o papel (DEV-0031).

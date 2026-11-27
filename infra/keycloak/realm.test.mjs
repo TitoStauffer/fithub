@@ -29,7 +29,7 @@ test('o realm se chama fithub e está habilitado', () => {
   assert.equal(realm.enabled, true);
 });
 
-test('só os clients do web, do mobile e do account-service são declarados', () => {
+test('só os clients do web, do mobile, do account-service e o das permissões finas são declarados', () => {
   assert.deepEqual(
     realm.clients.map(({ clientId }) => clientId).sort(),
     [...APP_CLIENTS, SERVICE_CLIENT, PERMISSIONS_CLIENT].sort(),
@@ -51,6 +51,17 @@ test(`${SERVICE_CLIENT}: confidencial, só client credentials, secret por variá
   // Sem full scope, o token só leva os papéis mapeados abaixo; kc-admin-api é exigido pela API de admin.
   assert.equal(candidate.fullScopeAllowed, false);
   assert.deepEqual(candidate.defaultClientScopes, ['kc-admin-api']);
+});
+
+// O client das permissões só guarda a autorização: nenhum login, nenhuma conta de serviço (Code Review do PR #339).
+test(`${PERMISSIONS_CLIENT}: sem fluxo de login nem conta de serviço`, () => {
+  const candidate = client(PERMISSIONS_CLIENT);
+  assert.equal(candidate.publicClient, false);
+  assert.equal(candidate.standardFlowEnabled, false);
+  assert.notEqual(candidate.implicitFlowEnabled, true);
+  assert.equal(candidate.directAccessGrantsEnabled, false);
+  assert.equal(candidate.serviceAccountsEnabled, false);
+  assert.equal(candidate.authorizationServicesEnabled, true);
 });
 
 test(`${SERVICE_CLIENT} só mapeia personal e nutritionist, pelas permissões finas (DEV-0147)`, () => {
