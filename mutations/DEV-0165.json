@@ -1,0 +1,125 @@
+{
+    "issue": "DEV-0165",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O training volta a projetar o vínculo ativado de quem excluiu a conta",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ProjectClientEvents.java",
+            "find": "        if (erasure.isDeleted(clientId)) {\n            return;\n        }\n        if (LINK_TYPE.equals(type)) {\n            links.activate(",
+            "replace": "        if (LINK_TYPE.equals(type)) {\n            links.activate(",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O training volta a projetar o vínculo encerrado de quem excluiu a conta",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/application/ProjectClientEvents.java",
+            "find": "        if (erasure.isDeleted(clientId)) {\n            return;\n        }\n        if (LINK_TYPE.equals(type)) {\n            links.end(",
+            "replace": "        if (LINK_TYPE.equals(type)) {\n            links.end(",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "A lista de contas excluídas do training passa a valer para qualquer cliente",
+            "area": "java",
+            "file": "services/training-service/src/main/java/com/fithub/training/infrastructure/persistence/JdbcClientErasure.java",
+            "find": "from deleted_account where client_id = :c)",
+            "replace": "from deleted_account where cast(:c as uuid) is not null)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/training-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "O nutrition volta a projetar o vínculo ativado de quem excluiu a conta",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ProjectClientEvents.java",
+            "find": "        if (erasure.isDeleted(clientId)) {\n            return;\n        }\n        if (LINK_TYPE.equals(type)) {\n            links.activate(",
+            "replace": "        if (LINK_TYPE.equals(type)) {\n            links.activate(",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O nutrition volta a projetar o vínculo encerrado de quem excluiu a conta",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/application/ProjectClientEvents.java",
+            "find": "        if (erasure.isDeleted(clientId)) {\n            return;\n        }\n        if (LINK_TYPE.equals(type)) {\n            links.end(",
+            "replace": "        if (LINK_TYPE.equals(type)) {\n            links.end(",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "A lista de contas excluídas do nutrition passa a valer para qualquer cliente",
+            "area": "java",
+            "file": "services/nutrition-service/src/main/java/com/fithub/nutrition/infrastructure/persistence/JdbcClientErasure.java",
+            "find": "from deleted_account where client_id = :c)",
+            "replace": "from deleted_account where cast(:c as uuid) is not null)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/nutrition-service",
+                "-am",
+                "test",
+                "-Dtest=ClientEventsConsumerTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

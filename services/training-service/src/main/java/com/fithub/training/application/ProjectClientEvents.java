@@ -2,6 +2,7 @@ package com.fithub.training.application;
 
 import com.fithub.training.domain.access.ClientDirectory;
 import com.fithub.training.domain.access.LinkProjection;
+import com.fithub.training.domain.account.ClientErasure;
 import java.time.Instant;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -23,19 +24,29 @@ public class ProjectClientEvents {
 
     private final LinkProjection links;
     private final ClientDirectory clients;
+    private final ClientErasure erasure;
 
-    public ProjectClientEvents(LinkProjection links, ClientDirectory clients) {
+    public ProjectClientEvents(LinkProjection links, ClientDirectory clients, ClientErasure erasure) {
         this.links = links;
         this.clients = clients;
+        this.erasure = erasure;
     }
 
     public void linkActivated(UUID linkId, UUID clientId, UUID professionalId, String type, Instant occurredAt) {
+        // Cliente que já excluiu a conta: o evento atrasado (reprocessado da .dlq, por exemplo) não volta a gravar o id
+        // nem o nome dele (DEV-0165, ADR-012). O consumo marca o evento como processado do mesmo jeito.
+        if (erasure.isDeleted(clientId)) {
+            return;
+        }
         if (LINK_TYPE.equals(type)) {
             links.activate(linkId, clientId, professionalId, occurredAt);
         }
     }
 
     public void linkEnded(UUID linkId, UUID clientId, UUID professionalId, String type, Instant occurredAt) {
+        if (erasure.isDeleted(clientId)) {
+            return;
+        }
         if (LINK_TYPE.equals(type)) {
             links.end(linkId, clientId, professionalId, occurredAt);
             if (!links.hasAnyActiveLink(clientId)) {
@@ -45,6 +56,8 @@ public class ProjectClientEvents {
     }
 
     public void clientUpdated(ClientDirectory.ProjectedClient client) {
+        // Sem guarda própria de conta excluída: a cópia só é guardada com vínculo ativo (DEV-0153), e o vínculo de quem
+        // excluiu a conta não volta a ser ativado (acima).
         if (links.hasAnyActiveLink(client.clientId())) {
             clients.update(client);
         }

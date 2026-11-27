@@ -76,6 +76,14 @@ class JdbcClientErasure implements ClientErasure {
     }
 
     @Override
+    public boolean isDeleted(UUID clientId) {
+        return Boolean.TRUE.equals(jdbc.sql("select exists (select 1 from deleted_account where client_id = :c)")
+                .param("c", clientId)
+                .query(Boolean.class)
+                .single());
+    }
+
+    @Override
     public int purgeDeletedBefore(Instant cutoff) {
         return jdbc.sql("delete from deleted_account where deleted_at < :cutoff")
                 .param("cutoff", Timestamp.from(cutoff))

@@ -315,6 +315,40 @@ class ClientEventsConsumerTest extends ServiceIntegrationTest {
         assertThat(copies(client)).isEqualTo(1);
     }
 
+    // DEV-0165: evento atrasado de quem já excluiu a conta (reprocessado da .dlq, por exemplo) não volta a gravar o id
+    // nem o
+    // nome do cliente. Um cliente que não excluiu a conta, no mesmo teste, continua sendo projetado.
+    @Test
+    void eventoDeClienteQueJaExcluiuAContaNaoVoltaAProjecao() throws Exception {
+        UUID deleted = UUID.randomUUID();
+        UUID other = UUID.randomUUID();
+        jdbc.sql("insert into deleted_account (client_id, deleted_at) values (:c, now())")
+                .param("c", deleted)
+                .update();
+        UUID link = UUID.randomUUID();
+        UUID otherLink = UUID.randomUUID();
+
+        String activation = UUID.randomUUID().toString();
+        activate(link, deleted, UUID.randomUUID(), "nutritionist", activation);
+        awaitProcessed(activation);
+        awaitProcessed(clientUpdated(deleted, "Excluída", "2026-11-23T10:00:00Z"));
+        String ending = UUID.randomUUID().toString();
+        end(UUID.randomUUID(), deleted, UUID.randomUUID(), "nutritionist", ending);
+        awaitProcessed(ending);
+        String otherActivation = UUID.randomUUID().toString();
+        activate(otherLink, other, UUID.randomUUID(), "nutritionist", otherActivation);
+        awaitProcessed(otherActivation);
+        awaitProcessed(clientUpdated(other, "Ana", "2026-11-23T10:00:00Z"));
+
+        assertThat(jdbc.sql("select count(*) from client_link where client_id = :c")
+                        .param("c", deleted)
+                        .query(Integer.class)
+                        .single())
+                .isZero();
+        assertThat(copies(deleted)).isZero();
+        assertThat(copies(other)).isEqualTo(1);
+    }
+
     @Test
     void clienteAtualizadoAtrasadoNaoDesfazOMaisRecente() throws Exception {
         UUID link = UUID.randomUUID();

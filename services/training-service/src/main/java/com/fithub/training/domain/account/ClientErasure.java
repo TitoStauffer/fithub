@@ -15,6 +15,9 @@ public interface ClientErasure {
      */
     void erase(UUID clientId, Instant at);
 
+    /** Se o cliente está na lista de contas excluídas (DEV-0165). */
+    boolean isDeleted(UUID clientId);
+
     /** Tira da lista as contas excluídas antes de {@code cutoff}. Devolve quantas saíram. */
     int purgeDeletedBefore(Instant cutoff);
 
