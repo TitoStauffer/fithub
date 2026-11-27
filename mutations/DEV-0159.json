@@ -1,0 +1,39 @@
+{
+    "issue": "DEV-0159",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "A tela volta a dizer que não há inativos sem a atividade lida",
+            "area": "apps",
+            "file": "apps/web/src/features/clients/ClientsPage.tsx",
+            "find": "{activityReady && clients.data && clients.data.length > 0 && visible.length === 0 ? (",
+            "replace": "{clients.data && clients.data.length > 0 && visible.length === 0 ? (",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "exec",
+                "vitest",
+                "run",
+                "src/features/clients/inactivity.test.tsx"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O campo do limite deixa de acompanhar a URL na mesma rota",
+            "area": "apps",
+            "file": "apps/web/src/features/clients/ClientsPage.tsx",
+            "find": "        setShownThreshold(threshold);\n        setDraft(String(threshold));\n",
+            "replace": "        setShownThreshold(threshold);\n",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "exec",
+                "vitest",
+                "run",
+                "src/features/clients/inactivity.test.tsx"
+            ]
+        }
+    ]
+}
