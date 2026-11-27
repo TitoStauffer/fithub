@@ -50,7 +50,7 @@ export function createApiFetch(options: ApiFetchOptions): ApiFetch {
         const request = (token: string) => {
             const headers = new Headers(init?.headers);
             headers.set('Authorization', `Bearer ${token}`);
-            // Envia a URL que foi validada, já normalizada: o fetch nativo poderia ler `..` ou `` de outro jeito.
+            // Envia a URL que foi validada, já normalizada: o fetch nativo poderia ler `..` ou a barra invertida de outro jeito.
             return send(target.href, { ...init, headers });
         };
 
