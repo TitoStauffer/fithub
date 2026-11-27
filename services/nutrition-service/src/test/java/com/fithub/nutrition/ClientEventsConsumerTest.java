@@ -318,6 +318,44 @@ class ClientEventsConsumerTest extends ServiceIntegrationTest {
     // DEV-0165: evento atrasado de quem já excluiu a conta (reprocessado da .dlq, por exemplo) não volta a gravar o id
     // nem o
     // nome do cliente. Um cliente que não excluiu a conta, no mesmo teste, continua sendo projetado.
+    // DEV-0165 (Code Review do PR #348): a conta que também é de profissional mantém o id ao excluir o lado cliente
+    // (DEV-0161). Se ela volta como cliente, o vínculo aceito depois da exclusão é projetado. O evento do mesmo
+    // instante da exclusão (o encerramento dos vínculos, na mesma transação) continua descartado. Os eventos de
+    // vínculo do teste ocorrem às 12:00.
+    @Test
+    void vinculoDeContaQueVoltouDepoisDaExclusaoEProjetado() throws Exception {
+        UUID returned = UUID.randomUUID();
+        UUID sameInstant = UUID.randomUUID();
+        insertDeleted(returned, "2026-11-23T11:00:00Z");
+        insertDeleted(sameInstant, "2026-11-23T12:00:00Z");
+
+        String activation = UUID.randomUUID().toString();
+        activate(UUID.randomUUID(), returned, UUID.randomUUID(), "nutritionist", activation);
+        awaitProcessed(activation);
+        awaitProcessed(clientUpdated(returned, "Ana", "2026-11-23T13:00:00Z"));
+        String sameActivation = UUID.randomUUID().toString();
+        activate(UUID.randomUUID(), sameInstant, UUID.randomUUID(), "nutritionist", sameActivation);
+        awaitProcessed(sameActivation);
+
+        assertThat(links(returned)).isEqualTo(1);
+        assertThat(copies(returned)).isEqualTo(1);
+        assertThat(links(sameInstant)).isZero();
+    }
+
+    private void insertDeleted(UUID client, String deletedAt) {
+        jdbc.sql("insert into deleted_account (client_id, deleted_at) values (:c, cast(:at as timestamptz))")
+                .param("c", client)
+                .param("at", deletedAt)
+                .update();
+    }
+
+    private int links(UUID client) {
+        return jdbc.sql("select count(*) from client_link where client_id = :c")
+                .param("c", client)
+                .query(Integer.class)
+                .single();
+    }
+
     @Test
     void eventoDeClienteQueJaExcluiuAContaNaoVoltaAProjecao() throws Exception {
         UUID deleted = UUID.randomUUID();

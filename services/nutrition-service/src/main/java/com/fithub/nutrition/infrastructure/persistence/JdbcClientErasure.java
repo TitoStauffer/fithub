@@ -67,11 +67,15 @@ class JdbcClientErasure implements ClientErasure {
     }
 
     @Override
-    public boolean isDeleted(UUID clientId) {
-        return Boolean.TRUE.equals(jdbc.sql("select exists (select 1 from deleted_account where client_id = :c)")
-                .param("c", clientId)
-                .query(Boolean.class)
-                .single());
+    public boolean deletedAtOrAfter(UUID clientId, Instant occurredAt) {
+        // O deleted_at é o occurredAt do ContaExcluida, do mesmo relógio do client-service que emite os eventos de
+        // vínculo.
+        return Boolean.TRUE.equals(
+                jdbc.sql("select exists (select 1 from deleted_account where client_id = :c and deleted_at >= :at)")
+                        .param("c", clientId)
+                        .param("at", Timestamp.from(occurredAt))
+                        .query(Boolean.class)
+                        .single());
     }
 
     @Override

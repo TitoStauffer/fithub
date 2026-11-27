@@ -33,9 +33,11 @@ public class ProjectClientEvents {
     }
 
     public void linkActivated(UUID linkId, UUID clientId, UUID professionalId, String type, Instant occurredAt) {
-        // Cliente que já excluiu a conta: o evento atrasado (reprocessado da .dlq, por exemplo) não volta a gravar o id
-        // nem o nome dele (DEV-0165, ADR-012). O consumo marca o evento como processado do mesmo jeito.
-        if (erasure.isDeleted(clientId)) {
+        // Evento anterior à exclusão da conta, que chegou atrasado (reprocessado da .dlq, por exemplo): não volta a
+        // gravar
+        // o id nem o nome do cliente (DEV-0165, ADR-012). O consumo marca o evento como processado do mesmo jeito. O
+        // encerramento dos vínculos sai na mesma transação da exclusão, com o mesmo instante, e também é descartado.
+        if (erasure.deletedAtOrAfter(clientId, occurredAt)) {
             return;
         }
         if (LINK_TYPE.equals(type)) {
@@ -44,7 +46,7 @@ public class ProjectClientEvents {
     }
 
     public void linkEnded(UUID linkId, UUID clientId, UUID professionalId, String type, Instant occurredAt) {
-        if (erasure.isDeleted(clientId)) {
+        if (erasure.deletedAtOrAfter(clientId, occurredAt)) {
             return;
         }
         if (LINK_TYPE.equals(type)) {

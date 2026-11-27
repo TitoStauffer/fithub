@@ -80,3 +80,21 @@ mais amplo (ex.: `ContaExcluida`) para cortar acesso: o consumidor pode ainda n�
   - **Correção:** `DeleteClientAccount` encerra cada vínculo ativo pelo cliente e grava o `VinculoEncerrado` antes de
     apagar, como o encerramento comum.
   - **Prevenção:** teste `osVinculosAtivosSaoEncerrados…` e mutantes M23 a M25 de `mutations/DEV-0105.json`.
+
+## lista-de-bloqueio-por-id-compara-o-instante
+
+**Regra:** uma lista que faz o consumidor descartar eventos de um id (conta excluída, por exemplo) descarta só os
+eventos **anteriores** à entrada do id na lista, comparando o `occurredAt` do evento com o instante gravado. Um id
+pode voltar a valer (a conta que também é de profissional mantém o login e o id ao excluir o lado cliente), e o
+evento descartado é marcado como processado, então a projeção nunca mais se recupera. Os dois instantes precisam vir
+do mesmo relógio (o do produtor dos eventos), e o teste cobre o evento posterior e o do mesmo instante.
+
+### Ocorrências
+
+- **Revisão:** Code Review do PR #348, no SHA `77e3e61` (HIGH) — DEV-0165 (#297) · **PR:** #348
+  - **Impacto:** no training e no nutrition, o `VinculoAtivado` de quem voltou como cliente nos 30 dias da lista
+    `deleted_account` seria descartado: o profissional com vínculo ativo e consentimento receberia 404, sem aviso.
+  - **Correção:** `ClientErasure.deletedAtOrAfter(clientId, occurredAt)`, com `deleted_at >= :at`; o `deleted_at` é o
+    `occurredAt` do `ContaExcluida`, do mesmo client-service.
+  - **Prevenção:** esta regra, o teste `vinculoDeContaQueVoltouDepoisDaExclusaoEProjetado` e os mutantes M4, M5, M9 e
+    M10 de `mutations/DEV-0165.json`.
