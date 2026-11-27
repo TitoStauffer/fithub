@@ -48,10 +48,12 @@ class ProfessionalReadTest extends ServiceIntegrationTest {
                                  "goal": "HYPERTROPHY"}
                                 """))
                 .andExpect(status().isCreated());
-        mvc.perform(put("/clients/me/health")
-                        .header("Authorization", "Bearer conta-" + account)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"conditions\": [\"HYPERTENSION\"], \"notes\": \"joelho\"}"))
+        mvc.perform(
+                        put("/clients/me/health")
+                                .header("Authorization", "Bearer conta-" + account)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        "{\"consent\": true, \"termsVersion\": \"v1\", \"conditions\": [\"HYPERTENSION\"], \"notes\": \"joelho\"}"))
                 .andExpect(status().isOk());
         return account;
     }

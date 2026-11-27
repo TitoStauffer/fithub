@@ -164,10 +164,12 @@ class AccountDeletionTest extends ServiceIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(PROFILE))
                 .andExpect(status().isCreated());
-        mvc.perform(put("/clients/me/health")
-                        .header("Authorization", "Bearer conta-" + client)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"conditions\": [\"HYPERTENSION\"], \"notes\": \"anotação\"}"))
+        mvc.perform(
+                        put("/clients/me/health")
+                                .header("Authorization", "Bearer conta-" + client)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        "{\"consent\": true, \"termsVersion\": \"v1\", \"conditions\": [\"HYPERTENSION\"], \"notes\": \"anotação\"}"))
                 .andExpect(status().isOk());
         String assessment = json.readTree(mvc.perform(post("/clients/me/assessments")
                                 .header("Authorization", "Bearer conta-" + client)
@@ -266,6 +268,7 @@ class AccountDeletionTest extends ServiceIntegrationTest {
         return List.of(
                 count("select count(*) from client_profile where account_id = :id", client),
                 count("select count(*) from client_health where account_id = :id", client),
+                count("select count(*) from health_consent where account_id = :id", client),
                 count("select count(*) from body_assessment where client_id = :id", id),
                 count("select count(*) from assessment_photo where client_id = :id", id),
                 count("select count(*) from client_link where client_id = :id", id),
@@ -299,7 +302,7 @@ class AccountDeletionTest extends ServiceIntegrationTest {
     @Test
     void excluirApagaTudoDoClienteGravaOEventoEApagaOsArquivosDoBucket() throws Exception {
         String client = fullClient(professional());
-        assertThat(leftovers(client)).containsExactly(1, 1, 1, 1, 1, 1, 3);
+        assertThat(leftovers(client)).containsExactly(1, 1, 1, 1, 1, 1, 1, 3);
 
         deleteAccount("conta-" + client).andExpect(status().isNoContent());
 
@@ -359,7 +362,7 @@ class AccountDeletionTest extends ServiceIntegrationTest {
 
         deleteAccount("personal-" + client).andExpect(status().isNoContent());
 
-        assertThat(leftovers(other)).containsExactly(1, 1, 1, 1, 1, 1, 3);
+        assertThat(leftovers(other)).containsExactly(1, 1, 1, 1, 1, 1, 1, 3);
         assertThat(count("select count(*) from professional where id = :id", UUID.fromString(client)))
                 .isEqualTo(1);
         assertThat(count(
@@ -382,7 +385,7 @@ class AccountDeletionTest extends ServiceIntegrationTest {
 
         deleteAccount("conta-" + client).andExpect(status().isInternalServerError());
 
-        assertThat(leftovers(client)).containsExactly(1, 1, 1, 1, 1, 1, 3);
+        assertThat(leftovers(client)).containsExactly(1, 1, 1, 1, 1, 1, 1, 3);
         assertThat(outboxPayloads(client)).isEmpty();
         assertThat(linkEndedPayloads(client)).isEmpty();
         assertThat(count(
@@ -413,7 +416,7 @@ class AccountDeletionTest extends ServiceIntegrationTest {
         mvc.perform(delete("/clients/me")).andExpect(status().isUnauthorized());
         deleteAccount("sempapel-" + client).andExpect(status().isForbidden());
 
-        assertThat(leftovers(client)).containsExactly(1, 1, 1, 1, 1, 1, 3);
+        assertThat(leftovers(client)).containsExactly(1, 1, 1, 1, 1, 1, 1, 3);
         assertThat(outboxPayloads(client)).isEmpty();
     }
 

@@ -1,12 +1,14 @@
 import {
     ApiProblemError,
     OfflineError,
+    fetchHealthTerms,
     fetchMyHealth,
     fetchMyProfile,
     saveMyHealth,
     saveMyProfile,
     type ClientProfile,
     type ClientProfileRequest,
+    type HealthConsentTerms,
     type HealthProfile,
     type HealthProfileRequest,
 } from '../../lib/api';
@@ -18,6 +20,7 @@ export interface ProfileApi {
     saveProfile(body: ClientProfileRequest): Promise<ClientProfile>;
     fetchHealth(): Promise<HealthProfile | null>;
     saveHealth(body: HealthProfileRequest): Promise<HealthProfile>;
+    fetchHealthTerms(): Promise<HealthConsentTerms>;
 }
 
 export function profileApiFrom(apiFetch: ApiFetch): ProfileApi {
@@ -26,6 +29,7 @@ export function profileApiFrom(apiFetch: ApiFetch): ProfileApi {
         saveProfile: (body) => saveMyProfile(apiFetch, body),
         fetchHealth: () => fetchMyHealth(apiFetch),
         saveHealth: (body) => saveMyHealth(apiFetch, body),
+        fetchHealthTerms: () => fetchHealthTerms(apiFetch),
     };
 }
 

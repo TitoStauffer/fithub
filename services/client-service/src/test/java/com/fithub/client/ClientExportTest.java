@@ -87,7 +87,9 @@ class ClientExportTest extends ServiceIntegrationTest {
         mvc.perform(put("/clients/me/health")
                         .header("Authorization", "Bearer conta-" + client)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"conditions\": [\"HYPERTENSION\"], \"notes\": \"" + notes + "\"}"))
+                        .content(
+                                "{\"consent\": true, \"termsVersion\": \"v1\", \"conditions\": [\"HYPERTENSION\"], \"notes\": \""
+                                        + notes + "\"}"))
                 .andExpect(status().isOk());
         String assessment = json.readTree(mvc.perform(post("/clients/me/assessments")
                                 .header("Authorization", "Bearer conta-" + client)

@@ -77,6 +77,9 @@ está no ADR-007.
   para o campo; campo que a tela não mostra vai para o aviso geral. Um envio por vez. Sem conexão
   (`OfflineError`), o app avisa e mantém o que foi digitado.
 - **Saúde:** fica só no estado da tela aberta; nunca vai para o cofre, `AsyncStorage` ou log.
+- **Termo do perfil de saúde (DEV-0179):** enquanto a conta não aceitou a versão vigente
+  (`GET /clients/me/health/terms`), a tela mostra o texto e uma caixa desmarcada, e só envia com ela marcada,
+  mandando `consent` e `termsVersion` junto com a saúde.
 - **Convite:** o link `fithub://convite/<token>` abre a tela de aceite (React Native `Linking`); também dá para
   digitar o código do convite ou o código pessoal do profissional. A tela mostra o que será compartilhado e a
   versão do termo, e só aceita com a confirmação marcada. Recusar não chama a API.

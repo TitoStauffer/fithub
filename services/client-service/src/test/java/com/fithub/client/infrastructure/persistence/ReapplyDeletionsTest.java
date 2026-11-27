@@ -73,10 +73,12 @@ class ReapplyDeletionsTest extends ServiceIntegrationTest {
                                  "goal": "HEALTH"}
                                 """))
                 .andExpect(status().isCreated());
-        mvc.perform(put("/clients/me/health")
-                        .header("Authorization", token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"conditions\": [\"HYPERTENSION\"], \"notes\": \"joelho\"}"))
+        mvc.perform(
+                        put("/clients/me/health")
+                                .header("Authorization", token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        "{\"consent\": true, \"termsVersion\": \"v1\", \"conditions\": [\"HYPERTENSION\"], \"notes\": \"joelho\"}"))
                 .andExpect(status().isOk());
         mvc.perform(post("/clients/me/assessments")
                         .header("Authorization", token)

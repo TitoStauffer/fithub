@@ -29,6 +29,7 @@ const PROFILE: ClientProfile = {
 const profileApi: ProfileApi = {
     fetchProfile: jest.fn(async () => PROFILE),
     saveProfile: jest.fn(),
+    fetchHealthTerms: jest.fn(async () => ({ termsVersion: 'v1', termsText: 'termo', accepted: true })),
     fetchHealth: jest.fn(async () => null),
     saveHealth: jest.fn(),
 };

@@ -24,8 +24,9 @@ Esqueleto da DEV-0141, com o template da DEV-0015 (estrutura, execução e teste
 
 | Rota | Resposta |
 |---|---|
-| `PUT /clients/me/health` | 200 grava (substitui o anterior); 400 com o campo inválido; 409 sem o perfil do cliente |
+| `PUT /clients/me/health` | 200 grava (substitui o anterior); 400 com o campo inválido, ou sem o aceite do termo do perfil de saúde (`consent`) enquanto a conta não aceitou a versão vigente; 409 sem o perfil do cliente, ou termo desatualizado (DEV-0179) |
 | `GET /clients/me/health` | 200 com as condições e o texto livre; 404 se ainda não houver |
+| `GET /clients/me/health/terms` | 200 com o termo do perfil de saúde (`termsVersion`, `termsText`) e se a conta já o aceitou (`accepted`). O aceite fica em `health_consent`, com a versão e o momento, e sai com a conta na exclusão (DEV-0179) |
 
 - Dado sensível (LGPD, art. 11): nunca vai para log, mensagem de erro ou evento. O teste
   `HealthProfileApiTest.oDadoDeSaudeNuncaApareceNoLog` confere a saída do serviço.

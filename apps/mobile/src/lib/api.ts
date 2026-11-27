@@ -55,6 +55,7 @@ export type ClientProfile = Schemas['ClientProfile'];
 export type ClientProfileRequest = Schemas['ClientProfileRequest'];
 export type HealthProfile = Schemas['HealthProfile'];
 export type HealthProfileRequest = Schemas['HealthProfileRequest'];
+export type HealthConsentTerms = Schemas['HealthConsentTerms'];
 
 /** Erro da API em Problem Details: `detail` e, quando houver, a mensagem de cada campo. */
 export class ApiProblemError extends Error {
@@ -136,6 +137,16 @@ export function fetchMyHealth(apiFetch: ApiFetch, baseUrl = clientApiUrl()) {
 
 export function saveMyHealth(apiFetch: ApiFetch, body: HealthProfileRequest, baseUrl = clientApiUrl()) {
     return write<HealthProfile>(apiFetch, `${baseUrl}/clients/me/health`, body);
+}
+
+/** Termo do perfil de saúde e se a conta já o aceitou (DEV-0179): na primeira vez, a tela mostra o texto. */
+export async function fetchHealthTerms(
+    apiFetch: ApiFetch,
+    baseUrl = clientApiUrl(),
+): Promise<HealthConsentTerms> {
+    const terms = await read<HealthConsentTerms>(apiFetch, `${baseUrl}/clients/me/health/terms`);
+    if (!terms) throw new Error('Termo do perfil de saúde indisponível.');
+    return terms;
 }
 
 export type InvitationPreview = Schemas['InvitationPreview'];

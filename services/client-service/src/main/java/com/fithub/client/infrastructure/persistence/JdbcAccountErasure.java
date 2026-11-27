@@ -43,6 +43,9 @@ class JdbcAccountErasure implements AccountErasure {
                 .param("clientId", clientId)
                 .update();
         String account = clientId.toString();
+        jdbc.sql("delete from health_consent where account_id = :account")
+                .param("account", account)
+                .update();
         jdbc.sql("delete from client_health where account_id = :account")
                 .param("account", account)
                 .update();

@@ -213,6 +213,11 @@ describe('minha ficha', () => {
                 goal: 'HEALTH' as const,
             })),
             saveProfile: jest.fn(),
+            fetchHealthTerms: jest.fn(async () => ({
+                termsVersion: 'v1',
+                termsText: 'termo',
+                accepted: true,
+            })),
             fetchHealth: jest.fn(async () => null),
             saveHealth: jest.fn(),
         };
