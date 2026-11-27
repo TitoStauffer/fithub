@@ -1,0 +1,81 @@
+{
+    "issue": "DEV-0150",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O erro de banco volta a ir inteiro para o log, com a linha recusada",
+            "area": "java",
+            "file": "libs/java-commons/src/main/java/com/fithub/commons/web/FithubProblemDetailsHandler.java",
+            "find": "if (!(exception instanceof DataAccessException)) {",
+            "replace": "if (true) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "libs/java-commons",
+                "test",
+                "-Dtest=DatabaseErrorLogTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O nome da constraint passa a ser procurado também nas linhas de dados",
+            "area": "java",
+            "file": "libs/java-commons/src/main/java/com/fithub/commons/web/FithubProblemDetailsHandler.java",
+            "find": "matcher(end < 0 ? message : message.substring(0, end))",
+            "replace": "matcher(message)",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "libs/java-commons",
+                "test",
+                "-Dtest=DatabaseErrorLogTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O erro de banco sem SQLException passa a quebrar o handler",
+            "area": "java",
+            "file": "libs/java-commons/src/main/java/com/fithub/commons/web/FithubProblemDetailsHandler.java",
+            "find": "(sql == null ? \"\" : \" (SQLState \"",
+            "replace": "(\" (SQLState \"",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "libs/java-commons",
+                "test",
+                "-Dtest=DatabaseErrorLogTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "A mensagem sem nome de constraint passa a quebrar o handler",
+            "area": "java",
+            "file": "libs/java-commons/src/main/java/com/fithub/commons/web/FithubProblemDetailsHandler.java",
+            "find": "return matcher.find() ? \", constraint \" + matcher.group(1) : \"\";",
+            "replace": "matcher.find();\n        return \", constraint \" + matcher.group(1);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "libs/java-commons",
+                "test",
+                "-Dtest=DatabaseErrorLogTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}
