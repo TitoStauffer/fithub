@@ -16,6 +16,9 @@ public interface LinkProjection {
     /** Vínculo encerrado; registra o encerramento mesmo que a ativação ainda não tenha chegado. */
     void end(UUID linkId, UUID clientId, UUID professionalId, Instant occurredAt);
 
+    /** Se o cliente tem vínculo ativo com algum profissional deste serviço (DEV-0153). */
+    boolean hasAnyActiveLink(UUID clientId);
+
     /** Se o profissional tem vínculo ativo com o cliente. */
     boolean hasActiveLink(UUID professionalId, UUID clientId);
 

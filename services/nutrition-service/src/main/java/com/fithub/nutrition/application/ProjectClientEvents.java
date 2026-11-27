@@ -6,7 +6,11 @@ import java.time.Instant;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 
-/** Mantém as projeções a partir dos eventos do client-service (DEV-0151). */
+/**
+ * Mantém as projeções a partir dos eventos do client-service (DEV-0151). A cópia dos dados básicos do cliente só existe
+ * enquanto ele tem vínculo ativo neste serviço (DEV-0153, minimização): o client-service republica o
+ * {@code ClienteAtualizado} logo depois do {@code VinculoAtivado}, e a cópia sai quando o último vínculo termina.
+ */
 @Service
 public class ProjectClientEvents {
 
@@ -30,10 +34,15 @@ public class ProjectClientEvents {
     public void linkEnded(UUID linkId, UUID clientId, UUID professionalId, String type, Instant occurredAt) {
         if (LINK_TYPE.equals(type)) {
             links.end(linkId, clientId, professionalId, occurredAt);
+            if (!links.hasAnyActiveLink(clientId)) {
+                clients.remove(clientId);
+            }
         }
     }
 
     public void clientUpdated(ClientDirectory.ProjectedClient client) {
-        clients.update(client);
+        if (links.hasAnyActiveLink(client.clientId())) {
+            clients.update(client);
+        }
     }
 }
