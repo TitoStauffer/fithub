@@ -142,15 +142,6 @@ class JdbcLinkRepository implements LinkRepository {
     }
 
     @Override
-    public Optional<String> consentVersion(UUID linkId) {
-        return jdbc.sql(
-                        "select terms_version from consent where link_id = :linkId order by granted_at desc, id desc limit 1")
-                .param("linkId", linkId)
-                .query(String.class)
-                .optional();
-    }
-
-    @Override
     public void addConsent(Link link, Set<SharedData> scope, String termsVersion, Instant grantedAt) {
         jdbc.sql("""
                         insert into consent (id, link_id, client_id, scope, terms_version, granted_at)

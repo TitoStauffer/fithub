@@ -96,9 +96,8 @@ public class ManageLinks {
         if (link.status() != Link.Status.ACTIVE) {
             throw new EndedLinkException();
         }
-        if (!links.consentVersion(linkId).map(ConsentTerms::isCurrent).orElse(false)) {
-            links.addConsent(link, ConsentTerms.SCOPE, ConsentTerms.CURRENT_VERSION, clock.instant());
-        }
+        // Aceitar de novo a versão que já vale não grava nada: o banco guarda um aceite por vínculo e versão (V16).
+        links.addConsent(link, ConsentTerms.SCOPE, ConsentTerms.CURRENT_VERSION, clock.instant());
         return ConsentTerms.CURRENT_VERSION;
     }
 }

@@ -44,9 +44,6 @@ public interface LinkRepository {
      */
     void saveWithConsent(Link link, Set<SharedData> scope, String termsVersion, Instant grantedAt);
 
-    /** Versão do último termo aceito no vínculo (DEV-0160). */
-    Optional<String> consentVersion(UUID linkId);
-
     /**
      * Grava um novo aceite do termo num vínculo que já existe (DEV-0160); o anterior continua no histórico. Um aceite por
      * vínculo e versão: dois pedidos simultâneos gravam um só.

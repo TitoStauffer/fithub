@@ -83,26 +83,6 @@
         },
         {
             "id": "M5",
-            "description": "Aceitar de novo a versão vigente passa a gravar outro aceite",
-            "area": "java",
-            "file": "services/client-service/src/main/java/com/fithub/client/application/ManageLinks.java",
-            "find": "        if (!links.consentVersion(linkId).map(ConsentTerms::isCurrent).orElse(false)) {",
-            "replace": "        if (true) {",
-            "command": [
-                "mvn",
-                "-B",
-                "-ntp",
-                "-q",
-                "-pl",
-                "services/client-service",
-                "-am",
-                "test",
-                "-Dtest=LinkConsentRenewalTest",
-                "-Dsurefire.failIfNoSpecifiedTests=false"
-            ]
-        },
-        {
-            "id": "M6",
             "description": "O vínculo encerrado passa a aparecer com o consentimento desatualizado",
             "area": "java",
             "file": "services/client-service/src/main/java/com/fithub/client/interfaces/rest/LinkController.java",
@@ -122,7 +102,7 @@
             ]
         },
         {
-            "id": "M7",
+            "id": "M6",
             "description": "O vínculo novo passa a aparecer com o consentimento desatualizado",
             "area": "java",
             "file": "services/client-service/src/main/java/com/fithub/client/interfaces/rest/LinkController.java",
@@ -142,7 +122,7 @@
             ]
         },
         {
-            "id": "M8",
+            "id": "M7",
             "description": "A lista passa a mostrar o aceite mais antigo, não o último",
             "area": "java",
             "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcLinkRepository.java",
@@ -162,7 +142,7 @@
             ]
         },
         {
-            "id": "M9",
+            "id": "M8",
             "description": "O termo vigente volta a ser a v1, sem as restrições",
             "area": "java",
             "file": "services/client-service/src/main/java/com/fithub/client/domain/link/ConsentTerms.java",
@@ -182,7 +162,7 @@
             ]
         },
         {
-            "id": "M10",
+            "id": "M9",
             "description": "Dois novos aceites da mesma versão passam a dar erro no banco",
             "area": "java",
             "file": "services/client-service/src/main/java/com/fithub/client/infrastructure/persistence/JdbcLinkRepository.java",
@@ -202,7 +182,7 @@
             ]
         },
         {
-            "id": "M11",
+            "id": "M10",
             "description": "O banco deixa de garantir um aceite por vínculo e versão",
             "area": "java",
             "file": "services/client-service/src/main/resources/db/migration/V16__um_aceite_por_vinculo_e_versao.sql",
