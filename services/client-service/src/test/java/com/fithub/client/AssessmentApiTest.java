@@ -71,7 +71,7 @@ class AssessmentApiTest extends ServiceIntegrationTest {
         mvc.perform(post("/links")
                         .header("Authorization", "Bearer conta-" + client)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"code\": \"%s\", \"consent\": true, \"termsVersion\": \"v1\"}".formatted(code)))
+                        .content("{\"code\": \"%s\", \"consent\": true, \"termsVersion\": \"v2\"}".formatted(code)))
                 .andExpect(status().isCreated());
         return personal;
     }

@@ -65,7 +65,7 @@ class LinkEndingTest extends ServiceIntegrationTest {
         return json.readTree(mvc.perform(post("/links")
                                 .header("Authorization", "Bearer conta-" + client)
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"code\": \"%s\", \"consent\": true, \"termsVersion\": \"v1\"}"
+                                .content("{\"code\": \"%s\", \"consent\": true, \"termsVersion\": \"v2\"}"
                                         .formatted(code)))
                         .andExpect(status().isCreated())
                         .andReturn()

@@ -142,9 +142,17 @@ class LinkController {
             Link.Status status,
             Instant startedAt,
             @Schema(nullable = true) Instant endedAt,
-            @Schema(nullable = true) Link.Party endedBy) {
+            @Schema(nullable = true) Link.Party endedBy,
 
-        static ClientLinkResponse of(Link link, String professionalName) {
+            @Schema(description = "Versão do último termo de consentimento aceito no vínculo.", example = "v2")
+            String consentVersion,
+
+            @Schema(
+                    description = "Vínculo ativo com termo aceito numa versão anterior: o cliente precisa aceitar o"
+                            + " termo vigente (POST /links/{id}/consent).")
+            boolean consentOutdated) {
+
+        static ClientLinkResponse of(Link link, String professionalName, String consentVersion) {
             return new ClientLinkResponse(
                     link.id(),
                     link.professionalId(),
@@ -153,9 +161,22 @@ class LinkController {
                     link.status(),
                     link.startedAt(),
                     link.endedAt(),
-                    link.endedBy());
+                    link.endedBy(),
+                    consentVersion,
+                    link.status() == Link.Status.ACTIVE && !ConsentTerms.isCurrent(consentVersion));
         }
     }
+
+    @Schema(name = "RenewConsentRequest", description = "Novo aceite do termo vigente num vínculo ativo.")
+    record RenewConsentRequest(
+            @Schema(description = "Consentimento explícito; precisa ser true.")
+            Boolean consent,
+
+            @Schema(description = "Versão do termo que a tela mostrou.", example = ConsentTerms.CURRENT_VERSION)
+            String termsVersion) {}
+
+    @Schema(name = "LinkConsent", description = "Versão do termo que passou a valer no vínculo.")
+    record LinkConsentResponse(UUID id, String consentVersion) {}
 
     @Schema(name = "LinkStatus", description = "Situação do vínculo depois do encerramento.")
     record EndedResponse(
@@ -181,7 +202,7 @@ class LinkController {
             })
     List<ClientLinkResponse> mine(@AuthenticationPrincipal Jwt jwt) {
         return manageLinks.listMine(jwt.getSubject()).stream()
-                .map(view -> ClientLinkResponse.of(view.link(), view.professionalName()))
+                .map(view -> ClientLinkResponse.of(view.link(), view.professionalName(), view.consentVersion()))
                 .toList();
     }
 
@@ -210,6 +231,53 @@ class LinkController {
     EndedResponse end(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
         Link link = manageLinks.end(jwt.getSubject(), id);
         return new EndedResponse(link.id(), link.status(), link.endedAt(), link.endedBy());
+    }
+
+    @PostMapping(path = "/{id}/consent", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            summary = "Aceita o termo de consentimento vigente num vínculo ativo (DEV-0160)",
+            responses = {
+                @ApiResponse(
+                        responseCode = "200",
+                        description = "Termo vigente aceito (ou já estava; aceitar de novo não muda nada)."),
+                @ApiResponse(
+                        responseCode = "400",
+                        description = "Consentimento não confirmado.",
+                        content =
+                                @Content(
+                                        mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                                        schema = @Schema(implementation = ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "401",
+                        description = "Sem token válido.",
+                        content =
+                                @Content(
+                                        mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                                        schema = @Schema(implementation = ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "404",
+                        description = "Vínculo não encontrado, ou a conta não é o cliente dele.",
+                        content =
+                                @Content(
+                                        mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                                        schema = @Schema(implementation = ApiProblem.class))),
+                @ApiResponse(
+                        responseCode = "409",
+                        description = "O termo mudou depois que a tela o mostrou, ou o vínculo foi encerrado.",
+                        content =
+                                @Content(
+                                        mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                                        schema = @Schema(implementation = ApiProblem.class)))
+            })
+    LinkConsentResponse renewConsent(
+            @AuthenticationPrincipal Jwt jwt, @PathVariable UUID id, @RequestBody RenewConsentRequest request) {
+        String version = manageLinks.renewConsent(jwt.getSubject(), id, request.consent(), request.termsVersion());
+        return new LinkConsentResponse(id, version);
+    }
+
+    @ExceptionHandler(ManageLinks.EndedLinkException.class)
+    ProblemDetail endedLink(ManageLinks.EndedLinkException exception) {
+        return InvitationController.problem(HttpStatus.CONFLICT, "Vínculo encerrado", exception.getMessage());
     }
 
     @ExceptionHandler(ManageLinks.NotFoundException.class)

@@ -202,7 +202,7 @@ class AccountDeletionTest extends ServiceIntegrationTest {
         mvc.perform(post("/links")
                         .header("Authorization", "Bearer conta-" + client)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"token\": \"%s\", \"consent\": true, \"termsVersion\": \"v1\"}"
+                        .content("{\"token\": \"%s\", \"consent\": true, \"termsVersion\": \"v2\"}"
                                 .formatted(link.substring(link.lastIndexOf('/') + 1))))
                 .andExpect(status().isCreated());
         // O convite aceito foi enviado para outro e-mail do cliente: sai pelo vínculo, não pelo e-mail do token.

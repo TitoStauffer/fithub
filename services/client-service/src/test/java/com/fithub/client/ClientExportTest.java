@@ -63,7 +63,7 @@ class ClientExportTest extends ServiceIntegrationTest {
         return json.readTree(mvc.perform(post("/links")
                                 .header("Authorization", "Bearer conta-" + client)
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"token\": \"%s\", \"consent\": true, \"termsVersion\": \"v1\"}"
+                                .content("{\"token\": \"%s\", \"consent\": true, \"termsVersion\": \"v2\"}"
                                         .formatted(invitation.substring(invitation.lastIndexOf('/') + 1))))
                         .andExpect(status().isCreated())
                         .andReturn()
@@ -143,7 +143,7 @@ class ClientExportTest extends ServiceIntegrationTest {
                 .andExpect(jsonPath("$.links[?(@.professionalName == 'Nina Nutri')].endedBy")
                         .value("CLIENT"))
                 .andExpect(jsonPath("$.links[?(@.professionalName == 'Nina Nutri')].consent.termsVersion")
-                        .value("v1"))
+                        .value("v2"))
                 .andExpect(jsonPath("$.links[?(@.professionalName == 'Paula Personal')].status")
                         .value("ACTIVE"))
                 .andExpect(jsonPath("$.links[?(@.professionalName == 'Paula Personal')].consent.scope.length()")

@@ -33,9 +33,9 @@ Não coletamos IP nem identificador do aparelho no consentimento.
 | Tratamento | Base legal |
 |---|---|
 | Conta e funcionamento do app | Execução do contrato (art. 7º, V) |
-| Dados de saúde, avaliações, fotos e restrições compartilhados com o profissional, ou registrados por ele | Consentimento específico e destacado do cliente, no [termo de consentimento](termo-de-consentimento.md) de cada vínculo (art. 11, I) |
+| Dados de saúde, avaliações, fotos e restrições compartilhados com o profissional, ou registrados por ele | Consentimento específico e destacado do cliente, no [termo de consentimento](termo-de-consentimento.md) de cada vínculo (art. 11, I). As restrições de mobilidade e alimentares estão no termo desde a versão v2 |
 | Assinatura e cobrança do profissional | Execução do contrato e cumprimento de obrigação legal |
-| Registros de acesso de profissionais a dados sensíveis | Legítimo interesse e segurança (NFR-03) |
+| Registros de acesso de profissionais a dados sensíveis | Legítimo interesse e dever de segurança (art. 7º, IX, e art. 46; NFR-03) |
 
 ## 4. Com quem compartilhamos
 
@@ -69,8 +69,9 @@ Não coletamos IP nem identificador do aparelho no consentimento.
 - **Cópias de segurança** guardam o dado apagado por no máximo 30 dias, até expirarem. Nesse prazo guardamos só o
   identificador da conta excluída, para refazer a exclusão se uma cópia for restaurada.
 - **Registros técnicos** (logs) não levam dado pessoal e ficam 30 dias.
-- **Registros de acesso de profissionais** aos seus dados de saúde ficam 6 meses, como exige o Marco Civil da
-  Internet (art. 15), mesmo depois da exclusão. Eles guardam só quem acessou, o quê e quando, nunca o conteúdo.
+- **Registros de acesso de profissionais** aos seus dados de saúde ficam 6 meses, mesmo depois da exclusão, pela
+  mesma base da seção 3 (legítimo interesse e dever de segurança), para apurar um acesso indevido. Eles guardam só
+  quem acessou, o quê e quando, nunca o conteúdo.
 - Os detalhes estão no [ADR-012](../adr/ADR-012-retencao-e-exclusao.md).
 
 ## 7. Seus direitos

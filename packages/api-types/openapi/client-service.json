@@ -14,7 +14,7 @@
           },
           "termsVersion" : {
             "description" : "Versão do termo que a tela mostrou.",
-            "example" : "v1",
+            "example" : "v2",
             "type" : "string"
           },
           "token" : {
@@ -366,6 +366,15 @@
       "ClientLink" : {
         "description" : "Vínculo visto pelo cliente.",
         "properties" : {
+          "consentOutdated" : {
+            "description" : "Vínculo ativo com termo aceito numa versão anterior: o cliente precisa aceitar o termo vigente (POST /links/{id}/consent).",
+            "type" : "boolean"
+          },
+          "consentVersion" : {
+            "description" : "Versão do último termo de consentimento aceito no vínculo.",
+            "example" : "v2",
+            "type" : "string"
+          },
           "endedAt" : {
             "format" : "date-time",
             "type" : [ "string", "null" ]
@@ -649,6 +658,19 @@
         },
         "type" : "object"
       },
+      "LinkConsent" : {
+        "description" : "Versão do termo que passou a valer no vínculo.",
+        "properties" : {
+          "consentVersion" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "LinkStatus" : {
         "description" : "Situação do vínculo depois do encerramento.",
         "properties" : {
@@ -785,6 +807,21 @@
           },
           "startedAt" : {
             "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "RenewConsentRequest" : {
+        "description" : "Novo aceite do termo vigente num vínculo ativo.",
+        "properties" : {
+          "consent" : {
+            "description" : "Consentimento explícito; precisa ser true.",
+            "type" : "boolean"
+          },
+          "termsVersion" : {
+            "description" : "Versão do termo que a tela mostrou.",
+            "example" : "v2",
             "type" : "string"
           }
         },
@@ -1871,6 +1908,84 @@
           }
         },
         "summary" : "Aceita um convite (ou o código pessoal do profissional) com consentimento",
+        "tags" : [ "Vínculos" ]
+      }
+    },
+    "/links/{id}/consent" : {
+      "post" : {
+        "operationId" : "renewConsent",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RenewConsentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LinkConsent"
+                }
+              }
+            },
+            "description" : "Termo vigente aceito (ou já estava; aceitar de novo não muda nada)."
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Consentimento não confirmado."
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Sem token válido."
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Vínculo não encontrado, ou a conta não é o cliente dele."
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "O termo mudou depois que a tela o mostrou, ou o vínculo foi encerrado."
+          }
+        },
+        "summary" : "Aceita o termo de consentimento vigente num vínculo ativo (DEV-0160)",
         "tags" : [ "Vínculos" ]
       }
     },

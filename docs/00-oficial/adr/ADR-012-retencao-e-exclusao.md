@@ -45,10 +45,12 @@ DEV-0105), e cada serviço trata o que tem.
    - os logs não levam dado pessoal (ENGENHARIA §4) e ficam 30 dias (DEV-0109).
 6. **Auditoria de acesso de profissionais a dados sensíveis** (o registro de leitura da saúde da DEV-0040 e a
    auditoria da DEV-0106):
-   - guardada por 6 meses, o mínimo do Marco Civil da Internet (art. 15) para registros de acesso a aplicação;
-   - depois desse prazo, é apagada;
-   - a exclusão da conta não apaga a auditoria antes do prazo, porque ela é obrigação legal (LGPD art. 16, I). Ela
-     guarda só ids, a ação e a data, nunca o conteúdo.
+   - base legal: legítimo interesse e dever de segurança (LGPD art. 7º, IX, e art. 46), decisão do Tito em
+     26/11/2026 (DEV-0160). Ela não é o registro de acesso a aplicação do Marco Civil (art. 15), que trata de IP,
+     data e hora de uso da aplicação, e não de quem leu o dado de quem;
+   - guardada por 6 meses e depois apagada;
+   - a exclusão da conta não apaga a auditoria antes do prazo: ela guarda só ids, a ação e a data, nunca o conteúdo,
+     e serve para apurar um acesso indevido. **[revisão jurídica: confirmar a guarda depois da exclusão nesta base]**
 7. **Fora desta decisão:**
    - **conta parada:** sem expurgo automático no MVP;
    - **conta que também é de profissional:** a exclusão pelo profissional fica fora do MVP. A DEV-0105 define como a
@@ -61,8 +63,8 @@ DEV-0105), e cada serviço trata o que tem.
 - **Carência de 30 dias para desistir:** rejeitada no MVP. Exige estado intermediário em todos os serviços e um
   expurgo agendado; a exclusão é rara e o cliente confirma antes (DEV-0105).
 - **Apagar também as prescrições:** rejeitada. O BR-05 diz que elas são do profissional que as criou.
-- **Apagar a auditoria junto com a conta:** rejeitada. O registro de acesso é obrigação legal e não guarda o
-  conteúdo lido.
+- **Apagar a auditoria junto com a conta:** rejeitada. O registro serve para apurar acesso indevido aos dados do
+  próprio cliente e não guarda o conteúdo lido.
 
 ## Consequências
 
