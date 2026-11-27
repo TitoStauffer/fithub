@@ -179,8 +179,9 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
   - O logout apaga o cofre e revoga a sessão no Keycloak pelo refresh token.
   - As chamadas usam `createApiFetch` (`src/lib/apiFetch.ts`), com as
     regras da web: Bearer token e uma nova tentativa no 401. O token vai só
-    para as origens das APIs do FitHub; o filtro pelo caminho, como na web,
-    é o débito DEV-0178.
+    para os endereços base das APIs do FitHub, com o caminho, como na web
+    (DEV-0178): em produção, o Keycloak e os buckets dividem a origem e não
+    recebem o token.
 - **Avaliação corporal** (DEV-0044): o cliente registra a online em
   `/clients/me/assessments`; o profissional vinculado, a presencial em
   `/professionals/me/clients/{clientId}/assessments`. O tipo vem da rota, e o
