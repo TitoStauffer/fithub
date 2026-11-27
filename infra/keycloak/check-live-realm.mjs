@@ -4,9 +4,10 @@
 //
 //   node infra/keycloak/check-live-realm.mjs [http://localhost:8080]
 //
-// Não usa credencial de admin nem cria nada. A única credencial é a do client do account-service
-// (FITHUB_ACCOUNT_SERVICE_SECRET, com o padrão de desenvolvimento do compose), para conferir que ele
-// faz só o que precisa (DEV-0029, ADR-008).
+// Usa a credencial do client do account-service (FITHUB_ACCOUNT_SERVICE_SECRET, com o padrão de desenvolvimento do
+// compose) para conferir que ele faz só o que precisa (DEV-0029, ADR-008). Para provar as permissões finas (DEV-0147),
+// cria com o admin do compose (KEYCLOAK_ADMIN/KEYCLOAK_ADMIN_PASSWORD, padrão admin) uma conta só para a checagem, que
+// o próprio client apaga no fim.
 const base = (process.argv[2] ?? 'http://localhost:8080').replace(/\/$/, '');
 const realm = `${base}/realms/fithub`;
 const CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
@@ -91,6 +92,45 @@ if (serviceAccess) {
   check(clients.status === 403, `fithub-account-service não lista os clients (${clients.status})`);
   const realmChange = await admin('', { method: 'PUT', body: JSON.stringify({ registrationAllowed: false }) });
   check(realmChange.status === 403, `fithub-account-service não altera o realm (${realmChange.status})`);
+  await checkProfessionalRolesOnly(admin);
+}
+
+/**
+ * Permissões finas (DEV-0147): numa conta criada só para a checagem, o client mapeia personal, mas não admin nem client,
+ * e apaga a conta (exclusão de conta, DEV-0161).
+ */
+async function checkProfessionalRolesOnly(service) {
+  const master = await fetch(`${base}/realms/master/protocol/openid-connect/token`, {
+    method: 'POST',
+    body: new URLSearchParams({
+      grant_type: 'password',
+      client_id: 'admin-cli',
+      username: process.env.KEYCLOAK_ADMIN ?? 'admin',
+      password: process.env.KEYCLOAK_ADMIN_PASSWORD ?? 'admin',
+    }),
+  });
+  const { access_token: adminAccess } = await master.json().catch(() => ({}));
+  check(Boolean(adminAccess), 'o admin do compose obtém token para criar a conta da checagem');
+  if (!adminAccess) return;
+  const asAdmin = (path, init = {}) =>
+    fetch(`${base}/admin/realms/fithub${path}`, { ...init, headers: { Authorization: `Bearer ${adminAccess}`, 'Content-Type': 'application/json' } });
+  const username = `checagem-papeis-${Date.now()}`;
+  const created = await asAdmin('/users', { method: 'POST', body: JSON.stringify({ username, email: `${username}@checagem.test`, enabled: true }) });
+  const userId = created.headers.get('location')?.split('/').pop();
+  check(created.status === 201 && Boolean(userId), 'a conta da checagem foi criada');
+  if (!userId) return;
+  const roleOf = async (name) => (await asAdmin(`/roles/${name}`)).json();
+  const map = async (name) =>
+    (await service(`/users/${userId}/role-mappings/realm`, { method: 'POST', body: JSON.stringify([await roleOf(name)]) })).status;
+  const personal = await map('personal');
+  check(personal === 204, `fithub-account-service atribui personal (${personal})`);
+  for (const name of ['admin', 'client']) {
+    const status = await map(name);
+    check(status === 403, `fithub-account-service não atribui ${name} (${status})`);
+  }
+  const removed = await service(`/users/${userId}`, { method: 'DELETE' });
+  check(removed.status === 204, `fithub-account-service apaga a conta (${removed.status})`);
+  if (removed.status !== 204) await asAdmin(`/users/${userId}`, { method: 'DELETE' });
 }
 
 if (failures.length > 0) {
