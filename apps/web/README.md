@@ -203,7 +203,8 @@ suba o Keycloak pelo compose de `infra/`). A decisão dos papéis e dos clients 
   semanas até hoje:
     - a aderência (treinos feitos contra os esperados, com o percentual) e os treinos finalizados por semana;
     - a maior carga e o volume do exercício escolhido, entre os que têm treino no período;
-    - os recordes por exercício (maior carga e 1RM estimado), de todo o histórico;
+    - os recordes por exercício (maior carga e 1RM estimado), de todo o histórico; o lançado à mão pelo aluno vem
+      marcado "(manual)" (FR-54, DEV-0158);
     - a evolução corporal de todo o histórico: peso, cada circunferência e o % de gordura de cada método, sem misturar
       métodos numa linha (BR-12).
 - Os gráficos são uma linha em SVG próprio, sem biblioteca, e a tabela logo abaixo traz os mesmos valores para o

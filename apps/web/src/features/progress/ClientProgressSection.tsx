@@ -11,6 +11,11 @@ import { formatDay, periodStart, type PeriodWeeks } from './progressPeriod';
 
 const PERCENT = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
 
+/** O recorde lançado à mão pelo aluno vem marcado, como no app dele (FR-54, DEV-0158). */
+function ManualMark({ source }: { source?: string }) {
+    return source === 'MANUAL' ? <span className="ml-1 text-xs text-muted-foreground"> (manual)</span> : null;
+}
+
 /**
  * Evolução do aluno vinculado para o personal (DEV-0094, FR-56): aderência do período, carga e volume do exercício
  * escolhido, recordes e evolução corporal. Cada bloco diz o que falta quando não há dado. O % de gordura vem por
@@ -145,11 +150,13 @@ export function ClientProgressSection({ clientId, now = new Date() }: { clientId
                                         {record.maxLoad
                                             ? `${PERCENT.format(record.maxLoad.valueKg ?? 0)} kg × ${record.maxLoad.reps ?? 0} em ${formatDay(record.maxLoad.date)}`
                                             : '—'}
+                                        <ManualMark source={record.maxLoad?.source} />
                                     </td>
                                     <td>
                                         {record.estimatedOneRepMax
                                             ? `${PERCENT.format(record.estimatedOneRepMax.valueKg ?? 0)} kg`
                                             : '—'}
+                                        <ManualMark source={record.estimatedOneRepMax?.source} />
                                     </td>
                                 </tr>
                             ))}
