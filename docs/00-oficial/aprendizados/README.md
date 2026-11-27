@@ -17,6 +17,7 @@ que fazemos para não repeti-los.
 | Política de privacidade e termos (o que listar) | [documentacao-legal.md](documentacao-legal.md) |
 | Auditoria de acesso a dados sensíveis | [auditoria.md](auditoria.md) |
 | Operação: backup e restauração | [operacao.md](operacao.md) |
+| Logs e dados sensíveis (mensagem de erro do banco) | [logs.md](logs.md) |
 
 Regras de registro: [AGENTS.md](../../../AGENTS.md), seção **Aprendizados**.
 

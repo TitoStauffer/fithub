@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.zaxxer.hikari.HikariDataSource;
 import java.util.List;
 import java.util.stream.Stream;
 import javax.sql.DataSource;
@@ -114,6 +115,16 @@ public abstract class ServiceSkeletonContract extends ServiceIntegrationTest {
                 .allSatisfy(exchange -> assertThat(exchange.shouldDeclare())
                         .as(exchange.getName())
                         .isFalse());
+    }
+
+    // O driver do Postgres sem o Detail na mensagem de erro, no pool de verdade do serviço (DEV-0183): o padrão da
+    // java-commons pode ser sobrescrito, e um serviço que o religasse passaria a levar a linha recusada ao log. Vale
+    // também para o batch, que o Hibernate 7 liga por padrão: com o Detail, a entrada recusada vem com os valores.
+    @Test
+    void postgresDriverOmitsTheErrorDetail() throws Exception {
+        HikariDataSource pool = dataSource.unwrap(HikariDataSource.class);
+        assertThat(pool.getDataSourceProperties().getProperty("logServerErrorDetail"))
+                .isEqualTo("false");
     }
 
     private static List<String> successfulVersions(JdbcClient jdbc, String historyTable) {
