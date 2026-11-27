@@ -1,0 +1,24 @@
+{
+    "issue": "DEV-0183",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O driver do Postgres volta a pôr a linha recusada e a chave repetida na mensagem da exceção",
+            "area": "java",
+            "file": "libs/java-commons/src/main/java/com/fithub/commons/logging/StructuredLoggingDefaults.java",
+            "find": ",\n            // O driver do Postgres deixa de pôr o Detail na mensagem da exceção (DEV-0183). Ele traz a linha recusada\n            // (\"Failing row contains\") ou a chave repetida, que podem ser dado pessoal ou de saúde, e essa mensagem\n            // chega ao log pelo Hibernate, pelos consumidores e por qualquer handler. O SQLState e a constraint ficam.\n            \"spring.datasource.hikari.data-source-properties.logServerErrorDetail\", \"false\");",
+            "replace": ");",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "libs/java-commons",
+                "test",
+                "-Dtest=DatabaseErrorDetailTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        }
+    ]
+}

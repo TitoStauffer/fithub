@@ -28,7 +28,11 @@ public class StructuredLoggingDefaults implements EnvironmentPostProcessor {
             "management.observations.enable.spring.security", "false",
             // Métricas por OTLP (DEV-0113) só quando o ambiente liga: sem isso, o registro do Micrometer tentaria o
             // coletor em localhost a cada minuto, nos testes e no desenvolvimento.
-            "management.otlp.metrics.export.enabled", "false");
+            "management.otlp.metrics.export.enabled", "false",
+            // O driver do Postgres deixa de pôr o Detail na mensagem da exceção (DEV-0183). Ele traz a linha recusada
+            // ("Failing row contains") ou a chave repetida, que podem ser dado pessoal ou de saúde, e essa mensagem
+            // chega ao log pelo Hibernate, pelos consumidores e por qualquer handler. O SQLState e a constraint ficam.
+            "spring.datasource.hikari.data-source-properties.logServerErrorDetail", "false");
 
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
