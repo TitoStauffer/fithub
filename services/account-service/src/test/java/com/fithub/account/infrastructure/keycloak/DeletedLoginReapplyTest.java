@@ -15,7 +15,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,14 +76,31 @@ class DeletedLoginReapplyTest extends ServiceIntegrationTest {
         }
     }
 
-    /** Registra os logins apagados; falha as primeiras {@code failuresLeft} chamadas. */
+    /**
+     * Registra os logins apagados; falha as primeiras {@code failuresLeft} chamadas. Com {@code hold}, a próxima chamada
+     * avisa em {@code entered} e espera {@code hold} abrir (um Keycloak lento), sem parar com a interrupção do stop.
+     */
     static class FakeLogins implements LoginAccounts {
 
         final List<UUID> deleted = Collections.synchronizedList(new ArrayList<>());
         final AtomicInteger failuresLeft = new AtomicInteger();
+        final AtomicReference<CountDownLatch> hold = new AtomicReference<>();
+        final CountDownLatch entered = new CountDownLatch(1);
 
         @Override
         public void delete(UUID accountId) {
+            CountDownLatch latch = hold.getAndSet(null);
+            if (latch != null) {
+                entered.countDown();
+                while (true) {
+                    try {
+                        latch.await();
+                        break;
+                    } catch (InterruptedException ignored) {
+                        // O stop interrompe a rodada; o Keycloak lento continua até responder.
+                    }
+                }
+            }
             if (failuresLeft.getAndUpdate(n -> Math.max(0, n - 1)) > 0) {
                 throw new IllegalStateException("Keycloak fora do ar");
             }
@@ -91,6 +111,7 @@ class DeletedLoginReapplyTest extends ServiceIntegrationTest {
     @BeforeEach
     void reset() {
         logins.failuresLeft.set(0);
+        logins.hold.set(null);
         logins.deleted.clear();
         jdbc.sql("delete from restore_pending").update();
         jdbc.sql("delete from deleted_account").update();
@@ -200,6 +221,57 @@ class DeletedLoginReapplyTest extends ServiceIntegrationTest {
             // Parado até o fim da classe: os outros testes chamam a rodada direto, sem o agendador em paralelo.
             scheduler.stop();
         }
+    }
+
+    // DEV-0175 (Code Review do PR #351): parar e voltar o serviço enquanto uma rodada espera o Keycloak não abre uma
+    // segunda cadeia de rodadas no executor novo: quando a rodada antiga termina, ela não agenda nada.
+    @Test
+    void pararEVoltarDuranteUmaRodadaNaoAbreUmaSegundaCadeia() throws InterruptedException {
+        scheduler.stop();
+        UUID id = listed(Instant.now().minus(Duration.ofDays(1)));
+        restored();
+        CountDownLatch release = new CountDownLatch(1);
+        logins.hold.set(release);
+        try {
+            scheduler.start();
+            assertThat(logins.entered.await(10, TimeUnit.SECONDS)).isTrue();
+            scheduler.stop();
+            scheduler.start();
+            // A cadeia nova reapaga o login e agenda a próxima rodada, em 6 h.
+            Instant deadline = Instant.now().plusSeconds(10);
+            while ((pending() > 0 || scheduler.scheduledRuns() == 0)
+                    && Instant.now().isBefore(deadline)) {
+                Thread.sleep(50);
+            }
+            assertThat(scheduler.scheduledRuns()).isEqualTo(1);
+
+            release.countDown();
+            // A rodada antiga termina (apaga o login de novo) e não agenda mais nada.
+            deadline = Instant.now().plusSeconds(2);
+            while (scheduler.scheduledRuns() == 1 && Instant.now().isBefore(deadline)) {
+                Thread.sleep(50);
+            }
+            assertThat(logins.deleted).containsExactly(id, id);
+            assertThat(scheduler.scheduledRuns()).isEqualTo(1);
+        } finally {
+            release.countDown();
+            scheduler.stop();
+        }
+    }
+
+    // DEV-0175 (Code Review do PR #351): intervalo zero ou negativo é recusado na subida, em vez de virar repetição sem
+    // espera.
+    @Test
+    void intervaloZeroOuNegativoERecusado() {
+        assertThatThrownBy(() -> new DeletedLoginPurgeScheduler(null, Duration.ZERO, Duration.ofMinutes(1)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("purge-interval");
+        assertThatThrownBy(() -> new DeletedLoginPurgeScheduler(null, Duration.ofHours(6), Duration.ofSeconds(-1)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("retry-interval");
+        assertThatThrownBy(() -> new DeletedLoginPurgeScheduler(null, Duration.ofHours(6), Duration.ZERO))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("retry-interval");
     }
 
     // DEV-0175: sem restauração, a rodada usa o intervalo do expurgo.

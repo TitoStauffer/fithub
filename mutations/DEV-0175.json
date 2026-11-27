@@ -46,8 +46,88 @@
             "description": "O agendador ignora o intervalo da rodada e usa sempre o do expurgo",
             "area": "java",
             "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/keycloak/DeletedLoginPurgeScheduler.java",
-            "find": "scheduler.schedule(this::cycle, next.toMillis(), TimeUnit.MILLISECONDS);",
-            "replace": "scheduler.schedule(this::cycle, interval.toMillis(), TimeUnit.MILLISECONDS);",
+            "find": "owner.schedule(() -> cycle(owner), next.toMillis(), TimeUnit.MILLISECONDS);",
+            "replace": "owner.schedule(() -> cycle(owner), interval.toMillis(), TimeUnit.MILLISECONDS);",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=DeletedLoginReapplyTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "A rodada antiga, depois de parar e voltar, abre uma segunda cadeia no executor novo",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/keycloak/DeletedLoginPurgeScheduler.java",
+            "find": "            if (scheduler == owner) {\n                owner.schedule(",
+            "replace": "            if (scheduler != null) {\n                scheduler.schedule(",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=DeletedLoginReapplyTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O intervalo do expurgo deixa de ser conferido",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/keycloak/DeletedLoginPurgeScheduler.java",
+            "find": "positive(\"fithub.deleted-accounts.purge-interval\", interval)",
+            "replace": "interval",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=DeletedLoginReapplyTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "O intervalo curto deixa de ser conferido",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/keycloak/DeletedLoginPurgeScheduler.java",
+            "find": "positive(\"fithub.deleted-accounts.retry-interval\", retryInterval)",
+            "replace": "retryInterval",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=DeletedLoginReapplyTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "Intervalo zero passa a ser aceito",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/keycloak/DeletedLoginPurgeScheduler.java",
+            "find": "if (value.isZero() || value.isNegative()) {",
+            "replace": "if (value.isNegative()) {",
             "command": [
                 "mvn",
                 "-B",
