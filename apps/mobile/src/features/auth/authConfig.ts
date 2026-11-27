@@ -39,21 +39,10 @@ export function nutritionApiUrl(): string {
     return setting(process.env.EXPO_PUBLIC_NUTRITION_API_URL, DEFAULT_NUTRITION_API_URL);
 }
 
-/** Origens que podem receber o access token: só as APIs do FitHub. */
-export function apiOrigins(): string[] {
-    return [originOf(clientApiUrl()), originOf(trainingApiUrl()), originOf(nutritionApiUrl())];
-}
-
 /**
- * Origem (`esquema://host[:porta]`) de uma URL absoluta http(s). Devolve `''` para qualquer outra coisa
- * (URL relativa, inválida, outro esquema), que nunca casa com uma origem permitida. Usa o `URL` padrão
- * que o Expo fornece, em vez de interpretar a URL à mão.
+ * Endereços que podem receber o access token: só as APIs do FitHub, com o caminho (DEV-0178). Em produção, elas dividem a
+ * origem com o Keycloak e os buckets das fotos (ADR-014), então a origem sozinha não basta.
  */
-export function originOf(url: string): string {
-    try {
-        const parsed = new URL(url);
-        return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.origin : '';
-    } catch {
-        return '';
-    }
+export function apiBases(): string[] {
+    return [clientApiUrl(), trainingApiUrl(), nutritionApiUrl()];
 }
