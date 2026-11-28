@@ -365,8 +365,8 @@
             "config": {
               "defaultResourceType": "Groups",
               "resources": "[\"7d1c2b3a-0184-4f00-9a01-000000000001\"]",
-              "scopes": "[\"manage-members\"]",
-              "applyPolicies": "[\"account-service\"]"
+              "applyPolicies": "[\"account-service\"]",
+              "scopes": "[\"manage-members\"]"
             }
           },
           {
