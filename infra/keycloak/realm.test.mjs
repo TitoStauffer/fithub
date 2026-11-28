@@ -76,11 +76,18 @@ test(`${SERVICE_CLIENT} só mapeia personal e nutritionist, pelas permissões fi
   );
   assert.deepEqual(
     settings.policies.filter((policy) => policy.type === 'scope').map(({ name }) => name).sort(),
-    ['account-service-professional-roles', 'account-service-users'],
+    ['account-service-app-accounts', 'account-service-professional-roles', 'account-service-users'],
   );
-  // Nos usuários: ler, apagar (exclusão de conta, DEV-0161) e mapear papéis.
-  assert.deepEqual(JSON.parse(config('account-service-users').scopes).sort(), ['manage', 'map-roles', 'view']);
+  // Em todos os usuários: só ler e mapear papéis. Sem manage, que deixaria editar o e-mail de uma conta admin (DEV-0184).
+  assert.deepEqual(JSON.parse(config('account-service-users').scopes).sort(), ['map-roles', 'view']);
   assert.deepEqual(JSON.parse(config('account-service-users').resources), ['Users']);
+  // Apagar o login de quem excluiu a conta (DEV-0161) só nos membros do grupo das contas do app.
+  const group = realm.groups.find((candidate) => candidate.name === 'app-accounts');
+  assert.ok(group?.id, 'o grupo app-accounts tem id fixo, citado na permissão');
+  assert.equal(config('account-service-app-accounts').defaultResourceType, 'Groups');
+  assert.deepEqual(JSON.parse(config('account-service-app-accounts').resources), [group.id]);
+  assert.deepEqual(JSON.parse(config('account-service-app-accounts').scopes), ['manage-members']);
+  assert.deepEqual(JSON.parse(config('account-service-app-accounts').applyPolicies), ['account-service']);
   // Nos papéis: só mapear, e só personal e nutritionist.
   assert.deepEqual(JSON.parse(config('account-service-professional-roles').scopes), ['map-role']);
   assert.deepEqual(
@@ -88,6 +95,14 @@ test(`${SERVICE_CLIENT} só mapeia personal e nutritionist, pelas permissões fi
     [roleId('personal'), roleId('nutritionist')].sort(),
   );
   assert.ok(roleId('personal') && roleId('nutritionist'), 'os papéis têm id fixo, citado na permissão');
+});
+
+// DEV-0184: toda conta nova entra no grupo das contas do app; conta admin fica fora dele (ADR-008).
+test('toda conta nova entra no grupo app-accounts, o único do realm, sem papel próprio', () => {
+  assert.deepEqual(realm.defaultGroups, ['/app-accounts']);
+  assert.deepEqual(realm.groups.map(({ name, path, realmRoles, clientRoles, subGroups }) => ({ name, path, realmRoles, clientRoles, subGroups })), [
+    { name: 'app-accounts', path: '/app-accounts', realmRoles: [], clientRoles: {}, subGroups: [] },
+  ]);
 });
 
 test(`a conta de serviço do ${SERVICE_CLIENT} tem só ${SERVICE_ADMIN_ROLES.join(' e ')}`, () => {

@@ -25,14 +25,18 @@ Conferido no Keycloak 26.8.2 local:
   e só `view-realm` mapeado no token, para ler o papel que atribui. O secret fica fora do repositório
   (`FITHUB_ACCOUNT_SERVICE_SECRET`); o arquivo do realm tem só o marcador.
 - **A trava do papel está no Keycloak (DEV-0147).** O realm liga `adminPermissionsEnabled`, e o client
-  `admin-permissions` guarda uma política (o client `fithub-account-service`, e só ele) e duas
+  `admin-permissions` guarda uma política (o client `fithub-account-service`, e só ele) e três
   permissões:
-  - **nos usuários:** `view`, `manage` (apagar o login de quem excluiu a conta, DEV-0161) e `map-roles`;
+  - **em todos os usuários:** só `view` e `map-roles`;
+  - **no grupo `app-accounts`:** `manage-members`, para apagar o login de quem excluiu a conta (DEV-0161).
+    O grupo é o grupo padrão do realm, então toda conta nova entra nele. Uma conta `admin` fica fora dele
+    (DEV-0184);
   - **nos papéis:** só `map-role`, e só em `personal` e `nutritionist`, citados pelo id fixo que o
     realm dá a esses dois papéis.
 
   Assim, mesmo com o secret, o client não atribui `admin` nem `client`, não lista os clients e não
-  altera o realm. A checagem do Keycloak de pé (`infra/keycloak/check-live-realm.mjs`, job
+  altera o realm. Ele também não edita, não apaga e não põe de volta no grupo uma conta fora do grupo,
+  como uma conta `admin`. A checagem do Keycloak de pé (`infra/keycloak/check-live-realm.mjs`, job
   `Local Infrastructure`) cria uma conta só para isso e confere cada caso.
 - **O código continua conferindo.** O adaptador do Keycloak só pede `personal` ou `nutritionist`,
   conforme o tipo cadastrado, confere o nome do papel devolvido pelo Keycloak antes de atribuir e exige
@@ -56,10 +60,9 @@ Conferido no Keycloak 26.8.2 local:
 
 - O secret do `fithub-account-service` continua sensível: com ele, dá para apagar contas e dar papel de
   profissional. Mas não dá mais para se dar `admin`, nem mexer em clients ou no realm.
-- **Limite conhecido:** o `manage` nos usuários vale para todos, porque o client apaga o login de quem excluiu a
-  conta. Com ele, quem tiver o secret ainda pode editar o perfil de qualquer usuário, inclusive o e-mail de uma conta
-  `admin`, e tentar tomá-la pela recuperação de senha. Restringir o `manage` a contas sem papel administrativo é o
-  débito DEV-0184 (#340) (Code Review do PR #339).
+- **Conta `admin` sai do grupo `app-accounts` (DEV-0184).** Quem dá o papel `admin` a uma conta tira a conta do
+  grupo, pelo console do Keycloak. Dentro do grupo, a conta continua editável pelo client, como qualquer conta do
+  app. O grupo e o id fixo dele são conferidos pelo teste do realm.
 - Os papéis `personal` e `nutritionist` têm id fixo no realm, porque a permissão os cita pelo id.
   Recriar esses papéis com outro id quebra a atribuição, e o teste do realm confere os ids.
 - O front precisa renovar a sessão depois do cadastro para o token trazer o papel (DEV-0031).

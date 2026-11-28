@@ -151,6 +151,38 @@ async function checkProfessionalRolesOnly(service) {
   const removed = await service(`/users/${userId}`, { method: 'DELETE' });
   check(removed.status === 204, `fithub-account-service apaga a conta (${removed.status})`);
   if (removed.status !== 204) await asAdmin(`/users/${userId}`, { method: 'DELETE' });
+  await checkAdminAccountUntouchable(service);
+}
+
+/**
+ * DEV-0184: o client só edita e apaga os membros do grupo app-accounts, onde toda conta nova entra. Uma conta admin,
+ * fora do grupo, não pode ter o e-mail trocado (o caminho para tomá-la pela recuperação de senha) nem ser apagada.
+ */
+async function checkAdminAccountUntouchable(service) {
+  const username = `checagem-admin-${Date.now()}`;
+  const created = await asAdmin('/users', { method: 'POST', body: JSON.stringify({ username, email: `${username}@checagem.test`, enabled: true }) });
+  const userId = created.headers.get('location')?.split('/').pop();
+  check(created.status === 201 && Boolean(userId), 'a conta admin da checagem foi criada');
+  if (!userId) return;
+  try {
+    const groups = await (await asAdmin(`/users/${userId}/groups`)).json();
+    const appAccounts = groups.find((group) => group.path === '/app-accounts');
+    check(Boolean(appAccounts), 'a conta nova entra no grupo app-accounts');
+    if (!appAccounts) return;
+    const left = await asAdmin(`/users/${userId}/groups/${appAccounts.id}`, { method: 'DELETE' });
+    const admin = await (await asAdmin('/roles/admin')).json();
+    const promoted = await asAdmin(`/users/${userId}/role-mappings/realm`, { method: 'POST', body: JSON.stringify([admin]) });
+    check(left.status === 204 && promoted.status === 204, 'a conta da checagem virou admin, fora do grupo app-accounts');
+
+    const edited = await service(`/users/${userId}`, { method: 'PUT', body: JSON.stringify({ email: `tomada-${username}@checagem.test` }) });
+    check(edited.status === 403, `fithub-account-service não troca o e-mail de uma conta admin (${edited.status})`);
+    const rejoined = await service(`/users/${userId}/groups/${appAccounts.id}`, { method: 'PUT' });
+    check(rejoined.status === 403, `fithub-account-service não põe a conta admin no grupo app-accounts (${rejoined.status})`);
+    const deleted = await service(`/users/${userId}`, { method: 'DELETE' });
+    check(deleted.status === 403, `fithub-account-service não apaga uma conta admin (${deleted.status})`);
+  } finally {
+    await asAdmin(`/users/${userId}`, { method: 'DELETE' });
+  }
 }
 
 await checkTwoStepRegistration();
