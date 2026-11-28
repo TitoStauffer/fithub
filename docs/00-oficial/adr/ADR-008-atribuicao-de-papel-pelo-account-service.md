@@ -63,6 +63,11 @@ Conferido no Keycloak 26.8.2 local:
 - **Conta `admin` sai do grupo `app-accounts` (DEV-0184).** Quem dá o papel `admin` a uma conta tira a conta do
   grupo, pelo console do Keycloak. Dentro do grupo, a conta continua editável pelo client, como qualquer conta do
   app. O grupo e o id fixo dele são conferidos pelo teste do realm.
+- **A exclusão de conta não apaga o login de uma conta `admin`.** Se uma conta fora do grupo excluir a conta de
+  cliente, o Keycloak devolve 403 ao `RemoveDeletedLogin`. O consumidor do `ContaExcluida` tenta de novo e manda a
+  mensagem para a `.dlq`. O id não entra na lista de logins apagados, que só recebe o id depois da exclusão no
+  Keycloak, então a reaplicação depois de uma restauração não o tenta. Quem administra apaga esse login à mão, pelo
+  console, depois de tirar o papel `admin`.
 - Os papéis `personal` e `nutritionist` têm id fixo no realm, porque a permissão os cita pelo id.
   Recriar esses papéis com outro id quebra a atribuição, e o teste do realm confere os ids.
 - O front precisa renovar a sessão depois do cadastro para o token trazer o papel (DEV-0031).
