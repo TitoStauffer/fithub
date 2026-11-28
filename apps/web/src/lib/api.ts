@@ -63,3 +63,37 @@ export async function registerProfessional(
     if (!response.ok) throw await problem(response);
     return (await response.json()) as Professional;
 }
+
+type AccountSchemas = AccountServiceComponents['schemas'];
+
+/** A oferta para quem assina hoje (DEV-0102); o account-service sempre manda os quatro campos. */
+export type SubscriptionOffer = Required<NonNullable<AccountSchemas['Subscription']['offer']>>;
+
+/** Assinatura do profissional (DEV-0099), com todos os campos que a API sempre manda; `paidUntil` nulo sem pagamento. */
+export type Subscription = Required<Omit<AccountSchemas['Subscription'], 'offer' | 'paidUntil'>> & {
+    paidUntil: string | null;
+    offer: SubscriptionOffer;
+};
+export type SubscriptionCheckout = Required<AccountSchemas['SubscriptionCheckout']>;
+
+/** A assinatura do profissional da conta autenticada. */
+export async function fetchMySubscription(apiFetch: ApiFetch, baseUrl: string): Promise<Subscription> {
+    const response = await apiFetch(`${baseUrl}/professionals/me/subscription`, {
+        headers: { Accept: 'application/json' },
+    });
+    if (!response.ok) throw await problem(response);
+    return (await response.json()) as Subscription;
+}
+
+/** Cria (ou reaproveita) o checkout do Asaas e devolve o link de pagamento (DEV-0100). */
+export async function startSubscriptionCheckout(
+    apiFetch: ApiFetch,
+    baseUrl: string,
+): Promise<SubscriptionCheckout> {
+    const response = await apiFetch(`${baseUrl}/professionals/me/subscription/checkout`, {
+        method: 'POST',
+        headers: { Accept: 'application/json' },
+    });
+    if (!response.ok) throw await problem(response);
+    return (await response.json()) as SubscriptionCheckout;
+}

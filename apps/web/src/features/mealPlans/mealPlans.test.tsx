@@ -439,6 +439,26 @@ describe('planos alimentares do paciente', () => {
         expect(body.meals[0]?.items[1]?.alternatives).toEqual([]);
     });
 
+    // DEV-0102: o 403 do editor é da assinatura vencida (a rota já exige o papel de nutricionista).
+    it('assinatura vencida ao salvar mostra o aviso de renovação com o caminho para a assinatura', async () => {
+        const user = userEvent.setup();
+        replies.set(`GET /meal-plans/${PLAN}`, { status: 200, body: plan() });
+        replies.set(`PUT /meal-plans/${PLAN}`, {
+            status: 403,
+            body: { title: 'Assinatura vencida', detail: 'Sem assinatura.' },
+        });
+        renderAt(`/app/clientes/${CLIENT}/planos/${PLAN}`);
+
+        await user.type(await screen.findByLabelText('Nome do plano'), ' B');
+        await user.click(screen.getByRole('button', { name: 'Salvar plano' }));
+
+        expect(await screen.findByText(/assinatura venceu/)).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Renovar a assinatura' })).toHaveAttribute(
+            'href',
+            '/app/assinatura',
+        );
+    });
+
     it('vínculo encerrado mostra que o acesso acabou', async () => {
         replies.set(`GET /meal-plans/${PLAN}`, {
             status: 404,

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Link, Navigate, NavLink, Route, Routes } from 'react-router';
+import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router';
 
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/features/auth/authContext';
@@ -17,6 +17,7 @@ import { ExpiringPlansPage } from '@/features/plans/ExpiringPlansPage';
 import { PlanEditorPage } from '@/features/plans/PlanEditorPage';
 import { OnboardingPage } from '@/features/onboarding/OnboardingPage';
 import { ServiceStatus } from '@/features/status/ServiceStatus';
+import { SubscriptionPage } from '@/features/subscription/SubscriptionPage';
 
 /** Papéis que entram na área do profissional (ADR-007). */
 const PROFESSIONAL_ROLES = ['personal', 'nutritionist'] as const;
@@ -51,6 +52,8 @@ export function App() {
                             </ProtectedRoute>
                         }
                     />
+                    {/* A volta do checkout do Asaas (FITHUB_PAYMENT_SUCCESS_URL e CANCEL_URL), DEV-0102. */}
+                    <Route path="/assinatura" element={<SubscriptionReturn />} />
                     <Route path="*" element={<NotFoundPage />} />
                 </Routes>
             </main>
@@ -134,10 +137,14 @@ function ProfessionalArea() {
                         Alimentos
                     </NavLink>
                 ) : null}
+                <NavLink className="underline" to="/app/assinatura">
+                    Assinatura
+                </NavLink>
             </nav>
             <Routes>
                 <Route index element={<ClientsPage />} />
                 <Route path="convites" element={<InvitationsPage />} />
+                <Route path="assinatura" element={<SubscriptionPage />} />
                 <Route path="clientes/:clientId" element={<ClientDetailPage />} />
                 <Route path="clientes/:clientId/avaliacoes/nova" element={<AssessmentFormPage />} />
                 <Route path="exercicios" element={onlyPersonal(<ExercisesPage />)} />
@@ -161,6 +168,12 @@ function ProfessionalArea() {
             <ServiceStatus />
         </section>
     );
+}
+
+/** A volta do checkout vai para a tela de assinatura, com o retorno (sucesso ou cancelado) na query. */
+function SubscriptionReturn() {
+    const location = useLocation();
+    return <Navigate to={{ pathname: '/app/assinatura', search: location.search }} replace />;
 }
 
 function NotFoundPage() {

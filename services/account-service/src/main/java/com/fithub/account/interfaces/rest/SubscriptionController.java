@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.math.BigDecimal;
 import java.time.Instant;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -41,7 +42,10 @@ class SubscriptionController {
             Instant paidUntil,
 
             @Schema(description = "Até quando o profissional pode prescrever: o maior entre o teste e o pago.")
-            Instant validUntil) {
+            Instant validUntil,
+
+            @Schema(description = "A oferta para quem assina hoje (DEV-0102), para a tela mostrar o preço.")
+            OfferResponse offer) {
 
         static SubscriptionResponse of(MySubscription.View view) {
             Subscription subscription = view.subscription();
@@ -50,9 +54,25 @@ class SubscriptionController {
                     view.status(),
                     subscription.trialEndsAt(),
                     subscription.paidUntil(),
-                    subscription.validUntil());
+                    subscription.validUntil(),
+                    new OfferResponse(
+                            view.offer().value(), view.offer().launch(), view.launchMonths(), view.regular()));
         }
     }
+
+    @Schema(name = "SubscriptionOffer")
+    record OfferResponse(
+            @Schema(description = "Valor mensal da primeira cobrança de quem assina hoje.")
+            BigDecimal value,
+
+            @Schema(description = "Se o valor é o preço de lançamento.")
+            boolean launchPrice,
+
+            @Schema(description = "Quantos meses pagos o preço de lançamento vale.")
+            int launchMonths,
+
+            @Schema(description = "O preço cheio, que vale depois do lançamento.")
+            BigDecimal regularValue) {}
 
     @GetMapping(path = "/professionals/me/subscription", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(

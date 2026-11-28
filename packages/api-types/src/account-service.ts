@@ -119,6 +119,8 @@ export interface components {
             type: "PERSONAL" | "NUTRITIONIST";
         };
         Subscription: {
+            /** @description A oferta para quem assina hoje (DEV-0102), para a tela mostrar o preço. */
+            offer?: components["schemas"]["SubscriptionOffer"];
             /**
              * Format: date-time
              * @description Até quando o período pago vale; nulo enquanto nada foi pago.
@@ -145,6 +147,19 @@ export interface components {
             /** @description Se o valor é o preço de lançamento, que vale nos primeiros meses pagos. */
             launchPrice?: boolean;
             /** @description Valor mensal da primeira cobrança. */
+            value?: number;
+        };
+        SubscriptionOffer: {
+            /**
+             * Format: int32
+             * @description Quantos meses pagos o preço de lançamento vale.
+             */
+            launchMonths?: number;
+            /** @description Se o valor é o preço de lançamento. */
+            launchPrice?: boolean;
+            /** @description O preço cheio, que vale depois do lançamento. */
+            regularValue?: number;
+            /** @description Valor mensal da primeira cobrança de quem assina hoje. */
             value?: number;
         };
     };
