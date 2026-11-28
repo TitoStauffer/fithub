@@ -58,7 +58,8 @@ docker compose -f infra/compose/docker-compose.dev.yml -f infra/compose/docker-c
 
 - A infraestrutura sai das portas da máquina (tudo passa pela borda), então o perfil não briga com outro Postgres ou
   Keycloak já de pé no PC. O painel do Mailpit continua em http://localhost:8025, para os e-mails de convite.
-- O console do Keycloak fica em `http://<FITHUB_HOST>:8000/auth/admin` (admin do `.env`).
+- O console do Keycloak abre só no PC, em http://localhost:8090 (`FITHUB_KEYCLOAK_ADMIN_PORT`, admin do `.env`). A borda, que
+  pode estar aberta na rede, publica do Keycloak só o realm `fithub` e os recursos das telas, como em produção.
 - Depois de mudar código de um serviço ou da web, suba de novo com `--build`.
 
 **Dados de exemplo** ([dev-seed/README.md](dev-seed/README.md)): o serviço `seed` roda na subida e cria três contas

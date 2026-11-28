@@ -127,3 +127,21 @@ espera).
     que não são positivos.
   - **Prevenção:** esta regra, os testes `pararEVoltarDuranteUmaRodadaNaoAbreUmaSegundaCadeia` e
     `intervaloZeroOuNegativoERecusado` e os mutantes M4 a M7 de `mutations/DEV-0175.json`.
+
+## valor-com-cifrao-no-env-do-compose
+
+**Regra:** o Docker Compose interpola o `.env`: um valor sem aspas que contém `$` vira a variável com aquele nome e é
+entregue vazio, sem erro (só um aviso no `compose config`). A chave da API do Asaas começa com `$`. Todo segredo que
+pode ter `$` fica entre aspas simples no `.env`, o modelo (`.env.prod.example`) já mostra as aspas, e um teste confere
+que o valor chega inteiro ao serviço.
+
+### Ocorrências
+
+- **Bug de validação:** subida do ambiente local inteiro na DEV-0181 (#331); o `compose config` avisou que a chave do
+  sandbox do Asaas era uma "variável não definida" · **PR:** #361
+  - **Impacto:** a chave chegava vazia ao account-service, e o checkout da assinatura falharia. Na produção, a chave é
+    obrigatória no compose, que nem subiria; no ambiente local, o checkout só falharia na hora do teste.
+  - **Correção:** a chave entre aspas simples no `.env` local; o `.env.prod.example` e o `.env.example` passaram a
+    mostrar as aspas.
+  - **Prevenção:** esta regra e o teste do `prod.test.mjs` (a chave com `$` chega inteira; sem as aspas, o compose de
+    produção não sobe), com o mutante M4 de `mutations/DEV-0181.json`.

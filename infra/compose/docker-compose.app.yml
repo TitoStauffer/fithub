@@ -38,10 +38,14 @@ services:
 
   # O Keycloak fica na raiz, como no resto do ambiente local; a borda o publica em /auth, e o hostname faz os endereços
   # e o emissor do token saírem com o endereço da borda.
+  # O console de administração fica fora da borda (que pode estar aberta na rede local) e abre só no PC, numa porta
+  # própria em 127.0.0.1 (Code Review do PR #361).
   keycloak:
-    ports: !reset []
+    ports: !override
+      - "127.0.0.1:${FITHUB_KEYCLOAK_ADMIN_PORT:-8090}:8080"
     environment:
       KC_HOSTNAME: http://${FITHUB_HOST:-localhost}:${FITHUB_EDGE_PORT:-8000}/auth
+      KC_HOSTNAME_ADMIN: http://localhost:${FITHUB_KEYCLOAK_ADMIN_PORT:-8090}
       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
       KC_PROXY_HEADERS: xforwarded
       FITHUB_WEB_URL: http://${FITHUB_HOST:-localhost}:${FITHUB_EDGE_PORT:-8000}
@@ -125,7 +129,7 @@ services:
       - nutrition-service
       - web
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8000/auth/realms/fithub"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8000/auth/realms/fithub/.well-known/openid-configuration"]
       interval: 5s
       timeout: 5s
       retries: 30
@@ -137,6 +141,8 @@ services:
     command: ["node", "/seed/seed.mjs"]
     environment:
       FITHUB_EDGE_URL: http://edge:8000
+      # O admin do Keycloak, pela rede do compose: a borda não publica o console nem o realm master.
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
       FITHUB_PUBLIC_URL: http://${FITHUB_HOST:-localhost}:${FITHUB_EDGE_PORT:-8000}
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}

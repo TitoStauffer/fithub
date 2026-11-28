@@ -230,6 +230,36 @@ test('a produção não tem o seed do ambiente local nem a senha das contas de t
   }
 });
 
+// DEV-0181, Code Review do PR #361: o override do ambiente local passa variáveis aos serviços pelo nome; se um nome mudar
+// no application.yml, o compose continua válido e o ambiente para de funcionar. As SPRING_* valem pelo relaxed binding.
+test('o override do ambiente local só passa aos serviços variáveis que eles leem', () => {
+  const result = spawnSync(
+    'docker',
+    ['compose', '-f', 'infra/compose/docker-compose.dev.yml', '-f', 'infra/compose/docker-compose.app.yml', 'config', '--format', 'json'],
+    { cwd: root, encoding: 'utf8' },
+  );
+  assert.equal(result.status, 0, result.stderr);
+  const services = JSON.parse(result.stdout).services;
+  for (const service of Object.keys(SERVICES)) {
+    const yml = read(`services/${service}/src/main/resources/application.yml`);
+    for (const name of Object.keys(services[service].environment ?? {})) {
+      if (name.startsWith('SPRING_')) continue;
+      assert.ok(yml.includes(`\${${name}:`) || yml.includes(`\${${name}}`), `${service}: ${name} não aparece no application.yml`);
+    }
+  }
+});
+
+// DEV-0181, Code Review do PR #361: a borda local pode ficar aberta na rede (FITHUB_BIND=0.0.0.0), então, como a de
+// produção, publica do Keycloak só o realm fithub e os recursos das telas, sem o console nem o realm master.
+test('a borda local publica do Keycloak só o realm fithub e os recursos', () => {
+  const edge = read('infra/compose/edge/nginx.conf');
+  const keycloakRoutes = [...edge.matchAll(/location ([^{]*)\{([^}]*)\}/g)].filter(([, , body]) => body.includes('$keycloak'));
+  assert.deepEqual(keycloakRoutes.map(([, route]) => route.trim()), ['~ ^/auth/(realms/fithub/|resources/)']);
+  assert.match(edge, /location \/auth\/ \{\s*return 404;\s*\}/);
+  const app = read('infra/compose/docker-compose.app.yml');
+  assert.match(app, /"127\.0\.0\.1:\$\{FITHUB_KEYCLOAK_ADMIN_PORT:-8090\}:8080"/, 'o console abre só no PC');
+});
+
 test('toda imagem tem versão fixa, nunca latest', () => {
   for (const [name, service] of Object.entries(resolved.config.services)) {
     assert.match(service.image, /:[^:/]+$/, `${name} sem versão`);

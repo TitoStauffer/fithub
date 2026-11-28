@@ -7,6 +7,8 @@
 // Repetir não duplica nada: cada passo confere antes o que já existe.
 const edge = (process.env.FITHUB_EDGE_URL ?? 'http://localhost:8000').replace(/\/$/, '');
 const publicUrl = (process.env.FITHUB_PUBLIC_URL ?? edge).replace(/\/$/, '');
+// O admin do Keycloak, pela rede do compose: a borda só publica o realm fithub (Code Review do PR #361).
+const keycloakAdmin = (process.env.KEYCLOAK_INTERNAL_URL ?? 'http://localhost:8090').replace(/\/$/, '');
 const password = process.env.FITHUB_SEED_PASSWORD;
 if (!password) throw new Error('Defina FITHUB_SEED_PASSWORD.');
 
@@ -20,7 +22,7 @@ const ACCOUNTS = {
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const log = (message) => console.log(`seed: ${message}`);
 
-async function call(method, path, { token, body, form } = {}) {
+async function call(method, path, { token, body, form, base = edge } = {}) {
   const headers = {};
   if (token) headers.Authorization = `Bearer ${token}`;
   let payload;
@@ -29,7 +31,7 @@ async function call(method, path, { token, body, form } = {}) {
     headers['Content-Type'] = 'application/json';
     payload = JSON.stringify(body);
   }
-  const response = await fetch(`${edge}${path}`, { method, headers, body: payload });
+  const response = await fetch(`${base}${path}`, { method, headers, body: payload });
   const text = await response.text();
   let json;
   try {
@@ -55,10 +57,23 @@ const claims = (token) => JSON.parse(Buffer.from(token.split('.')[1], 'base64url
 
 // --- Keycloak, pelo admin do compose ---
 
+/**
+ * Chamada ao admin do Keycloak que precisa dar certo: um status fora do esperado para o seed na hora, com a causa
+ * (Code Review do PR #361), em vez de aparecer depois como falha de login.
+ */
+async function admin(method, path, token, expected, body) {
+  const response = await call(method, path, { token, body, base: keycloakAdmin });
+  if (!expected.includes(response.status)) {
+    throw new Error(`admin ${method} ${path}: status ${response.status} ${JSON.stringify(response.json)}`);
+  }
+  return response;
+}
+
 async function adminToken() {
   const response = await until(
     'token do admin',
-    () => call('POST', '/auth/realms/master/protocol/openid-connect/token', {
+    () => call('POST', '/realms/master/protocol/openid-connect/token', {
+      base: keycloakAdmin,
       form: {
         grant_type: 'password',
         client_id: 'admin-cli',
@@ -71,8 +86,8 @@ async function adminToken() {
   return response.json.access_token;
 }
 
-async function clientRepresentation(admin, clientId) {
-  const { json } = await call('GET', `/auth/admin/realms/fithub/clients?clientId=${clientId}`, { token: admin });
+async function clientRepresentation(token, clientId) {
+  const { json } = await admin('GET', `/admin/realms/fithub/clients?clientId=${clientId}`, token, [200]);
   return json?.[0];
 }
 
@@ -82,66 +97,70 @@ function addAll(list = [], values) {
   return [list.concat(missing), missing.length > 0];
 }
 
-async function configureClients(admin) {
+async function configureClients(token) {
   // Web servida pela borda: o endereço dela como retorno e origem, além dos do realm versionado.
-  const web = await clientRepresentation(admin, 'fithub-web');
+  const web = await clientRepresentation(token, 'fithub-web');
   const [webRedirects, webChanged] = addAll(web.redirectUris, [`${publicUrl}/*`]);
   const [webOrigins, originsChanged] = addAll(web.webOrigins, [publicUrl]);
   if (webChanged || originsChanged) {
-    await call('PUT', `/auth/admin/realms/fithub/clients/${web.id}`, {
-      token: admin,
-      body: { ...web, redirectUris: webRedirects, webOrigins },
+    await admin('PUT', `/admin/realms/fithub/clients/${web.id}`, token, [204], {
+      ...web,
+      redirectUris: webRedirects,
+      webOrigins,
     });
     log(`fithub-web aceita ${publicUrl}`);
   }
 
   // Expo Go: volta do login por exp://<IP do PC>:8081/--/... O curinga vale só neste realm local; o realm versionado
   // continua só com fithub://auth (realm.test.mjs).
-  const mobile = await clientRepresentation(admin, 'fithub-mobile');
+  const mobile = await clientRepresentation(token, 'fithub-mobile');
   const [mobileRedirects, mobileChanged] = addAll(mobile.redirectUris, ['exp://*']);
   if (mobileChanged) {
     const logout = mobile.attributes?.['post.logout.redirect.uris'] ?? '';
     const attributes = { ...mobile.attributes, 'post.logout.redirect.uris': logout.includes('exp://*') ? logout : `${logout}##exp://*` };
-    await call('PUT', `/auth/admin/realms/fithub/clients/${mobile.id}`, {
-      token: admin,
-      body: { ...mobile, redirectUris: mobileRedirects, attributes },
+    await admin('PUT', `/admin/realms/fithub/clients/${mobile.id}`, token, [204], {
+      ...mobile,
+      redirectUris: mobileRedirects,
+      attributes,
     });
     log('fithub-mobile aceita o retorno do Expo Go (exp://)');
   }
 
   // Client só deste realm local, para o seed pedir o token das contas de teste por senha.
-  if (!(await clientRepresentation(admin, SEED_CLIENT))) {
-    await call('POST', '/auth/admin/realms/fithub/clients', {
-      token: admin,
-      body: {
-        clientId: SEED_CLIENT,
-        enabled: true,
-        publicClient: true,
-        standardFlowEnabled: false,
-        directAccessGrantsEnabled: true,
-        description: 'Só do ambiente local (infra/dev-seed): token por senha para o seed.',
-      },
+  if (!(await clientRepresentation(token, SEED_CLIENT))) {
+    await admin('POST', '/admin/realms/fithub/clients', token, [201], {
+      clientId: SEED_CLIENT,
+      enabled: true,
+      publicClient: true,
+      standardFlowEnabled: false,
+      directAccessGrantsEnabled: true,
+      description: 'Só do ambiente local (infra/dev-seed): token por senha para o seed.',
     });
     log(`client ${SEED_CLIENT} criado`);
   }
 }
 
-async function ensureAccount(admin, { email, firstName, lastName }) {
-  const search = await call('GET', `/auth/admin/realms/fithub/users?email=${encodeURIComponent(email)}&exact=true`, { token: admin });
+async function ensureAccount(token, { email, firstName, lastName }) {
+  const search = await admin('GET', `/admin/realms/fithub/users?email=${encodeURIComponent(email)}&exact=true`, token, [200]);
   let id = search.json?.[0]?.id;
   if (!id) {
-    const created = await call('POST', '/auth/admin/realms/fithub/users', {
-      token: admin,
-      body: { username: email, email, firstName, lastName, enabled: true, emailVerified: true },
+    const created = await admin('POST', '/admin/realms/fithub/users', token, [201], {
+      username: email,
+      email,
+      firstName,
+      lastName,
+      enabled: true,
+      emailVerified: true,
     });
     id = created.headers.get('location')?.split('/').pop();
-    if (created.status !== 201 || !id) throw new Error(`conta ${email}: status ${created.status}`);
+    if (!id) throw new Error(`conta ${email}: sem o id na resposta`);
     log(`conta ${email} criada`);
   }
   // A senha volta à de teste a cada rodada.
-  await call('PUT', `/auth/admin/realms/fithub/users/${id}/reset-password`, {
-    token: admin,
-    body: { type: 'password', value: password, temporary: false },
+  await admin('PUT', `/admin/realms/fithub/users/${id}/reset-password`, token, [204], {
+    type: 'password',
+    value: password,
+    temporary: false,
   });
   return id;
 }
@@ -242,9 +261,9 @@ async function publishMealPlan(nutritionist, clientId) {
   log('plano alimentar publicado');
 }
 
-const admin = await adminToken();
-await configureClients(admin);
-for (const account of Object.values(ACCOUNTS)) await ensureAccount(admin, account);
+const adminAccess = await adminToken();
+await configureClients(adminAccess);
+for (const account of Object.values(ACCOUNTS)) await ensureAccount(adminAccess, account);
 
 const personal = await registerProfessional(
   ACCOUNTS.personal.email,
