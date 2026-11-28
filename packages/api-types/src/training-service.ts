@@ -1396,7 +1396,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description A conta não é personal. */
+            /** @description A conta não é personal, ou a assinatura venceu: sem assinatura válida, nada se cria, edita ou publica (BR-14, título "Assinatura vencida"). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2994,7 +2994,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description A conta não é personal. */
+            /** @description A conta não é personal, ou a assinatura venceu: sem assinatura válida, nada se cria, edita ou publica (BR-14, título "Assinatura vencida"). */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -3052,7 +3052,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description A conta não é personal. */
+            /** @description A conta não é personal, ou a assinatura venceu: sem assinatura válida, nada se cria, edita ou publica (BR-14, título "Assinatura vencida"). */
             403: {
                 headers: {
                     [name: string]: unknown;
