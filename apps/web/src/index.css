@@ -11,7 +11,8 @@
     --accent-foreground: oklch(0.205 0 0);
     --border: oklch(0.922 0 0);
     --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
+    /* Anel de foco (DEV-0144): 4,7:1 sobre o fundo, acima dos 3:1 da WCAG 1.4.11 (theme.test.ts). */
+    --ring: oklch(0.556 0 0);
 }
 
 @theme inline {

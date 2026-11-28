@@ -1,0 +1,48 @@
+{
+    "issue": "DEV-0144",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O anel de foco do tema do Keycloak volta ao cinza claro, abaixo de 3:1",
+            "area": "tools",
+            "file": "infra/keycloak/themes/fithub/login/resources/css/fithub.css",
+            "find": "--fithub-ring: #737373;",
+            "replace": "--fithub-ring: #a1a1a1;",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O foco do tema do Keycloak deixa de usar a cor do anel",
+            "area": "tools",
+            "file": "infra/keycloak/themes/fithub/login/resources/css/fithub.css",
+            "find": "outline: 2px solid var(--fithub-ring);",
+            "replace": "outline: 2px solid var(--fithub-border);",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O anel de foco da web volta ao cinza claro, abaixo de 3:1",
+            "area": "apps",
+            "file": "apps/web/src/index.css",
+            "find": "--ring: oklch(0.556 0 0);",
+            "replace": "--ring: oklch(0.708 0 0);",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "exec",
+                "vitest",
+                "run",
+                "src/theme.test.ts"
+            ]
+        }
+    ]
+}

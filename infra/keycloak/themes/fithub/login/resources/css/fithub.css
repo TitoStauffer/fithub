@@ -13,7 +13,8 @@
     --fithub-primary-foreground: #fafafa;
     --fithub-muted-foreground: #737373;
     --fithub-border: #e5e5e5;
-    --fithub-ring: #a1a1a1;
+    /* Anel de foco (DEV-0144): 4,7:1 sobre o cartão branco e 4,4:1 sobre o fundo da página, acima dos 3:1 da WCAG 1.4.11. */
+    --fithub-ring: #737373;
     --fithub-danger: #b42318;
     --fithub-radius: 10px;
     --fithub-font:
@@ -96,7 +97,7 @@ body#keycloak-bg,
     border-radius: var(--fithub-radius);
 }
 
-/* Foco visível em teclado, com contraste suficiente sobre o fundo claro. */
+/* Foco visível em teclado: o anel --fithub-ring tem pelo menos 3:1 sobre o cartão e sobre a página (realm.test.mjs). */
 .pf-v5-c-button:focus-visible,
 .pf-v5-c-form-control > :focus-visible,
 a:focus-visible {
