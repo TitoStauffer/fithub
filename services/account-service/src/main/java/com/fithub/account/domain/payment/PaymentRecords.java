@@ -45,6 +45,15 @@ public interface PaymentRecords {
             LocalDate dueDate,
             Instant confirmedAt);
 
+    /**
+     * Marca a cobrança gravada como estornada (DEV-0182). Devolve o profissional dela só na primeira vez: vazio se a
+     * cobrança não existe ou já estava estornada.
+     */
+    Optional<UUID> refundPayment(String paymentId, Instant refundedAt);
+
+    /** Se a cobrança foi gravada (confirmada), estornada ou não. */
+    boolean hasPayment(String paymentId);
+
     /** Quantas cobranças confirmadas a assinatura tem. */
     int countPayments(String subscriptionId);
 

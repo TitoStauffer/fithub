@@ -65,6 +65,9 @@ guarda nenhum deles.
     dela;
   - cada pagamento estende o `paid_until` até o vencimento seguinte, com 1 dia de folga, e grava o
     `AssinaturaAlterada`;
+  - `PAYMENT_REFUNDED`, `PAYMENT_CHARGEBACK_REQUESTED` e `PAYMENT_CHARGEBACK_DISPUTE` de uma cobrança gravada
+    marcam a cobrança como estornada uma vez só e encerram o `paid_until` no momento do evento, nunca depois do que já
+    estava, com o `AssinaturaAlterada` (DEV-0182). O estorno de uma cobrança não gravada é ignorado com aviso;
   - `SUBSCRIPTION_CREATED` liga a assinatura ao checkout; `SUBSCRIPTION_INACTIVATED` e `SUBSCRIPTION_DELETED` registram
     o fim e liberam um checkout novo;
   - evento sem os campos de que precisa é ignorado com aviso de ids (um erro faria o Asaas reentregar sem fim);
