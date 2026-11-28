@@ -63,6 +63,13 @@ microssegundos, a precisão do `timestamptz`. Data absoluta só com um relógio 
     23/12/2026, uma rodada no meio do teste apagaria a linha e faria o teste falhar às vezes.
   - **Correção:** os instantes do teste (exclusão e eventos) são relativos a `Instant.now().truncatedTo(MICROS)`.
   - **Prevenção:** vale também para o instante dentro do payload de evento, não só para a linha semeada no banco.
+- **Revisão:** Code Review do PR #360, no SHA `7ee8d92` (MEDIUM) — DEV-0182 (#332) · **PR:** #360
+  - **Impacto:** os testes do estorno confirmavam a cobrança com vencimento fixo em 10/12/2026, e o estorno compara com
+    o relógio real. A partir de 11/01/2027, o período pago já teria terminado: o teste do evento quebraria o Java
+    Services de todo PR, e o do chargeback passaria até sem o tratamento, deixando dois mutantes sem prova.
+  - **Correção:** os vencimentos passaram a ser relativos a `LocalDate.now(ZONE)`, e o período esperado sai deles.
+  - **Prevenção:** a regra vale para data de negócio (vencimento, validade), não só para instante: se o código compara
+    com o agora, a data do teste é relativa ao agora.
 
 ## teste-nao-apaga-dado-do-banco-compartilhado
 
