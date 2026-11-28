@@ -5,7 +5,9 @@
 
 # Repositório Maven opcional (DEV-0155): o CI passa o que o job já baixou, com --build-context m2=<repositório>.
 # Com ele, o Maven roda offline (-o, DEV-0186) e nunca volta ao Maven Central: um artefato que falta vira erro, não
-# download. Sem ele, vale este estágio vazio, e o Maven baixa tudo, como no build local.
+# download. O registro de origem de cada artefato (_remote.repositories) fica de fora: o Maven do runner (3.10) grava a
+# chave do repositório num formato que o desta imagem (3.9) não reconhece. Sem o contexto, vale este estágio vazio, e o
+# Maven baixa tudo, como no build local.
 FROM scratch AS m2
 
 # Build: compila só este serviço e o que ele usa. Os testes rodam no job Java Services do CI.
@@ -15,7 +17,7 @@ COPY pom.xml ./
 COPY libs/ libs/
 COPY services/ services/
 RUN --mount=type=bind,from=m2,target=/root/.m2/repository,rw \
-    offline=""; if [ -n "$(ls -A /root/.m2/repository)" ]; then offline="-o"; fi; \
+    offline=""; if [ -n "$(ls -A /root/.m2/repository)" ]; then offline="-o -Daether.enhancedLocalRepository.trackingFilename=fithub-offline"; fi; \
     mvn -B -ntp -q $offline -pl services/nutrition-service -am package -DskipTests
 
 # Runtime: só o JRE e o jar, com usuário sem privilégio. As duas imagens base ficam fixadas por digest

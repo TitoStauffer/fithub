@@ -6,8 +6,21 @@
             "description": "O build da imagem volta a ir ao Maven Central com o repositório do job",
             "area": "tools",
             "file": "services/account-service/Dockerfile",
-            "find": "then offline=\"-o\"; fi",
+            "find": "then offline=\"-o -Daether.enhancedLocalRepository.trackingFilename=fithub-offline\"; fi",
             "replace": "then offline=\"\"; fi",
+            "command": [
+                "node",
+                "--test",
+                "tools/repo-checks/ci-scripts.test.mjs"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "O build offline volta a confiar no registro de origem que o Maven do runner grava em outro formato",
+            "area": "tools",
+            "file": "services/account-service/Dockerfile",
+            "find": " -Daether.enhancedLocalRepository.trackingFilename=fithub-offline",
+            "replace": "",
             "command": [
                 "node",
                 "--test",

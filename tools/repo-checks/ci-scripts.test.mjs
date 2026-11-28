@@ -249,7 +249,7 @@ test('o build de cada serviço monta o repositório Maven opcional do contexto m
     const run = [
       'RUN --mount=type=bind,from=m2,target=/root/.m2/repository,rw \\',
       // Com o repositório do job, offline: o build da imagem não volta ao Maven Central (DEV-0186).
-      '    offline=""; if [ -n "$(ls -A /root/.m2/repository)" ]; then offline="-o"; fi; \\',
+      '    offline=""; if [ -n "$(ls -A /root/.m2/repository)" ]; then offline="-o -Daether.enhancedLocalRepository.trackingFilename=fithub-offline"; fi; \\',
       `    mvn -B -ntp -q $offline -pl services/${service} -am package -DskipTests`,
     ].join('\n');
     assert.ok(dockerfile.includes(`\n${run}\n`), `${service}: o mvn package usa o repositório do contexto m2`);
