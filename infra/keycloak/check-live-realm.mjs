@@ -180,7 +180,10 @@ async function checkTwoStepRegistration() {
   const fields = [...page.matchAll(/<input[^>]*\bname="([^"]+)"/g)].map((match) => match[1]);
   check(fields.includes('email') && fields.includes('firstName'), `a tela de cadastro pede e-mail e nome (${fields.join(', ')})`);
   check(!fields.some((name) => name.startsWith('password')), 'a tela de cadastro não pede senha');
-  const action = /<form[^>]*id="kc-register-form"[^>]*action="([^"]+)"/.exec(page)?.[1]?.replaceAll('&amp;', '&');
+  // Sem o formulário, as verificações seguintes não rodam: a falha fica registrada, nunca um retorno em silêncio.
+  const formTag = /<form\b[^>]*\bid="kc-register-form"[^>]*>/.exec(page)?.[0] ?? '';
+  const action = /\baction="([^"]+)"/.exec(formTag)?.[1]?.replaceAll('&amp;', '&');
+  check(Boolean(action), 'a tela de cadastro tem o formulário kc-register-form, com action');
   if (!action) return;
 
   const email = `checagem-cadastro-${Date.now()}@checagem.test`;
