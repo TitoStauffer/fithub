@@ -37,7 +37,13 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 /** A assinatura do profissional ponta a ponta (DEV-0099): nasce em teste no cadastro e o estado sai das datas. */
-@TestPropertySource(properties = {"fithub.professional.role-retry.enabled=false", "fithub.subscription.trial-days=10"})
+// A data de corte do lançamento fica longe: a padrão (2027-06-30) viraria o resultado do teste com o tempo.
+@TestPropertySource(
+        properties = {
+            "fithub.professional.role-retry.enabled=false",
+            "fithub.subscription.trial-days=10",
+            "fithub.subscription.price.launch-until=2999-12-31"
+        })
 class SubscriptionApiTest extends ServiceIntegrationTest {
 
     @Autowired
@@ -116,6 +122,11 @@ class SubscriptionApiTest extends ServiceIntegrationTest {
                 .andExpect(jsonPath("$.status").value("TRIAL"))
                 // Nulo, não ausente: o campo vem no corpo (Code Review do PR #285).
                 .andExpect(jsonPath("$.paidUntil").value(Matchers.nullValue()))
+                // A oferta para quem assina hoje (DEV-0102): lançamento, R$ 150 por 3 meses, R$ 200 depois.
+                .andExpect(jsonPath("$.offer.value").value(150.00))
+                .andExpect(jsonPath("$.offer.launchPrice").value(true))
+                .andExpect(jsonPath("$.offer.launchMonths").value(3))
+                .andExpect(jsonPath("$.offer.regularValue").value(200.00))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();

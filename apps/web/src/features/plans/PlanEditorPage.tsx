@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { messageOf } from '@/features/clients/messages';
 import { useTrainingApi } from '@/features/exercises/useTrainingApi';
 import { ApiProblemError } from '@/lib/api';
+import { isSubscriptionExpired } from '@/features/subscription/subscription';
+import { SubscriptionExpiredNotice } from '@/features/subscription/SubscriptionExpiredNotice';
 import type { WorkoutPlan, WorkoutPlanAlert } from '@/lib/trainingApi';
 
 import { ExercisePicker } from './ExercisePicker';
@@ -128,12 +130,18 @@ function PlanEditor({
     const [dirty, setDirty] = useState(false);
     const [confirmingPublish, setConfirmingPublish] = useState(false);
     const [accessEnded, setAccessEnded] = useState<unknown>();
+    const [expired, setExpired] = useState(false);
 
     const published = current?.status === 'PUBLISHED';
     const readOnly = current?.status === 'REPLACED';
     const alerts: WorkoutPlanAlert[] = current?.alerts ?? [];
 
     const handleError = async (error: unknown) => {
+        // DEV-0102: sem assinatura válida, nada se cria, edita ou publica (BR-14).
+        if (isSubscriptionExpired(error)) {
+            setExpired(true);
+            return;
+        }
         if (error instanceof ApiProblemError && error.status === 404) {
             setAccessEnded(error);
             return;
@@ -266,6 +274,7 @@ function PlanEditor({
             {readOnly ? (
                 <p className="text-sm">Esta ficha foi substituída por outra e não muda mais.</p>
             ) : null}
+            {expired ? <SubscriptionExpiredNotice /> : null}
             {notice ? <p role="status">{notice}</p> : null}
             <form noValidate onSubmit={submit} className="space-y-4">
                 <div className="flex flex-wrap gap-3">

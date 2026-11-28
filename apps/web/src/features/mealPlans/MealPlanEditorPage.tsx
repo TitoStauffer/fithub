@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { messageOf } from '@/features/clients/messages';
 import { useNutritionApi } from '@/features/foods/useNutritionApi';
 import { ApiProblemError } from '@/lib/api';
+import { isSubscriptionExpired } from '@/features/subscription/subscription';
+import { SubscriptionExpiredNotice } from '@/features/subscription/SubscriptionExpiredNotice';
 import type { MealPlan } from '@/lib/nutritionApi';
 
 import { FoodPicker } from './FoodPicker';
@@ -113,6 +115,7 @@ function MealPlanEditor({
     const [dirty, setDirty] = useState(false);
     const [confirmingPublish, setConfirmingPublish] = useState(false);
     const [accessEnded, setAccessEnded] = useState<unknown>();
+    const [expired, setExpired] = useState(false);
 
     const published = current?.status === 'PUBLISHED';
     const readOnly = current?.status === 'REPLACED';
@@ -120,6 +123,11 @@ function MealPlanEditor({
     const saved = dirty ? undefined : current;
 
     const handleError = async (error: unknown) => {
+        // DEV-0102: sem assinatura válida, nada se cria, edita ou publica (BR-14).
+        if (isSubscriptionExpired(error)) {
+            setExpired(true);
+            return;
+        }
         if (error instanceof ApiProblemError && error.status === 404) {
             setAccessEnded(error);
             return;
@@ -247,6 +255,7 @@ function MealPlanEditor({
             {readOnly ? (
                 <p className="text-sm">Este plano foi substituído por outro e não muda mais.</p>
             ) : null}
+            {expired ? <SubscriptionExpiredNotice /> : null}
             {notice ? <p role="status">{notice}</p> : null}
             <form noValidate onSubmit={submit} className="space-y-4">
                 <div className="flex flex-wrap gap-3">

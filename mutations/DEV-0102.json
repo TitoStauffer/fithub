@@ -1,0 +1,94 @@
+{
+    "issue": "DEV-0102",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "A oferta passa o preço cheio no lugar do de quem assina hoje",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/interfaces/rest/SubscriptionController.java",
+            "find": "view.offer().value(), view.offer().launch(), view.launchMonths(), view.regular()",
+            "replace": "view.regular(), view.offer().launch(), view.launchMonths(), view.regular()",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionApiTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "A tela oferece outro checkout a quem já tem assinatura ativa",
+            "area": "apps",
+            "file": "apps/web/src/features/subscription/SubscriptionPage.tsx",
+            "find": "subscription.data.status === 'ACTIVE' ? null : (",
+            "replace": "false ? null : (",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "exec",
+                "vitest",
+                "run",
+                "src/features/subscription"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "A oferta de lançamento deixa de dizer por quantos meses vale",
+            "area": "apps",
+            "file": "apps/web/src/features/subscription/subscription.ts",
+            "find": "if (!offer.launchPrice) return `${regular} por mês.`;",
+            "replace": "return `${regular} por mês.`;",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "exec",
+                "vitest",
+                "run",
+                "src/features/subscription"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Na volta do checkout, o foco deixa de ir para o aviso",
+            "area": "apps",
+            "file": "apps/web/src/features/subscription/SubscriptionPage.tsx",
+            "find": "            notice.current?.focus();\n",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "exec",
+                "vitest",
+                "run",
+                "src/features/subscription"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O 403 dos editores deixa de ser lido como assinatura vencida",
+            "area": "apps",
+            "file": "apps/web/src/features/subscription/subscription.ts",
+            "find": "error instanceof ApiProblemError && error.status === 403",
+            "replace": "error instanceof ApiProblemError && error.status === 404",
+            "command": [
+                "pnpm",
+                "--filter",
+                "web",
+                "exec",
+                "vitest",
+                "run",
+                "src/features/plans/plans.test.tsx",
+                "src/features/mealPlans/mealPlans.test.tsx"
+            ]
+        }
+    ]
+}

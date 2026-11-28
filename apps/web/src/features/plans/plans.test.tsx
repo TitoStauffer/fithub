@@ -297,6 +297,27 @@ describe('editor de ficha', () => {
         expect(screen.getByText(/salvar cria a versão 3/)).toBeInTheDocument();
     });
 
+    // DEV-0102: o 403 do editor é da assinatura vencida (a rota já exige o papel de personal).
+    it('assinatura vencida ao salvar mostra o aviso de renovação com o caminho para a assinatura', async () => {
+        const user = userEvent.setup();
+        replies.set(`GET /plans/${PLAN}`, { status: 200, body: plan() });
+        replies.set(`PUT /plans/${PLAN}`, {
+            status: 403,
+            body: { title: 'Assinatura vencida', detail: 'Sem assinatura.' },
+        });
+        renderAt(`/app/clientes/${CLIENT}/fichas/${PLAN}`);
+
+        await user.type(await screen.findByLabelText('Nome da ficha'), ' B');
+        await user.click(screen.getByRole('button', { name: 'Salvar ficha' }));
+
+        const notice = await screen.findByText(/assinatura venceu/);
+        expect(notice).toHaveAttribute('role', 'alert');
+        expect(screen.getByRole('link', { name: 'Renovar a assinatura' })).toHaveAttribute(
+            'href',
+            '/app/assinatura',
+        );
+    });
+
     it('vínculo encerrado mostra que o acesso acabou', async () => {
         replies.set(`GET /plans/${PLAN}`, { status: 404, body: { detail: 'Ficha não encontrada.' } });
         renderAt(`/app/clientes/${CLIENT}/fichas/${PLAN}`);

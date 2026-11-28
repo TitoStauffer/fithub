@@ -1449,7 +1449,7 @@
                 }
               }
             },
-            "description" : "A conta não é nutricionista."
+            "description" : "A conta não é nutricionista, ou a assinatura venceu: sem assinatura válida, nada se cria, edita ou publica (BR-14, título \"Assinatura vencida\")."
           },
           "404" : {
             "content" : {
@@ -2621,7 +2621,7 @@
                 }
               }
             },
-            "description" : "A conta não é nutricionista."
+            "description" : "A conta não é nutricionista, ou a assinatura venceu: sem assinatura válida, nada se cria, edita ou publica (BR-14, título \"Assinatura vencida\")."
           },
           "404" : {
             "content" : {
@@ -2689,7 +2689,7 @@
                 }
               }
             },
-            "description" : "A conta não é nutricionista."
+            "description" : "A conta não é nutricionista, ou a assinatura venceu: sem assinatura válida, nada se cria, edita ou publica (BR-14, título \"Assinatura vencida\")."
           },
           "404" : {
             "content" : {
