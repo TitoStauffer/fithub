@@ -318,6 +318,9 @@ export function summarizePnpmLockfile(path: string, content: string): string {
       continue;
     }
     if (indent < 4 || current === null) unsupported('unexpected indentation in packages', line);
+    // DEV-0143: a propriedade do pacote também é chave nua. `"resolution"`, `? resolution` ou `<<` seriam
+    // a resolution para o YAML do pnpm, mas não para o leitor, e o tarball de verdade não chegaria ao resumo.
+    if (indent === 4 && !/^ {4}[A-Za-z][A-Za-z0-9_-]*:( |$)/.test(line)) unsupported('package property not written as a bare key', line);
     if (indent === 4 && /^ {4}resolution\b/.test(line)) {
       const resolution = /^ {4}resolution: \{(.*)\}$/.exec(line);
       if (!resolution) unsupported('resolution not written as a one-line map', line);

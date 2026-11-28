@@ -268,6 +268,10 @@ esconde a entrada que importa.
   - **Impacto:** um comentário na coluna 0 não encerra o mapa no YAML, mas tirava o leitor da seção `packages:`. Os pacotes seguintes sumiam do resumo. Um escalar entre aspas ou uma coleção flow que continuassem na linha seguinte abriam o mesmo caminho.
   - **Correção:** no arquivo inteiro, a coluna 0 só aceita chave de nível superior ou `---`, e toda linha fecha na própria linha as aspas e as coleções flow que abre (`closesOnItsOwnLine`).
   - **Prevenção:** três rodadas acharam três formas de dessincronizar o leitor do parser. A regra geral é a da seção: o leitor feito à mão define uma gramática pequena (linha a linha, sem continuação) e recusa tudo fora dela, em vez de tentar reconhecer o que é perigoso. Os testes cobrem coluna 0 (comentário, `-`, `...`, diretiva, chave entre aspas) e valores abertos (aspas, `{`, `[`, `]` sobrando).
+- **Revisão:** Code Review do PR #185, no SHA `af08fbe` (LOW: propriedade do pacote que não é chave nua) — DEV-0143 (#186) · **PR:** #357
+  - **Impacto:** com recuo 4, só a linha que começava com `resolution` era conferida. `"resolution"`, `? resolution` e `<<: {resolution: ...}` são a `resolution` para o YAML do pnpm, mas não para o leitor. O pacote aparecia como `(no resolution)`, sem o tarball de verdade.
+  - **Correção:** toda propriedade com recuo 4 é chave nua (`^ {4}[A-Za-z][A-Za-z0-9_-]*:( |$)`), e o resto lança erro.
+  - **Prevenção:** a gramática pequena vale em cada nível de recuo, não só no das chaves de pacote. Os testes cobrem aspas, `?` e `<<` no recuo 4.
 
 ## mutante-precisa-de-execucao-de-base
 

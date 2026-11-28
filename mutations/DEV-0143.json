@@ -1,0 +1,35 @@
+{
+    "issue": "DEV-0143",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "A propriedade de pacote com recuo 4 volta a passar sem ser chave nua",
+            "area": "tools",
+            "file": "tools/github-reviewer/src/agent-review-inputs.ts",
+            "find": "if (indent === 4 && !/^ {4}[A-Za-z][A-Za-z0-9_-]*:( |$)/.test(line)) unsupported",
+            "replace": "if (false && indent === 4 && !/^ {4}[A-Za-z][A-Za-z0-9_-]*:( |$)/.test(line)) unsupported",
+            "command": [
+                "npm",
+                "--prefix",
+                "tools/github-reviewer",
+                "run",
+                "test:review-inputs"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "A chave nua da propriedade aceita aspas e outros começos",
+            "area": "tools",
+            "file": "tools/github-reviewer/src/agent-review-inputs.ts",
+            "find": "!/^ {4}[A-Za-z][A-Za-z0-9_-]*:( |$)/.test(line)",
+            "replace": "!/^ {4}\\S[^:]*:( |$)/.test(line)",
+            "command": [
+                "npm",
+                "--prefix",
+                "tools/github-reviewer",
+                "run",
+                "test:review-inputs"
+            ]
+        }
+    ]
+}
