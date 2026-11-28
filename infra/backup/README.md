@@ -8,6 +8,7 @@ Backup diário e restauração dos bancos do FitHub (DEV-0108, ADR-012, item 4; 
   - grava um `pg_dump` em formato custom de cada banco de `FITHUB_DATABASES`, numa pasta por data e hora (UTC), por
     exemplo `2026-11-26T030000Z/`;
   - só marca a pasta como completa (arquivo `COMPLETE`) quando todos os dumps terminam;
+  - recusa uma pasta que já existe (dois backups no mesmo segundo), sem tocar nos dumps dela (DEV-0185);
   - apaga as pastas com mais de `BACKUP_RETENTION_DAYS` dias (padrão 30), e as cópias de restauração (`restore-*`)
     esquecidas também. A conta é em minutos, com 2 horas de folga, para o backup diário apagar a pasta no dia em que
     ela completa o prazo: o dado de quem excluiu a conta, e a lista dos ids, não ficam guardados além dele.
@@ -70,6 +71,8 @@ docker run --rm ... postgres:17.12 sh /scripts/restore.sh 2026-11-26T030000Z
 Infrastructure). Ele confere:
 
 - um dump de cada banco e o `COMPLETE`, com as permissões 600 e 700;
+- o segundo backup no mesmo segundo recusado, com o primeiro intacto (o teste fixa o `date`); o teste espera o
+  segundo virar entre os backups, porque o nome da pasta tem precisão de segundo;
 - a retenção: as pastas de 40 dias, de 30 dias e de 29 dias e 23 horas e a cópia de restauração esquecida saem, a
   de 29 dias fica; retenção inválida é recusada;
 - as recusas, sem mudar o banco: pasta sem o `COMPLETE`, pasta sem um dos dumps, nome de pasta inválido e falha ao
