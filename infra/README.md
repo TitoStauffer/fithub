@@ -32,6 +32,63 @@ Para trocar porta ou senha, copie `compose/.env.example` para `compose/.env` (ig
 
 Cada serviço só conecta no próprio banco: o `CONNECT` público é revogado na criação.
 
+### Sistema inteiro (web no PC e app no iPhone pelo Expo Go)
+
+Um comando sobe a infraestrutura, os quatro serviços, a web e uma borda nginx que faz o papel do Traefik de produção
+(DEV-0181, `compose/docker-compose.app.yml`). Tudo fica num endereço só, `http://<FITHUB_HOST>:8000`: a web em `/`, as
+APIs em `/api/<serviço>`, o Keycloak em `/auth` e os buckets das fotos. O navegador e o celular usam o mesmo endereço,
+então o token sai com um emissor só, que os serviços aceitam.
+
+**Preparar, uma vez:**
+
+1. Em `compose/.env` (copie de `compose/.env.example`), ponha em `FITHUB_HOST` o IP do PC na rede (no PowerShell,
+   `ipconfig`, linha "Endereço IPv4") e `FITHUB_BIND=0.0.0.0`. É o único lugar do endereço: o app no Expo Go descobre
+   o IP sozinho, pelo endereço do Metro. Sem isso, tudo fica em `localhost`, só no PC.
+2. Libere no firewall do Windows, só na rede privada, as portas `8000` (borda) e `8081` (Metro, do Expo).
+3. No iPhone, instale o **Expo Go** (App Store) e deixe-o na mesma rede Wi-Fi do PC.
+4. Para o checkout da assinatura (opcional), ponha em `compose/.env` a chave do **sandbox** do Asaas,
+   **entre aspas simples**: ela começa com `$`, e sem as aspas o compose a lê como variável e a entrega vazia.
+
+**Subir e parar (na raiz):**
+
+```sh
+docker compose -f infra/compose/docker-compose.dev.yml -f infra/compose/docker-compose.app.yml up -d --build --wait
+docker compose -f infra/compose/docker-compose.dev.yml -f infra/compose/docker-compose.app.yml down
+```
+
+- A infraestrutura sai das portas da máquina (tudo passa pela borda), então o perfil não briga com outro Postgres ou
+  Keycloak já de pé no PC. O painel do Mailpit continua em http://localhost:8025, para os e-mails de convite.
+- O console do Keycloak fica em `http://<FITHUB_HOST>:8000/auth/admin` (admin do `.env`).
+- Depois de mudar código de um serviço ou da web, suba de novo com `--build`.
+
+**Dados de exemplo** ([dev-seed/README.md](dev-seed/README.md)): o serviço `seed` roda na subida e cria três contas
+de teste, com a senha de `FITHUB_SEED_PASSWORD`: `personal@fithub.test`, `nutri@fithub.test` e `cliente@fithub.test`.
+A personal e a nutricionista já estão cadastradas, o cliente está vinculado aos dois, e há uma ficha de treino e um
+plano alimentar publicados. O seed também faz o realm local aceitar o retorno do Expo Go (`exp://`); o realm
+versionado, que vai para produção, continua só com `fithub://auth`. Para rodar o seed de novo:
+`docker compose -f infra/compose/docker-compose.dev.yml -f infra/compose/docker-compose.app.yml run --rm seed`.
+
+**App no iPhone:** na raiz, `pnpm --filter mobile start` e leia o QR code com a câmera do iPhone, que abre o Expo Go.
+O login volta pelo `exp://` do Expo Go. O link de convite (`fithub://convite/...`) não abre no Expo Go: no app, use o
+**código de 8 caracteres** do convite.
+
+#### Roteiro de ponta a ponta
+
+No PC, abra `http://<FITHUB_HOST>:8000` (o mesmo endereço do celular, não `localhost`).
+
+1. **Cadastro do profissional:** na web, **Entrar → Cadastre-se** com um e-mail novo. Confirme o e-mail pelo Mailpit,
+   defina a senha e faça o cadastro de personal (CREF). Ele cai no teste grátis.
+2. **Convite:** em **Convites**, convide por e-mail (o e-mail chega no Mailpit) ou anote o código pessoal.
+3. **Aceite no app:** no iPhone, crie uma conta de cliente pelo app (ou entre com `cliente@fithub.test` e encerre
+   antes o vínculo com a personal de exemplo), preencha o perfil e aceite o convite pelo código, com o consentimento.
+4. **Ficha e plano:** na web, crie e publique uma ficha para o cliente. Para o plano alimentar, entre como
+   `nutri@fithub.test` (ou cadastre uma nutricionista) e publique um plano.
+5. **Registro no app:** no iPhone, registre um treino da ficha (séries e carga) e uma refeição do plano.
+6. **Evolução na web:** como personal, abra o cliente e confira a aderência, a carga e o volume do treino registrado.
+7. **Checkout da assinatura:** em **Assinatura**, abra o checkout do sandbox do Asaas e pague com o cartão de teste
+   do sandbox. O retorno volta para a web; sem URL pública, o webhook do Asaas não chega ao PC, então o período pago
+   não muda localmente (fora do escopo).
+
 ### Observabilidade (logs e traces)
 
 O `otel-lgtm` (coletor OpenTelemetry, Loki, Tempo, Prometheus e Grafana num container só,

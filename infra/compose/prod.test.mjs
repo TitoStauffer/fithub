@@ -105,7 +105,8 @@ const CREDENTIAL_RECEIVERS = {
 
 test('cada credencial chega só ao dono e a quem a cria', () => {
   // Um valor diferente por credencial, para saber quem recebeu qual.
-  const distinct = example.replace(/^([A-Z0-9_]+)=<[a-z-]+>$/gm, (_, name) => `${name}=valor-de-${name.toLowerCase()}`);
+  // O marcador pode vir entre aspas simples, como a chave do Asaas, que começa com $ (DEV-0181).
+  const distinct = example.replace(/^([A-Z0-9_]+)=('?)<[a-z-]+>\2$/gm, (_, name, quote) => `${name}=${quote}valor-de-${name.toLowerCase()}${quote}`);
   const { config } = compose(distinct);
   for (const [name, expected] of Object.entries(CREDENTIAL_RECEIVERS)) {
     const value = `valor-de-${name.toLowerCase()}`;
@@ -204,6 +205,28 @@ test('o .env de exemplo só tem marcadores, nenhum valor real', () => {
   for (const line of example.split('\n').filter((candidate) => /^[A-Z_]+=/.test(candidate))) {
     if (allowed.has(line)) continue;
     assert.match(line.slice(line.indexOf('=') + 1), /<[a-z-]+>/, `valor que não é marcador: ${line}`);
+  }
+});
+
+// DEV-0181: a chave do Asaas começa com $. Sem aspas simples no .env, o compose a lê como variável e a entrega vazia.
+test('a chave do Asaas fica entre aspas simples no modelo e chega inteira, com o $, ao account-service', () => {
+  assert.match(example, /^ASAAS_API_KEY='<[a-z-]+>'$/m);
+  const withKey = (line) => compose(example.replace(/^ASAAS_API_KEY=.*$/m, () => line));
+  // A saída do `compose config` escreve o $ literal como $$; o container recebe um $ só.
+  const quoted = withKey("ASAAS_API_KEY='$aact_chave_de_teste'");
+  assert.equal(quoted.config.services['account-service'].environment.ASAAS_API_KEY, '$$aact_chave_de_teste');
+  // Sem as aspas, a chave vira uma variável vazia, e o compose de produção nem sobe (a chave é obrigatória).
+  assert.equal(withKey('ASAAS_API_KEY=$aact_chave_de_teste').ok, false);
+});
+
+// DEV-0181: as contas de teste, o retorno do Expo Go e os dados de exemplo são só do ambiente local
+// (docker-compose.app.yml e infra/dev-seed); nada disso chega à produção.
+test('a produção não tem o seed do ambiente local nem a senha das contas de teste', () => {
+  for (const [name, service] of Object.entries(resolved.config.services)) {
+    assert.notEqual(name, 'seed');
+    const mounts = (service.volumes ?? []).map((volume) => volume.source ?? '');
+    assert.ok(!mounts.some((source) => source.includes('dev-seed')), `${name} monta o seed local`);
+    assert.equal(service.environment?.FITHUB_SEED_PASSWORD, undefined, `${name} recebe a senha de teste`);
   }
 });
 
