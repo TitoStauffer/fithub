@@ -27,10 +27,13 @@ target="$dir/$stamp"
 mkdir -p "$dir"
 # Pasta nova a cada backup: um segundo backup no mesmo segundo gravaria por cima dos dumps de um backup já completo, e uma
 # falha no meio deixaria a pasta marcada como completa com dumps pela metade (DEV-0185).
-if ! mkdir "$target" 2>/dev/null; then
+if [ -e "$target" ]; then
   echo "A pasta do backup $stamp já existe: nada foi gravado. Rode de novo em seguida." >&2
   exit 1
 fi
+# Sem -p: se outro backup criar a pasta entre o teste e aqui, o mkdir falha (com o erro dele, como permissão negada ou
+# disco cheio) em vez de gravar nela.
+mkdir "$target"
 
 count=0
 for db in $FITHUB_DATABASES; do

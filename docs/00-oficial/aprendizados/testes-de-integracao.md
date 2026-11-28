@@ -109,3 +109,21 @@ caso de limite. Sem o mutante, o PR não prova que o teste pega a condição.
       publicaram" do treino, que o `count(distinct)` de um id nulo já exclui.
   - **Prevenção:** a varredura é da consulta inteira, não do achado. Faça uma tabela condição, caso de teste e mutante
     antes de pedir revisão.
+
+## nome-com-precisao-de-segundo-colide-no-runner-rapido
+
+**Regra:** um nome gerado pelo relógio com precisão de segundo (pasta de backup, arquivo, chave) colide quando duas
+gerações rodam no mesmo segundo, e um runner rápido faz isso acontecer. O código que grava recusa um nome que já
+existe, em vez de gravar por cima. O teste que gera dois nomes seguidos espera o segundo virar, ou fixa o relógio
+para provar a recusa. Busca do item novo numa lista nunca sai em silêncio: lista vazia cai num `fail` com mensagem.
+
+### Ocorrências
+
+- **Bug de validação:** CI do job Local Infrastructure, cinco falhas em 27/11/2026 (PRs #337, #341 e três vezes no
+  #352) — DEV-0185 (#342) · **PR:** #354
+  - **Impacto:** o `backup.test.sh` parava sem mensagem e reprovava PRs sem relação com o backup. O mesmo cenário
+    deixava o `backup.sh` gravar por cima de um backup completo: uma falha no meio daria uma pasta `COMPLETE` com dumps
+    pela metade.
+  - **Correção:** o `backup.sh` recusa a pasta que já existe; o teste espera o segundo virar, a busca do backup novo
+    falha com mensagem, e um caso com o `date` fixo prova a recusa.
+  - **Prevenção:** esta regra e a prova manual S1 do PR.

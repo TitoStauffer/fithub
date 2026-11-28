@@ -165,7 +165,7 @@ run sh -c 'mkdir -p /tmp/bin && printf "#!/bin/sh
 echo 2026-11-27T000000Z
 " > /tmp/bin/date && chmod +x /tmp/bin/date &&
   PATH=/tmp/bin:$PATH sh /scripts/backup.sh >/dev/null && sha256sum /backups/2026-11-27T000000Z/client.dump > /tmp/before &&
-  if PATH=/tmp/bin:$PATH sh /scripts/backup.sh >/dev/null 2>&1; then exit 2; fi &&
+  if PATH=/tmp/bin:$PATH sh /scripts/backup.sh >/dev/null 2>/tmp/err; then exit 2; fi && grep -q "já existe" /tmp/err &&
   sha256sum -c --quiet /tmp/before && test -f /backups/2026-11-27T000000Z/COMPLETE'   || fail "o segundo backup no mesmo segundo não foi recusado, ou mexeu no primeiro"
 run rm -rf /backups/2026-11-27T000000Z
 
