@@ -31,7 +31,7 @@ Esqueleto da DEV-0015 (estrutura, execução e testes em [services/README.md](..
 
 | Rota | Quem | Resultado |
 |---|---|---|
-| `GET /professionals/me/subscription` | profissional | Plano, estado (`TRIAL`, `ACTIVE`, `EXPIRED`), fim do teste, período pago e `validUntil`; 404 sem cadastro |
+| `GET /professionals/me/subscription` | profissional | Plano, estado (`TRIAL`, `ACTIVE`, `EXPIRED`), fim do teste, período pago, `validUntil` e a oferta para quem assina hoje (`offer`: valor, se é de lançamento, por quantos meses e o preço cheio, DEV-0102); 404 sem cadastro |
 
 - Todo profissional novo nasce em teste grátis, na mesma transação do cadastro. A duração vem de
   `fithub.subscription.trial-days` (padrão 14). Os cadastros anteriores à V5 ganharam 14 dias a partir da migration.

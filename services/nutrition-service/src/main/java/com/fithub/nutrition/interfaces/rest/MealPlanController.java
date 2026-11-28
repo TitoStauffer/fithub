@@ -385,7 +385,8 @@ class MealPlanController {
                                         schema = @Schema(implementation = ClientController.ApiProblem.class))),
                 @ApiResponse(
                         responseCode = "403",
-                        description = "A conta não é nutricionista, ou a assinatura venceu: sem assinatura válida, nada se cria, edita ou publica (BR-14, título \"Assinatura vencida\").",
+                        description =
+                                "A conta não é nutricionista, ou a assinatura venceu: sem assinatura válida, nada se cria, edita ou publica (BR-14, título \"Assinatura vencida\").",
                         content =
                                 @Content(
                                         mediaType = PROBLEM,
@@ -448,7 +449,8 @@ class MealPlanController {
                                         schema = @Schema(implementation = ClientController.ApiProblem.class))),
                 @ApiResponse(
                         responseCode = "403",
-                        description = "A conta não é nutricionista, ou a assinatura venceu: sem assinatura válida, nada se cria, edita ou publica (BR-14, título \"Assinatura vencida\").",
+                        description =
+                                "A conta não é nutricionista, ou a assinatura venceu: sem assinatura válida, nada se cria, edita ou publica (BR-14, título \"Assinatura vencida\").",
                         content =
                                 @Content(
                                         mediaType = PROBLEM,
@@ -488,7 +490,8 @@ class MealPlanController {
                                         schema = @Schema(implementation = ClientController.ApiProblem.class))),
                 @ApiResponse(
                         responseCode = "403",
-                        description = "A conta não é nutricionista, ou a assinatura venceu: sem assinatura válida, nada se cria, edita ou publica (BR-14, título \"Assinatura vencida\").",
+                        description =
+                                "A conta não é nutricionista, ou a assinatura venceu: sem assinatura válida, nada se cria, edita ou publica (BR-14, título \"Assinatura vencida\").",
                         content =
                                 @Content(
                                         mediaType = PROBLEM,
