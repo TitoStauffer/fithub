@@ -1,0 +1,154 @@
+# Sistema inteiro no ambiente local (DEV-0181): a infraestrutura do docker-compose.dev.yml, os quatro serviços, a web e
+# uma borda nginx que faz o papel do Traefik de produção (ADR-014). Só para desenvolvimento e teste manual.
+#
+#   docker compose -f infra/compose/docker-compose.dev.yml -f infra/compose/docker-compose.app.yml up -d --build --wait
+#
+# Tudo passa pela borda, num endereço só: http://<FITHUB_HOST>:8000 (/, /api/<serviço>, /auth e os buckets das fotos).
+# O navegador do PC e o celular usam o mesmo endereço, então o token sai com um emissor só, que os serviços aceitam.
+# FITHUB_HOST, no compose/.env, é o único lugar do endereço do PC: com o IP da máquina na rede, o celular alcança; sem
+# ele, vale localhost, só no PC. O app no Expo Go descobre o IP sozinho, pelo endereço do Metro (apps/mobile).
+# O seed (infra/dev-seed) cria as contas de teste, o retorno do Expo Go e os dados de exemplo, só neste realm local.
+
+x-service: &service
+  restart: unless-stopped
+  depends_on: &service-depends-on
+    postgres:
+      condition: service_healthy
+    rabbitmq:
+      condition: service_healthy
+    keycloak:
+      condition: service_healthy
+
+x-service-environment: &service-environment
+  DB_HOST: postgres
+  RABBITMQ_HOST: rabbitmq
+  # O iss do token é o endereço da borda; as chaves vêm do Keycloak pela rede do compose, como em produção.
+  KEYCLOAK_ISSUER_URI: http://${FITHUB_HOST:-localhost}:${FITHUB_EDGE_PORT:-8000}/auth/realms/fithub
+  SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/fithub/protocol/openid-connect/certs
+
+services:
+  # Com o sistema inteiro, tudo passa pela borda: a infraestrutura sai das portas da máquina, e o perfil não briga com
+  # outro Postgres ou Keycloak já de pé no PC. O painel do Mailpit fica, para ler os e-mails de convite.
+  postgres:
+    ports: !reset []
+  rabbitmq:
+    ports: !reset []
+  seaweedfs:
+    ports: !reset []
+
+  # O Keycloak fica na raiz, como no resto do ambiente local; a borda o publica em /auth, e o hostname faz os endereços
+  # e o emissor do token saírem com o endereço da borda.
+  # O console de administração fica fora da borda (que pode estar aberta na rede local) e abre só no PC, numa porta
+  # própria em 127.0.0.1 (Code Review do PR #361).
+  keycloak:
+    ports: !override
+      - "127.0.0.1:${FITHUB_KEYCLOAK_ADMIN_PORT:-8090}:8080"
+    environment:
+      KC_HOSTNAME: http://${FITHUB_HOST:-localhost}:${FITHUB_EDGE_PORT:-8000}/auth
+      KC_HOSTNAME_ADMIN: http://localhost:${FITHUB_KEYCLOAK_ADMIN_PORT:-8090}
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_PROXY_HEADERS: xforwarded
+      FITHUB_WEB_URL: http://${FITHUB_HOST:-localhost}:${FITHUB_EDGE_PORT:-8000}
+
+  account-service:
+    <<: *service
+    build:
+      context: ../..
+      dockerfile: services/account-service/Dockerfile
+    image: fithub-account-service:dev
+    environment:
+      <<: *service-environment
+      KEYCLOAK_URL: http://keycloak:8080
+      # Chave do sandbox do Asaas, opcional: sem ela, o checkout da assinatura falha e o resto funciona.
+      ASAAS_API_KEY: ${ASAAS_API_KEY:-}
+      FITHUB_PAYMENT_SUCCESS_URL: http://${FITHUB_HOST:-localhost}:${FITHUB_EDGE_PORT:-8000}/assinatura?retorno=sucesso
+      FITHUB_PAYMENT_CANCEL_URL: http://${FITHUB_HOST:-localhost}:${FITHUB_EDGE_PORT:-8000}/assinatura?retorno=cancelado
+
+  client-service:
+    <<: *service
+    depends_on:
+      <<: *service-depends-on
+      seaweedfs:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+    build:
+      context: ../..
+      dockerfile: services/client-service/Dockerfile
+    image: fithub-client-service:dev
+    environment:
+      <<: *service-environment
+      MAIL_HOST: mailpit
+      S3_ENDPOINT: http://seaweedfs:8333
+      S3_PUBLIC_ENDPOINT: http://${FITHUB_HOST:-localhost}:${FITHUB_EDGE_PORT:-8000}
+
+  training-service:
+    <<: *service
+    build:
+      context: ../..
+      dockerfile: services/training-service/Dockerfile
+    image: fithub-training-service:dev
+    environment:
+      <<: *service-environment
+
+  nutrition-service:
+    <<: *service
+    depends_on:
+      <<: *service-depends-on
+      seaweedfs:
+        condition: service_healthy
+    build:
+      context: ../..
+      dockerfile: services/nutrition-service/Dockerfile
+    image: fithub-nutrition-service:dev
+    environment:
+      <<: *service-environment
+      S3_ENDPOINT: http://seaweedfs:8333
+      S3_PUBLIC_ENDPOINT: http://${FITHUB_HOST:-localhost}:${FITHUB_EDGE_PORT:-8000}
+
+  web:
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
+    image: fithub-web:dev
+    restart: unless-stopped
+
+  # Borda local: as rotas de produção (infra/traefik/dynamic.yml), sem TLS. É a única porta nova do perfil; com
+  # FITHUB_BIND=0.0.0.0 no compose/.env, o celular na mesma rede alcança.
+  edge:
+    image: nginxinc/nginx-unprivileged:1.30.6-alpine@sha256:e2a8fca8aa356d66159aaf8a877a9c126773635adf210503eefaaeaffeed6ad7
+    restart: unless-stopped
+    ports:
+      - "${FITHUB_BIND:-127.0.0.1}:${FITHUB_EDGE_PORT:-8000}:8000"
+    volumes:
+      - ./edge/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - account-service
+      - client-service
+      - training-service
+      - nutrition-service
+      - web
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8000/auth/realms/fithub/.well-known/openid-configuration"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  # Contas de teste, retorno do Expo Go e dados de exemplo (infra/dev-seed/README.md). Roda até o fim e para; repetir
+  # não duplica nada.
+  seed:
+    image: node:24.22.3-alpine@sha256:d8d97e479cdc64f052f81f129362168717c59783ade8dcc1abd22e1cca8dbd7c
+    command: ["node", "/seed/seed.mjs"]
+    environment:
+      FITHUB_EDGE_URL: http://edge:8000
+      # O admin do Keycloak, pela rede do compose: a borda não publica o console nem o realm master.
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
+      FITHUB_PUBLIC_URL: http://${FITHUB_HOST:-localhost}:${FITHUB_EDGE_PORT:-8000}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      FITHUB_SEED_PASSWORD: ${FITHUB_SEED_PASSWORD:-fithub-teste-local}
+    volumes:
+      - ../dev-seed:/seed:ro
+    depends_on:
+      edge:
+        condition: service_healthy

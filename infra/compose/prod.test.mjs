@@ -105,7 +105,8 @@ const CREDENTIAL_RECEIVERS = {
 
 test('cada credencial chega só ao dono e a quem a cria', () => {
   // Um valor diferente por credencial, para saber quem recebeu qual.
-  const distinct = example.replace(/^([A-Z0-9_]+)=<[a-z-]+>$/gm, (_, name) => `${name}=valor-de-${name.toLowerCase()}`);
+  // O marcador pode vir entre aspas simples, como a chave do Asaas, que começa com $ (DEV-0181).
+  const distinct = example.replace(/^([A-Z0-9_]+)=('?)<[a-z-]+>\2$/gm, (_, name, quote) => `${name}=${quote}valor-de-${name.toLowerCase()}${quote}`);
   const { config } = compose(distinct);
   for (const [name, expected] of Object.entries(CREDENTIAL_RECEIVERS)) {
     const value = `valor-de-${name.toLowerCase()}`;
@@ -205,6 +206,58 @@ test('o .env de exemplo só tem marcadores, nenhum valor real', () => {
     if (allowed.has(line)) continue;
     assert.match(line.slice(line.indexOf('=') + 1), /<[a-z-]+>/, `valor que não é marcador: ${line}`);
   }
+});
+
+// DEV-0181: a chave do Asaas começa com $. Sem aspas simples no .env, o compose a lê como variável e a entrega vazia.
+test('a chave do Asaas fica entre aspas simples no modelo e chega inteira, com o $, ao account-service', () => {
+  assert.match(example, /^ASAAS_API_KEY='<[a-z-]+>'$/m);
+  const withKey = (line) => compose(example.replace(/^ASAAS_API_KEY=.*$/m, () => line));
+  // A saída do `compose config` escreve o $ literal como $$; o container recebe um $ só.
+  const quoted = withKey("ASAAS_API_KEY='$aact_chave_de_teste'");
+  assert.equal(quoted.config.services['account-service'].environment.ASAAS_API_KEY, '$$aact_chave_de_teste');
+  // Sem as aspas, a chave vira uma variável vazia, e o compose de produção nem sobe (a chave é obrigatória).
+  assert.equal(withKey('ASAAS_API_KEY=$aact_chave_de_teste').ok, false);
+});
+
+// DEV-0181: as contas de teste, o retorno do Expo Go e os dados de exemplo são só do ambiente local
+// (docker-compose.app.yml e infra/dev-seed); nada disso chega à produção.
+test('a produção não tem o seed do ambiente local nem a senha das contas de teste', () => {
+  for (const [name, service] of Object.entries(resolved.config.services)) {
+    assert.notEqual(name, 'seed');
+    const mounts = (service.volumes ?? []).map((volume) => volume.source ?? '');
+    assert.ok(!mounts.some((source) => source.includes('dev-seed')), `${name} monta o seed local`);
+    assert.equal(service.environment?.FITHUB_SEED_PASSWORD, undefined, `${name} recebe a senha de teste`);
+  }
+});
+
+// DEV-0181, Code Review do PR #361: o override do ambiente local passa variáveis aos serviços pelo nome; se um nome mudar
+// no application.yml, o compose continua válido e o ambiente para de funcionar. As SPRING_* valem pelo relaxed binding.
+test('o override do ambiente local só passa aos serviços variáveis que eles leem', () => {
+  const result = spawnSync(
+    'docker',
+    ['compose', '-f', 'infra/compose/docker-compose.dev.yml', '-f', 'infra/compose/docker-compose.app.yml', 'config', '--format', 'json'],
+    { cwd: root, encoding: 'utf8' },
+  );
+  assert.equal(result.status, 0, result.stderr);
+  const services = JSON.parse(result.stdout).services;
+  for (const service of Object.keys(SERVICES)) {
+    const yml = read(`services/${service}/src/main/resources/application.yml`);
+    for (const name of Object.keys(services[service].environment ?? {})) {
+      if (name.startsWith('SPRING_')) continue;
+      assert.ok(yml.includes(`\${${name}:`) || yml.includes(`\${${name}}`), `${service}: ${name} não aparece no application.yml`);
+    }
+  }
+});
+
+// DEV-0181, Code Review do PR #361: a borda local pode ficar aberta na rede (FITHUB_BIND=0.0.0.0), então, como a de
+// produção, publica do Keycloak só o realm fithub e os recursos das telas, sem o console nem o realm master.
+test('a borda local publica do Keycloak só o realm fithub e os recursos', () => {
+  const edge = read('infra/compose/edge/nginx.conf');
+  const keycloakRoutes = [...edge.matchAll(/location ([^{]*)\{([^}]*)\}/g)].filter(([, , body]) => body.includes('$keycloak'));
+  assert.deepEqual(keycloakRoutes.map(([, route]) => route.trim()), ['~ ^/auth/(realms/fithub/|resources/)']);
+  assert.match(edge, /location \/auth\/ \{\s*return 404;\s*\}/);
+  const app = read('infra/compose/docker-compose.app.yml');
+  assert.match(app, /"127\.0\.0\.1:\$\{FITHUB_KEYCLOAK_ADMIN_PORT:-8090\}:8080"/, 'o console abre só no PC');
 });
 
 test('toda imagem tem versão fixa, nunca latest', () => {

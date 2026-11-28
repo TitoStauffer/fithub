@@ -1,0 +1,121 @@
+{
+    "issue": "DEV-0181",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O build de produção passa a usar o exp:// do Expo",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/authConfig.ts",
+            "find": "return dev && runtimeRedirect.startsWith('exp://') ? runtimeRedirect",
+            "replace": "return runtimeRedirect.startsWith('exp://') ? runtimeRedirect",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "exec",
+                "jest",
+                "--ci",
+                "src/features/auth/authConfig.test.ts"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Qualquer retorno do Expo passa a valer em desenvolvimento, não só o exp://",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/authConfig.ts",
+            "find": "return dev && runtimeRedirect.startsWith('exp://') ? runtimeRedirect",
+            "replace": "return dev ? runtimeRedirect",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "exec",
+                "jest",
+                "--ci",
+                "src/features/auth/authConfig.test.ts"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O build de produção passa a procurar a borda local",
+            "area": "apps",
+            "file": "apps/mobile/src/features/auth/authConfig.ts",
+            "find": "    if (!dev) return undefined;\n",
+            "replace": "",
+            "command": [
+                "pnpm",
+                "--filter",
+                "mobile",
+                "exec",
+                "jest",
+                "--ci",
+                "src/features/auth/authConfig.test.ts"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "A chave do Asaas sai das aspas simples no modelo do .env de produção",
+            "area": "tools",
+            "file": "infra/compose/.env.prod.example",
+            "find": "ASAAS_API_KEY='<chave-api>'",
+            "replace": "ASAAS_API_KEY=<chave-api>",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "O override passa ao serviço uma variável que ele não lê",
+            "area": "tools",
+            "file": "infra/compose/docker-compose.app.yml",
+            "find": "      MAIL_HOST: mailpit",
+            "replace": "      MAIL_HOSTNAME: mailpit",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "A borda local passa a publicar o Keycloak inteiro, com o console",
+            "area": "tools",
+            "file": "infra/compose/edge/nginx.conf",
+            "find": "location ~ ^/auth/(realms/fithub/|resources/) {",
+            "replace": "location ~ ^/auth/ {",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M7",
+            "description": "O resto do /auth deixa de dar 404 na borda local",
+            "area": "tools",
+            "file": "infra/compose/edge/nginx.conf",
+            "find": "    location /auth/ {\n        return 404;",
+            "replace": "    location /auth/ {\n        return 200;",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        },
+        {
+            "id": "M8",
+            "description": "O console do Keycloak passa a abrir na rede, não só no PC",
+            "area": "tools",
+            "file": "infra/compose/docker-compose.app.yml",
+            "find": "\"127.0.0.1:${FITHUB_KEYCLOAK_ADMIN_PORT:-8090}:8080\"",
+            "replace": "\"0.0.0.0:${FITHUB_KEYCLOAK_ADMIN_PORT:-8090}:8080\"",
+            "command": [
+                "node",
+                "--test",
+                "infra/compose/prod.test.mjs"
+            ]
+        }
+    ]
+}
