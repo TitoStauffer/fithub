@@ -42,8 +42,11 @@ async function call(method, path, { token, body, form, base = edge } = {}) {
   return { status: response.status, json, headers: response.headers };
 }
 
-/** Chama até receber um dos status esperados; os eventos entre os serviços chegam em alguns segundos. */
-async function until(description, attempt, expected, tries = 30) {
+/**
+ * Chama até receber um dos status esperados. Os eventos entre os serviços chegam em alguns segundos, e numa primeira
+ * subida os serviços Spring podem levar alguns minutos para responder (Code Review do PR #361): até 3 minutos.
+ */
+async function until(description, attempt, expected, tries = 180) {
   let last;
   for (let i = 0; i < tries; i++) {
     last = await attempt();
@@ -201,7 +204,7 @@ async function inviteCode(token) {
 
 async function linkClient(clientToken, professionalToken) {
   const professionalId = claims(professionalToken).sub;
-  const links = await call('GET', '/api/client/links', { token: clientToken });
+  const links = await until('vínculos do cliente', () => call('GET', '/api/client/links', { token: clientToken }), [200]);
   if (links.json?.some((link) => link.professionalId === professionalId && link.status === 'ACTIVE')) return;
   const code = await inviteCode(professionalToken);
   await until(
