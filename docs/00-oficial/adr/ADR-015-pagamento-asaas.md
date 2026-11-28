@@ -42,8 +42,10 @@ cada mês. Também não existe desconto nativo para as N primeiras cobranças.
    - **Estorno e chargeback (DEV-0182, decisão do Tito em 27/11/2026):** o `PAYMENT_REFUNDED`, o
      `PAYMENT_CHARGEBACK_REQUESTED` e o `PAYMENT_CHARGEBACK_DISPUTE` de uma cobrança gravada encerram o período pago
      no momento do evento, nunca depois do que já estava, e gravam o `AssinaturaAlterada`. O profissional volta ao
-     estado vencido, a menos que o teste grátis ainda corra, e pode assinar de novo. O que já foi entregue continua
-     com o cliente (BR-14).
+     estado vencido, a menos que o teste grátis ainda corra. O que já foi entregue continua com o cliente (BR-14).
+   - O estorno não encerra a assinatura do Asaas. Enquanto ela estiver ativa lá, a próxima cobrança confirmada dela
+     reabre o período, e o checkout novo continua recusado (409, uma assinatura viva por profissional). Um checkout novo
+     só abre depois do `SUBSCRIPTION_INACTIVATED` ou do `SUBSCRIPTION_DELETED` (Code Review do PR #360).
    - A cobrança estornada fica no histórico, com a data do estorno. Conta uma vez só: o estorno repetido, ou o
      chargeback que chega depois, não encerra um período pago por uma cobrança nova. A confirmação da mesma cobrança
      entregue de novo também não reabre o período. O estorno de uma cobrança que não foi gravada é ignorado com aviso.
