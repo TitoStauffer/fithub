@@ -410,6 +410,18 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
+      # Repositório Maven do job (DEV-0186): o mesmo cache do Java Services, completado pelo package dos serviços. O
+      # docker build recebe o repositório e roda o Maven offline, sem voltar ao Maven Central (que às vezes dá 429).
+      - name: Setup Java
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - name: Prepare Maven repository
+        run: mvn -B -ntp -q package -DskipTests
+
       - name: Log in to GHCR
         env:
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -421,7 +433,8 @@ jobs:
           for service in $(jq -r '.[]' <<<"$SERVICES"); do
             [[ "$service" =~ ^[a-z0-9-]+$ ]] || { echo "Nome de serviço inválido: '$service'."; exit 1; }
             image="ghcr.io/$owner/fithub-$service:$GITHUB_SHA"
-            docker build --file "services/$service/Dockerfile" --tag "$image" \
+            docker build --build-context m2="$HOME/.m2/repository" \
+              --file "services/$service/Dockerfile" --tag "$image" \
               --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
               --label "org.opencontainers.image.revision=$GITHUB_SHA" .
             node tools/repo-checks/check-image-user.mjs "$image"
