@@ -30,6 +30,36 @@
                 "run",
                 "test:review-inputs"
             ]
+        },
+        {
+            "id": "M3",
+            "description": "O bloco do pacote volta a valer em qualquer recuo acima de 4",
+            "area": "tools",
+            "file": "tools/github-reviewer/src/agent-review-inputs.ts",
+            "find": "if (firstProperty && indent !== 4) unsupported",
+            "replace": "if (false && firstProperty && indent !== 4) unsupported",
+            "command": [
+                "npm",
+                "--prefix",
+                "tools/github-reviewer",
+                "run",
+                "test:review-inputs"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "Toda propriedade, e não só a primeira, passa a exigir o recuo 4",
+            "area": "tools",
+            "file": "tools/github-reviewer/src/agent-review-inputs.ts",
+            "find": "    firstProperty = false;\n",
+            "replace": "",
+            "command": [
+                "npm",
+                "--prefix",
+                "tools/github-reviewer",
+                "run",
+                "test:review-inputs"
+            ]
         }
     ]
 }

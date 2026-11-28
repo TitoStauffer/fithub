@@ -369,6 +369,9 @@ test('fails closed on any pnpm packages line it cannot read, so no package hides
     ['  evil@1.0.0:\n    "resolution": {tarball: https://evil.example/x.tgz}', /package property not written as a bare key/],
     ['  evil@1.0.0:\n    ? resolution\n    : {tarball: https://evil.example/x.tgz}', /package property not written as a bare key/],
     ['  evil@1.0.0:\n    <<: {resolution: {tarball: https://evil.example/x.tgz}}', /package property not written as a bare key/],
+    // Rodada 2: o bloco do pacote inteiro num recuo maior, onde a resolution também vale para o YAML.
+    ['  evil@1.0.0:\n      resolution: {tarball: https://evil.example/x.tgz}', /package properties not at indentation 4/],
+    ['  evil@1.0.0:\n      engines: {node: x}\n      resolution: {tarball: https://evil.example/x.tgz}', /package properties not at indentation 4/],
     ['\tevil@1.0.0:', /tab or comment in packages|packages section/],
   ];
   for (const [line, error] of cases) {

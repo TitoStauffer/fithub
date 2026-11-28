@@ -289,6 +289,7 @@ export function summarizePnpmLockfile(path: string, content: string): string {
   const resolutions = new Map<string, Map<string, string> | null>();
   let inPackages = false;
   let current: string | null = null;
+  let firstProperty = false;
   for (const line of lines) {
     if (line.trim() === '') continue;
     // Rodada 3 do Code Review: no arquivo todo, nenhuma linha pode continuar na seguinte. Aspas e
@@ -315,9 +316,14 @@ export function summarizePnpmLockfile(path: string, content: string): string {
       if (!PNPM_PACKAGE_NAME.test(current)) unsupported('package key is not name@version', line);
       if (resolutions.has(current)) unsupported('repeated package key', line);
       resolutions.set(current, null);
+      firstProperty = true;
       continue;
     }
     if (indent < 4 || current === null) unsupported('unexpected indentation in packages', line);
+    // Rodada 2: para o YAML, a primeira propriedade define o recuo do bloco do pacote. Com ela no recuo 6,
+    // a resolution do recuo 6 vale para o pnpm, mas o leitor só confere o recuo 4.
+    if (firstProperty && indent !== 4) unsupported('package properties not at indentation 4', line);
+    firstProperty = false;
     // DEV-0143: a propriedade do pacote também é chave nua. `"resolution"`, `? resolution` ou `<<` seriam
     // a resolution para o YAML do pnpm, mas não para o leitor, e o tarball de verdade não chegaria ao resumo.
     if (indent === 4 && !/^ {4}[A-Za-z][A-Za-z0-9_-]*:( |$)/.test(line)) unsupported('package property not written as a bare key', line);

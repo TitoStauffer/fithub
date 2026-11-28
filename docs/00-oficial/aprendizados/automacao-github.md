@@ -272,6 +272,10 @@ esconde a entrada que importa.
   - **Impacto:** com recuo 4, só a linha que começava com `resolution` era conferida. `"resolution"`, `? resolution` e `<<: {resolution: ...}` são a `resolution` para o YAML do pnpm, mas não para o leitor. O pacote aparecia como `(no resolution)`, sem o tarball de verdade.
   - **Correção:** toda propriedade com recuo 4 é chave nua (`^ {4}[A-Za-z][A-Za-z0-9_-]*:( |$)`), e o resto lança erro.
   - **Prevenção:** a gramática pequena vale em cada nível de recuo, não só no das chaves de pacote. Os testes cobrem aspas, `?` e `<<` no recuo 4.
+- **Revisão:** Code Review do PR #357, no SHA `c315a04` (LOW: bloco do pacote em recuo maior) — DEV-0143 (#186) · **PR:** #357
+  - **Impacto:** para o YAML, a primeira propriedade define o recuo do bloco do pacote. Com o bloco inteiro no recuo 6, a `resolution` valia para o pnpm, e o leitor, que só conferia o recuo 4, a ignorava.
+  - **Correção:** a primeira propriedade de cada pacote precisa estar no recuo 4, e o resto lança erro.
+  - **Prevenção:** o leitor não presume o recuo que o gerador costuma usar: ele fixa o recuo que aceita e recusa o resto, como faz com a forma das chaves.
 
 ## mutante-precisa-de-execucao-de-base
 
