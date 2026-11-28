@@ -252,6 +252,32 @@ test('o tema de login herda as telas do keycloak.v2 e só acrescenta o CSS do Fi
   assert.doesNotMatch(properties, /^scripts=/m);
 });
 
+/** Razão de contraste da WCAG entre duas cores #rrggbb, pela luminância relativa. */
+const contrast = (first, second) => {
+  const luminance = (hex) => {
+    const [r, g, b] = [1, 3, 5].map((start) => {
+      const channel = parseInt(hex.slice(start, start + 2), 16) / 255;
+      return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const [light, dark] = [luminance(first), luminance(second)].sort((a, b) => b - a);
+  return (light + 0.05) / (dark + 0.05);
+};
+
+// WCAG 2.2, 1.4.11 (DEV-0144): o anel de foco precisa de 3:1 sobre o que fica ao lado dele, o cartão e a página.
+test('o anel de foco do tema tem contraste de pelo menos 3:1 sobre o cartão e sobre a página', () => {
+  const css = readFileSync(new URL('login/resources/css/fithub.css', THEME), 'utf8');
+  const color = (name) => new RegExp(`--fithub-${name}:\\s*(#[0-9a-f]{6});`, 'i').exec(css)?.[1];
+  assert.match(css, /:focus-visible[^{]*\{[^}]*outline:\s*2px solid var\(--fithub-ring\)/);
+  const ring = color('ring');
+  assert.ok(ring, 'o tema define --fithub-ring em #rrggbb');
+  for (const background of ['background', 'surface']) {
+    const ratio = contrast(ring, color(background));
+    assert.ok(ratio >= 3, `anel ${ring} sobre --fithub-${background}: ${ratio.toFixed(2)}:1`);
+  }
+});
+
 // Login e recuperação respondem igual com ou sem conta. No cadastro só o texto é neutro: o erro em si
 // ainda aparece só para e-mail já cadastrado (limite do fluxo do Keycloak).
 test('login e recuperação não revelam se o e-mail tem conta, e o cadastro usa texto neutro', () => {
