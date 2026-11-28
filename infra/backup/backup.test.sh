@@ -62,9 +62,13 @@ run sh -c "mkdir -p /backups/2026-10-01T000000Z /backups/2026-10-11T000000Z /bac
   touch -d '30 days ago' /backups/2026-10-11T000000Z && touch -d '719 hours ago' /backups/2026-10-11T120000Z &&
   touch -d '29 days ago' /backups/2026-10-12T000000Z"
 
+# O nome da pasta tem precisão de segundo: no runner rápido, este backup caía no mesmo segundo do primeiro, e o grep
+# abaixo, sem nada para devolver, encerrava o teste em silêncio (DEV-0185). Espera o segundo virar.
+first_second=$(date -u +%s)
+while [ "$(date -u +%s)" = "$first_second" ]; do sleep 0.2; done
 run sh /scripts/backup.sh >/dev/null
-stamp=$(run sh -c "ls /backups | grep -v -e restore- -e 2026-10-12T000000Z -e $before_list")
-[ "$(echo "$stamp" | wc -l)" -eq 1 ] || fail "esperava um backup novo, achei: $stamp"
+stamp=$(run sh -c "ls /backups" | grep -v -e restore- -e 2026-10-12T000000Z -e "$before_list" || true)
+[ -n "$stamp" ] && [ "$(echo "$stamp" | wc -l)" -eq 1 ] || fail "esperava um backup novo, achei: '$stamp'"
 for file in account.dump client.dump training.dump nutrition.dump keycloak.dump COMPLETE; do
   run test -f "/backups/$stamp/$file" || fail "o backup não tem $file"
 done
@@ -154,6 +158,16 @@ run sh /scripts/restore.sh "$before_list" >/dev/null || fail "não restaurou o b
   || fail "a lista criada pela restauração não ficou com o dono do banco"
 [ "$(sql client 'select count(*) from restore_pending')" = 1 ] \
   || fail "a restauração do backup de antes da lista não gravou o marcador"
+
+# Dois backups no mesmo segundo (o date fixo simula): o segundo é recusado e não toca nos dumps do primeiro, que fica
+# completo (DEV-0185).
+run sh -c 'mkdir -p /tmp/bin && printf "#!/bin/sh
+echo 2026-11-27T000000Z
+" > /tmp/bin/date && chmod +x /tmp/bin/date &&
+  PATH=/tmp/bin:$PATH sh /scripts/backup.sh >/dev/null && sha256sum /backups/2026-11-27T000000Z/client.dump > /tmp/before &&
+  if PATH=/tmp/bin:$PATH sh /scripts/backup.sh >/dev/null 2>&1; then exit 2; fi &&
+  sha256sum -c --quiet /tmp/before && test -f /backups/2026-11-27T000000Z/COMPLETE'   || fail "o segundo backup no mesmo segundo não foi recusado, ou mexeu no primeiro"
+run rm -rf /backups/2026-11-27T000000Z
 
 sql client "set role client; drop table if exists deleted_account, sample, later, restore_pending;" >/dev/null
 echo "Backup e restauração: OK."
