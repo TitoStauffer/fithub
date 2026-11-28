@@ -304,6 +304,35 @@
                 "name": "map-role-client-scope"
               }
             ]
+          },
+          {
+            "name": "7d1c2b3a-0184-4f00-9a01-000000000001",
+            "scopes": [
+              {
+                "name": "view"
+              },
+              {
+                "name": "manage"
+              },
+              {
+                "name": "view-members"
+              },
+              {
+                "name": "manage-members"
+              },
+              {
+                "name": "manage-membership"
+              },
+              {
+                "name": "manage-membership-of-members"
+              },
+              {
+                "name": "delegate-members"
+              },
+              {
+                "name": "impersonate-members"
+              }
+            ]
           }
         ],
         "policies": [
@@ -324,8 +353,20 @@
             "config": {
               "defaultResourceType": "Users",
               "resources": "[\"Users\"]",
-              "scopes": "[\"view\",\"manage\",\"map-roles\"]",
+              "scopes": "[\"view\",\"map-roles\"]",
               "applyPolicies": "[\"account-service\"]"
+            }
+          },
+          {
+            "name": "account-service-app-accounts",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "UNANIMOUS",
+            "config": {
+              "defaultResourceType": "Groups",
+              "resources": "[\"7d1c2b3a-0184-4f00-9a01-000000000001\"]",
+              "applyPolicies": "[\"account-service\"]",
+              "scopes": "[\"manage-members\"]"
             }
           },
           {
@@ -399,6 +440,20 @@
         ]
       }
     }
+  ],
+  "groups": [
+    {
+      "id": "7d1c2b3a-0184-4f00-9a01-000000000001",
+      "name": "app-accounts",
+      "path": "/app-accounts",
+      "attributes": {},
+      "realmRoles": [],
+      "clientRoles": {},
+      "subGroups": []
+    }
+  ],
+  "defaultGroups": [
+    "/app-accounts"
   ],
   "users": [
     {

@@ -1,0 +1,83 @@
+{
+    "issue": "DEV-0184",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O client volta a ter manage em todos os usuários",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"scopes\": \"[\\\"view\\\",\\\"map-roles\\\"]\"",
+            "replace": "\"scopes\": \"[\\\"view\\\",\\\"manage\\\",\\\"map-roles\\\"]\"",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "Conta nova deixa de entrar no grupo app-accounts",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"defaultGroups\": [",
+            "replace": "\"defaultGroupsDesligado\": [",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "No grupo, o client ganha outro escopo em vez de manage-members",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"scopes\": \"[\\\"manage-members\\\"]\"",
+            "replace": "\"scopes\": \"[\\\"manage-membership\\\"]\"",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "A permissão do grupo passa a valer para os usuários",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"defaultResourceType\": \"Groups\"",
+            "replace": "\"defaultResourceType\": \"Users\"",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M5",
+            "description": "A permissão do grupo cita outro id de grupo",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"resources\": \"[\\\"7d1c2b3a-0184-4f00-9a01-000000000001\\\"]\"",
+            "replace": "\"resources\": \"[\\\"7d1c2b3a-0184-4f00-9a01-000000000009\\\"]\"",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        },
+        {
+            "id": "M6",
+            "description": "A permissão do grupo deixa de exigir o client do account-service",
+            "area": "tools",
+            "file": "infra/keycloak/realm-fithub.json",
+            "find": "\"applyPolicies\": \"[\\\"account-service\\\"]\",",
+            "replace": "\"applyPolicies\": \"[]\",",
+            "command": [
+                "node",
+                "--test",
+                "infra/keycloak/realm.test.mjs"
+            ]
+        }
+    ]
+}
