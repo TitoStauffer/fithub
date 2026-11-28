@@ -325,3 +325,22 @@ real, não só se ela passou.
     hospedados continuam com o cache.
   - **Prevenção:** teste de contrato do workflow (`keeps the npm cache off the self-hosted jobs`), provado pelos
     mutantes M1 e M2 de `mutations/DEV-0154.json`.
+
+## repositorio-maven-entre-versoes-do-maven
+
+**Regra:** um repositório Maven preenchido por uma versão do Maven e lido por outra (o do runner e o da imagem, por
+exemplo) pode não valer como cache. O Maven 3.10 grava em `_remote.repositories` a chave do repositório com um hash
+(`central-<hash>`), e o 3.9 lê isso como outro repositório: o artefato fica "present, but unavailable" e o Maven vai
+buscá-lo de novo na rede, onde o 429 aparece. Quem passa um repositório pronto para outro Maven roda esse Maven
+offline e sem o registro de origem (`-o -Daether.enhancedLocalRepository.trackingFilename=<outro nome>`), e prova com
+um build sem rede.
+
+### Ocorrências
+
+- **Bug de validação:** CI do PR #359, `Build service images`, com o modo offline novo (`present, but unavailable ...
+  has not been downloaded from it before`) — DEV-0186 (#353) · **PR:** #359
+  - **Impacto:** sem o modo offline, o build das imagens no PR ia ao Maven Central por artefatos que já tinha, e o
+    Central às vezes respondia 429.
+  - **Correção:** com o repositório do job, os Dockerfiles rodam o Maven com `-o` e ignoram o `_remote.repositories`.
+  - **Prevenção:** esta regra, o teste dos Dockerfiles (mutantes M1 e M4 de `mutations/DEV-0186.json`) e a prova
+    local com as chaves do 3.10 e `--network=none`.

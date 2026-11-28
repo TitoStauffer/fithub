@@ -248,8 +248,24 @@ test('o build de cada serviço monta o repositório Maven opcional do contexto m
     assert.match(dockerfile, /^FROM scratch AS m2$/m, `${service}: estágio m2 vazio`);
     const run = [
       'RUN --mount=type=bind,from=m2,target=/root/.m2/repository,rw \\',
-      `    mvn -B -ntp -q -pl services/${service} -am package -DskipTests`,
+      // Com o repositório do job, offline: o build da imagem não volta ao Maven Central (DEV-0186).
+      '    offline=""; if [ -n "$(ls -A /root/.m2/repository)" ]; then offline="-o -Daether.enhancedLocalRepository.trackingFilename=fithub-offline"; fi; \\',
+      `    mvn -B -ntp -q $offline -pl services/${service} -am package -DskipTests`,
     ].join('\n');
     assert.ok(dockerfile.includes(`\n${run}\n`), `${service}: o mvn package usa o repositório do contexto m2`);
   }
+});
+
+// DEV-0186: o Publish Images da master baixava tudo do Maven Central de novo e caía no 429.
+test('o build das imagens dos serviços no PR e na master recebe o repositório Maven do job', async () => {
+  const { readFileSync } = await import('node:fs');
+  const workflow = readFileSync('.github/workflows/ci.yml', 'utf8').replace(/\r\n/g, '\n');
+  const builds = [...workflow.matchAll(/docker build ([^\n]*\\\n\s*)*?[^\n]*--file "services\/\$service\/Dockerfile"/g)].map((match) => match[0]);
+  assert.equal(builds.length, 2, 'um docker build de serviço no PR e um na master');
+  for (const build of builds) assert.match(build, /--build-context m2="\$HOME\/\.m2\/repository"/, build);
+  const publish = workflow.slice(workflow.indexOf('\n  publish-images:'));
+  const setup = publish.indexOf('cache: maven');
+  const prepare = publish.indexOf('run: mvn -B -ntp -q package -DskipTests');
+  const build = publish.indexOf('docker build --build-context m2=');
+  assert.ok(setup > 0 && prepare > setup && build > prepare, 'Publish Images: cache do Maven, package e só depois o docker build');
 });

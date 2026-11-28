@@ -426,7 +426,12 @@ teste pulado sem `DEV-xxxx` na justificativa derruba o job (DEV-0016; detalhes e
    privilégio). No PR, o `Java Services` já constrói a imagem dos serviços
    alterados e barra imagem que rode como root (DEV-0017). Esse build recebe o repositório Maven que o
    `mvn verify` do job já baixou (`--build-context m2=...`), em vez de voltar ao Maven Central; sem o contexto,
-   como no build local, o Dockerfile usa um estágio vazio e baixa tudo (DEV-0155).
+   como no build local, o Dockerfile usa um estágio vazio e baixa tudo (DEV-0155). O `Publish Images` faz o
+   mesmo: restaura o cache do Maven, completa o repositório com um `mvn package` e passa o contexto. Com o
+   contexto, o estágio de build roda o Maven offline (`-o`), e um artefato que falte vira erro, nunca um
+   download do Central (DEV-0186). Ele também ignora o registro de origem dos artefatos
+   (`_remote.repositories`): o Maven do runner (3.10) grava a chave do repositório com um hash, e o Maven
+   3.9 da imagem a lia como outro repositório ("present, but unavailable").
 3. **Deploy:** workflow manual `Deploy` (`workflow_dispatch`, DEV-0110,
    [ADR-014](adr/ADR-014-borda-e-deploy.md)) com o SHA de um commit da master:
    copia por SSH a infra desse commit e roda `docker compose pull` e

@@ -3,8 +3,11 @@
 #   docker build -f services/account-service/Dockerfile -t fithub-account-service .
 # O CI publica no GHCR com a tag do commit a cada merge na master (todos os serviços, DEV-0017).
 
-# Repositório Maven opcional (DEV-0155): o CI passa o que o job já baixou, com --build-context m2=<repositório>, e
-# o build não volta ao Maven Central. Sem ele, vale este estágio vazio e o Maven baixa tudo, como no build local.
+# Repositório Maven opcional (DEV-0155): o CI passa o que o job já baixou, com --build-context m2=<repositório>.
+# Com ele, o Maven roda offline (-o, DEV-0186) e nunca volta ao Maven Central: um artefato que falta vira erro, não
+# download. O registro de origem de cada artefato (_remote.repositories) fica de fora: o Maven do runner (3.10) grava a
+# chave do repositório num formato que o desta imagem (3.9) não reconhece. Sem o contexto, vale este estágio vazio, e o
+# Maven baixa tudo, como no build local.
 FROM scratch AS m2
 
 # Build: compila só este serviço e o que ele usa. Os testes rodam no job Java Services do CI.
@@ -14,7 +17,8 @@ COPY pom.xml ./
 COPY libs/ libs/
 COPY services/ services/
 RUN --mount=type=bind,from=m2,target=/root/.m2/repository,rw \
-    mvn -B -ntp -q -pl services/account-service -am package -DskipTests
+    offline=""; if [ -n "$(ls -A /root/.m2/repository)" ]; then offline="-o -Daether.enhancedLocalRepository.trackingFilename=fithub-offline"; fi; \
+    mvn -B -ntp -q $offline -pl services/account-service -am package -DskipTests
 
 # Runtime: só o JRE e o jar, com usuário sem privilégio. As duas imagens base ficam fixadas por digest
 # (JDK 25.0.4.1 no build e no runtime); atualizar uma exige trocar o digest aqui nos quatro serviços.

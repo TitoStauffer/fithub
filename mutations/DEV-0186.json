@@ -1,0 +1,57 @@
+{
+    "issue": "DEV-0186",
+    "mutants": [
+        {
+            "id": "M1",
+            "description": "O build da imagem volta a ir ao Maven Central com o repositório do job",
+            "area": "tools",
+            "file": "services/account-service/Dockerfile",
+            "find": "then offline=\"-o -Daether.enhancedLocalRepository.trackingFilename=fithub-offline\"; fi",
+            "replace": "then offline=\"\"; fi",
+            "command": [
+                "node",
+                "--test",
+                "tools/repo-checks/ci-scripts.test.mjs"
+            ]
+        },
+        {
+            "id": "M4",
+            "description": "O build offline volta a confiar no registro de origem que o Maven do runner grava em outro formato",
+            "area": "tools",
+            "file": "services/account-service/Dockerfile",
+            "find": " -Daether.enhancedLocalRepository.trackingFilename=fithub-offline",
+            "replace": "",
+            "command": [
+                "node",
+                "--test",
+                "tools/repo-checks/ci-scripts.test.mjs"
+            ]
+        },
+        {
+            "id": "M2",
+            "description": "O Publish Images deixa de passar o repositório do job",
+            "area": "tools",
+            "file": ".github/workflows/ci.yml",
+            "find": "            docker build --build-context m2=\"$HOME/.m2/repository\" \\\n              --file \"services/$service/Dockerfile\" --tag \"$image\" \\",
+            "replace": "            docker build --file \"services/$service/Dockerfile\" --tag \"$image\" \\",
+            "command": [
+                "node",
+                "--test",
+                "tools/repo-checks/ci-scripts.test.mjs"
+            ]
+        },
+        {
+            "id": "M3",
+            "description": "O Publish Images deixa de preparar o repositório antes do build",
+            "area": "tools",
+            "file": ".github/workflows/ci.yml",
+            "find": "run: mvn -B -ntp -q package -DskipTests",
+            "replace": "run: echo sem repositório",
+            "command": [
+                "node",
+                "--test",
+                "tools/repo-checks/ci-scripts.test.mjs"
+            ]
+        }
+    ]
+}
