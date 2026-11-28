@@ -47,6 +47,10 @@ cada mês. Também não existe desconto nativo para as N primeiras cobranças.
    - A cobrança estornada fica no histórico, com a data do estorno. Conta uma vez só: o estorno repetido, ou o
      chargeback que chega depois, não encerra um período pago por uma cobrança nova. A confirmação da mesma cobrança
      entregue de novo também não reabre o período. O estorno de uma cobrança que não foi gravada é ignorado com aviso.
+   - **Limite:** o estorno que chegasse antes da confirmação da mesma cobrança seria ignorado, e a confirmação depois
+     estenderia o período. A fila sequencial do webhook no Asaas (Consequências) entrega os eventos de uma cobrança
+     na ordem, então isso não acontece com a configuração prevista. Se a fila deixar de ser sequencial, o estorno de
+     cobrança desconhecida precisa ser guardado (Code Review do PR #360).
 5. **Preço de lançamento:**
    - a assinatura nasce com R$ 150 quando o checkout é criado até a data de corte;
    - no 3º pagamento confirmado, o account-service troca o valor para R$ 200 no Asaas (`PUT /v3/subscriptions/{id}`,

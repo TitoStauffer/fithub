@@ -98,6 +98,8 @@ public class HandlePaymentEvent {
 
     /** Estorno ou chargeback: na primeira vez da cobrança, o período pago termina agora. */
     private void handleRefund(Payment payment, Instant now) {
+        // Sem esta guarda o resultado é o mesmo (o update com id nulo não acha a cobrança), então ela não tem mutante:
+        // fica pelo aviso no log.
         if (payment.id() == null) {
             log.warn("Estorno sem id de cobrança; ignorado");
             return;

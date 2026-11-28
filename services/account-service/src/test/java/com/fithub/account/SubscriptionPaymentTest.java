@@ -644,6 +644,17 @@ class SubscriptionPaymentTest extends ServiceIntegrationTest {
                         """.formatted(UUID.randomUUID())).andExpect(status().isOk());
     }
 
+    // DEV-0182, QA do PR #360: sem o objeto da cobrança, o estorno não derruba o webhook (um 500 faria o Asaas
+    // reentregar sem fim).
+    @Test
+    void aRefundEventWithoutThePaymentIsIgnored() throws Exception {
+        for (String type : List.of("PAYMENT_REFUNDED", "PAYMENT_CHARGEBACK_REQUESTED", "PAYMENT_CHARGEBACK_DISPUTE")) {
+            webhook("""
+                            {"id": "evt_%s", "event": "%s"}
+                            """.formatted(UUID.randomUUID(), type)).andExpect(status().isOk());
+        }
+    }
+
     @Test
     void aConfirmedPaymentWithoutIdOrDueDateIsIgnored() throws Exception {
         String account = registered();

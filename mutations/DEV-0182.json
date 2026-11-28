@@ -43,6 +43,26 @@
         },
         {
             "id": "M3",
+            "description": "O estorno sem o objeto da cobrança derruba o webhook",
+            "area": "java",
+            "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
+            "find": "if (REFUNDED.contains(type) && payment != null) {",
+            "replace": "if (REFUNDED.contains(type)) {",
+            "command": [
+                "mvn",
+                "-B",
+                "-ntp",
+                "-q",
+                "-pl",
+                "services/account-service",
+                "-am",
+                "test",
+                "-Dtest=SubscriptionPaymentTest",
+                "-Dsurefire.failIfNoSpecifiedTests=false"
+            ]
+        },
+        {
+            "id": "M4",
             "description": "O chargeback pedido deixa de ser tratado",
             "area": "java",
             "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
@@ -62,7 +82,7 @@
             ]
         },
         {
-            "id": "M4",
+            "id": "M5",
             "description": "A disputa do chargeback deixa de ser tratada",
             "area": "java",
             "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
@@ -82,7 +102,7 @@
             ]
         },
         {
-            "id": "M5",
+            "id": "M6",
             "description": "O estorno deixa de gravar o AssinaturaAlterada",
             "area": "java",
             "file": "services/account-service/src/main/java/com/fithub/account/application/HandlePaymentEvent.java",
@@ -102,7 +122,7 @@
             ]
         },
         {
-            "id": "M6",
+            "id": "M7",
             "description": "O estorno repetido da mesma cobrança volta a encerrar o período",
             "area": "java",
             "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/persistence/JdbcPaymentRecords.java",
@@ -122,7 +142,7 @@
             ]
         },
         {
-            "id": "M7",
+            "id": "M8",
             "description": "O estorno de um período já terminado passa a movê-lo para a frente",
             "area": "java",
             "file": "services/account-service/src/main/java/com/fithub/account/infrastructure/persistence/JdbcSubscriptionRepository.java",
