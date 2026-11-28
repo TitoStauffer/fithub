@@ -388,6 +388,138 @@ class SubscriptionPaymentTest extends ServiceIntegrationTest {
         assertThat(paidUntil(account)).isNull();
     }
 
+    // --- Estorno e chargeback (DEV-0182): o período pago termina no momento do evento ---
+    // O estorno compara com o relógio de verdade, então os vencimentos são relativos a hoje: com uma data fixa, o
+    // período pago já teria terminado um dia, e o estorno não teria o que encerrar (Code Review do PR #360).
+
+    @Test
+    void aRefundEndsThePaidPeriodNowOnlyOnceEvenWithAChargebackOfTheSamePaymentAfterIt() throws Exception {
+        String account = registered();
+        String subscription = paidCheckout(account);
+        String payment = "pay_" + UUID.randomUUID();
+        LocalDate due = LocalDate.now(ZONE).plusDays(10);
+        webhook(paymentEvent("evt_" + UUID.randomUUID(), "PAYMENT_CONFIRMED", payment, subscription, due.toString()));
+        assertThat(paidUntil(account)).isEqualTo(paidThrough(due));
+        long eventsBefore = subscriptionEvents(account);
+        Instant before = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+
+        webhook(paymentEvent("evt_" + UUID.randomUUID(), "PAYMENT_REFUNDED", payment, subscription, due.toString()))
+                .andExpect(status().isOk());
+
+        assertThat(paidUntil(account)).isBetween(before, Instant.now());
+        assertThat(subscriptionEvents(account) - eventsBefore).isEqualTo(1);
+        assertThat(jdbc.sql(
+                                "select count(*) from subscription_payment where payment_id = ? and refunded_at is not null")
+                        .param(payment)
+                        .query(Integer.class)
+                        .single())
+                .isEqualTo(1);
+
+        // A pessoa assina de novo e paga outra cobrança. O estorno repetido e o chargeback da cobrança antiga, que o
+        // Asaas pode entregar depois, não encerram o período novo.
+        LocalDate renewal = due.plusMonths(1);
+        webhook(paymentEvent(
+                "evt_" + UUID.randomUUID(),
+                "PAYMENT_CONFIRMED",
+                "pay_" + UUID.randomUUID(),
+                subscription,
+                renewal.toString()));
+        assertThat(paidUntil(account)).isEqualTo(paidThrough(renewal));
+        long eventsAfterRenewal = subscriptionEvents(account);
+        webhook(paymentEvent("evt_" + UUID.randomUUID(), "PAYMENT_REFUNDED", payment, subscription, due.toString()))
+                .andExpect(status().isOk());
+        webhook(paymentEvent(
+                        "evt_" + UUID.randomUUID(),
+                        "PAYMENT_CHARGEBACK_REQUESTED",
+                        payment,
+                        subscription,
+                        due.toString()))
+                .andExpect(status().isOk());
+        assertThat(paidUntil(account)).isEqualTo(paidThrough(renewal));
+        assertThat(subscriptionEvents(account)).isEqualTo(eventsAfterRenewal);
+    }
+
+    @Test
+    void bothChargebackEventsAlsoEndThePaidPeriod() throws Exception {
+        for (String type : List.of("PAYMENT_CHARGEBACK_REQUESTED", "PAYMENT_CHARGEBACK_DISPUTE")) {
+            String account = registered();
+            String subscription = paidCheckout(account);
+            String payment = "pay_" + UUID.randomUUID();
+            String due = LocalDate.now(ZONE).plusDays(10).toString();
+            webhook(paymentEvent("evt_" + UUID.randomUUID(), "PAYMENT_CONFIRMED", payment, subscription, due));
+            Instant before = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+
+            webhook(paymentEvent("evt_" + UUID.randomUUID(), type, payment, subscription, due))
+                    .andExpect(status().isOk());
+
+            assertThat(paidUntil(account)).as(type).isBetween(before, Instant.now());
+        }
+    }
+
+    @Test
+    void theConfirmationDeliveredAgainAfterTheRefundDoesNotReopenThePaidPeriod() throws Exception {
+        String account = registered();
+        String subscription = paidCheckout(account);
+        String payment = "pay_" + UUID.randomUUID();
+        String due = LocalDate.now(ZONE).plusDays(10).toString();
+        String confirmed = paymentEvent("evt_" + UUID.randomUUID(), "PAYMENT_CONFIRMED", payment, subscription, due);
+        webhook(confirmed);
+        webhook(paymentEvent("evt_" + UUID.randomUUID(), "PAYMENT_REFUNDED", payment, subscription, due));
+        Instant ended = paidUntil(account);
+        assertThat(ended).isBefore(Instant.now().plusSeconds(1));
+
+        webhook(confirmed).andExpect(status().isOk());
+
+        assertThat(paidUntil(account)).isEqualTo(ended);
+    }
+
+    @Test
+    void theRefundOfAPaymentThatWasNeverRecordedChangesNothing() throws Exception {
+        String account = registered();
+        String subscription = paidCheckout(account);
+        LocalDate due = LocalDate.now(ZONE).plusDays(10);
+        webhook(paymentEvent(
+                "evt_" + UUID.randomUUID(),
+                "PAYMENT_CONFIRMED",
+                "pay_" + UUID.randomUUID(),
+                subscription,
+                due.toString()));
+        long eventsBefore = subscriptionEvents(account);
+
+        webhook(paymentEvent(
+                        "evt_" + UUID.randomUUID(),
+                        "PAYMENT_REFUNDED",
+                        "pay_" + UUID.randomUUID(),
+                        subscription,
+                        due.toString()))
+                .andExpect(status().isOk());
+
+        assertThat(paidUntil(account)).isEqualTo(paidThrough(due));
+        assertThat(subscriptionEvents(account)).isEqualTo(eventsBefore);
+    }
+
+    @Test
+    void theRefundOfAPeriodThatAlreadyEndedNeverMovesItForward() throws Exception {
+        String account = registered();
+        String subscription = paidCheckout(account);
+        String payment = "pay_" + UUID.randomUUID();
+        // Ciclo de 10/01/2026: o período pago terminou em 11/02/2026, antes do estorno.
+        webhook(paymentEvent("evt_" + UUID.randomUUID(), "PAYMENT_CONFIRMED", payment, subscription, "2026-01-10"));
+        long eventsBefore = subscriptionEvents(account);
+
+        webhook(paymentEvent("evt_" + UUID.randomUUID(), "PAYMENT_REFUNDED", payment, subscription, "2026-01-10"))
+                .andExpect(status().isOk());
+
+        assertThat(paidUntil(account))
+                .isEqualTo(LocalDate.of(2026, 2, 11).atStartOfDay(ZONE).toInstant());
+        assertThat(subscriptionEvents(account)).isEqualTo(eventsBefore);
+    }
+
+    /** O fim do período pago por uma cobrança: o vencimento seguinte, com 1 dia de folga. */
+    private static Instant paidThrough(LocalDate due) {
+        return due.plusMonths(1).plusDays(1).atStartOfDay(ZONE).toInstant();
+    }
+
     // --- Um checkout por vez (Code Review do PR #328) ---
 
     @Test
@@ -521,6 +653,17 @@ class SubscriptionPaymentTest extends ServiceIntegrationTest {
         webhook("""
                         {"id": "evt_%s", "event": "PAYMENT_CONFIRMED"}
                         """.formatted(UUID.randomUUID())).andExpect(status().isOk());
+    }
+
+    // DEV-0182, QA do PR #360: sem o objeto da cobrança, o estorno não derruba o webhook (um 500 faria o Asaas
+    // reentregar sem fim).
+    @Test
+    void aRefundEventWithoutThePaymentIsIgnored() throws Exception {
+        for (String type : List.of("PAYMENT_REFUNDED", "PAYMENT_CHARGEBACK_REQUESTED", "PAYMENT_CHARGEBACK_DISPUTE")) {
+            webhook("""
+                            {"id": "evt_%s", "event": "%s"}
+                            """.formatted(UUID.randomUUID(), type)).andExpect(status().isOk());
+        }
     }
 
     @Test

@@ -121,6 +121,24 @@ class JdbcPaymentRecords implements PaymentRecords {
     }
 
     @Override
+    public Optional<UUID> refundPayment(String paymentId, Instant refundedAt) {
+        return jdbc.sql("update subscription_payment set refunded_at = ? where payment_id = ? and refunded_at is null"
+                        + " returning professional_id")
+                .params(Timestamp.from(refundedAt), paymentId)
+                .query(UUID.class)
+                .optional();
+    }
+
+    @Override
+    public boolean hasPayment(String paymentId) {
+        return jdbc.sql("select count(*) from subscription_payment where payment_id = ?")
+                        .param(paymentId)
+                        .query(Integer.class)
+                        .single()
+                > 0;
+    }
+
+    @Override
     public int countPayments(String subscriptionId) {
         return jdbc.sql("select count(*) from subscription_payment where subscription_id = ?")
                 .param(subscriptionId)

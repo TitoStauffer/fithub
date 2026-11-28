@@ -17,4 +17,10 @@ public interface SubscriptionRepository {
      * Devolve a assinatura como ficou, ou vazio se o profissional não tem assinatura.
      */
     Optional<Subscription> extendPaidUntil(UUID professionalId, Instant until);
+
+    /**
+     * Encerra o período pago em {@code at} (estorno ou chargeback, DEV-0182), nunca depois do que já estava. Devolve a
+     * assinatura como ficou só quando mudou: vazio se o período já terminava até {@code at}, ou se nada foi pago.
+     */
+    Optional<Subscription> endPaidAt(UUID professionalId, Instant at);
 }

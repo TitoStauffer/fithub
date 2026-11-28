@@ -39,6 +39,20 @@ cada mês. Também não existe desconto nativo para as N primeiras cobranças.
 4. **Período pago:** cada cobrança confirmada estende o `paid_until` até o vencimento seguinte, com 1 dia de folga
    para a próxima cobrança confirmar. Um pagamento mais antigo que chega depois nunca encurta o período. O
    `AssinaturaAlterada` já leva o novo `validUntil` aos serviços de prescrição.
+   - **Estorno e chargeback (DEV-0182, decisão do Tito em 27/11/2026):** o `PAYMENT_REFUNDED`, o
+     `PAYMENT_CHARGEBACK_REQUESTED` e o `PAYMENT_CHARGEBACK_DISPUTE` de uma cobrança gravada encerram o período pago
+     no momento do evento, nunca depois do que já estava, e gravam o `AssinaturaAlterada`. O profissional volta ao
+     estado vencido, a menos que o teste grátis ainda corra. O que já foi entregue continua com o cliente (BR-14).
+   - O estorno não encerra a assinatura do Asaas. Enquanto ela estiver ativa lá, a próxima cobrança confirmada dela
+     reabre o período, e o checkout novo continua recusado (409, uma assinatura viva por profissional). Um checkout novo
+     só abre depois do `SUBSCRIPTION_INACTIVATED` ou do `SUBSCRIPTION_DELETED` (Code Review do PR #360).
+   - A cobrança estornada fica no histórico, com a data do estorno. Conta uma vez só: o estorno repetido, ou o
+     chargeback que chega depois, não encerra um período pago por uma cobrança nova. A confirmação da mesma cobrança
+     entregue de novo também não reabre o período. O estorno de uma cobrança que não foi gravada é ignorado com aviso.
+   - **Limite:** o estorno que chegasse antes da confirmação da mesma cobrança seria ignorado, e a confirmação depois
+     estenderia o período. A fila sequencial do webhook no Asaas (Consequências) entrega os eventos de uma cobrança
+     na ordem, então isso não acontece com a configuração prevista. Se a fila deixar de ser sequencial, o estorno de
+     cobrança desconhecida precisa ser guardado (Code Review do PR #360).
 5. **Preço de lançamento:**
    - a assinatura nasce com R$ 150 quando o checkout é criado até a data de corte;
    - no 3º pagamento confirmado, o account-service troca o valor para R$ 200 no Asaas (`PUT /v3/subscriptions/{id}`,

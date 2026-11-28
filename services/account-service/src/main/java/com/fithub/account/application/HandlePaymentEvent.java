@@ -12,6 +12,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
  * <li><b>Cobrança confirmada:</b> conta uma vez só, pelo id dela (o Asaas entrega pelo menos uma vez), e estende o
  * período pago até o vencimento seguinte, com 1 dia de folga para a próxima cobrança confirmar. No último mês do preço
  * de lançamento, o valor passa ao cheio.</li>
+ * <li><b>Cobrança estornada ou com chargeback (DEV-0182, decisão do Tito em 27/11/2026):</b> o período pago termina no
+ * momento do evento, nunca depois do que já estava. Conta uma vez só por cobrança, e a cobrança desconhecida é
+ * ignorada com aviso. O que já foi entregue ao cliente continua com ele (BR-14).</li>
  * <li>Um evento sem os campos de que precisa, ou de assinatura sem checkout do FitHub, é ignorado com aviso: um erro
  * faria o Asaas reentregar sem fim.</li>
  * </ul>
@@ -35,6 +39,10 @@ public class HandlePaymentEvent {
 
     /** Cobrança confirmada: no cartão, o CONFIRMED chega primeiro e o RECEIVED cerca de 32 dias depois. */
     static final Set<String> CONFIRMED = Set.of("PAYMENT_CONFIRMED", "PAYMENT_RECEIVED");
+
+    /** Cobrança estornada ou contestada pelo pagador (chargeback). */
+    static final Set<String> REFUNDED =
+            Set.of("PAYMENT_REFUNDED", "PAYMENT_CHARGEBACK_REQUESTED", "PAYMENT_CHARGEBACK_DISPUTE");
 
     static final String SUBSCRIPTION_CREATED = "SUBSCRIPTION_CREATED";
 
@@ -83,6 +91,28 @@ public class HandlePaymentEvent {
         if (CONFIRMED.contains(type) && payment != null) {
             handlePayment(payment, now);
         }
+        if (REFUNDED.contains(type) && payment != null) {
+            handleRefund(payment, now);
+        }
+    }
+
+    /** Estorno ou chargeback: na primeira vez da cobrança, o período pago termina agora. */
+    private void handleRefund(Payment payment, Instant now) {
+        // Sem esta guarda o resultado é o mesmo (o update com id nulo não acha a cobrança), então ela não tem mutante:
+        // fica pelo aviso no log.
+        if (payment.id() == null) {
+            log.warn("Estorno sem id de cobrança; ignorado");
+            return;
+        }
+        Optional<UUID> professional = records.refundPayment(payment.id(), now);
+        if (professional.isEmpty()) {
+            if (!records.hasPayment(payment.id())) {
+                log.warn("Estorno da cobrança {}, que não foi registrada; ignorado", payment.id());
+            }
+            return;
+        }
+        subscriptions.endPaidAt(professional.get(), now).ifPresent(changed -> events.changed(changed, now));
+        log.info("Cobrança {} estornada; o período pago terminou", payment.id());
     }
 
     /** Assinatura criada: liga ao checkout. Inativada ou apagada: registra o fim. */

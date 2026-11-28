@@ -61,6 +61,21 @@ class JdbcSubscriptionRepository implements SubscriptionRepository {
                 .optional();
     }
 
+    @Override
+    public Optional<Subscription> endPaidAt(UUID professionalId, Instant at) {
+        return jdbc.sql("""
+                        update subscription
+                           set paid_until = :at
+                         where professional_id = :professionalId
+                           and paid_until > :at
+                        returning professional_id, plan, trial_ends_at, paid_until, created_at
+                        """)
+                .param("professionalId", professionalId)
+                .param("at", Timestamp.from(at))
+                .query(JdbcSubscriptionRepository::map)
+                .optional();
+    }
+
     private static Subscription map(ResultSet row, int index) throws SQLException {
         Timestamp paidUntil = row.getTimestamp("paid_until");
         return new Subscription(
