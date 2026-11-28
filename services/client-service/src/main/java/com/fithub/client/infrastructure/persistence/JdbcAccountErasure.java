@@ -23,6 +23,20 @@ class JdbcAccountErasure implements AccountErasure {
 
     @Override
     public void erase(UUID clientId, String email, Instant at) {
+        // A lista primeiro, com o hash do e-mail (DEV-0174): a limpeza dos convites pendentes abaixo compara por ele,
+        // na
+        // exclusão e na reaplicação depois de restaurar um backup, que não tem mais o e-mail (email nulo). Na
+        // reaplicação, o hash gravado na exclusão fica.
+        jdbc.sql("""
+                        insert into deleted_account (client_id, deleted_at, email_hash)
+                        values (:clientId, :at, encode(sha256(convert_to(lower(cast(:email as text)), 'UTF8')), 'hex'))
+                        on conflict (client_id) do update set deleted_at = excluded.deleted_at,
+                            email_hash = coalesce(excluded.email_hash, deleted_account.email_hash)
+                        """)
+                .param("clientId", clientId)
+                .param("at", Timestamp.from(at))
+                .param("email", email)
+                .update();
         jdbc.sql("delete from consent where client_id = :clientId")
                 .param("clientId", clientId)
                 .update();
@@ -31,11 +45,16 @@ class JdbcAccountErasure implements AccountErasure {
                         update invitation set email = null
                          where id in (select invitation_id from client_link where client_id = :clientId)
                         """).param("clientId", clientId).update();
-        if (email != null) {
-            jdbc.sql("update invitation set email = null where lower(email) = lower(:email)")
-                    .param("email", email)
-                    .update();
-        }
+        // Os convites enviados para o e-mail da conta até a exclusão, pelo hash da lista. Um convite posterior, para a
+        // mesma pessoa de volta com uma conta nova, fica (Code Review do PR #352). As duas datas são do relógio deste
+        // serviço.
+        jdbc.sql("""
+                        update invitation i set email = null
+                          from deleted_account d
+                         where d.client_id = :clientId
+                           and encode(sha256(convert_to(lower(i.email), 'UTF8')), 'hex') = d.email_hash
+                           and i.created_at <= d.deleted_at
+                        """).param("clientId", clientId).update();
         jdbc.sql("delete from client_link where client_id = :clientId")
                 .param("clientId", clientId)
                 .update();
@@ -51,13 +70,6 @@ class JdbcAccountErasure implements AccountErasure {
                 .update();
         jdbc.sql("delete from client_profile where account_id = :account")
                 .param("account", account)
-                .update();
-        jdbc.sql("""
-                        insert into deleted_account (client_id, deleted_at) values (:clientId, :at)
-                        on conflict (client_id) do update set deleted_at = excluded.deleted_at
-                        """)
-                .param("clientId", clientId)
-                .param("at", Timestamp.from(at))
                 .update();
     }
 

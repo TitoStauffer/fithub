@@ -11,6 +11,9 @@
 # deleted_account(client_id uuid primary key, deleted_at timestamptz not null). Um backup de antes da migration da lista
 # não a tem: a restauração cria a tabela, como dono do banco (DEV-0173). Só o account-service tem backup de antes da
 # lista, e a migration dela (V6) usa "if not exists"; nos outros três, a lista veio antes do primeiro backup.
+# A lista do client-service tem também email_hash char(64), o hash do e-mail da conta (DEV-0174, migration V18): quando
+# a lista de agora tem a coluna, ela é guardada e regravada junto, e a restauração cria a coluna num backup de antes da
+# V18 (que usa "if not exists").
 #
 # Ambiente: PGHOST, PGPORT, PGUSER e PGPASSWORD de um superusuário; FITHUB_DATABASES; BACKUP_DIR (padrão /backups).
 # Cada banco é restaurado com o papel do próprio banco (o dono, como em postgres/init-databases.sh).
@@ -40,10 +43,10 @@ done
 saved="$dir/restore-$stamp-$(date -u +%Y%m%dT%H%M%SZ)"
 mkdir -p "$saved"
 
-# Se o banco tem a lista de contas excluídas. Uma falha ao perguntar aborta a restauração: dentro de um if o set -e não
-# vale, então a saída é explícita, para a falha nunca virar "banco sem lista".
-has_deleted_list() {
-  answer=$(psql -X -At -v ON_ERROR_STOP=1 -d "$1" -c "select to_regclass('public.deleted_account') is not null") || {
+# Pergunta ao banco $1 sobre a lista ($2, uma consulta que devolve t ou f). Uma falha ao perguntar aborta a restauração:
+# dentro de um if o set -e não vale, então a saída é explícita, para a falha nunca virar "banco sem lista".
+ask_deleted_list() {
+  answer=$(psql -X -At -v ON_ERROR_STOP=1 -d "$1" -c "$2") || {
     # Sem nada guardado ainda, a cópia vazia não fica; com algo guardado, o rmdir não apaga e a mensagem diz onde está.
     rmdir "$saved" 2>/dev/null || true
     if [ -d "$saved" ]; then
@@ -57,16 +60,39 @@ has_deleted_list() {
   [ "$answer" = "t" ]
 }
 
-# Regrava no banco restaurado a lista guardada, sem duplicar quem já estava no backup.
+has_deleted_list() {
+  ask_deleted_list "$1" "select to_regclass('public.deleted_account') is not null"
+}
+
+# Se a lista guarda o hash do e-mail (o client-service, desde a V18).
+has_email_hash() {
+  ask_deleted_list "$1" "select exists (select 1 from information_schema.columns where table_schema = 'public'
+    and table_name = 'deleted_account' and column_name = 'email_hash')"
+}
+
+# Regrava no banco restaurado a lista guardada, sem duplicar quem já estava no backup. Com o hash do e-mail guardado, a
+# coluna é criada se o backup for de antes dela, e o hash de agora vale sobre um vazio do backup.
 restore_deleted_list() {
+  if [ -f "$saved/$1.email-hash" ]; then
+    columns="client_id, deleted_at, email_hash"
+    add_column="alter table deleted_account add column if not exists email_hash char(64);"
+    temp_column=", email_hash char(64)"
+    keep_hash=", email_hash = coalesce(excluded.email_hash, deleted_account.email_hash)"
+  else
+    columns="client_id, deleted_at"
+    add_column=""
+    temp_column=""
+    keep_hash=""
+  fi
   psql -X -q -v ON_ERROR_STOP=1 -d "$1" <<SQL
 set role "$1";
 create table if not exists deleted_account (client_id uuid primary key, deleted_at timestamptz not null);
-create temp table restored_deleted_account (client_id uuid, deleted_at timestamptz);
+$add_column
+create temp table restored_deleted_account (client_id uuid, deleted_at timestamptz$temp_column);
 \\copy restored_deleted_account from '$saved/$1.csv' csv
-insert into deleted_account (client_id, deleted_at)
-select client_id, deleted_at from restored_deleted_account
-on conflict (client_id) do update set deleted_at = greatest(deleted_account.deleted_at, excluded.deleted_at);
+insert into deleted_account ($columns)
+select $columns from restored_deleted_account
+on conflict (client_id) do update set deleted_at = greatest(deleted_account.deleted_at, excluded.deleted_at)$keep_hash;
 -- Marcador para o serviço reaplicar a exclusão das contas da lista (DEV-0172). Um backup de antes da migration do
 -- marcador não tem a tabela: ela é criada aqui, pelo dono do banco, e a migration usa "if not exists" (Code Review do
 -- PR #316).
@@ -78,8 +104,13 @@ SQL
 # 1. A lista de contas excluídas de agora, que o backup pode não ter. Qualquer falha aqui para tudo antes de restaurar.
 for db in $FITHUB_DATABASES; do
   if has_deleted_list "$db"; then
+    columns="client_id, deleted_at"
+    if has_email_hash "$db"; then
+      columns="client_id, deleted_at, email_hash"
+      : > "$saved/$db.email-hash"
+    fi
     psql -X -q -v ON_ERROR_STOP=1 -d "$db" \
-      -c "\\copy (select client_id, deleted_at from deleted_account) to '$saved/$db.csv' csv"
+      -c "\\copy (select $columns from deleted_account) to '$saved/$db.csv' csv"
     [ -f "$saved/$db.csv" ] || { echo "A lista de contas excluídas de $db não foi guardada." >&2; exit 1; }
   fi
 done

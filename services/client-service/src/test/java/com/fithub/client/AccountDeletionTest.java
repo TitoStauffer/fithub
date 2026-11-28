@@ -16,9 +16,14 @@ import com.fithub.eventcontracts.EventContract;
 import com.fithub.eventcontracts.EventContracts;
 import com.fithub.testing.service.ServiceIntegrationTest;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.HexFormat;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -224,11 +229,16 @@ class AccountDeletionTest extends ServiceIntegrationTest {
         return client;
     }
 
+    /**
+     * Convite criado antes da exclusão, no relógio fixo do serviço nos testes (2026-11-23T12:00:00Z, ClientApiFakes): a
+     * exclusão só limpa os convites criados até ela (DEV-0174).
+     */
     private void invitation(String professional, String email, String invitationStatus) {
         jdbc.sql("""
                         insert into invitation (id, professional_id, email, token_hash, code_hash, status, expires_at,
                                                 created_at, cancelled_at)
-                        values (:id, :p, :email, :token, :code, :status, now() + interval '7 days', now(),
+                        values (:id, :p, :email, :token, :code, :status, now() + interval '7 days',
+                                timestamptz '2026-11-23T11:00:00Z',
                                 case when :status = 'CANCELLED' then now() end)
                         """)
                 .param("id", UUID.randomUUID())
@@ -238,6 +248,17 @@ class AccountDeletionTest extends ServiceIntegrationTest {
                 .param("token", hash())
                 .param("code", hash())
                 .update();
+    }
+
+    /** sha256 em hexadecimal do e-mail em minúsculas, como a lista de contas excluídas guarda (DEV-0174). */
+    static String sha256(String email) {
+        try {
+            return HexFormat.of()
+                    .formatHex(MessageDigest.getInstance("SHA-256")
+                            .digest(email.toLowerCase(Locale.ROOT).getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException impossible) {
+            throw new IllegalStateException(impossible);
+        }
     }
 
     private static String hash() {
@@ -308,6 +329,16 @@ class AccountDeletionTest extends ServiceIntegrationTest {
 
         assertThat(leftovers(client)).containsOnly(0);
         assertThat(deletedAccounts(client)).isEqualTo(1);
+        // DEV-0174: a lista guarda o hash do e-mail do token, em minúsculas, nunca o e-mail.
+        assertThat(jdbc.sql("select email_hash from deleted_account where client_id = :id")
+                        .param("id", UUID.fromString(client))
+                        .query(String.class)
+                        .single())
+                .isEqualTo(sha256(client + "@teste.fithub"));
+        assertThat(jdbc.sql("select count(*) from deleted_account d where position('@' in d::text) > 0")
+                        .query(Integer.class)
+                        .single())
+                .isZero();
         List<String> payloads = outboxPayloads(client);
         assertThat(payloads).hasSize(1);
         assertThat(EventContracts.validate(EventContract.ACCOUNT_DELETED_V1, payloads.getFirst()))

@@ -77,10 +77,14 @@ run test -d /backups/2026-10-12T000000Z || fail "a pasta de 29 dias saiu antes d
 run test ! -e /backups/restore-2026-10-01T000000Z-20261001T000000Z || fail "a cópia de restauração de 40 dias não saiu"
 
 # Depois do backup: dado novo, uma exclusão nova e tabelas de migrations posteriores. O backup não tem o marcador de
-# restauração, como um backup de antes da migration dele (Code Review do PR #316).
+# restauração, como um backup de antes da migration dele (Code Review do PR #316), nem o hash do e-mail na lista, como
+# um backup de antes da V18 do client-service (DEV-0174). A conta "a", que está no backup sem hash, foi excluída de novo
+# e ganhou o hash: ele vale sobre o vazio do backup.
 sql client "set role client; insert into sample values (2); create table later (id int);
   create table restore_pending (restored_at timestamptz not null);
-  insert into deleted_account values ('00000000-0000-0000-0000-00000000000b', '2026-11-25T00:00:00Z');" >/dev/null
+  alter table deleted_account add column email_hash char(64);
+  update deleted_account set email_hash = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' where client_id = '00000000-0000-0000-0000-00000000000a';
+  insert into deleted_account values ('00000000-0000-0000-0000-00000000000b', '2026-11-25T00:00:00Z', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');" >/dev/null
 
 # Recusas, sempre antes de mexer no banco.
 run sh -c "mkdir -p /backups/2026-11-20T000000Z && cp /backups/$stamp/*.dump /backups/2026-11-20T000000Z/"
@@ -101,6 +105,10 @@ run sh /scripts/restore.sh "$stamp" >/dev/null
   || fail "a restauração não voltou o dado ao estado do backup"
 [ "$(sql client 'select count(*) from deleted_account')" = 2 ] \
   || fail "a exclusão feita depois do backup se perdeu na restauração"
+hash_of_b="select email_hash from deleted_account where client_id = '00000000-0000-0000-0000-00000000000b'"
+[ "$(sql client "$hash_of_b")" = bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb ] \
+  || fail "o hash do e-mail da exclusão feita depois do backup se perdeu na restauração"
+[ "$(sql client "select email_hash from deleted_account where client_id = '00000000-0000-0000-0000-00000000000a'")"   = aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ] || fail "o hash de agora não valeu sobre o vazio do backup"
 [ "$(sql client "select pg_get_userbyid(relowner) from pg_class where relname = 'sample'")" = client ] \
   || fail "a tabela restaurada não ficou com o dono do banco"
 [ "$(sql client "select to_regclass('public.later') is null")" = t ] \
@@ -140,6 +148,8 @@ echo "$message" | grep -q "está ilegível: nada foi restaurado" || fail "a recu
 run sh /scripts/restore.sh "$before_list" >/dev/null || fail "não restaurou o backup de antes da lista"
 [ "$(sql client 'select count(*) from deleted_account')" = 3 ] \
   || fail "a lista de agora não voltou no backup de antes da lista"
+[ "$(sql client "$hash_of_b")" = bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb ] \
+  || fail "o hash do e-mail não voltou no backup de antes da lista"
 [ "$(sql client "select pg_get_userbyid(relowner) from pg_class where relname = 'deleted_account'")" = client ] \
   || fail "a lista criada pela restauração não ficou com o dono do banco"
 [ "$(sql client 'select count(*) from restore_pending')" = 1 ] \

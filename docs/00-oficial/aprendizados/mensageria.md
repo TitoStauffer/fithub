@@ -98,3 +98,9 @@ do mesmo relógio (o do produtor dos eventos), e o teste cobre o evento posterio
     `occurredAt` do `ContaExcluida`, do mesmo client-service.
   - **Prevenção:** esta regra, o teste `vinculoDeContaQueVoltouDepoisDaExclusaoEProjetado` e os mutantes M4, M5, M9 e
     M10 de `mutations/DEV-0165.json`.
+- **Revisão:** Code Review do PR #352, no SHA `1a67505` (LOW) — DEV-0174 (#317) · **PR:** #352
+  - **Impacto:** a reaplicação depois de restaurar limpava pelo hash da lista o e-mail de todo convite da pessoa,
+    inclusive o criado depois da exclusão, quando ela voltou com uma conta nova.
+  - **Correção:** só os convites com `created_at <= deleted_at`, os dois do relógio do client-service.
+  - **Prevenção:** a regra vale para qualquer lista de bloqueio, não só para eventos: o que a lista apaga ou descarta é
+    comparado com o instante da entrada. Teste do convite posterior e mutante M6 de `mutations/DEV-0174.json`.

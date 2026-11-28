@@ -21,7 +21,10 @@ Backup diário e restauração dos bancos do FitHub (DEV-0108, ADR-012, item 4; 
   - apaga a pasta durável só com tudo restaurado. Se algo falhar no meio, ela fica, e a mensagem diz onde: regrave as
     listas antes de subir os serviços;
   - a lista tem o mesmo formato nos quatro serviços que a usam (account, client, training e nutrition):
-    `deleted_account(client_id uuid primary key, deleted_at timestamptz not null)`;
+    `deleted_account(client_id uuid primary key, deleted_at timestamptz not null)`. A do client-service tem também
+    `email_hash char(64)`, o hash do e-mail da conta (DEV-0174, migration V18): quando a lista de agora tem a coluna,
+    ela é guardada e regravada junto, a restauração cria a coluna num backup de antes da V18, e o hash de agora vale
+    sobre um vazio do backup;
   - um backup de antes da migration da lista é restaurado: a restauração cria a tabela, como dono do banco, e regrava
     nela a lista de agora (DEV-0173). Isso vale para o account-service, cuja migration da lista (V6) usa
     `if not exists`. No client, no training e no nutrition, a lista existe desde antes do backup (DEV-0105, DEV-0162 e
