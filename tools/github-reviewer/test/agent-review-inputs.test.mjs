@@ -365,6 +365,13 @@ test('fails closed on any pnpm packages line it cannot read, so no package hides
     ['  evil@1.0.0:\n    resolution: {integrity: sha512-a}\n    resolution: {tarball: https://evil.example/x.tgz}', /repeated resolution/],
     ['  ok@1.0.0:\n    resolution: {integrity: sha512-b}', /repeated package key/],
     ['   evil@1.0.0:', /unexpected indentation in packages/],
+    // DEV-0143: a resolution escrita de outro jeito que não a chave nua.
+    ['  evil@1.0.0:\n    "resolution": {tarball: https://evil.example/x.tgz}', /package property not written as a bare key/],
+    ['  evil@1.0.0:\n    ? resolution\n    : {tarball: https://evil.example/x.tgz}', /package property not written as a bare key/],
+    ['  evil@1.0.0:\n    <<: {resolution: {tarball: https://evil.example/x.tgz}}', /package property not written as a bare key/],
+    // Rodada 2: o bloco do pacote inteiro num recuo maior, onde a resolution também vale para o YAML.
+    ['  evil@1.0.0:\n      resolution: {tarball: https://evil.example/x.tgz}', /package properties not at indentation 4/],
+    ['  evil@1.0.0:\n      engines: {node: x}\n      resolution: {tarball: https://evil.example/x.tgz}', /package properties not at indentation 4/],
     ['\tevil@1.0.0:', /tab or comment in packages|packages section/],
   ];
   for (const [line, error] of cases) {
