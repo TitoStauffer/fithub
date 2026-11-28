@@ -127,3 +127,19 @@ para provar a recusa. Busca do item novo numa lista nunca sai em silêncio: list
   - **Correção:** o `backup.sh` recusa a pasta que já existe; o teste espera o segundo virar, a busca do backup novo
     falha com mensagem, e um caso com o `date` fixo prova a recusa.
   - **Prevenção:** esta regra e a prova manual S1 do PR.
+
+## checagem-que-nao-acha-o-que-procura-falha
+
+**Regra:** numa checagem de ponta a ponta, todo passo que extrai algo da resposta para seguir (formulário, link, id,
+mensagem) registra falha quando não acha, antes de sair. Um `if (!x) return;` sem `check` desliga em silêncio tudo que
+vem depois, e é justamente a atualização da ferramenta testada (outro HTML, outro id) que faz o passo não achar. A
+extração não depende de detalhe que não é contrato, como a ordem dos atributos.
+
+### Ocorrências
+
+- **Code Review:** PR #355, SHA `707256d` (MEDIUM) — DEV-0145 (#193) · **PR:** #355
+  - **Impacto:** se o Keycloak mudasse o formulário de cadastro, a checagem pulava o redirecionamento para a
+    verificação, a conta sem senha e o e-mail com a moldura, e o job `Local Infrastructure` ficava verde.
+  - **Correção:** `check` do formulário antes do retorno, e o `action` lido de dentro da tag do formulário, em qualquer
+    ordem de atributos.
+  - **Prevenção:** esta regra e o controle C3 do PR (o id do formulário trocado faz a checagem falhar).

@@ -258,7 +258,10 @@ síncrona** no caminho principal. Os fronts chamam cada serviço diretamente
     guardas no arquivo e no Keycloak de pé (job `Local Infrastructure`).
   - **Cadastro em duas etapas:** com a verificação de e-mail ligada, o
     Keycloak pede só o e-mail e o nome no cadastro; a senha é definida depois
-    de a pessoa confirmar o e-mail. Só o dono do e-mail cria a senha.
+    de a pessoa confirmar o e-mail. Só o dono do e-mail cria a senha. A
+    checagem do Keycloak de pé (DEV-0145) faz um cadastro e confere que a
+    tela não pede senha, que a conta nasce sem credencial e que o e-mail de
+    verificação chega ao Mailpit com a moldura do tema `fithub`.
   - **Tema `fithub`** (DEV-0026) em `infra/keycloak/themes/fithub`: herda as
     telas do `keycloak.v2` e muda só CSS e textos (login) e a moldura dos
     e-mails. Sem script, sem página de login própria e sem recurso externo.

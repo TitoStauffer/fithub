@@ -349,10 +349,11 @@ jobs:
           docker compose -f infra/compose/docker-compose.dev.yml up -d --wait --wait-timeout 300
           docker compose -f infra/compose/docker-compose.dev.yml ps
 
-      # O realm foi importado e o Keycloak de pé recusa o que não é Authorization Code + PKCE (DEV-0024).
+      # O realm foi importado e o Keycloak de pé recusa o que não é Authorization Code + PKCE (DEV-0024). O cadastro
+      # não pede senha, e o e-mail de verificação chega ao Mailpit com a moldura do tema fithub (DEV-0145).
       - name: Check imported Keycloak realm
         if: env.RUN_AREA == 'true'
-        run: node infra/keycloak/check-live-realm.mjs http://localhost:8080
+        run: node infra/keycloak/check-live-realm.mjs http://localhost:8080 http://localhost:8025
 
       # Backup e restauração (DEV-0108): dumps por banco, retenção de 30 dias, recusa de backup incompleto e a
       # lista de contas excluídas preservada na restauração.
